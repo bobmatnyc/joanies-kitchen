@@ -1,22 +1,34 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isClerkConfigured, isAuthEnabled, logAuthStatus, authConfig } from './lib/auth-config';
 
 export async function middleware(request: NextRequest) {
-  // Check if we're in production (recipe.help or vercel.app domains)
-  const isProduction =
-    request.nextUrl.hostname.includes('recipe.help') ||
-    request.nextUrl.hostname.includes('vercel.app');
+  // Log auth status in development for debugging
+  if (process.env.NODE_ENV === 'development') {
+    logAuthStatus();
+  }
 
-  // Only enable Clerk in production with proper keys
-  const isClerkConfigured =
-    isProduction &&
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'YOUR_PUBLISHABLE_KEY' &&
-    process.env.CLERK_SECRET_KEY &&
-    process.env.CLERK_SECRET_KEY !== 'YOUR_SECRET_KEY';
+  // Check if authentication should be enabled
+  const authEnabled = isAuthEnabled();
 
-  if (!isClerkConfigured) {
-    // Skip all authentication for localhost and non-configured environments
+  if (!authEnabled) {
+    // Skip authentication when not enabled
+    // This happens when:
+    // 1. Clerk is not configured
+    // 2. We're in development without ENABLE_DEV_AUTH=true
+    console.log('[Middleware] Authentication disabled, allowing all requests');
+    return NextResponse.next();
+  }
+
+  // Verify we have the correct keys for the current environment
+  if (!authConfig.clerk.publishableKey || !authConfig.clerk.secretKey) {
+    console.error('[Middleware] Missing Clerk keys for environment:', authConfig.environment);
+    if (authConfig.isProduction) {
+      return NextResponse.json(
+        { error: 'Authentication service unavailable' },
+        { status: 503 }
+      );
+    }
     return NextResponse.next();
   }
 
@@ -34,16 +46,13 @@ export async function middleware(request: NextRequest) {
     '/api/webhooks(.*)',     // Webhooks
   ]);
 
-  // Define routes that are conditionally protected
-  // These need special handling based on the specific path and method
-  const isRecipeViewRoute = createRouteMatcher([
-    '/recipes/[^/]+$',       // Viewing individual recipes (not /new or /edit)
-  ]);
+  // Recipe view routes are handled with custom logic below
+  // (individual recipes like /recipes/123 that don't end with /new or contain /edit)
 
   // Define strictly protected routes that always require authentication
   const isProtectedRoute = createRouteMatcher([
     '/recipes/new(.*)',      // Creating new recipes
-    '/recipes/.*/edit(.*)',  // Editing recipes
+    '/recipes/edit(.*)',     // Editing recipes (simplified pattern)
     '/recipes$',             // My Recipes listing (personal collection)
     '/meal-plans(.*)',       // Meal planning
     '/shopping-lists(.*)',   // Shopping lists
