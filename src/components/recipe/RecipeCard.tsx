@@ -3,24 +3,18 @@
 import { type Recipe } from '@/lib/db/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Clock, Users, ChefHat, Edit, Trash2, Star } from 'lucide-react';
+import { Clock, Users, ChefHat, Star } from 'lucide-react';
 import Link from 'next/link';
-import { deleteRecipe } from '@/app/actions/recipes';
-import { toast } from '@/lib/toast';
-import { useRouter } from 'next/navigation';
 import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onDelete?: () => void;
   showSimilarity?: boolean;
   similarity?: number;
   showRank?: number;
 }
 
-export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarity = 0, showRank }: RecipeCardProps) {
-  const router = useRouter();
+export function RecipeCard({ recipe, showSimilarity = false, similarity = 0, showRank }: RecipeCardProps) {
   const tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
   const images = recipe.images ? JSON.parse(recipe.images as string) : [];
   const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
@@ -34,31 +28,6 @@ export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarit
   const systemRating = parseFloat(recipe.systemRating || '0') || 0;
   const userRating = parseFloat(recipe.avgUserRating || '0') || 0;
   const isTopRated = systemRating >= 4.5 || userRating >= 4.5;
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent card navigation
-    e.stopPropagation();
-
-    if (!confirm('Are you sure you want to delete this recipe?')) {
-      return;
-    }
-
-    const result = await deleteRecipe(recipe.id);
-    if (result.success) {
-      toast.success('Recipe deleted successfully');
-      if (onDelete) {
-        onDelete();
-      }
-      router.refresh();
-    } else {
-      toast.error(result.error || 'Failed to delete recipe');
-    }
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent card navigation
-    e.stopPropagation();
-  };
 
   return (
     <Link
@@ -190,32 +159,6 @@ export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarit
             </div>
           )}
         </CardContent>
-
-        {/* Action Buttons - Only Edit and Delete */}
-        <div className="px-6 pb-4 flex gap-2">
-          <Link
-            href={`/recipes/${recipe.id}/edit`}
-            onClick={handleEdit}
-            className="flex-1"
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full border-jk-sage text-jk-olive hover:bg-jk-sage hover:text-jk-olive font-ui"
-            >
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            className="border-jk-sage text-jk-olive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive font-ui"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
       </Card>
     </Link>
   );
