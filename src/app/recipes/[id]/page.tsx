@@ -6,12 +6,13 @@ import { parseRecipe } from '@/lib/utils/recipe-utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Clock, Users, ChefHat, Edit, Printer, Bot, Download, FileText, FileDown, Trash2, Lock } from 'lucide-react';
+import { ChevronLeft, Clock, Users, ChefHat, Edit, Printer, Bot, Download, FileText, FileDown, Trash2, Lock, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
 import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
 import { toast } from 'sonner';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
+import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
 
 // Conditionally import Clerk hook
 let useUser: any = null;
@@ -181,6 +182,31 @@ export default function RecipePage({ params }: RecipePageProps) {
     }
   };
 
+  const handleCopyRecipe = async () => {
+    try {
+      // Format recipe as text
+      const recipeText = `
+${recipe.name}
+${recipe.description ? `\n${recipe.description}\n` : ''}
+Prep Time: ${recipe.prepTime || 0} min | Cook Time: ${recipe.cookTime || 0} min | Servings: ${recipe.servings || 0}
+${recipe.cuisine ? `Cuisine: ${recipe.cuisine}` : ''} ${recipe.difficulty ? `| Difficulty: ${recipe.difficulty}` : ''}
+
+INGREDIENTS:
+${recipe.ingredients.map((ing: string) => `• ${ing}`).join('\n')}
+
+INSTRUCTIONS:
+${recipe.instructions.map((inst: string, i: number) => `${i + 1}. ${inst}`).join('\n')}
+${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : ''}
+      `.trim();
+
+      await navigator.clipboard.writeText(recipeText);
+      toast.success('Recipe copied to clipboard!');
+    } catch (error) {
+      console.error('Copy error:', error);
+      toast.error('Failed to copy recipe');
+    }
+  };
+
   if (loading) {
     return <div className="container mx-auto py-8 px-4">Loading...</div>;
   }
@@ -223,6 +249,12 @@ export default function RecipePage({ params }: RecipePageProps) {
   }
   const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
 
+  // Categorize tags using the ontology system
+  const categorizedTags = recipe.tags && recipe.tags.length > 0
+    ? categorizeTags(recipe.tags)
+    : {};
+  const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <Link
@@ -242,7 +274,15 @@ export default function RecipePage({ params }: RecipePageProps) {
               <p className="text-lg text-muted-foreground">{recipe.description}</p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCopyRecipe}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Recipe
+            </Button>
             {isOwner && (
               <>
                 <Link href={`/recipes/${recipeId}/edit`}>
@@ -342,13 +382,26 @@ export default function RecipePage({ params }: RecipePageProps) {
           )}
         </div>
 
-        {/* Tags */}
-        {recipe.tags && recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {recipe.tags.map((tag: string, index: number) => (
-              <Badge key={index} variant="secondary">
-                {tag}
-              </Badge>
+        {/* Categorized Tags */}
+        {categoryEntries.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {categoryEntries.map(([category, categoryTags]) => (
+              <div key={category} className="space-y-1">
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {category}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {categoryTags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      className={getCategoryColor(category)}
+                      variant="outline"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -373,12 +426,24 @@ export default function RecipePage({ params }: RecipePageProps) {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {recipe.ingredients.map((ingredient: string, index: number) => (
-                <li key={index} className="flex items-start">
-                  <span className="inline-block w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0" />
-                  <span>{ingredient}</span>
-                </li>
-              ))}
+              {recipe.ingredients.map((ingredient: string, index: number) => {
+                // Check if ingredient has amount (starts with number, fraction, or common amount words)
+                const hasAmount = /^[\d½¼¾⅓⅔⅛⅜⅝⅞]|^(a |an |one |two |three |some |few |several )/i.test(ingredient.trim());
+
+                return (
+                  <li key={index} className="flex items-start">
+                    <span className="inline-block w-2 h-2 bg-primary rounded-full mt-1.5 mr-3 flex-shrink-0" />
+                    <span className={!hasAmount ? 'text-amber-600' : ''}>
+                      {ingredient}
+                      {!hasAmount && (
+                        <span className="text-xs text-amber-600 ml-2 opacity-75" title="Amount not specified">
+                          (amount not specified)
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>

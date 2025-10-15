@@ -1,94 +1,262 @@
-# Recipe Manager
+# Joanie's Kitchen
 
-An AI-powered recipe generator and meal planning application built with Next.js 15, TypeScript, and Neon PostgreSQL.
+**From Garden to Table — with Heart and Soil**
 
-## Features
+An AI-powered seasonal recipe collection and meal planning application celebrating wholesome, authentic cooking. Built with Next.js 15, TypeScript, and Neon PostgreSQL.
 
-- **AI Recipe Generation**: Generate custom recipes based on ingredients, dietary preferences, or cuisine types
-- **Recipe Library**: Save and organize your favorite recipes
-- **Meal Planning**: Plan meals for the week with drag-and-drop simplicity
-- **Shopping Lists**: Automatically generate shopping lists from meal plans
-- **Recipe Import**: Import recipes from URLs
-- **Nutritional Information**: Track nutritional data for recipes
+---
 
-## Tech Stack
+## 🚀 Quick Start
+
+```bash
+# Clone and install
+git clone <repository-url>
+cd recipe-manager
+pnpm install
+
+# Configure environment
+cp .env.local.example .env.local
+# Edit .env.local with your API keys
+
+# Setup database
+pnpm db:push
+
+# Start development server
+pnpm dev
+```
+
+Visit **http://localhost:3004** to see your application!
+
+---
+
+## 📖 Documentation
+
+For comprehensive documentation, see **[docs/](./docs/README.md)**
+
+### Essential Guides
+
+- **[Installation Guide](./docs/getting-started/installation.md)** - Detailed setup instructions
+- **[Quick Start Guide](./docs/getting-started/quick-start.md)** - Get running in 5 minutes
+- **[Environment Setup](./docs/getting-started/environment-setup.md)** - Configure all features
+- **[Deployment Guide](./docs/getting-started/deployment.md)** - Deploy to production
+
+### Key Features
+
+- **[Authentication](./docs/guides/authentication.md)** - Clerk authentication setup
+- **[Data Acquisition](./docs/guides/data-acquisition.md)** - Import recipes from external sources
+- **[Semantic Search](./docs/guides/semantic-search.md)** - Natural language recipe search
+- **[Rating System](./docs/guides/rating-system.md)** - AI and user ratings
+- **[Continuous Scraping](./docs/guides/continuous-scraping.md)** - Automated recipe discovery
+
+### Development
+
+- **[API Documentation](./docs/api/overview.md)** - API reference and usage
+- **[Project Organization](./docs/reference/project-organization.md)** - File structure standards
+- **[Quality Standards](./docs/reference/quality.md)** - Code quality guidelines
+- **[Troubleshooting](./docs/troubleshooting/common-issues.md)** - Common problems and solutions
+
+---
+
+## ✨ Features
+
+### Core Functionality
+- 🤖 **AI Recipe Generation** - Generate custom recipes from ingredients or descriptions
+- 📚 **Recipe Library** - Save, organize, and manage your recipe collection
+- 🔍 **Semantic Search** - Natural language search powered by vector embeddings
+- ⭐ **Dual Rating System** - AI quality evaluation + community ratings
+- 📅 **Meal Planning** - Plan meals for the week with drag-and-drop
+- 🛒 **Shopping Lists** - Auto-generate shopping lists from meal plans
+
+### Advanced Features
+- 🌐 **Recipe Import** - Import recipes from URLs with AI extraction
+- 📊 **Nutritional Information** - Track nutritional data for recipes
+- 🎯 **Recipe Discovery** - Automated recipe crawling and curation
+- 🔗 **Recipe Sharing** - Share recipes publicly or keep them private
+- 📱 **Responsive Design** - Works beautifully on mobile and desktop
+
+---
+
+## 🛠️ Tech Stack
 
 - **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Database**: Neon PostgreSQL with Drizzle ORM
-- **UI**: Tailwind CSS v4 + shadcn/ui components
-- **AI Integration**: OpenRouter API (supports multiple LLM providers)
+- **Language**: TypeScript (Strict mode)
+- **Database**: Neon PostgreSQL + pgvector
+- **ORM**: Drizzle ORM
+- **Authentication**: Clerk
+- **UI**: Tailwind CSS v4 + shadcn/ui
+- **AI Integration**: OpenRouter API (Claude, GPT, Gemini)
+- **Search**: Brave Search API
+- **Embeddings**: Hugging Face (sentence-transformers)
 - **Package Manager**: pnpm
 
-## Installation
+---
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
+## 📋 Environment Variables
 
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env.local
-   ```
-   Edit `.env.local` and add your OpenRouter API key
+### Required
 
-4. Initialize the database:
-   ```bash
-   pnpm db:push
-   ```
-
-5. Run the development server:
-   ```bash
-   pnpm dev
-   ```
-
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Database Commands
-
-- `pnpm db:generate` - Generate migrations from schema
-- `pnpm db:push` - Push schema changes to database
-- `pnpm db:studio` - Open Drizzle Studio for database management
-- `pnpm db:migrate` - Run migrations
-
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js app router pages
-│   ├── api/               # API routes
-│   ├── recipes/           # Recipe pages
-│   ├── meal-plans/        # Meal planning pages
-│   └── shopping-lists/    # Shopping list pages
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── recipe/           # Recipe-specific components
-│   ├── meal-plan/        # Meal planning components
-│   └── shopping-list/    # Shopping list components
-├── lib/                   # Utilities and services
-│   ├── ai/               # AI/LLM integration
-│   ├── db/               # Database configuration and schema
-│   └── utils/            # Utility functions
-└── types/                # TypeScript type definitions
-```
-
-## Environment Variables
-
-- `OPENROUTER_API_KEY` - Your OpenRouter API key for AI features
 - `DATABASE_URL` - Neon PostgreSQL connection string
-- `NEXT_PUBLIC_APP_URL` - Application URL (default: `http://localhost:3000`)
+- `OPENROUTER_API_KEY` - AI recipe generation
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Authentication (public)
+- `CLERK_SECRET_KEY` - Authentication (secret)
 
-## Development
+### Optional
 
-The application uses:
-- **Drizzle ORM** for type-safe database queries
-- **Zod** for schema validation
-- **React Hook Form** for form management
-- **Sonner** for toast notifications
-- **Lucide React** for icons
+- `BRAVE_SEARCH_API_KEY` - Recipe discovery
+- `HUGGINGFACE_API_KEY` - Semantic search embeddings
+- `NEXT_PUBLIC_APP_URL` - Application URL (default: http://localhost:3004)
 
-## License
+See [Environment Setup Guide](./docs/getting-started/environment-setup.md) for detailed configuration.
+
+---
+
+## 🎯 Project Structure
+
+```
+joanies-kitchen/
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── api/         # API routes
+│   │   ├── actions/     # Server actions
+│   │   └── [pages]/     # Page components
+│   ├── components/      # React components
+│   │   ├── ui/         # Base UI components (shadcn/ui)
+│   │   ├── recipe/     # Recipe components
+│   │   ├── meal-plan/  # Meal planning
+│   │   └── admin/      # Admin dashboard
+│   ├── lib/            # Core utilities
+│   │   ├── ai/        # AI/LLM integration
+│   │   ├── db/        # Database layer
+│   │   └── security/  # Security utilities
+│   └── types/         # TypeScript types
+├── docs/              # Documentation
+├── scripts/           # Utility scripts
+└── public/            # Static assets
+```
+
+See [Project Organization](./docs/reference/project-organization.md) for complete structure.
+
+---
+
+## 👨‍💼 Admin Access
+
+The application includes an admin dashboard for managing recipes and users.
+
+### Quick Setup (3 Steps)
+
+1. Configure custom session token in Clerk Dashboard
+2. Add `isAdmin: "true"` to user's public metadata
+3. Sign out and sign back in
+
+### Admin Features
+
+- View recipe statistics and analytics
+- Manage all recipes in the system
+- Access to `/admin` and `/admin/recipes` routes
+- Admin menu item in profile popup
+
+### Documentation
+
+- **[Admin Setup Guide](./docs/guides/admin-setup.md)** (coming soon)
+- **Debug endpoint**: `http://localhost:3004/api/debug-session`
+- **Validation script**: `node scripts/validate-admin-setup.js`
+
+---
+
+## 🧪 Development Commands
+
+```bash
+# Development
+pnpm dev              # Start dev server (port 3004)
+pnpm build            # Build for production
+pnpm start            # Start production server
+
+# Database
+pnpm db:push          # Push schema changes
+pnpm db:generate      # Generate migrations
+pnpm db:migrate       # Run migrations
+pnpm db:studio        # Open Drizzle Studio GUI
+
+# Utilities
+pnpm auth:validate    # Validate Clerk setup
+pnpm lint             # Run linter
+pnpm type-check       # TypeScript checks
+```
+
+---
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy
+
+See [Deployment Guide](./docs/getting-started/deployment.md) for detailed instructions.
+
+### Other Platforms
+
+The application can be deployed to any platform supporting Next.js:
+- Netlify
+- AWS Amplify
+- Railway
+- Self-hosted with Docker
+
+---
+
+## 🔐 Security
+
+- **Authentication**: Clerk-based user authentication
+- **Authorization**: Server-side permission checks
+- **Input Validation**: Zod schemas for all inputs
+- **SQL Injection**: Protected by Drizzle ORM
+- **API Keys**: Server-side only (never exposed to client)
+- **Rate Limiting**: Consider implementing for production
+
+See [Security Guide](./docs/reference/security.md) (coming soon) for more details.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guide](./docs/CONTRIBUTING.md) (coming soon).
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Write/update tests
+5. Submit a pull request
+
+---
+
+## 📄 License
 
 MIT
+
+---
+
+## 🙏 Acknowledgments
+
+- **Next.js** - The React framework for production
+- **Clerk** - Authentication and user management
+- **Neon** - Serverless PostgreSQL
+- **OpenRouter** - Multi-provider AI API
+- **shadcn/ui** - Beautiful UI components
+- **Drizzle ORM** - TypeScript ORM
+
+---
+
+## 📞 Support
+
+- **Documentation**: [docs/README.md](./docs/README.md)
+- **Troubleshooting**: [Common Issues](./docs/troubleshooting/common-issues.md)
+- **Issues**: Open an issue on GitHub
+- **Discussions**: GitHub Discussions
+
+---
+
+**Built with ❤️ for home cooks everywhere**

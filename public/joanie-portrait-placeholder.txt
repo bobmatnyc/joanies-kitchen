@@ -1,0 +1,25 @@
+IMPORTANT: Save the Joanie illustration provided by the user as:
+/public/joanie-portrait.png
+
+The illustration features Joanie in her kitchen cooking with fresh vegetables,
+with warm earthy tones (oranges, browns, greens) that perfectly match the
+Joanie's Kitchen brand palette.
+
+Image should be:
+- Optimized for web (compressed but high quality)
+- Dimensions: 800x1000 or similar portrait orientation
+- Format: PNG or WebP
+- File name: joanie-portrait.png
+
+This illustration will be used in:
+1. Homepage "About Joanie" section
+2. Dedicated /about page
+3. Future marketing materials
+
+Original illustration characteristics:
+- Joanie cooking with fresh greens in a pan
+- Kitchen setting with bowls of tomatoes
+- Shelves with plates and utensils
+- Textured, vintage illustration style
+- Parchment-like background
+- Perfect representation of "From Garden to Table" philosophy

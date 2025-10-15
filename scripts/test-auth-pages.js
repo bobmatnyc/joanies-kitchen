@@ -56,8 +56,8 @@ testConfigs.forEach((config, index) => {
   console.log('✓ Updated .env.local with test configuration');
   console.log('  To verify manually:');
   console.log('  1. Run: npm run dev');
-  console.log('  2. Visit: http://localhost:3000/sign-in');
-  console.log('  3. Visit: http://localhost:3000/sign-up');
+  console.log('  2. Visit: http://localhost:3004/sign-in');
+  console.log('  3. Visit: http://localhost:3004/sign-up');
   console.log('---\n');
 });
 

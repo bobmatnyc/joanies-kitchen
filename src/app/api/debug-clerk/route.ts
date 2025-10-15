@@ -24,7 +24,6 @@ export async function GET() {
       clerkInstance: `https://${process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.split('.')[0]?.replace('pk_test_', '')}.clerk.accounts.dev`,
       expectedCallbacks: [
         'https://powerful-salmon-99.clerk.accounts.dev/v1/oauth_callback',
-        'http://localhost:3000/.clerk/oauth_callback',
         'http://localhost:3004/.clerk/oauth_callback',
       ],
     },

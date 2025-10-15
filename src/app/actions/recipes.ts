@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { recipes, type NewRecipe, type Recipe } from '@/lib/db/schema';
-import { eq, desc, like, or, and } from 'drizzle-orm';
+import { eq, desc, like, or, and, gte, asc, sql, SQL } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 
@@ -496,17 +496,18 @@ export async function copyRecipeToCollection(recipeId: string) {
 // Mark a recipe as a system recipe (admin action - can be restricted later)
 export async function markAsSystemRecipe(recipeId: string, isSystem: boolean = true) {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
     }
 
-    // For now, any authenticated user can mark recipes as system
-    // In production, you would check for admin role here
-    // if (!isAdmin(userId)) {
-    //   return { success: false, error: 'Admin access required' };
-    // }
+    // Check for admin role
+    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
+    const isAdmin = metadata?.isAdmin === 'true';
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
+    }
 
     const result = await db
       .update(recipes)
@@ -529,5 +530,210 @@ export async function markAsSystemRecipe(recipeId: string, isSystem: boolean = t
   } catch (error) {
     console.error('Failed to mark recipe as system:', error);
     return { success: false, error: 'Failed to update recipe status' };
+  }
+}
+
+// Pagination types
+export interface RecipeFilters {
+  cuisine?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  minRating?: number;
+  tags?: string[];
+  userId?: string;
+  isSystemRecipe?: boolean;
+  isPublic?: boolean;
+  searchQuery?: string;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  filters?: RecipeFilters;
+  sort?: 'rating' | 'recent' | 'name';
+}
+
+export interface PaginationMetadata {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+export interface PaginatedRecipeResponse {
+  recipes: Recipe[];
+  pagination: PaginationMetadata;
+}
+
+// Get recipes with pagination, filtering, and sorting
+export async function getRecipesPaginated({
+  page = 1,
+  limit = 24,
+  filters = {},
+  sort = 'rating',
+}: PaginationParams): Promise<{ success: boolean; data?: PaginatedRecipeResponse; error?: string }> {
+  try {
+    const { userId } = await auth();
+    const offset = (page - 1) * limit;
+
+    // Build WHERE conditions
+    const conditions: SQL[] = [];
+
+    // Access control: user's recipes OR public recipes
+    if (filters.userId) {
+      // Specific user filter
+      conditions.push(eq(recipes.userId, filters.userId));
+    } else if (filters.isPublic !== undefined) {
+      // Public/private filter
+      conditions.push(eq(recipes.isPublic, filters.isPublic));
+
+      // If requesting public recipes and user is authenticated, include their recipes too
+      if (filters.isPublic && userId) {
+        const accessCondition = or(
+          eq(recipes.isPublic, true),
+          eq(recipes.userId, userId)
+        );
+        if (accessCondition) {
+          // Replace last condition with combined access condition
+          conditions.pop();
+          conditions.push(accessCondition);
+        }
+      }
+    } else if (userId) {
+      // Default: authenticated user sees their recipes + public recipes
+      const accessCondition = or(
+        eq(recipes.userId, userId),
+        eq(recipes.isPublic, true)
+      );
+      if (accessCondition) {
+        conditions.push(accessCondition);
+      }
+    } else {
+      // Not authenticated: only public recipes
+      conditions.push(eq(recipes.isPublic, true));
+    }
+
+    // Apply additional filters
+    if (filters.cuisine) {
+      conditions.push(eq(recipes.cuisine, filters.cuisine));
+    }
+
+    if (filters.difficulty) {
+      conditions.push(eq(recipes.difficulty, filters.difficulty));
+    }
+
+    if (filters.minRating !== undefined) {
+      conditions.push(gte(recipes.systemRating, filters.minRating.toString()));
+    }
+
+    if (filters.isSystemRecipe !== undefined) {
+      conditions.push(eq(recipes.isSystemRecipe, filters.isSystemRecipe));
+    }
+
+    // Search query filter
+    if (filters.searchQuery && filters.searchQuery.trim()) {
+      const searchPattern = `%${filters.searchQuery.trim()}%`;
+      const searchCondition = or(
+        like(recipes.name, searchPattern),
+        like(recipes.description, searchPattern),
+        like(recipes.cuisine, searchPattern),
+        like(recipes.tags, searchPattern)
+      );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
+    }
+
+    // Tag filtering (if specified)
+    if (filters.tags && filters.tags.length > 0) {
+      const normalizedTags = filters.tags.map(tag => tag.toLowerCase());
+      const tagConditions = normalizedTags.map(tag =>
+        or(
+          like(recipes.tags, `%"${tag}"%`),
+          like(recipes.tags, `%${tag}%`)
+        )
+      ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+
+      conditions.push(...tagConditions);
+    }
+
+    // Build base query
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Determine sort order
+    let orderByClause;
+    if (sort === 'rating') {
+      orderByClause = [
+        desc(recipes.systemRating),
+        desc(recipes.avgUserRating),
+        desc(recipes.createdAt)
+      ];
+    } else if (sort === 'recent') {
+      orderByClause = [desc(recipes.createdAt)];
+    } else if (sort === 'name') {
+      orderByClause = [asc(recipes.name)];
+    } else {
+      // Default to rating
+      orderByClause = [desc(recipes.systemRating), desc(recipes.avgUserRating)];
+    }
+
+    // Execute paginated query
+    const query = db
+      .select()
+      .from(recipes)
+      .where(whereClause)
+      .orderBy(...orderByClause)
+      .limit(limit)
+      .offset(offset);
+
+    const results = await query;
+
+    // Get total count for pagination metadata
+    const countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(recipes)
+      .where(whereClause);
+
+    const countResult = await countQuery;
+    const total = countResult[0]?.count || 0;
+
+    // Additional client-side tag filtering for exact matches (if tags specified)
+    let filteredResults = results;
+    if (filters.tags && filters.tags.length > 0) {
+      const normalizedTags = filters.tags.map(tag => tag.toLowerCase());
+      filteredResults = results.filter(recipe => {
+        if (!recipe.tags) return false;
+
+        try {
+          const recipeTags = JSON.parse(recipe.tags);
+          if (Array.isArray(recipeTags)) {
+            const normalizedRecipeTags = recipeTags.map((t: string) => t.toLowerCase());
+            return normalizedTags.every(tag => normalizedRecipeTags.includes(tag));
+          }
+        } catch (e) {
+          // Handle non-JSON tags
+          const recipeTags = recipe.tags.split(',').map(t => t.trim().toLowerCase());
+          return normalizedTags.every(tag => recipeTags.includes(tag));
+        }
+        return false;
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        recipes: filteredResults,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasMore: page * limit < total,
+        },
+      },
+    };
+  } catch (error) {
+    console.error('Failed to fetch paginated recipes:', error);
+    return { success: false, error: 'Failed to fetch recipes' };
   }
 }
