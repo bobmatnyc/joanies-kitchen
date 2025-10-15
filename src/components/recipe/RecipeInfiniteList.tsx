@@ -151,16 +151,6 @@ export function RecipeInfiniteList({
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
-            onDelete={() => {
-              // Remove deleted recipe from list
-              setRecipes((prev) => prev.filter((r) => r.id !== recipe.id));
-              // Update pagination total count
-              setPagination((prev) => ({
-                ...prev,
-                total: prev.total - 1,
-                totalPages: Math.ceil((prev.total - 1) / prev.limit),
-              }));
-            }}
           />
         ))}
       </div>
