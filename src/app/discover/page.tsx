@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { discoverRecipe, saveDiscoveredRecipe } from '@/app/actions/ai-recipes';
 import { getAllTags } from '@/app/actions/recipes';
+import { RequireAuthAI } from '@/components/auth/RequireAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -151,13 +152,17 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Discover Recipes</h1>
-        <p className="text-muted-foreground">
-          Generate AI recipes or search the web for authentic recipes from food blogs and chef resources
-        </p>
-      </div>
+    <RequireAuthAI
+      featureName="AI Recipe Discovery"
+      description="Generate custom recipes with AI based on your preferences, or search the web for authentic recipes from top food blogs and chefs. Sign in to start discovering!"
+    >
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Discover Recipes</h1>
+          <p className="text-muted-foreground">
+            Generate AI recipes or search the web for authentic recipes from food blogs and chef resources
+          </p>
+        </div>
 
       <Tabs defaultValue="generate" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -600,6 +605,7 @@ export default function DiscoverPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RequireAuthAI>
   );
 }

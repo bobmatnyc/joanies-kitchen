@@ -565,6 +565,53 @@ export interface PaginatedRecipeResponse {
   pagination: PaginationMetadata;
 }
 
+// Get top-rated recipes with combined system and user ratings
+export async function getTopRatedRecipes({
+  limit = 50
+}: {
+  limit?: number
+} = {}) {
+  try {
+    // Query recipes ordered by rating (system + user average)
+    const topRecipes = await db
+      .select()
+      .from(recipes)
+      .where(
+        and(
+          eq(recipes.isPublic, true),
+          or(
+            sql`${recipes.systemRating} IS NOT NULL`,
+            sql`${recipes.avgUserRating} IS NOT NULL`
+          )
+        )
+      )
+      .orderBy(
+        // Sort by:
+        // 1. Average of system rating and user rating (if both exist)
+        // 2. System rating (if no user ratings)
+        // 3. User rating (if no system rating)
+        desc(
+          sql`COALESCE(
+            (COALESCE(${recipes.systemRating}, 0) + COALESCE(${recipes.avgUserRating}, 0)) /
+            NULLIF(
+              (CASE WHEN ${recipes.systemRating} IS NOT NULL THEN 1 ELSE 0 END +
+               CASE WHEN ${recipes.avgUserRating} IS NOT NULL THEN 1 ELSE 0 END),
+              0
+            ),
+            COALESCE(${recipes.systemRating}, ${recipes.avgUserRating}, 0)
+          )`
+        ),
+        desc(recipes.createdAt)
+      )
+      .limit(limit);
+
+    return topRecipes;
+  } catch (error) {
+    console.error('Failed to fetch top recipes:', error);
+    return [];
+  }
+}
+
 // Get recipes with pagination, filtering, and sorting
 export async function getRecipesPaginated({
   page = 1,

@@ -1,0 +1,79 @@
+{
+  "name": "Joanie's Kitchen - Recipe Manager",
+  "short_name": "Joanie's Kitchen",
+  "description": "From Garden to Table — with Heart and Soil. Celebrate cooking with the seasons.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF5EE",
+  "theme_color": "#5B6049",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "food",
+    "lifestyle"
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Add Recipe",
+      "short_name": "Add",
+      "description": "Create a new recipe",
+      "url": "/recipes/new",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "My Recipes",
+      "short_name": "Recipes",
+      "description": "View your recipe collection",
+      "url": "/recipes",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "Discover seasonal recipes",
+      "url": "/discover",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

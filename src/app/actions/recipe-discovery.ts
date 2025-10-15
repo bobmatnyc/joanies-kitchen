@@ -19,6 +19,7 @@ import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { db } from '@/lib/db';
 import { recipes, Recipe } from '@/lib/db/schema';
 import { auth } from '@clerk/nextjs/server';
+import { requireAuth, checkAuth } from '@/lib/auth-guard';
 
 // ============================================================================
 // Type Definitions
@@ -367,7 +368,12 @@ async function saveDiscoveredRecipe(
     confidenceScore: number;
   }
 ): Promise<string> {
-  const { userId } = await auth();
+  // Check authentication (required for saving discovered recipes)
+  const { userId, isAuthenticated } = await checkAuth();
+
+  if (!isAuthenticated) {
+    throw new Error('Authentication required to save discovered recipes');
+  }
 
   // Parse time strings to minutes
   const parsePrepTime = (timeStr?: string): number | null => {
@@ -405,7 +411,7 @@ async function saveDiscoveredRecipe(
 
   // Step 5: Save recipe with provenance
   const [savedRecipe] = await db.insert(recipes).values({
-    userId: userId || 'anonymous', // Handle unauthenticated discovery
+    userId: userId!, // userId is guaranteed to exist due to auth check above
     name: recipe.name,
     description: recipe.description,
     ingredients: JSON.stringify(recipe.ingredients),
@@ -460,6 +466,9 @@ export async function discoverRecipes(
   query: string,
   options: RecipeDiscoveryOptions = {}
 ): Promise<DiscoveryResult> {
+  // Require authentication for recipe discovery pipeline
+  await requireAuth('recipe discovery');
+
   const {
     minConfidence = 0.6,
     maxResults = 5,
@@ -616,6 +625,9 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
   recipe?: Recipe;
   error?: string;
 }> {
+  // Require authentication for URL-based recipe discovery
+  await requireAuth('recipe import from URL');
+
   try {
     // Extract and validate
     const extraction = await extractAndValidateRecipe(url, 'Manual URL');

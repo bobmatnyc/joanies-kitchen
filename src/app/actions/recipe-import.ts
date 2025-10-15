@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-guard';
 import { db } from '@/lib/db';
 import { recipes, type Recipe } from '@/lib/db/schema';
 import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
@@ -9,11 +9,7 @@ import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
  * Import a single recipe from markdown
  */
 export async function importRecipeFromMarkdown(markdownContent: string) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized');
-  }
+  const { userId } = await requireAuth('recipe import from markdown');
 
   try {
     const parsedRecipe = parseMarkdownRecipe(markdownContent);
@@ -69,11 +65,7 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
  * Import multiple recipes from markdown files
  */
 export async function importRecipesFromMarkdown(markdownFiles: { name: string; content: string }[]) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized');
-  }
+  const { userId } = await requireAuth('batch recipe import from markdown');
 
   const results = [];
   const errors = [];

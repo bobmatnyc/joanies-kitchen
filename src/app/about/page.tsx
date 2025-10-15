@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Joanie | Joanie's Kitchen",
+  description: "Meet Joanie — a trained chef, lifelong gardener, and volunteer firefighter who cooks from her terraced home overlooking the Hudson River, turning 'nothing in the fridge' into something unforgettable.",
+};
 
 export default function AboutPage() {
   return (
@@ -31,77 +37,70 @@ export default function AboutPage() {
           </div>
 
           <div className="font-body text-lg text-jk-charcoal/80 space-y-6 leading-relaxed">
-            <h2 className="font-heading text-4xl text-jk-olive mb-6">
-              A Kitchen Born from the Garden
-            </h2>
-
             <p>
-              I grew up with my hands in the soil, learning that the best meals
-              begin long before they reach the kitchen. My grandmother taught me
-              to cook with what the season offers, to honor the ingredients, and
-              to never rush a good meal.
+              Joanie grew up in upstate New York, where she helped her dad run his
+              children's clothing store — an early lesson in creativity, community,
+              and persistence. After studying at Brandeis and the London School of
+              Economics, she launched a fast-paced career as a bond trader in London
+              and New York. But Joanie's path has always been full of twists, each one
+              adding another layer of texture to her story.
             </p>
 
             <p>
-              Those early lessons shaped everything I do today. I learned that
-              a ripe tomato still warm from the sun needs nothing more than a
-              pinch of salt. That fresh herbs from the garden can transform
-              the simplest dish. That cooking is as much about patience and
-              respect as it is about technique.
+              She's raised two wonderful sons, run a carpet wholesale business, worked
+              as an energy auditor, and now serves as a volunteer firefighter in
+              Hastings-on-Hudson — where she lives with her partner, Masa, in a home
+              nestled in the hills overlooking the Hudson River. When she's not
+              cooking or tending her garden, you'll find her paddleboarding on the
+              river or sharing glimpses of her life at{" "}
+              <a
+                href="https://www.instagram.com/terracesonward/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-jk-tomato hover:text-jk-tomato/80 underline"
+              >
+                @terracesonward
+              </a>.
             </p>
 
             <p>
-              Today, I continue that tradition, sharing recipes that connect us
-              to the earth and to each other. Whether you're planting your first
-              tomato or cooking your hundredth Sunday roast, you'll find
-              inspiration here — and perhaps a reminder that the best cooking
-              comes from the heart.
+              Cooking has been her lifelong rhythm. Joanie began experimenting in her
+              London kitchen, later trained in culinary school, and spent time as a
+              professional chef. Her food is deeply personal — inspired by what's
+              growing, what's on hand, and who's at the table.
             </p>
 
             <div className="clear-both"></div>
 
-            <h3 className="font-heading text-3xl text-jk-olive mt-12 mb-4">
-              My Kitchen Philosophy
-            </h3>
+            <p>
+              Her love of growing things runs deep, too. When she lived in Dobbs
+              Ferry, her small farm,{" "}
+              <a
+                href="https://www.facebook.com/langdonfarm/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-jk-tomato hover:text-jk-tomato/80 underline"
+              >
+                Langdon Farms
+              </a>, was beloved by local
+              restaurants for its famous tomatoes and vibrant produce. Today in
+              Hastings, she and Masa cultivate an eclectic mix of tomatoes, ground
+              cherries, eggplant, peppers, watermelon, squash, kale, collards, figs,
+              cucumbers, and shiso — always enough to share.
+            </p>
 
-            <ul className="space-y-3 ml-6">
-              <li className="flex items-start gap-3">
-                <span className="text-jk-tomato text-2xl">•</span>
-                <span>
-                  <strong className="text-jk-olive">Cook with the seasons.</strong>
-                  {' '}When you work with nature's rhythms, ingredients taste better
-                  and cooking feels easier.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-jk-tomato text-2xl">•</span>
-                <span>
-                  <strong className="text-jk-olive">Keep it simple.</strong>
-                  {' '}Great cooking doesn't require complicated techniques —
-                  just good ingredients and a little care.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-jk-tomato text-2xl">•</span>
-                <span>
-                  <strong className="text-jk-olive">Trust your hands.</strong>
-                  {' '}Recipes are guides, but your senses — taste, smell, touch —
-                  are the real teachers.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-jk-tomato text-2xl">•</span>
-                <span>
-                  <strong className="text-jk-olive">Feed people you love.</strong>
-                  {' '}Cooking is an act of generosity. Make food that brings
-                  people together.
-                </span>
-              </li>
-            </ul>
+            <p>
+              Joanie is known for her "nothing in the fridge" challenge — the art of
+              transforming a handful of odds and ends into an extraordinary meal. Her
+              cooking is jazz-like: instinctive, improvisational, and full of heart.
+              Whether it's her fiery tom yum soup, ground lamb in delicata squash, or
+              silky mapo tofu, Joanie's food celebrates what's real, seasonal, and
+              joyful — from garden to table.
+            </p>
 
             <blockquote className="border-l-4 border-jk-tomato pl-6 py-4 my-8 italic text-jk-clay text-2xl font-body">
-              "The garden teaches patience. The kitchen teaches creativity.
-              Together, they teach us to live well."
+              "Cooking is like jazz — you just start with what you have, listen,
+              and let it flow."
             </blockquote>
 
             <h3 className="font-heading text-3xl text-jk-olive mt-12 mb-4">
@@ -109,7 +108,7 @@ export default function AboutPage() {
             </h3>
 
             <p>
-              Every recipe on this site comes from my kitchen and my garden.
+              Every recipe on this site comes from Joanie's kitchen and garden.
               You'll find seasonal favorites, family traditions, and new
               discoveries — all tested, tasted, and loved. Whether you're
               looking for a simple weeknight dinner or a special occasion
@@ -117,9 +116,9 @@ export default function AboutPage() {
             </p>
 
             <p>
-              I hope these recipes inspire you to slow down, cook with care,
+              We hope these recipes inspire you to slow down, cook with care,
               and enjoy the ritual of making a meal from scratch. And if you
-              try something, I'd love to hear about it.
+              try something, we'd love to hear about it.
             </p>
 
             <p className="font-heading text-3xl text-jk-olive mt-8">
@@ -130,6 +129,26 @@ export default function AboutPage() {
               — Joanie
             </p>
           </div>
+        </div>
+
+        {/* Product Roadmap Link */}
+        <div className="mb-12 bg-gradient-to-br from-jk-olive to-jk-clay rounded-jk p-8 text-center">
+          <h3 className="font-heading text-2xl text-jk-linen mb-3">
+            Building in the Open
+          </h3>
+          <p className="text-jk-linen/90 mb-6 max-w-2xl mx-auto font-body">
+            Joanie's Kitchen is growing every day. See what we've built,
+            what we're working on, and where we're headed on our journey to version 1.0.
+          </p>
+          <Link href="/about/roadmap">
+            <Button
+              variant="outline"
+              size="lg"
+              className="bg-jk-linen hover:bg-white text-jk-olive border-2 border-jk-linen hover:border-white font-ui font-medium text-lg px-8 py-6 rounded-jk"
+            >
+              View Product Roadmap
+            </Button>
+          </Link>
         </div>
 
         {/* Call to Action */}

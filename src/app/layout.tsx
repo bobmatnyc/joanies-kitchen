@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Lora, Inter } from "next/font/google";
 import Link from "next/link";
-import { ChefHat, BookOpen, Sparkles, Plus, Globe, Heart } from "lucide-react";
+import Image from "next/image";
+import { ChefHat, BookOpen, Sparkles, Plus, Globe, Heart, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AuthButtons } from "@/components/auth/AuthButtons";
@@ -38,9 +39,17 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Joanie's Kitchen",
-  description: "From Garden to Table — with Heart and Soil. Celebrate cooking with the seasons.",
+  description: "From Garden to Table — with Heart and Soil. A trained chef and lifelong gardener sharing seasonal recipes from her terraced home overlooking the Hudson River.",
+  manifest: '/manifest.json',
   icons: {
-    icon: '/icon.svg',
+    icon: [
+      { url: '/icon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   themeColor: '#5B6049', // Deep Olive
   keywords: ['recipes', 'seasonal cooking', 'garden to table', 'farm to table', 'wholesome', 'organic', 'authentic cooking'],
@@ -62,7 +71,14 @@ export default function RootLayout({
           <div className="container mx-auto px-4">
             <nav className="flex items-center justify-between h-16">
               <Link href="/" className="flex items-center gap-3 group">
-                <ChefHat className="h-7 w-7 text-jk-linen group-hover:text-jk-sage transition-colors" />
+                <Image
+                  src="/joanies-kitchen-logo.png"
+                  alt="Joanie's Kitchen"
+                  width={48}
+                  height={48}
+                  priority
+                  className="h-12 w-12 object-contain group-hover:opacity-90 transition-opacity"
+                />
                 <div className="flex flex-col leading-tight">
                   <span className="text-jk-linen font-heading font-semibold text-xl tracking-wide">
                     Joanie's Kitchen
@@ -84,6 +100,12 @@ export default function RootLayout({
                   <Button variant="ghost" size="sm" className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80 font-ui">
                     <BookOpen className="h-4 w-4 mr-2" />
                     My Recipes
+                  </Button>
+                </Link>
+                <Link href="/recipes/top-50">
+                  <Button variant="ghost" size="sm" className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80 font-ui">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Top 50
                   </Button>
                 </Link>
                 <Link href="/shared">
