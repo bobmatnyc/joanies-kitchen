@@ -193,4 +193,24 @@
     @apply focus:outline-none focus:ring-2 focus:ring-jk-tomato focus:border-transparent;
     @apply transition-all;
   }
+
+  /* Custom prose styles for markdown */
+  .prose-jk {
+    --tw-prose-body: var(--jk-charcoal);
+    --tw-prose-headings: var(--jk-olive);
+    --tw-prose-lead: var(--jk-charcoal);
+    --tw-prose-links: var(--jk-clay);
+    --tw-prose-bold: var(--jk-olive);
+    --tw-prose-counters: var(--jk-clay);
+    --tw-prose-bullets: var(--jk-sage);
+    --tw-prose-hr: var(--jk-sage);
+    --tw-prose-quotes: var(--jk-olive);
+    --tw-prose-quote-borders: var(--jk-sage);
+    --tw-prose-captions: var(--jk-charcoal);
+    --tw-prose-code: var(--jk-tomato);
+    --tw-prose-pre-code: var(--jk-linen);
+    --tw-prose-pre-bg: var(--jk-charcoal);
+    --tw-prose-th-borders: var(--jk-sage);
+    --tw-prose-td-borders: var(--jk-sage);
+  }
 }

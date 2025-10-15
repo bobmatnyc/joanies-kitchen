@@ -3,6 +3,7 @@
 import { generateRecipe } from '@/lib/ai/recipe-generator';
 import { createRecipe } from './recipes';
 import { ModelName } from '@/lib/ai/openrouter';
+import { requireAuth } from '@/lib/auth-guard';
 
 interface DiscoverRecipeOptions {
   query?: string;
@@ -18,6 +19,9 @@ interface DiscoverRecipeOptions {
 
 export async function discoverRecipe(options: DiscoverRecipeOptions) {
   try {
+    // Require authentication for AI recipe generation
+    await requireAuth('AI recipe generation');
+
     if (!process.env.OPENROUTER_API_KEY) {
       return {
         success: false,
@@ -54,6 +58,9 @@ export async function discoverRecipe(options: DiscoverRecipeOptions) {
 
 export async function saveDiscoveredRecipe(recipe: any) {
   try {
+    // Require authentication for saving recipes
+    await requireAuth('saving AI-generated recipes');
+
     // Prepare the recipe data for saving
     const recipeData = {
       name: recipe.name,

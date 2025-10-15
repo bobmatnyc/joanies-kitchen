@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { discoverRecipes, discoverRecipeFromUrl, DiscoveryResult } from '@/app/actions/recipe-discovery';
 import { Recipe } from '@/lib/db/schema';
+import { RequireAuthAI } from '@/components/auth/RequireAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -194,9 +195,13 @@ export function RecipeDiscoveryPanel() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Search Input */}
-      <Card>
+    <RequireAuthAI
+      featureName="Recipe Discovery Pipeline"
+      description="Discover, validate, and import recipes from the web using our AI-powered pipeline. Search recipe sites, extract data with LLMs, and build your collection automatically."
+    >
+      <div className="space-y-6">
+        {/* Search Input */}
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -659,6 +664,7 @@ export function RecipeDiscoveryPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RequireAuthAI>
   );
 }

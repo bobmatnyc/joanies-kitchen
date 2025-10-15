@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChefHat, BookOpen, ShoppingCart, Calendar, Sparkles } from "lucide-react";
-import { getSharedRecipes } from "@/app/actions/recipes";
+import { ChefHat, BookOpen, ShoppingCart, Calendar, Sparkles, Trophy, ChevronRight } from "lucide-react";
+import { getSharedRecipes, getTopRatedRecipes } from "@/app/actions/recipes";
 import { SharedRecipeCarousel } from "@/components/recipe/SharedRecipeCarousel";
+import { RecipeCard } from "@/components/recipe/RecipeCard";
 
 export default async function Home() {
   // Fetch shared recipes for carousel (limited to 15 for performance)
@@ -11,13 +13,23 @@ export default async function Home() {
   const sharedRecipes = sharedRecipesResult.success && sharedRecipesResult.data
     ? sharedRecipesResult.data.slice(0, 15)
     : [];
+
+  // Fetch top 8 recipes for preview section
+  const topRecipes = await getTopRatedRecipes({ limit: 8 });
   return (
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
       <section className="bg-jk-olive text-jk-linen py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="flex justify-center mb-6">
-            <ChefHat className="h-20 w-20 text-jk-sage" />
+            <Image
+              src="/joanies-kitchen-logo.png"
+              alt="Joanie's Kitchen Logo"
+              width={120}
+              height={120}
+              priority
+              className="h-28 w-28 object-contain"
+            />
           </div>
           <h1 className="font-heading text-6xl md:text-7xl font-bold mb-4 text-jk-linen">
             Joanie's Kitchen
@@ -100,6 +112,41 @@ export default async function Home() {
           </Link>
         </div>
 
+        {/* Top Recipes Preview */}
+        {topRecipes.length > 0 && (
+          <section className="mt-16 mb-16">
+            <div className="jk-divider mb-12"></div>
+            <div className="text-center mb-12">
+              <Trophy className="h-12 w-12 text-jk-tomato mx-auto mb-4" />
+              <h2 className="text-4xl font-heading text-jk-olive mb-4">
+                Top-Rated Recipes
+              </h2>
+              <p className="text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body">
+                Our most beloved recipes, tried, tested, and highly rated
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {topRecipes.map((recipe, index) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  showRank={index + 1}
+                />
+              ))}
+            </div>
+
+            <div className="text-center">
+              <Link href="/recipes/top-50">
+                <Button className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2">
+                  View All Top 50 Recipes
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </section>
+        )}
+
         {/* About Joanie Section */}
         <section className="mt-16 mb-16">
           <div className="jk-divider mb-12"></div>
@@ -124,47 +171,46 @@ export default async function Home() {
               {/* About Text */}
               <div className="space-y-6">
                 <h2 className="font-heading text-5xl text-jk-olive mb-6">
-                  Meet Joanie
+                  About Joanie
                 </h2>
 
                 <div className="space-y-4 text-jk-charcoal/80 font-body text-lg leading-relaxed">
                   <p>
-                    Welcome to my kitchen! I'm Joanie, and I believe the best meals
-                    start in the garden — with heart and soil.
+                    Joanie grew up in upstate New York helping her dad in his children's
+                    clothing shop — and she's been mixing creativity with hard work ever
+                    since. After a career in finance in London and New York, she followed
+                    her heart back to the kitchen and the garden.
                   </p>
                   <p>
-                    For years, I've been celebrating the seasons through cooking,
-                    transforming fresh ingredients into dishes that nourish both
-                    body and soul. Every recipe here tells a story of connection —
-                    to the earth, to tradition, and to the people gathered around
-                    the table.
-                  </p>
-                  <p>
-                    Whether you're sautéing garden-fresh greens or roasting
-                    sun-ripened tomatoes, cooking is about more than following
-                    instructions. It's about honoring the seasons, trusting your
-                    hands, and making something beautiful from simple ingredients.
+                    A trained chef, lifelong gardener, and volunteer firefighter in
+                    Hastings-on-Hudson, Joanie now cooks from her terraced home
+                    overlooking the Hudson River, where she grows everything from shiso
+                    to figs — and turns "nothing in the fridge" into something
+                    unforgettable.
                   </p>
 
-                  <blockquote className="border-l-4 border-jk-tomato pl-6 py-2 my-6 italic text-jk-clay text-xl">
-                    "The garden teaches patience. The kitchen teaches creativity.
-                    Together, they teach us to live well."
-                  </blockquote>
-
-                  <p className="font-heading text-2xl text-jk-olive mt-8">
-                    Join me in celebrating cooking with the seasons.
+                  <p className="text-jk-clay font-medium text-lg mt-6">
+                    Follow her garden at{" "}
+                    <a
+                      href="https://www.instagram.com/terracesonward/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-jk-tomato hover:text-jk-tomato/80 underline"
+                    >
+                      @terracesonward
+                    </a>
                   </p>
                 </div>
 
                 <div className="flex gap-4 mt-8">
-                  <Link href="/recipes">
+                  <Link href="/about">
                     <Button size="lg" className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk">
-                      Explore Recipes
+                      Read My Story
                     </Button>
                   </Link>
-                  <Link href="/about">
+                  <Link href="/recipes">
                     <Button size="lg" variant="outline" className="border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui font-medium rounded-jk">
-                      Read My Story
+                      Explore Recipes
                     </Button>
                   </Link>
                 </div>

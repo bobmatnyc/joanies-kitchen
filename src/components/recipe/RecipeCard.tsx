@@ -4,7 +4,7 @@ import { type Recipe } from '@/lib/db/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Users, ChefHat, Edit, Trash2 } from 'lucide-react';
+import { Clock, Users, ChefHat, Edit, Trash2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { deleteRecipe } from '@/app/actions/recipes';
 import { toast } from '@/lib/toast';
@@ -16,9 +16,10 @@ interface RecipeCardProps {
   onDelete?: () => void;
   showSimilarity?: boolean;
   similarity?: number;
+  showRank?: number;
 }
 
-export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarity = 0 }: RecipeCardProps) {
+export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarity = 0, showRank }: RecipeCardProps) {
   const router = useRouter();
   const tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
   const images = recipe.images ? JSON.parse(recipe.images as string) : [];
@@ -28,6 +29,11 @@ export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarit
   // Categorize tags using the ontology system
   const categorizedTags = categorizeTags(tags);
   const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
+
+  // Check if recipe is top-rated (4.5+ rating)
+  const systemRating = parseFloat(recipe.systemRating || '0') || 0;
+  const userRating = parseFloat(recipe.avgUserRating || '0') || 0;
+  const isTopRated = systemRating >= 4.5 || userRating >= 4.5;
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent card navigation
@@ -61,6 +67,13 @@ export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarit
       aria-label={`View recipe: ${recipe.name}`}
     >
       <Card className="recipe-card h-full flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer border-jk-sage">
+        {/* Rank badge if specified */}
+        {showRank && (
+          <div className="absolute -top-3 -left-3 z-10 bg-jk-tomato text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg font-heading">
+            {showRank}
+          </div>
+        )}
+
         {displayImage && (
           <div className="aspect-video relative overflow-hidden rounded-t-jk bg-jk-sage/10">
             <img
@@ -81,6 +94,13 @@ export function RecipeCard({ recipe, onDelete, showSimilarity = false, similarit
             {recipe.isAiGenerated && (
               <Badge className="absolute top-2 right-2 bg-jk-sage/90 text-jk-olive" variant="secondary">
                 AI Generated
+              </Badge>
+            )}
+            {/* Top rated badge (only show if not showing rank) */}
+            {isTopRated && !showRank && (
+              <Badge className="absolute top-2 right-2 bg-jk-tomato text-white flex items-center gap-1 shadow font-ui">
+                <Star className="h-3 w-3 fill-white" />
+                Top Rated
               </Badge>
             )}
             {showSimilarity && similarity > 0 && (

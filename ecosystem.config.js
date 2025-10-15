@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'recipe-manager-3001',
       script: 'npm',
-      args: 'run dev -- --port 3001',
+      args: 'run dev',
       cwd: '/Users/masa/Projects/recipe-manager',
       env: {
         NODE_ENV: 'development',

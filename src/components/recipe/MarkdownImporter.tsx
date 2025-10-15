@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -130,14 +131,19 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Import Recipes from Markdown</CardTitle>
-          <CardDescription>
-            Upload one or more markdown files to import recipes
-          </CardDescription>
-        </CardHeader>
+    <RequireAuth
+      featureName="Recipe Importer"
+      description="Import recipes from markdown files with YAML frontmatter. Perfect for migrating your existing recipe collection."
+      icon={<Upload className="h-12 w-12" />}
+    >
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Recipes from Markdown</CardTitle>
+            <CardDescription>
+              Upload one or more markdown files to import recipes
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {/* Drop Zone */}
           <div
@@ -331,6 +337,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+      </>
+    </RequireAuth>
   );
 }
