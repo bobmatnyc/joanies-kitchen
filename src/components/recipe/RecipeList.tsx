@@ -163,7 +163,6 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              onDelete={onRecipeDeleted}
             />
           ))}
         </div>
