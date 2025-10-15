@@ -1,0 +1,19 @@
+{
+  "kaggle": {
+    "datasets": {
+      "food-com": "shuyangli94/food-com-recipes-and-user-interactions",
+      "epicurious": "hugodarwood/epirecipes",
+      "food-com-images": "irkaal/foodcom-recipes-with-images"
+    }
+  },
+  "github": {
+    "openrecipes": "https://github.com/fictive-kin/openrecipes"
+  },
+  "apis": {
+    "themealdb": {
+      "baseUrl": "https://www.themealdb.com/api/json/v1/1/",
+      "apiKey": "1",
+      "rateLimit": 100
+    }
+  }
+}

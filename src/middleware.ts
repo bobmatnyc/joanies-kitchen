@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { isClerkConfigured, isAuthEnabled, logAuthStatus, authConfig } from './lib/auth-config';
+import { handleClerkProxy } from './lib/clerk-proxy';
 
 export async function middleware(request: NextRequest) {
+  // Handle Clerk proxy for production keys on localhost
+  const proxyResponse = await handleClerkProxy(request);
+  if (proxyResponse) {
+    return proxyResponse;
+  }
+
   // Log auth status in development for debugging
   if (process.env.NODE_ENV === 'development') {
     logAuthStatus();
@@ -58,6 +65,11 @@ export async function middleware(request: NextRequest) {
     '/shopping-lists(.*)',   // Shopping lists
   ]);
 
+  // Define admin routes that require admin access
+  const isAdminRoute = createRouteMatcher([
+    '/admin(.*)',            // Admin dashboard and all sub-routes
+  ]);
+
   // Define protected API routes
   const isProtectedApiRoute = createRouteMatcher([
     '/api/recipes/create',
@@ -69,7 +81,7 @@ export async function middleware(request: NextRequest) {
 
   // Use the clerkMiddleware with route protection logic
   return clerkMiddleware(async (auth, req) => {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     const path = req.nextUrl.pathname;
 
     // Check if this is a recipe view route (e.g., /recipes/123) but NOT /recipes/new or /recipes/*/edit
@@ -79,6 +91,28 @@ export async function middleware(request: NextRequest) {
 
     // If it's a recipe view route, allow it (the page itself will check if the recipe is public)
     if (isViewingRecipe) {
+      return NextResponse.next();
+    }
+
+    // Check admin routes first - requires authentication AND admin role
+    if (isAdminRoute(req)) {
+      if (!userId) {
+        // Not authenticated - redirect to sign-in
+        const signInUrl = new URL('/sign-in', req.url);
+        signInUrl.searchParams.set('redirect_url', req.url);
+        return NextResponse.redirect(signInUrl);
+      }
+
+      // Check if user has admin role
+      const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
+      const isAdmin = metadata?.isAdmin === 'true';
+      if (!isAdmin) {
+        // Authenticated but not admin - redirect to home with error
+        const homeUrl = new URL('/', req.url);
+        return NextResponse.redirect(homeUrl);
+      }
+
+      // Admin access granted
       return NextResponse.next();
     }
 

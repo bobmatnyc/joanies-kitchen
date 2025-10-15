@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
+import { LogIn, Shield } from 'lucide-react';
 import { useUser, UserButton, SignInButton } from '@clerk/nextjs';
 
 // Check if Clerk is properly configured
@@ -27,7 +28,8 @@ function DevelopmentAuthButtons() {
 
 // Component that uses Clerk hooks
 function ClerkAuthButtons() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
+  const router = useRouter();
 
   // Show loading state while auth status is being determined
   if (!isLoaded) {
@@ -40,6 +42,9 @@ function ClerkAuthButtons() {
 
   // Show UserButton if signed in
   if (isSignedIn) {
+    // Check if user is an admin
+    const isAdmin = user?.publicMetadata?.isAdmin === 'true';
+
     return (
       <div className="flex items-center gap-2">
         <UserButton
@@ -54,7 +59,17 @@ function ClerkAuthButtons() {
           userProfileMode="navigation"
           userProfileUrl="/user-profile"
           afterSignOutUrl="/"
-        />
+        >
+          {isAdmin && (
+            <UserButton.MenuItems>
+              <UserButton.Action
+                label="Admin Dashboard"
+                labelIcon={<Shield className="h-4 w-4" />}
+                onClick={() => router.push('/admin')}
+              />
+            </UserButton.MenuItems>
+          )}
+        </UserButton>
       </div>
     );
   }

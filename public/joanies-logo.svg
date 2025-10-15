@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 100">
+  <!-- Tomato with leaf accent -->
+  <g id="tomato">
+    <!-- Tomato body -->
+    <circle cx="45" cy="50" r="22" fill="#E65F45"/>
+    <ellipse cx="45" cy="48" rx="20" ry="22" fill="#E65F45"/>
+
+    <!-- Highlight for depth -->
+    <ellipse cx="38" cy="42" rx="8" ry="10" fill="#F17A66" opacity="0.6"/>
+
+    <!-- Tomato stem and leaves -->
+    <path d="M 40,28 Q 42,24 45,22 Q 48,24 50,28"
+          stroke="#5B6049" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Small leaves on stem -->
+    <ellipse cx="36" cy="26" rx="5" ry="3" fill="#5B6049"/>
+    <ellipse cx="45" cy="23" rx="6" ry="4" fill="#5B6049"/>
+    <ellipse cx="54" cy="26" rx="5" ry="3" fill="#5B6049"/>
+  </g>
+
+  <!-- Decorative sage leaf -->
+  <g id="sage-leaf">
+    <path d="M 195,40 Q 205,25 215,40 Q 205,55 195,40 Z"
+          fill="#A7BEA4" opacity="0.9"/>
+    <path d="M 205,40 Q 205,30 205,25"
+          stroke="#5B6049" stroke-width="1.8" fill="none"/>
+    <!-- Leaf veins -->
+    <path d="M 205,40 Q 200,35 198,40"
+          stroke="#5B6049" stroke-width="0.8" fill="none" opacity="0.5"/>
+    <path d="M 205,40 Q 210,35 212,40"
+          stroke="#5B6049" stroke-width="0.8" fill="none" opacity="0.5"/>
+  </g>
+
+  <!-- Decorative wheat/herb sprigs -->
+  <g id="herb-left">
+    <path d="M 20,65 Q 22,60 24,55 Q 26,50 28,45"
+          stroke="#A7BEA4" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <circle cx="24" cy="55" r="1.5" fill="#A7BEA4"/>
+    <circle cx="26" cy="50" r="1.5" fill="#A7BEA4"/>
+    <circle cx="28" cy="45" r="1.5" fill="#A7BEA4"/>
+  </g>
+
+  <g id="herb-right">
+    <path d="M 220,65 Q 218,60 216,55 Q 214,50 212,45"
+          stroke="#A7BEA4" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <circle cx="216" cy="55" r="1.5" fill="#A7BEA4"/>
+    <circle cx="214" cy="50" r="1.5" fill="#A7BEA4"/>
+    <circle cx="212" cy="45" r="1.5" fill="#A7BEA4"/>
+  </g>
+
+  <!-- Text: Joanie's Kitchen -->
+  <text x="80" y="42"
+        font-family="Playfair Display, serif"
+        font-size="28"
+        font-weight="600"
+        fill="#5B6049">
+    Joanie's
+  </text>
+
+  <text x="80" y="68"
+        font-family="Playfair Display, serif"
+        font-size="28"
+        font-weight="600"
+        fill="#5B6049">
+    Kitchen
+  </text>
+
+  <!-- Tagline -->
+  <text x="80" y="84"
+        font-family="Lora, serif"
+        font-size="9"
+        font-style="italic"
+        fill="#B46945">
+    From Garden to Table
+  </text>
+
+  <!-- Small decorative heart -->
+  <path d="M 177,80 Q 177,78 178.5,78 Q 180,78 180,80 Q 180,82 177,84 Q 174,82 174,80 Q 174,78 175.5,78 Q 177,78 177,80 Z"
+        fill="#E65F45" opacity="0.8"/>
+</svg>

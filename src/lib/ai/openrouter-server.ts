@@ -14,7 +14,7 @@ export function getOpenRouterClient() {
     apiKey,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004',
       'X-Title': 'Recipe Manager',
     },
   });

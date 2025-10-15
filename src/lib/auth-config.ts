@@ -2,7 +2,10 @@
  * Centralized authentication configuration
  * This module provides a single source of truth for authentication settings
  * Supports dual-environment setup: localhost development and production
+ * Enhanced to support production keys on localhost for development
  */
+
+import { getClerkKeys, shouldUseProductionKeysOverride } from '@/config/clerk-dev';
 
 /**
  * Environment detection utilities
@@ -29,13 +32,26 @@ export function isLocalhost(): boolean {
 /**
  * Environment-specific Clerk keys configuration
  * Automatically selects the correct keys based on the current environment
+ * Now supports using production keys on localhost when configured
  */
 function getEnvironmentSpecificKeys(): {
   publishableKey: string | undefined;
   secretKey: string | undefined;
   environment: 'development' | 'production';
+  usingProductionKeys: boolean;
 } {
   const isProd = isProduction();
+
+  // Check if we should use production keys override in development
+  if (shouldUseProductionKeysOverride()) {
+    const keys = getClerkKeys();
+    return {
+      publishableKey: keys.publishableKey,
+      secretKey: keys.secretKey,
+      environment: 'development',
+      usingProductionKeys: true
+    };
+  }
 
   if (isProd) {
     // Production environment - use live keys for recipes.help
@@ -46,18 +62,35 @@ function getEnvironmentSpecificKeys(): {
       secretKey: process.env.CLERK_SECRET_KEY_PROD ||
                 (process.env.CLERK_SECRET_KEY?.startsWith('sk_live_') ?
                  process.env.CLERK_SECRET_KEY : undefined),
-      environment: 'production'
+      environment: 'production',
+      usingProductionKeys: true
     };
   } else {
     // Development environment - use test keys for localhost
+    // But allow production keys if explicitly set
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY;
+
+    // Check if production keys are being used in development
+    const isUsingProdKeys = publishableKey?.startsWith('pk_live_') && secretKey?.startsWith('sk_live_');
+
+    if (isUsingProdKeys && process.env.ALLOW_PRODUCTION_KEYS_IN_DEV === 'true') {
+      return {
+        publishableKey,
+        secretKey,
+        environment: 'development',
+        usingProductionKeys: true
+      };
+    }
+
+    // Default to test keys for development
     return {
       publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV ||
-                     (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_test_') ?
-                      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : undefined),
+                     (publishableKey?.startsWith('pk_test_') ? publishableKey : undefined),
       secretKey: process.env.CLERK_SECRET_KEY_DEV ||
-                (process.env.CLERK_SECRET_KEY?.startsWith('sk_test_') ?
-                 process.env.CLERK_SECRET_KEY : undefined),
-      environment: 'development'
+                (secretKey?.startsWith('sk_test_') ? secretKey : undefined),
+      environment: 'development',
+      usingProductionKeys: false
     };
   }
 }
@@ -129,9 +162,10 @@ export function getAppUrl(): string {
 /**
  * Authentication configuration object
  * Dynamically configures Clerk based on environment
+ * Enhanced to support production keys on localhost
  */
 export const authConfig = (() => {
-  const { publishableKey, secretKey, environment } = getEnvironmentSpecificKeys();
+  const { publishableKey, secretKey, environment, usingProductionKeys } = getEnvironmentSpecificKeys();
   const isProd = isProduction();
   const isConfigured = isClerkConfigured();
   const isEnabled = isAuthEnabled();
@@ -144,6 +178,7 @@ export const authConfig = (() => {
     isLocalhost: isLocalhost(),
     environment,
     appUrl: getAppUrl(),
+    usingProductionKeys,
 
     // Clerk-specific configuration with environment-aware keys
     clerk: {
@@ -153,13 +188,16 @@ export const authConfig = (() => {
       signUpUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up',
       afterSignInUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/',
       afterSignUpUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/',
+      // Domain configuration for production keys on localhost
+      domain: usingProductionKeys && !isProd ? 'recipes.help' : undefined,
+      isSatellite: usingProductionKeys && !isProd,
     },
 
     // Security settings
     security: {
       requireAuth: isProd && isConfigured,
       allowGuestAccess: !isProd || !isConfigured,
-      enforceHttps: isProd,
+      enforceHttps: isProd && !usingProductionKeys, // Don't enforce HTTPS when testing prod keys locally
       enableCsrf: isProd,
     },
 
@@ -167,7 +205,8 @@ export const authConfig = (() => {
     features: {
       allowDevAuth: process.env.ENABLE_DEV_AUTH === 'true',
       mockAuth: isDevelopment() && !isConfigured,
-      strictDomainCheck: isProd,
+      strictDomainCheck: isProd && !usingProductionKeys, // Disable strict domain check when using prod keys in dev
+      productionKeysInDev: usingProductionKeys && !isProd,
     }
   };
 })();
@@ -245,7 +284,7 @@ export function validateAuthConfig(): {
  */
 export function logAuthStatus(): void {
   if (process.env.NODE_ENV === 'development') {
-    const { environment, publishableKey } = getEnvironmentSpecificKeys();
+    const { environment, publishableKey, usingProductionKeys } = getEnvironmentSpecificKeys();
 
     console.log('[Auth Config]', {
       isConfigured: isClerkConfigured(),
@@ -258,7 +297,9 @@ export function logAuthStatus(): void {
       enableDevAuth: process.env.ENABLE_DEV_AUTH === 'true',
       keyType: publishableKey?.startsWith('pk_test_') ? 'test' :
               publishableKey?.startsWith('pk_live_') ? 'live' : 'none',
+      usingProductionKeys,
       domainCheck: authConfig.features.strictDomainCheck,
+      productionKeysInDev: authConfig.features.productionKeysInDev,
     });
 
     const validation = validateAuthConfig();

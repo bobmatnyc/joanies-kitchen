@@ -1,22 +1,12 @@
 import { auth as clerkAuth } from '@clerk/nextjs/server';
-
-// Check if we're in production (recipe.help domain) or local development
-const isProduction = process.env.NODE_ENV === 'production' ||
-                    process.env.VERCEL_URL?.includes('recipe.help') ||
-                    process.env.NEXT_PUBLIC_APP_URL?.includes('recipe.help');
-
-// Only enable Clerk in production
-const isClerkConfigured =
-  isProduction &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'YOUR_PUBLISHABLE_KEY' &&
-  process.env.CLERK_SECRET_KEY &&
-  process.env.CLERK_SECRET_KEY !== 'YOUR_SECRET_KEY';
+import { isClerkConfigured, isAuthEnabled } from './auth-config';
 
 export async function auth() {
-  if (!isClerkConfigured) {
-    // Return mock auth when Clerk is not configured
+  // Check if authentication is enabled
+  if (!isAuthEnabled()) {
+    // Return mock auth when authentication is disabled
     // This allows the app to work in development without Clerk keys
+    // or when ENABLE_DEV_AUTH is not set to true
     return {
       userId: null,
       sessionId: null,
