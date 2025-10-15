@@ -65,12 +65,15 @@ export function RecipeCard({ recipe, showSimilarity = false, similarity = 0, sho
                 AI Generated
               </Badge>
             )}
-            {/* Top rated badge (only show if not showing rank) */}
+            {/* Top rated star (only show if not showing rank) */}
             {isTopRated && !showRank && (
-              <Badge className="absolute top-2 right-2 bg-jk-tomato text-white flex items-center gap-1 shadow font-ui">
-                <Star className="h-3 w-3 fill-white" />
-                Top Rated
-              </Badge>
+              <div
+                className="absolute top-2 right-2 bg-jk-tomato rounded-full p-2 shadow-lg"
+                aria-label="Top rated recipe"
+                title="Top rated recipe (4.5+ stars)"
+              >
+                <Star className="h-4 w-4 fill-white text-white" />
+              </div>
             )}
             {showSimilarity && similarity > 0 && (
               <Badge className="absolute bottom-2 right-2 bg-jk-tomato/90 text-white" variant="default">
