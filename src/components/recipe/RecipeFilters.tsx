@@ -71,23 +71,27 @@ export function RecipeFilters({
   };
 
   const handleMinRatingChange = (value: string) => {
-    setMinRating(value);
-    updateURL({ minRating: value });
+    const actualValue = value === 'all' ? '' : value;
+    setMinRating(actualValue);
+    updateURL({ minRating: actualValue });
   };
 
   const handleDifficultyChange = (value: string) => {
-    setDifficulty(value);
-    updateURL({ difficulty: value });
+    const actualValue = value === 'all' ? '' : value;
+    setDifficulty(actualValue);
+    updateURL({ difficulty: actualValue });
   };
 
   const handleCuisineChange = (value: string) => {
-    setCuisine(value);
-    updateURL({ cuisine: value });
+    const actualValue = value === 'all' ? '' : value;
+    setCuisine(actualValue);
+    updateURL({ cuisine: actualValue });
   };
 
   const handleSystemRecipeChange = (value: string) => {
-    setIsSystemRecipe(value);
-    updateURL({ isSystemRecipe: value });
+    const actualValue = value === 'all' ? '' : value;
+    setIsSystemRecipe(actualValue);
+    updateURL({ isSystemRecipe: actualValue });
   };
 
   const clearAllFilters = () => {
@@ -154,12 +158,12 @@ export function RecipeFilters({
           <Label htmlFor="minRating" className="text-sm text-jk-olive mb-1 block">
             Minimum Rating
           </Label>
-          <Select value={minRating} onValueChange={handleMinRatingChange}>
+          <Select value={minRating || 'all'} onValueChange={handleMinRatingChange}>
             <SelectTrigger id="minRating" className="font-ui">
               <SelectValue placeholder="All ratings" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Ratings</SelectItem>
+              <SelectItem value="all">All Ratings</SelectItem>
               <SelectItem value="4.5">4.5+ Stars</SelectItem>
               <SelectItem value="4.0">4.0+ Stars</SelectItem>
               <SelectItem value="3.5">3.5+ Stars</SelectItem>
@@ -173,12 +177,12 @@ export function RecipeFilters({
           <Label htmlFor="difficulty" className="text-sm text-jk-olive mb-1 block">
             Difficulty
           </Label>
-          <Select value={difficulty} onValueChange={handleDifficultyChange}>
+          <Select value={difficulty || 'all'} onValueChange={handleDifficultyChange}>
             <SelectTrigger id="difficulty" className="font-ui">
               <SelectValue placeholder="All difficulties" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Difficulties</SelectItem>
+              <SelectItem value="all">All Difficulties</SelectItem>
               <SelectItem value="easy">Easy</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="hard">Hard</SelectItem>
@@ -192,12 +196,12 @@ export function RecipeFilters({
             <Label htmlFor="cuisine" className="text-sm text-jk-olive mb-1 block">
               Cuisine
             </Label>
-            <Select value={cuisine} onValueChange={handleCuisineChange}>
+            <Select value={cuisine || 'all'} onValueChange={handleCuisineChange}>
               <SelectTrigger id="cuisine" className="font-ui">
                 <SelectValue placeholder="All cuisines" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cuisines</SelectItem>
+                <SelectItem value="all">All Cuisines</SelectItem>
                 {availableCuisines.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
@@ -236,12 +240,12 @@ export function RecipeFilters({
             <Label htmlFor="isSystemRecipe" className="text-sm text-jk-olive mb-1 block">
               Recipe Type
             </Label>
-            <Select value={isSystemRecipe} onValueChange={handleSystemRecipeChange}>
+            <Select value={isSystemRecipe || 'all'} onValueChange={handleSystemRecipeChange}>
               <SelectTrigger id="isSystemRecipe" className="font-ui">
                 <SelectValue placeholder="All recipes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Recipes</SelectItem>
+                <SelectItem value="all">All Recipes</SelectItem>
                 <SelectItem value="true">Curated Recipes</SelectItem>
                 <SelectItem value="false">Community Recipes</SelectItem>
               </SelectContent>
