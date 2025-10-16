@@ -45,6 +45,12 @@ export default async function AdminLayout({
                   Recipes
                 </Link>
                 <Link
+                  href="/admin/flags"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  Flags
+                </Link>
+                <Link
                   href="/admin/crawl"
                   className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                 >

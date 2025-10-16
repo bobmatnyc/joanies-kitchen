@@ -47,7 +47,7 @@ export async function saveRecipeEmbedding(
   recipeId: string,
   embedding: number[],
   embeddingText: string,
-  modelName: string = 'sentence-transformers/all-MiniLM-L6-v2'
+  modelName: string = 'BAAI/bge-small-en-v1.5'
 ): Promise<RecipeEmbedding> {
   try {
     // Validate embedding dimensions
@@ -74,7 +74,7 @@ export async function saveRecipeEmbedding(
 
     // Check if embedding already exists
     const existingEmbedding = await db.query.recipeEmbeddings.findFirst({
-      where: eq(recipeEmbeddings.recipeId, recipeId),
+      where: eq(recipeEmbeddings.recipe_id, recipeId),
     });
 
     if (existingEmbedding) {
@@ -83,17 +83,17 @@ export async function saveRecipeEmbedding(
         .update(recipeEmbeddings)
         .set({
           embedding,
-          embeddingText,
-          modelName,
-          updatedAt: new Date(),
+          embedding_text: embeddingText,
+          model_name: modelName,
+          updated_at: new Date(),
         })
-        .where(eq(recipeEmbeddings.recipeId, recipeId))
+        .where(eq(recipeEmbeddings.recipe_id, recipeId))
         .returning();
 
-      // Update the recipe's embeddingModel field as well
+      // Update the recipe's embedding_model field as well
       await db
         .update(recipes)
-        .set({ embeddingModel: modelName })
+        .set({ embedding_model: modelName })
         .where(eq(recipes.id, recipeId));
 
       return updated;
@@ -103,17 +103,17 @@ export async function saveRecipeEmbedding(
     const [created] = await db
       .insert(recipeEmbeddings)
       .values({
-        recipeId,
+        recipe_id: recipeId,
         embedding,
-        embeddingText,
-        modelName,
+        embedding_text: embeddingText,
+        model_name: modelName,
       })
       .returning();
 
-    // Update the recipe's embeddingModel field
+    // Update the recipe's embedding_model field
     await db
       .update(recipes)
-      .set({ embeddingModel: modelName })
+      .set({ embedding_model: modelName })
       .where(eq(recipes.id, recipeId));
 
     return created;
@@ -148,7 +148,7 @@ export async function getRecipeEmbedding(
 ): Promise<RecipeEmbedding | null> {
   try {
     const embedding = await db.query.recipeEmbeddings.findFirst({
-      where: eq(recipeEmbeddings.recipeId, recipeId),
+      where: eq(recipeEmbeddings.recipe_id, recipeId),
     });
 
     return embedding || null;
@@ -176,14 +176,14 @@ export async function deleteRecipeEmbedding(recipeId: string): Promise<boolean> 
   try {
     const result = await db
       .delete(recipeEmbeddings)
-      .where(eq(recipeEmbeddings.recipeId, recipeId))
+      .where(eq(recipeEmbeddings.recipe_id, recipeId))
       .returning();
 
-    // Clear the recipe's embeddingModel field
+    // Clear the recipe's embedding_model field
     if (result.length > 0) {
       await db
         .update(recipes)
-        .set({ embeddingModel: null })
+        .set({ embedding_model: null })
         .where(eq(recipes.id, recipeId));
     }
 
@@ -219,7 +219,7 @@ export async function updateRecipeEmbedding(
   recipeId: string,
   embedding: number[],
   embeddingText: string,
-  modelName: string = 'sentence-transformers/all-MiniLM-L6-v2'
+  modelName: string = 'BAAI/bge-small-en-v1.5'
 ): Promise<RecipeEmbedding> {
   return saveRecipeEmbedding(recipeId, embedding, embeddingText, modelName);
 }

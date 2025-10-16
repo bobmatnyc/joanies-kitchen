@@ -172,26 +172,29 @@ export function SimilarRecipesWidget({
           className="flex gap-4 overflow-x-auto pb-4 scroll-smooth"
           style={{ scrollbarWidth: 'thin' }}
         >
-          {recipes.map((recipe) => (
-            <div
-              key={recipe.id}
-              className="min-w-[280px] max-w-[280px] relative"
-            >
-              <Link href={`/recipes/${recipe.id}`}>
-                <div className="group cursor-pointer">
-                  <RecipeCard recipe={recipe} />
-                  {recipe.similarity > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="absolute top-2 right-2 z-10 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                    >
-                      {(recipe.similarity * 100).toFixed(0)}% similar
-                    </Badge>
-                  )}
-                </div>
-              </Link>
-            </div>
-          ))}
+          {recipes.map((recipe) => {
+            const recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
+            return (
+              <div
+                key={recipe.id}
+                className="min-w-[280px] max-w-[280px] relative"
+              >
+                <Link href={recipeUrl} className="block">
+                  <div className="relative">
+                    <RecipeCard recipe={recipe} disableLink />
+                    {recipe.similarity > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="absolute top-2 right-2 z-10 hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        {(recipe.similarity * 100).toFixed(0)}% similar
+                      </Badge>
+                    )}
+                  </div>
+                </Link>
+              </div>
+            );
+          })}
         </div>
 
         {recipes.length >= limit && (
@@ -241,12 +244,14 @@ export function SimilarRecipesCompact({
         <h3 className="font-semibold text-sm">Similar Recipes</h3>
       </div>
       <div className="space-y-2">
-        {recipes.map((recipe) => (
-          <Link
-            key={recipe.id}
-            href={`/recipes/${recipe.id}`}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
-          >
+        {recipes.map((recipe) => {
+          const recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
+          return (
+            <Link
+              key={recipe.id}
+              href={recipeUrl}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
+            >
             {recipe.images && JSON.parse(recipe.images)[0] && (
               <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
                 <img
@@ -263,7 +268,8 @@ export function SimilarRecipesCompact({
               </p>
             </div>
           </Link>
-        ))}
+          )
+        })}
       </div>
       <Link href={`/recipes/${recipeId}/similar`} className="block">
         <Button variant="ghost" size="sm" className="w-full">

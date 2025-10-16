@@ -24,7 +24,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
       }
     }
     // Fallback to imageUrl or placeholder
-    return recipe.imageUrl || '/placeholder-recipe.jpg';
+    return recipe.image_url || '/placeholder-recipe.jpg';
   };
 
   if (recipes.length === 0) {
@@ -37,7 +37,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
         {recipes.map((recipe) => {
           const heroImage = getHeroImage(recipe);
           const images = recipe.images ? JSON.parse(recipe.images as string) : [];
-          const imageCount = images.length > 0 ? images.length : (recipe.imageUrl ? 1 : 0);
+          const imageCount = images.length > 0 ? images.length : (recipe.image_url ? 1 : 0);
 
           return (
             <Link
@@ -98,7 +98,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
                 </div>
 
                 {/* AI Generated badge in top right */}
-                {recipe.isAiGenerated && (
+                {recipe.is_ai_generated && (
                   <Badge
                     className="absolute top-2 right-2 text-xs bg-purple-500/90 text-white"
                   >

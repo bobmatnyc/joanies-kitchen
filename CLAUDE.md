@@ -9,6 +9,8 @@ Built with Next.js 15, TypeScript, Clerk Auth, Neon PostgreSQL, and OpenRouter A
 ## Quick Navigation
 
 - **Project Overview**: README.md
+- **Roadmap**: ROADMAP.md
+- **Mobile Parity**: docs/guides/MOBILE_PARITY_REQUIREMENTS.md (🔴 CURRENT PRIORITY)
 - **Project Organization**: docs/reference/PROJECT_ORGANIZATION.md
 - **Authentication**: docs/guides/AUTHENTICATION_GUIDE.md
 - **Environment Setup**: docs/guides/ENVIRONMENT_SETUP.md
@@ -125,6 +127,18 @@ recipe-manager/
 - 🟢 Multi-image Support (up to 6 images per recipe)
 - 🟢 System/Curated Recipes (Discover page)
 - 🟢 Recipe Export (PDF, JSON, Markdown, ZIP)
+
+### 🔴 Current Priority: Version 0.45.0 - Mobile Parity
+**See**: `ROADMAP.md` and `docs/guides/MOBILE_PARITY_REQUIREMENTS.md`
+
+Before adding more advanced features, we're ensuring the existing desktop experience works flawlessly on mobile devices. Mobile users represent 60-70% of recipe site traffic, and they often cook with their phones/tablets in hand.
+
+**Focus Areas**:
+- Responsive layouts (mobile-first approach)
+- Touch optimization (44x44px minimum targets)
+- Mobile navigation (hamburger menu, bottom nav)
+- Performance optimization (< 200KB bundle, 90+ Lighthouse score)
+- Real device testing (iOS, Android)
 
 ---
 

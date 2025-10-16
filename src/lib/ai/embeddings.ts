@@ -15,8 +15,11 @@
 import { Recipe } from '@/lib/db/schema';
 
 // Constants
-const HF_API_URL = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2';
+// Using BAAI/bge-small-en-v1.5 which is properly configured for feature-extraction
+// 384-dimensional embeddings, efficient and accurate for semantic search
+const HF_API_URL = 'https://api-inference.huggingface.co/models/BAAI/bge-small-en-v1.5';
 const EMBEDDING_DIMENSION = 384;
+const MODEL_NAME = 'BAAI/bge-small-en-v1.5';
 const DEFAULT_TIMEOUT = 30000; // 30 seconds (accounts for model cold start)
 const DEFAULT_RETRIES = 5; // Increased from 3 to handle cold starts better
 const INITIAL_RETRY_DELAY = 2000; // 2 seconds base delay
@@ -145,9 +148,7 @@ export async function generateEmbedding(
           },
           body: JSON.stringify({
             inputs: text,
-            options: {
-              wait_for_model: waitForModel,
-            },
+            options: waitForModel ? { wait_for_model: true } : undefined,
           }),
           signal: controller.signal,
         });
@@ -349,7 +350,7 @@ export async function generateRecipeEmbedding(
   return {
     embedding,
     embeddingText,
-    modelName: 'sentence-transformers/all-MiniLM-L6-v2',
+    modelName: MODEL_NAME,
   };
 }
 

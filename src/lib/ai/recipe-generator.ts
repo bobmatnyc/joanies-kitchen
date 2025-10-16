@@ -93,7 +93,13 @@ Always respond with valid JSON matching the exact schema provided.`;
 {
   "name": "Recipe Name",
   "description": "Brief description of the dish",
-  "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
+  "ingredients": [
+    "2 cups all-purpose flour",
+    "1 tablespoon olive oil",
+    "Salt, to taste",
+    "Black pepper, to taste",
+    "Fresh herbs, as needed"
+  ],
   "instructions": ["Step 1", "Step 2"],
   "prepTime": 15, // in minutes
   "cookTime": 30, // in minutes
@@ -110,7 +116,14 @@ Always respond with valid JSON matching the exact schema provided.`;
     "fiber": 8
   },
   "source": "URL or chef name if from web search"
-}`;
+}
+
+IMPORTANT: For ingredients without specific amounts, use qualifiers like:
+- "Salt, to taste"
+- "Black pepper, to taste"
+- "Fresh herbs, as needed"
+- "Garnish, optional"
+Do NOT just list ingredient names without amounts or qualifiers.`;
 
   try {
     // Perplexity models don't support response_format parameter
@@ -159,7 +172,12 @@ Extract and provide the recipe in this JSON format:
 {
   "name": "Recipe Name",
   "description": "Brief description",
-  "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
+  "ingredients": [
+    "2 cups all-purpose flour",
+    "1 tablespoon olive oil",
+    "Salt, to taste",
+    "Black pepper, to taste"
+  ],
   "instructions": ["Step 1", "Step 2"],
   "prepTime": 15, // in minutes
   "cookTime": 30, // in minutes
@@ -167,7 +185,9 @@ Extract and provide the recipe in this JSON format:
   "difficulty": "easy", // easy, medium, or hard
   "cuisine": "Cuisine Type",
   "tags": ["tag1", "tag2"]
-}`;
+}
+
+IMPORTANT: For seasonings without specific amounts, use qualifiers like "to taste", "as needed", or "optional".`;
 
   try {
     const openrouter = getOpenRouterClient();

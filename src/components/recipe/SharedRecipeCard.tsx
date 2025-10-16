@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, Users, ChefHat, ExternalLink, Copy, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { copyRecipeToCollection } from '@/app/actions/recipes';
 import { toast } from '@/lib/toast';
 import { useRouter } from 'next/navigation';
@@ -20,7 +21,7 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
   const router = useRouter();
   const [isCopying, setIsCopying] = useState(false);
   const tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
-  const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   const handleCopy = async () => {
     setIsCopying(true);
@@ -43,25 +44,27 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
     <Card className="h-full flex flex-col hover:shadow-lg transition-shadow relative">
       {/* System Recipe Badge */}
       {isSystemRecipe && (
-        <div className="absolute top-2 right-2 z-10">
-          <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
-            <Star className="w-3 h-3 mr-1" />
-            Featured
-          </Badge>
-        </div>
+        <Badge
+          className="absolute top-2 right-2 z-10 bg-yellow-500 hover:bg-yellow-600 text-white shadow-md"
+          aria-label="Featured recipe"
+          title="Featured recipe"
+        >
+          <Star className="w-3 h-3 fill-current" strokeWidth={0} />
+        </Badge>
       )}
 
-      {recipe.imageUrl && (
+      {recipe.image_url && (
         <div className="aspect-video relative overflow-hidden rounded-t-lg">
-          <img
-            src={recipe.imageUrl}
+          <Image
+            src={recipe.image_url}
             alt={recipe.name}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+            loading="lazy"
+            quality={75}
           />
-          {recipe.isAiGenerated && (
+          {recipe.is_ai_generated && (
             <Badge className="absolute bottom-2 left-2" variant="secondary">
               AI Generated
             </Badge>

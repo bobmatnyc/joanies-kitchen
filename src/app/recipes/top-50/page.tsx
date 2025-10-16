@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { getTopRatedRecipes } from '@/app/actions/recipes';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
+import { sql } from 'drizzle-orm';
 
 export const metadata: Metadata = {
   title: "Top 50 Recipes | Joanie's Kitchen",
@@ -14,10 +17,15 @@ export default async function Top50Page() {
   // Fetch top 50 recipes by rating (system + user ratings)
   const topRecipes = await getTopRatedRecipes({ limit: 50 });
 
+  // Get total recipe count
+  const [{ count: totalRecipes }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(recipes);
+
   // Calculate stats
   const avgRating = topRecipes.length > 0
     ? topRecipes.reduce((acc, recipe) => {
-        const rating = parseFloat(recipe.systemRating || '0') || parseFloat(recipe.avgUserRating || '0') || 0;
+        const rating = parseFloat(recipe.system_rating || '0') || parseFloat(recipe.avg_user_rating || '0') || 0;
         return acc + rating;
       }, 0) / topRecipes.length
     : 0;
@@ -60,7 +68,7 @@ export default async function Top50Page() {
             </div>
             <div>
               <div className="text-3xl font-heading text-jk-olive">
-                400K+
+                {totalRecipes.toLocaleString()}+
               </div>
               <div className="text-sm text-jk-charcoal/60 font-ui">
                 Total Recipes

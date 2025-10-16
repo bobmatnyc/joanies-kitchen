@@ -57,3 +57,14 @@ export async function isUserAdmin(checkUserId: string): Promise<boolean> {
   const { isAdmin, userId } = await checkAdminAccess()
   return isAdmin && userId === checkUserId
 }
+
+/**
+ * Simple check if current user is admin (synchronous version for components)
+ * NOTE: This is a simplified check - use checkAdminAccess() for full validation
+ */
+export function isAdmin(userId: string | null): boolean {
+  // In production, this should check against a database or Clerk metadata
+  // For now, we'll use a simple environment variable check
+  const adminUserIds = process.env.ADMIN_USER_IDS?.split(',') || [];
+  return userId ? adminUserIds.includes(userId) : false;
+}

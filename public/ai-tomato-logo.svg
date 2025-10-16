@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Tomato body -->
+  <circle cx="100" cy="110" r="70" fill="#E74C3C" />
+  <ellipse cx="100" cy="110" rx="70" ry="65" fill="#C0392B" />
+
+  <!-- Highlight/shine -->
+  <ellipse cx="75" cy="90" rx="20" ry="25" fill="#EC7063" opacity="0.6" />
+
+  <!-- Stem -->
+  <rect x="95" y="35" width="10" height="20" fill="#27AE60" rx="2" />
+
+  <!-- Leaves -->
+  <path d="M 85 45 Q 75 40, 70 45 Q 75 50, 85 48 Z" fill="#2ECC71" />
+  <path d="M 115 45 Q 125 40, 130 45 Q 125 50, 115 48 Z" fill="#2ECC71" />
+  <path d="M 100 40 Q 95 35, 90 38 Q 95 42, 100 40 Z" fill="#229954" />
+  <path d="M 100 40 Q 105 35, 110 38 Q 105 42, 100 40 Z" fill="#229954" />
+
+  <!-- AI circuit pattern overlay (to signify AI) -->
+  <g opacity="0.3">
+    <circle cx="100" cy="110" r="3" fill="#3498DB" />
+    <line x1="100" y1="110" x2="120" y2="95" stroke="#3498DB" stroke-width="1.5" />
+    <circle cx="120" cy="95" r="2" fill="#3498DB" />
+    <line x1="100" y1="110" x2="80" y2="95" stroke="#3498DB" stroke-width="1.5" />
+    <circle cx="80" cy="95" r="2" fill="#3498DB" />
+    <line x1="100" y1="110" x2="115" y2="130" stroke="#3498DB" stroke-width="1.5" />
+    <circle cx="115" cy="130" r="2" fill="#3498DB" />
+  </g>
+</svg>

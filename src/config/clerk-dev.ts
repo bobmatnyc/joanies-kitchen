@@ -51,7 +51,7 @@ export function getClerkDevOptions() {
 
     // Satellite configuration for using production keys on localhost
     isSatellite: true,
-    satelliteDomain: 'localhost:3004',
+    satelliteDomain: 'localhost:3002',
     primaryDomain: 'recipes.help',
 
     // Proxy configuration

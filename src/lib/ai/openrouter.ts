@@ -16,6 +16,7 @@ export const MODELS = {
 
   // General purpose high quality models
   CLAUDE_3_5_SONNET: 'anthropic/claude-3.5-sonnet',
+  CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4.5',
   CLAUDE_3_HAIKU: 'anthropic/claude-3-haiku',
   GPT_3_5_TURBO: 'openai/gpt-3.5-turbo',
   MIXTRAL_8X7B: 'mistralai/mixtral-8x7b-instruct',

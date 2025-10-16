@@ -1,5 +1,6 @@
 import type { Recipe } from '@/lib/db/schema';
 import matter from 'gray-matter';
+import { normalizeIngredient } from './recipe-utils';
 
 /**
  * Formats a recipe object into markdown with YAML frontmatter
@@ -15,24 +16,24 @@ export function recipeToMarkdown(recipe: Recipe): string {
   const tags = recipe.tags
     ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags)
     : [];
-  const nutritionInfo = recipe.nutritionInfo
-    ? (typeof recipe.nutritionInfo === 'string' ? JSON.parse(recipe.nutritionInfo) : recipe.nutritionInfo)
+  const nutritionInfo = recipe.nutrition_info
+    ? (typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
     : {};
   // Prepare frontmatter data
   const frontmatter = {
     title: recipe.name,
     description: recipe.description,
-    prepTime: recipe.prepTime,
-    cookTime: recipe.cookTime,
-    totalTime: (recipe.prepTime || 0) + (recipe.cookTime || 0),
+    prepTime: recipe.prep_time,
+    cookTime: recipe.cook_time,
+    totalTime: (recipe.prep_time || 0) + (recipe.cook_time || 0),
     servings: recipe.servings,
     difficulty: recipe.difficulty,
     cuisine: recipe.cuisine,
-    imageUrl: recipe.imageUrl,
+    imageUrl: recipe.image_url,
     tags: tags,
     nutritionInfo: nutritionInfo,
-    createdAt: recipe.createdAt?.toISOString(),
-    updatedAt: recipe.updatedAt?.toISOString(),
+    createdAt: recipe.created_at?.toISOString(),
+    updatedAt: recipe.updated_at?.toISOString(),
   };
 
   // Build markdown content
@@ -47,9 +48,9 @@ export function recipeToMarkdown(recipe: Recipe): string {
   // Add recipe metadata
   markdownContent.push('## Recipe Information');
   markdownContent.push('');
-  if (recipe.prepTime) markdownContent.push(`- **Prep Time:** ${recipe.prepTime} minutes`);
-  if (recipe.cookTime) markdownContent.push(`- **Cook Time:** ${recipe.cookTime} minutes`);
-  const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
+  if (recipe.prep_time) markdownContent.push(`- **Prep Time:** ${recipe.prep_time} minutes`);
+  if (recipe.cook_time) markdownContent.push(`- **Cook Time:** ${recipe.cook_time} minutes`);
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
   if (totalTime > 0) markdownContent.push(`- **Total Time:** ${totalTime} minutes`);
   if (recipe.servings) markdownContent.push(`- **Servings:** ${recipe.servings}`);
   if (recipe.difficulty) markdownContent.push(`- **Difficulty:** ${recipe.difficulty}`);
@@ -61,7 +62,9 @@ export function recipeToMarkdown(recipe: Recipe): string {
     markdownContent.push('## Ingredients');
     markdownContent.push('');
     ingredients.forEach((ingredient: string) => {
-      markdownContent.push(`- ${ingredient}`);
+      // Normalize ingredient formatting for consistency
+      const normalized = normalizeIngredient(ingredient);
+      markdownContent.push(`- ${normalized}`);
     });
     markdownContent.push('');
   }
@@ -144,8 +147,8 @@ export function formatRecipePreview(recipe: Partial<Recipe>): string {
   }
 
   const details = [];
-  if (recipe.prepTime) details.push(`Prep: ${recipe.prepTime}min`);
-  if (recipe.cookTime) details.push(`Cook: ${recipe.cookTime}min`);
+  if (recipe.prep_time) details.push(`Prep: ${recipe.prep_time}min`);
+  if (recipe.cook_time) details.push(`Cook: ${recipe.cook_time}min`);
   if (recipe.servings) details.push(`Servings: ${recipe.servings}`);
 
   if (details.length > 0) {

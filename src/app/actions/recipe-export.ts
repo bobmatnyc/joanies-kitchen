@@ -18,10 +18,10 @@ export async function exportRecipeAsMarkdown(recipeId: string) {
   const recipe = await db.query.recipes.findFirst({
     where: userId
       ? or(
-          and(eq(recipes.id, recipeId), eq(recipes.userId, userId)),
-          and(eq(recipes.id, recipeId), eq(recipes.isPublic, true))
+          and(eq(recipes.id, recipeId), eq(recipes.user_id, userId)),
+          and(eq(recipes.id, recipeId), eq(recipes.is_public, true))
         )
-      : and(eq(recipes.id, recipeId), eq(recipes.isPublic, true)),
+      : and(eq(recipes.id, recipeId), eq(recipes.is_public, true)),
   });
 
   if (!recipe) {
@@ -57,7 +57,7 @@ export async function exportRecipesAsZip(recipeIds: string[]) {
   const selectedRecipes = await db.query.recipes.findMany({
     where: and(
       inArray(recipes.id, recipeIds),
-      eq(recipes.userId, userId)
+      eq(recipes.user_id, userId)
     ),
   });
 
@@ -96,7 +96,7 @@ export async function exportAllRecipesAsZip() {
 
   // Fetch all user recipes
   const userRecipes = await db.query.recipes.findMany({
-    where: eq(recipes.userId, userId),
+    where: eq(recipes.user_id, userId),
   });
 
   if (userRecipes.length === 0) {
@@ -133,10 +133,10 @@ export async function exportRecipeAsPDF(recipeId: string) {
   const recipe = await db.query.recipes.findFirst({
     where: userId
       ? or(
-          and(eq(recipes.id, recipeId), eq(recipes.userId, userId)),
-          and(eq(recipes.id, recipeId), eq(recipes.isPublic, true))
+          and(eq(recipes.id, recipeId), eq(recipes.user_id, userId)),
+          and(eq(recipes.id, recipeId), eq(recipes.is_public, true))
         )
-      : and(eq(recipes.id, recipeId), eq(recipes.isPublic, true)),
+      : and(eq(recipes.id, recipeId), eq(recipes.is_public, true)),
   });
 
   if (!recipe) {
@@ -153,8 +153,8 @@ export async function exportRecipeAsPDF(recipeId: string) {
   const tags = recipe.tags
     ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags)
     : [];
-  const nutritionInfo = recipe.nutritionInfo
-    ? (typeof recipe.nutritionInfo === 'string' ? JSON.parse(recipe.nutritionInfo) : recipe.nutritionInfo)
+  const nutritionInfo = recipe.nutrition_info
+    ? (typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
     : null;
 
   // Create PDF document
@@ -194,8 +194,8 @@ export async function exportRecipeAsPDF(recipeId: string) {
 
   // Add metadata
   const metadata: string[] = [];
-  if (recipe.prepTime) metadata.push(`Prep Time: ${recipe.prepTime} minutes`);
-  if (recipe.cookTime) metadata.push(`Cook Time: ${recipe.cookTime} minutes`);
+  if (recipe.prep_time) metadata.push(`Prep Time: ${recipe.prep_time} minutes`);
+  if (recipe.cook_time) metadata.push(`Cook Time: ${recipe.cook_time} minutes`);
   if (recipe.servings) metadata.push(`Servings: ${recipe.servings}`);
   if (recipe.difficulty) metadata.push(`Difficulty: ${recipe.difficulty}`);
   if (recipe.cuisine) metadata.push(`Cuisine: ${recipe.cuisine}`);

@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as schema from './schema';
+import * as userDiscoverySchema from './user-discovery-schema';
+import * as chefSchema from './chef-schema';
 
 // Ensure we have a valid DATABASE_URL
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -14,5 +16,11 @@ if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
   );
 }
 
+// Combine all schemas
+const allSchemas = { ...schema, ...userDiscoverySchema, ...chefSchema };
+
 const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema });
+export const db = drizzle(sql, { schema: allSchemas });
+
+// Export all schemas for external use
+export { schema, userDiscoverySchema, chefSchema };

@@ -36,8 +36,8 @@ export function RecipeRow({
   onToggleSelect,
 }: RecipeRowProps) {
   const router = useRouter();
-  const [isPublic, setIsPublic] = useState(recipe.isPublic ?? false);
-  const [isSystem, setIsSystem] = useState(recipe.isSystemRecipe ?? false);
+  const [isPublic, setIsPublic] = useState(recipe.is_public ?? false);
+  const [isSystem, setIsSystem] = useState(recipe.is_system_recipe ?? false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -131,7 +131,7 @@ export function RecipeRow({
               </p>
             )}
             <div className="flex gap-2 mt-1">
-              {recipe.isAiGenerated && (
+              {recipe.is_ai_generated && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                   AI
                 </span>
@@ -147,7 +147,7 @@ export function RecipeRow({
 
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900 font-mono">
-            {recipe.userId.substring(0, 8)}...
+            {recipe.user_id.substring(0, 8)}...
           </div>
         </td>
 
@@ -169,10 +169,10 @@ export function RecipeRow({
 
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900">
-            {new Date(recipe.createdAt).toLocaleDateString()}
+            {new Date(recipe.created_at).toLocaleDateString()}
           </div>
           <div className="text-xs text-gray-500">
-            {new Date(recipe.createdAt).toLocaleTimeString()}
+            {new Date(recipe.created_at).toLocaleTimeString()}
           </div>
         </td>
 

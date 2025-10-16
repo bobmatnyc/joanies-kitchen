@@ -31,20 +31,21 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
     const [newRecipe] = await db
       .insert(recipes)
       .values({
-        userId,
+        user_id: userId,
+        chef_id: null,
         name: parsedRecipe.title,
         description: parsedRecipe.description,
-        prepTime: parsedRecipe.prepTime,
-        cookTime: parsedRecipe.cookTime,
+        prep_time: parsedRecipe.prepTime,
+        cook_time: parsedRecipe.cookTime,
         servings: parsedRecipe.servings,
         difficulty: parsedRecipe.difficulty as 'easy' | 'medium' | 'hard' | undefined,
         cuisine: parsedRecipe.cuisine,
-        imageUrl: parsedRecipe.imageUrl,
+        image_url: parsedRecipe.imageUrl,
         ingredients: JSON.stringify(parsedRecipe.ingredients),
         instructions: JSON.stringify(parsedRecipe.instructions),
         tags: parsedRecipe.tags ? JSON.stringify(parsedRecipe.tags) : null,
-        nutritionInfo: parsedRecipe.nutritionInfo ? JSON.stringify(parsedRecipe.nutritionInfo) : null,
-        isAiGenerated: false,
+        nutrition_info: parsedRecipe.nutritionInfo ? JSON.stringify(parsedRecipe.nutritionInfo) : null,
+        is_ai_generated: false,
       })
       .returning();
 

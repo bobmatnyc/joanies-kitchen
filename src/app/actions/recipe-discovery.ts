@@ -411,28 +411,29 @@ async function saveDiscoveredRecipe(
 
   // Step 5: Save recipe with provenance
   const [savedRecipe] = await db.insert(recipes).values({
-    userId: userId!, // userId is guaranteed to exist due to auth check above
+    user_id: userId!, // userId is guaranteed to exist due to auth check above
+    chef_id: null,
     name: recipe.name,
     description: recipe.description,
     ingredients: JSON.stringify(recipe.ingredients),
     instructions: JSON.stringify(recipe.instructions),
-    prepTime: parsePrepTime(recipe.prepTime),
-    cookTime: parseCookTime(recipe.cookTime),
+    prep_time: parsePrepTime(recipe.prepTime),
+    cook_time: parseCookTime(recipe.cookTime),
     servings: recipe.servings || null,
     cuisine: metadata.cuisine,
     tags: JSON.stringify(metadata.tags),
     difficulty: metadata.difficulty,
     source: source.url,
-    searchQuery: source.searchQuery,
-    discoveryDate: new Date(),
-    confidenceScore: source.confidenceScore.toFixed(2),
-    validationModel: 'anthropic/claude-3-haiku',
-    embeddingModel: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
-    isAiGenerated: false, // Discovered from web
-    isPublic: userId ? false : true, // Anonymous discoveries are public
-    isSystemRecipe: !userId, // Anonymous = system recipe
-    nutritionInfo: null,
-    imageUrl: null,
+    search_query: source.searchQuery,
+    discovery_date: new Date(),
+    confidence_score: source.confidenceScore.toFixed(2),
+    validation_model: 'anthropic/claude-3-haiku',
+    embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+    is_ai_generated: false, // Discovered from web
+    is_public: userId ? false : true, // Anonymous discoveries are public
+    is_system_recipe: !userId, // Anonymous = system recipe
+    nutrition_info: null,
+    image_url: null,
     images: null,
   }).returning();
 

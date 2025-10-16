@@ -13,7 +13,11 @@ if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
 }
 
 export default defineConfig({
-  schema: './src/lib/db/schema.ts',
+  schema: [
+    './src/lib/db/schema.ts',
+    './src/lib/db/user-discovery-schema.ts',
+    './src/lib/db/chef-schema.ts'
+  ],
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {

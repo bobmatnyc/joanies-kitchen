@@ -67,17 +67,18 @@ export async function saveDiscoveredRecipe(recipe: any) {
       description: recipe.description,
       ingredients: JSON.stringify(recipe.ingredients),
       instructions: JSON.stringify(recipe.instructions),
-      prepTime: recipe.prepTime || null,
-      cookTime: recipe.cookTime || null,
+      prep_time: recipe.prepTime || recipe.prep_time || null,
+      cook_time: recipe.cookTime || recipe.cook_time || null,
       servings: recipe.servings || null,
       difficulty: recipe.difficulty || null,
       cuisine: recipe.cuisine || null,
       tags: recipe.tags ? JSON.stringify(recipe.tags) : null,
-      imageUrl: recipe.imageUrl || null,
-      isAiGenerated: true, // Mark as AI generated
-      nutritionInfo: recipe.nutritionInfo ? JSON.stringify(recipe.nutritionInfo) : null,
-      modelUsed: recipe.modelUsed || null,
+      image_url: recipe.imageUrl || recipe.image_url || null,
+      is_ai_generated: true, // Mark as AI generated
+      nutrition_info: recipe.nutritionInfo || recipe.nutrition_info ? JSON.stringify(recipe.nutritionInfo || recipe.nutrition_info) : null,
+      model_used: recipe.modelUsed || recipe.model_used || null,
       source: recipe.source || null,
+      user_id: ''  // Will be set by createRecipe
     };
 
     // Use existing createRecipe action

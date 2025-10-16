@@ -32,11 +32,11 @@ export async function getAdminRecipeStats() {
     const stats = await db
       .select({
         totalRecipes: count(),
-        publicRecipes: sql<number>`count(*) filter (where ${recipes.isPublic} = true)`,
-        systemRecipes: sql<number>`count(*) filter (where ${recipes.isSystemRecipe} = true)`,
-        privateRecipes: sql<number>`count(*) filter (where ${recipes.isPublic} = false)`,
-        aiGeneratedRecipes: sql<number>`count(*) filter (where ${recipes.isAiGenerated} = true)`,
-        totalUsers: sql<number>`count(distinct ${recipes.userId})`,
+        publicRecipes: sql<number>`count(*) filter (where ${recipes.is_public} = true)`,
+        systemRecipes: sql<number>`count(*) filter (where ${recipes.is_system_recipe} = true)`,
+        privateRecipes: sql<number>`count(*) filter (where ${recipes.is_public} = false)`,
+        aiGeneratedRecipes: sql<number>`count(*) filter (where ${recipes.is_ai_generated} = true)`,
+        totalUsers: sql<number>`count(distinct ${recipes.user_id})`,
       })
       .from(recipes);
 
@@ -93,15 +93,15 @@ export async function getAllRecipesForAdmin(filters?: AdminRecipeFilters) {
 
     // Boolean filters
     if (filters?.isPublic !== undefined) {
-      conditions.push(eq(recipes.isPublic, filters.isPublic));
+      conditions.push(eq(recipes.is_public, filters.isPublic));
     }
 
     if (filters?.isSystemRecipe !== undefined) {
-      conditions.push(eq(recipes.isSystemRecipe, filters.isSystemRecipe));
+      conditions.push(eq(recipes.is_system_recipe, filters.isSystemRecipe));
     }
 
     if (filters?.isAiGenerated !== undefined) {
-      conditions.push(eq(recipes.isAiGenerated, filters.isAiGenerated));
+      conditions.push(eq(recipes.is_ai_generated, filters.isAiGenerated));
     }
 
     // Difficulty filter
@@ -124,7 +124,7 @@ export async function getAllRecipesForAdmin(filters?: AdminRecipeFilters) {
     }
 
     // Apply ordering
-    query = query.orderBy(desc(recipes.createdAt)) as any;
+    query = query.orderBy(desc(recipes.created_at)) as any;
 
     // Apply pagination
     if (filters?.limit) {
@@ -154,8 +154,8 @@ export async function adminToggleRecipePublic(id: string, isPublic: boolean) {
     const result = await db
       .update(recipes)
       .set({
-        isPublic,
-        updatedAt: new Date(),
+        is_public: isPublic,
+        updated_at: new Date(),
       })
       .where(eq(recipes.id, id))
       .returning();
@@ -186,10 +186,10 @@ export async function adminToggleSystemRecipe(id: string, isSystem: boolean) {
     const result = await db
       .update(recipes)
       .set({
-        isSystemRecipe: isSystem,
+        is_system_recipe: isSystem,
         // System recipes must be public
-        isPublic: isSystem ? true : undefined,
-        updatedAt: new Date(),
+        is_public: isSystem ? true : undefined,
+        updated_at: new Date(),
       })
       .where(eq(recipes.id, id))
       .returning();
@@ -252,8 +252,8 @@ export async function adminBulkTogglePublic(ids: string[], isPublic: boolean) {
     const result = await db
       .update(recipes)
       .set({
-        isPublic,
-        updatedAt: new Date(),
+        is_public: isPublic,
+        updated_at: new Date(),
       })
       .where(or(...conditions))
       .returning();
@@ -329,14 +329,14 @@ export async function getUsersWithRecipes() {
 
     const users = await db
       .select({
-        userId: recipes.userId,
+        userId: recipes.user_id,
         recipeCount: count(),
-        publicRecipeCount: sql<number>`count(*) filter (where ${recipes.isPublic} = true)`,
-        systemRecipeCount: sql<number>`count(*) filter (where ${recipes.isSystemRecipe} = true)`,
-        latestRecipeDate: sql<Date>`max(${recipes.createdAt})`,
+        publicRecipeCount: sql<number>`count(*) filter (where ${recipes.is_public} = true)`,
+        systemRecipeCount: sql<number>`count(*) filter (where ${recipes.is_system_recipe} = true)`,
+        latestRecipeDate: sql<Date>`max(${recipes.created_at})`,
       })
       .from(recipes)
-      .groupBy(recipes.userId)
+      .groupBy(recipes.user_id)
       .orderBy(desc(sql`count(*)`));
 
     const result: UserWithRecipes[] = users.map(user => ({
@@ -366,7 +366,7 @@ export async function getRecentRecipeActivity(limit: number = 10) {
     const recentRecipes = await db
       .select()
       .from(recipes)
-      .orderBy(desc(recipes.createdAt))
+      .orderBy(desc(recipes.created_at))
       .limit(limit);
 
     return { success: true, data: recentRecipes };
