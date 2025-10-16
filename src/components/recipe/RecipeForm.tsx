@@ -61,15 +61,15 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     description: recipe?.description || '',
     ingredients: existingIngredients,
     instructions: existingInstructions,
-    prepTime: recipe?.prepTime || 0,
-    cookTime: recipe?.cookTime || 0,
+    prepTime: recipe?.prep_time || 0,
+    cookTime: recipe?.cook_time || 0,
     servings: recipe?.servings || 4,
     difficulty: recipe?.difficulty || 'medium',
     cuisine: recipe?.cuisine || '',
     tags: existingTags as string[],
-    imageUrl: recipe?.imageUrl || '',
+    imageUrl: recipe?.image_url || '',
     images: existingImages as string[],
-    isPublic: recipe?.isPublic || false,
+    isPublic: recipe?.is_public || false,
   });
 
   const handleArrayChange = (field: 'ingredients' | 'instructions' | 'tags', index: number, value: string) => {
@@ -117,18 +117,19 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
 
       // Prepare data for submission with JSON strings
       const cleanedData = {
-        ...formData,
+        name: formData.name,
+        difficulty: formData.difficulty,
         ingredients: JSON.stringify(filteredIngredients),
         instructions: JSON.stringify(filteredInstructions),
         tags: JSON.stringify(filteredTags),
         images: formData.images.length > 0 ? JSON.stringify(formData.images) : null,
-        prepTime: formData.prepTime || null,
-        cookTime: formData.cookTime || null,
+        prep_time: formData.prepTime || null,
+        cook_time: formData.cookTime || null,
         servings: formData.servings || null,
         description: formData.description || null,
         cuisine: formData.cuisine || null,
-        imageUrl: formData.imageUrl || formData.images[0] || null, // Use first image as fallback
-        isPublic: formData.isPublic,
+        image_url: formData.imageUrl || formData.images[0] || null, // Use first image as fallback
+        is_public: formData.isPublic,
       };
 
       let result;

@@ -13,6 +13,7 @@ interface RecipeInfiniteListProps {
   filters?: RecipeFilters;
   sort?: 'rating' | 'recent' | 'name';
   emptyMessage?: string;
+  isTop50?: boolean;
 }
 
 export function RecipeInfiniteList({
@@ -21,6 +22,7 @@ export function RecipeInfiniteList({
   filters = {},
   sort = 'rating',
   emptyMessage = 'No recipes found',
+  isTop50 = false,
 }: RecipeInfiniteListProps) {
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
   const [pagination, setPagination] = useState(initialPagination);
@@ -39,7 +41,8 @@ export function RecipeInfiniteList({
   }, [initialRecipes, initialPagination]);
 
   const loadMore = useCallback(async () => {
-    if (loading || !pagination.hasMore || error) return;
+    // Disable pagination when in Top 50 mode
+    if (isTop50 || loading || !pagination.hasMore || error) return;
 
     // Cancel any pending requests
     if (abortControllerRef.current) {
@@ -90,7 +93,7 @@ export function RecipeInfiniteList({
       setLoading(false);
       abortControllerRef.current = null;
     }
-  }, [loading, pagination, filters, sort, error]);
+  }, [isTop50, loading, pagination, filters, sort, error]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -147,16 +150,17 @@ export function RecipeInfiniteList({
     <div className="space-y-6">
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {recipes.map((recipe) => (
+        {recipes.map((recipe, index) => (
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
+            showRank={isTop50 ? index + 1 : undefined}
           />
         ))}
       </div>
 
       {/* Loading indicator / sentinel element */}
-      {pagination.hasMore && (
+      {pagination.hasMore && !isTop50 && (
         <div
           ref={loadMoreRef}
           className="flex justify-center py-8"

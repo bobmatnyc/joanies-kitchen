@@ -108,15 +108,17 @@ export default function AboutPage() {
             </h3>
 
             <p>
-              Every recipe on this site comes from Joanie's kitchen and garden.
-              You'll find seasonal favorites, family traditions, and new
-              discoveries — all tested, tasted, and loved. Whether you're
-              looking for a simple weeknight dinner or a special occasion
-              feast, there's something here for you.
+              This site is a curated collection of recipes from across the culinary world —
+              from celebrated chefs like Kenji López-Alt and Ina Garten, to home cooks
+              and food publications. You'll find Joanie's personal favorites marked in{" "}
+              <strong className="text-jk-tomato">Joanie's Collection</strong>, where she shares
+              the recipes she makes most often from her kitchen and garden — seasonal favorites,
+              family traditions, and new discoveries, all tested, tasted, and loved.
             </p>
 
             <p>
-              We hope these recipes inspire you to slow down, cook with care,
+              Whether you're looking for a simple weeknight dinner or a special occasion
+              feast, we hope these recipes inspire you to slow down, cook with care,
               and enjoy the ritual of making a meal from scratch. And if you
               try something, we'd love to hear about it.
             </p>
@@ -129,6 +131,26 @@ export default function AboutPage() {
               — Joanie
             </p>
           </div>
+        </div>
+
+        {/* Photo Gallery Link */}
+        <div className="mb-12 bg-gradient-to-br from-jk-tomato to-jk-clay rounded-jk p-8 text-center">
+          <h3 className="font-heading text-2xl text-jk-linen mb-3">
+            Moments from the Kitchen
+          </h3>
+          <p className="text-jk-linen/90 mb-6 max-w-2xl mx-auto font-body">
+            Explore photos from Joanie's kitchen, garden, and table — where fresh ingredients
+            become unforgettable meals.
+          </p>
+          <Link href="/about/photos">
+            <Button
+              variant="outline"
+              size="lg"
+              className="bg-jk-linen hover:bg-white text-jk-tomato border-2 border-jk-linen hover:border-white font-ui font-medium text-lg px-8 py-6 rounded-jk"
+            >
+              View Photo Gallery
+            </Button>
+          </Link>
         </div>
 
         {/* Product Roadmap Link */}

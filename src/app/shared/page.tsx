@@ -14,6 +14,7 @@ interface PageProps {
     difficulty?: string;
     cuisine?: string;
     isSystemRecipe?: string;
+    top50?: string;
   }>;
 }
 
@@ -51,11 +52,12 @@ export default async function SharedRecipesPage({ searchParams }: PageProps) {
   }
 
   const sort = (params.sort || 'rating') as 'rating' | 'recent' | 'name';
+  const isTop50 = params.top50 === 'true';
 
   // Fetch initial page of public recipes
   const result = await getRecipesPaginated({
     page: 1,
-    limit: 24,
+    limit: isTop50 ? 50 : 24,
     filters,
     sort,
   });
@@ -86,8 +88,22 @@ export default async function SharedRecipesPage({ searchParams }: PageProps) {
         <RecipeFiltersComponent
           showSearch={true}
           showSystemRecipeFilter={true}
+          showTop50Toggle={true}
         />
       </div>
+
+      {/* Top 50 Badge */}
+      {isTop50 && (
+        <div className="mb-6 flex justify-center">
+          <div className="inline-flex items-center gap-2 bg-jk-tomato/10 border-2 border-jk-tomato rounded-lg px-6 py-3">
+            <span className="text-jk-tomato text-2xl">⭐</span>
+            <div>
+              <h2 className="text-lg font-heading text-jk-tomato">Top 50 Recipes</h2>
+              <p className="text-sm text-jk-charcoal/70">Showing the highest-rated recipes</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recipe List with Infinite Scroll */}
       <RecipeInfiniteList
@@ -96,6 +112,7 @@ export default async function SharedRecipesPage({ searchParams }: PageProps) {
         filters={filters}
         sort={sort}
         emptyMessage="No shared recipes found"
+        isTop50={isTop50}
       />
     </main>
   );

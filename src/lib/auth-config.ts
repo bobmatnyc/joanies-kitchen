@@ -55,13 +55,16 @@ function getEnvironmentSpecificKeys(): {
 
   if (isProd) {
     // Production environment - use live keys for recipes.help
+    // Vercel deployments should use the non-suffixed variables (NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY)
+    // which should be set to production keys (pk_live_, sk_live_) in Vercel dashboard
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
+                          process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY_PROD ||
+                     process.env.CLERK_SECRET_KEY;
+
     return {
-      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
-                     (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_live_') ?
-                      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : undefined),
-      secretKey: process.env.CLERK_SECRET_KEY_PROD ||
-                (process.env.CLERK_SECRET_KEY?.startsWith('sk_live_') ?
-                 process.env.CLERK_SECRET_KEY : undefined),
+      publishableKey,
+      secretKey,
       environment: 'production',
       usingProductionKeys: true
     };
@@ -155,8 +158,8 @@ export function getAppUrl(): string {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  // Default to localhost:3004 in development
-  return 'http://localhost:3004';
+  // Default to localhost:3002 in development
+  return 'http://localhost:3002';
 }
 
 /**

@@ -6,7 +6,9 @@ import { ChefHat, BookOpen, Sparkles, Plus, Globe, Heart, Trophy } from "lucide-
 import { Button } from "@/components/ui/button";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AuthButtons } from "@/components/auth/AuthButtons";
+import { MobileNav } from "@/components/mobile/MobileNav";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // Force dynamic rendering because of Clerk authentication
@@ -41,6 +43,13 @@ export const metadata: Metadata = {
   title: "Joanie's Kitchen",
   description: "From Garden to Table — with Heart and Soil. A trained chef and lifelong gardener sharing seasonal recipes from her terraced home overlooking the Hudson River.",
   manifest: '/manifest.json',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5.0,
+    userScalable: true,
+    viewportFit: 'cover', // For notched devices (iPhone X+)
+  },
   icons: {
     icon: [
       { url: '/icon.png', sizes: '32x32', type: 'image/png' },
@@ -52,6 +61,14 @@ export const metadata: Metadata = {
     ],
   },
   themeColor: '#5B6049', // Deep Olive
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: "Joanie's Kitchen",
+  },
+  formatDetection: {
+    telephone: false, // Prevent auto-linking of phone numbers
+  },
   keywords: ['recipes', 'seasonal cooking', 'garden to table', 'farm to table', 'wholesome', 'organic', 'authentic cooking'],
 };
 
@@ -63,6 +80,11 @@ export default function RootLayout({
   return (
     <AuthProvider>
       <html lang="en">
+        <head>
+          {/* Preconnect to external domains for faster resource loading */}
+          <link rel="preconnect" href="https://images.unsplash.com" />
+          <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        </head>
         <body
           className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}
         >
@@ -70,26 +92,28 @@ export default function RootLayout({
         <header className="bg-jk-olive border-b border-jk-sage shadow-sm">
           <div className="container mx-auto px-4">
             <nav className="flex items-center justify-between h-16">
-              <Link href="/" className="flex items-center gap-3 group">
+              {/* Logo - Always Visible */}
+              <Link href="/" className="flex items-center gap-2 lg:gap-3 group">
                 <Image
-                  src="/joanies-kitchen-logo.png"
-                  alt="Joanie's Kitchen"
+                  src="/ai-tomato-logo.png"
+                  alt="Joanie's Kitchen - AI Tomato Logo"
                   width={48}
                   height={48}
                   priority
-                  className="h-12 w-12 object-contain group-hover:opacity-90 transition-opacity"
+                  className="h-10 w-10 lg:h-12 lg:w-12 object-contain group-hover:opacity-90 transition-opacity"
                 />
                 <div className="flex flex-col leading-tight">
-                  <span className="text-jk-linen font-heading font-semibold text-xl tracking-wide">
+                  <span className="text-jk-linen font-heading font-semibold text-lg lg:text-xl tracking-wide">
                     Joanie's Kitchen
                   </span>
-                  <span className="text-jk-sage text-xs font-ui italic -mt-0.5">
+                  <span className="text-jk-sage text-xs font-ui italic -mt-0.5 hidden sm:block">
                     Garden to Table
                   </span>
                 </div>
               </Link>
 
-              <div className="flex items-center gap-2">
+              {/* Desktop Navigation (>1024px) */}
+              <div className="hidden xl:flex items-center gap-2">
                 <Link href="/about">
                   <Button variant="ghost" size="sm" className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80 font-ui">
                     <Heart className="h-4 w-4 mr-2" />
@@ -120,6 +144,12 @@ export default function RootLayout({
                     Discover
                   </Button>
                 </Link>
+                <Link href="/discover/chefs">
+                  <Button variant="ghost" size="sm" className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80 font-ui">
+                    <ChefHat className="h-4 w-4 mr-2" />
+                    Chefs
+                  </Button>
+                </Link>
                 <Link href="/recipes/new">
                   <Button size="sm" className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium">
                     <Plus className="h-4 w-4 mr-2" />
@@ -127,6 +157,22 @@ export default function RootLayout({
                   </Button>
                 </Link>
                 <AuthButtons />
+              </div>
+
+              {/* Mobile/Tablet Navigation (<1024px) */}
+              <div className="flex xl:hidden items-center gap-2">
+                {/* Add Recipe Button - Always visible on mobile */}
+                <Link href="/recipes/new">
+                  <Button
+                    size="sm"
+                    className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium"
+                  >
+                    <Plus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Add</span>
+                  </Button>
+                </Link>
+                {/* Hamburger Menu */}
+                <MobileNav />
               </div>
             </nav>
           </div>
@@ -149,6 +195,7 @@ export default function RootLayout({
         </footer>
 
         <Toaster position="bottom-right" richColors />
+        <SpeedInsights />
         </body>
       </html>
     </AuthProvider>

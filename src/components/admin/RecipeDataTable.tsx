@@ -42,14 +42,14 @@ export function RecipeDataTable({ recipes }: RecipeDataTableProps) {
 
     // Public filter
     if (filterPublic !== 'all') {
-      if (filterPublic === 'public' && !recipe.isPublic) return false;
-      if (filterPublic === 'private' && recipe.isPublic) return false;
+      if (filterPublic === 'public' && !recipe.is_public) return false;
+      if (filterPublic === 'private' && recipe.is_public) return false;
     }
 
     // System filter
     if (filterSystem !== 'all') {
-      if (filterSystem === 'system' && !recipe.isSystemRecipe) return false;
-      if (filterSystem === 'user' && recipe.isSystemRecipe) return false;
+      if (filterSystem === 'system' && !recipe.is_system_recipe) return false;
+      if (filterSystem === 'user' && recipe.is_system_recipe) return false;
     }
 
     return true;

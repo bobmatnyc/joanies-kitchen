@@ -74,19 +74,19 @@ export async function rateRecipe(
     await db
       .insert(recipeRatings)
       .values({
-        recipeId,
-        userId,
+        recipe_id: recipeId,
+        user_id: userId,
         rating,
         review: review || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .onConflictDoUpdate({
-        target: [recipeRatings.recipeId, recipeRatings.userId],
+        target: [recipeRatings.recipe_id, recipeRatings.user_id],
         set: {
           rating,
           review: review || null,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         },
       });
 
@@ -99,7 +99,7 @@ export async function rateRecipe(
         totalRatings: count(recipeRatings.id),
       })
       .from(recipeRatings)
-      .where(eq(recipeRatings.recipeId, recipeId));
+      .where(eq(recipeRatings.recipe_id, recipeId));
 
     const avgRating = stats[0]?.avgRating || 0;
     const totalRatings = stats[0]?.totalRatings || 0;
@@ -108,8 +108,8 @@ export async function rateRecipe(
     await db
       .update(recipes)
       .set({
-        avgUserRating: avgRating.toFixed(1),
-        totalUserRatings: totalRatings,
+        avg_user_rating: avgRating.toFixed(1),
+        total_user_ratings: totalRatings,
       })
       .where(eq(recipes.id, recipeId));
 
@@ -161,8 +161,8 @@ export async function getUserRating(
       .from(recipeRatings)
       .where(
         and(
-          eq(recipeRatings.recipeId, recipeId),
-          eq(recipeRatings.userId, userId)
+          eq(recipeRatings.recipe_id, recipeId),
+          eq(recipeRatings.user_id, userId)
         )
       )
       .limit(1);
@@ -174,8 +174,8 @@ export async function getUserRating(
     return {
       rating: userRating[0].rating,
       review: userRating[0].review || undefined,
-      createdAt: userRating[0].createdAt || undefined,
-      updatedAt: userRating[0].updatedAt || undefined,
+      createdAt: userRating[0].created_at || undefined,
+      updatedAt: userRating[0].updated_at || undefined,
     };
 
   } catch (error: any) {
@@ -196,7 +196,7 @@ export async function getRecipeRatings(
   limit: number = 10
 ): Promise<{
   id: string;
-  userId: string;
+  user_id: string;
   rating: number;
   review?: string;
   createdAt?: Date;
@@ -206,17 +206,17 @@ export async function getRecipeRatings(
     const ratings = await db
       .select()
       .from(recipeRatings)
-      .where(eq(recipeRatings.recipeId, recipeId))
-      .orderBy(sql`${recipeRatings.createdAt} DESC`)
+      .where(eq(recipeRatings.recipe_id, recipeId))
+      .orderBy(sql`${recipeRatings.created_at} DESC`)
       .limit(limit);
 
     return ratings.map(r => ({
       id: r.id,
-      userId: r.userId,
+      user_id: r.user_id,
       rating: r.rating,
       review: r.review || undefined,
-      createdAt: r.createdAt || undefined,
-      updatedAt: r.updatedAt || undefined,
+      created_at: r.created_at || undefined,
+      updated_at: r.updated_at || undefined,
     }));
 
   } catch (error: any) {
@@ -262,8 +262,8 @@ export async function deleteRating(
       .delete(recipeRatings)
       .where(
         and(
-          eq(recipeRatings.recipeId, recipeId),
-          eq(recipeRatings.userId, userToDelete)
+          eq(recipeRatings.recipe_id, recipeId),
+          eq(recipeRatings.user_id, userToDelete)
         )
       );
 
@@ -274,7 +274,7 @@ export async function deleteRating(
         totalRatings: count(recipeRatings.id),
       })
       .from(recipeRatings)
-      .where(eq(recipeRatings.recipeId, recipeId));
+      .where(eq(recipeRatings.recipe_id, recipeId));
 
     const avgRating = stats[0]?.avgRating || null;
     const totalRatings = stats[0]?.totalRatings || 0;
@@ -283,8 +283,8 @@ export async function deleteRating(
     await db
       .update(recipes)
       .set({
-        avgUserRating: avgRating ? avgRating.toFixed(1) : null,
-        totalUserRatings: totalRatings,
+        avg_user_rating: avgRating ? avgRating.toFixed(1) : null,
+        total_user_ratings: totalRatings,
       })
       .where(eq(recipes.id, recipeId));
 

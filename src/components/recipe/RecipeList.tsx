@@ -59,15 +59,15 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
     switch (sortBy) {
       case 'newest':
         filtered.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
           return dateB - dateA;
         });
         break;
       case 'oldest':
         filtered.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
           return dateA - dateB;
         });
         break;
@@ -76,8 +76,8 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
         break;
       case 'cookTime':
         filtered.sort((a, b) => {
-          const timeA = (a.prepTime || 0) + (a.cookTime || 0);
-          const timeB = (b.prepTime || 0) + (b.cookTime || 0);
+          const timeA = (a.prep_time || 0) + (a.cook_time || 0);
+          const timeB = (b.prep_time || 0) + (b.cook_time || 0);
           return timeA - timeB;
         });
         break;

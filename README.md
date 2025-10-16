@@ -52,6 +52,7 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 
 - **[API Documentation](./docs/api/overview.md)** - API reference and usage
 - **[Project Organization](./docs/reference/project-organization.md)** - File structure standards
+- **[Code Quality](./docs/guides/CODE_QUALITY.md)** - Linting, formatting, and testing
 - **[Quality Standards](./docs/reference/quality.md)** - Code quality guidelines
 - **[Troubleshooting](./docs/troubleshooting/common-issues.md)** - Common problems and solutions
 
@@ -87,6 +88,8 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 - **AI Integration**: OpenRouter API (Claude, GPT, Gemini)
 - **Search**: Brave Search API
 - **Embeddings**: Hugging Face (sentence-transformers)
+- **Testing**: Vitest + React Testing Library
+- **Linting/Formatting**: Biome
 - **Package Manager**: pnpm
 
 ---
@@ -177,10 +180,20 @@ pnpm db:generate      # Generate migrations
 pnpm db:migrate       # Run migrations
 pnpm db:studio        # Open Drizzle Studio GUI
 
+# Code Quality
+pnpm lint             # Check code quality with Biome
+pnpm lint:fix         # Auto-fix linting issues
+pnpm format           # Format code with Biome
+pnpm format:check     # Check formatting
+
+# Testing
+pnpm test             # Run tests in watch mode
+pnpm test:run         # Run tests once
+pnpm test:ui          # Open Vitest UI
+pnpm test:coverage    # Generate coverage report
+
 # Utilities
 pnpm auth:validate    # Validate Clerk setup
-pnpm lint             # Run linter
-pnpm type-check       # TypeScript checks
 ```
 
 ---

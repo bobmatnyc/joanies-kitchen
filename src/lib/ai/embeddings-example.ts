@@ -209,7 +209,7 @@ export function customRecipeText(recipe: Recipe): string {
 
   // Add custom fields or transformations
   // Example: add preparation time weight
-  if (recipe.prepTime && recipe.prepTime < 30) {
+  if (recipe.prep_time && recipe.prep_time < 30) {
     return `${text}. Quick recipe`;
   }
 

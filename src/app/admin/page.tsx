@@ -4,6 +4,8 @@ import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admi
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { SlideshowManager } from '@/components/admin/SlideshowManager';
+import { HeroBackgroundManager } from '@/components/admin/HeroBackgroundManager';
 
 function StatsLoadingSkeleton() {
   return (
@@ -163,17 +165,17 @@ async function RecentActivity() {
                 {recipe.name}
               </Link>
               <div className="flex gap-2 mt-1">
-                {recipe.isPublic && (
+                {recipe.is_public && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                     Public
                   </span>
                 )}
-                {recipe.isSystemRecipe && (
+                {recipe.is_system_recipe && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                     System
                   </span>
                 )}
-                {recipe.isAiGenerated && (
+                {recipe.is_ai_generated && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                     AI Generated
                   </span>
@@ -181,7 +183,7 @@ async function RecentActivity() {
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              {new Date(recipe.createdAt).toLocaleDateString()}
+              {new Date(recipe.created_at).toLocaleDateString()}
             </div>
           </div>
         ))
@@ -244,6 +246,26 @@ export default function AdminDashboard() {
           >
             <RecentActivity />
           </Suspense>
+        </CardContent>
+      </Card>
+
+      {/* Hero Background Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hero Background Images</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HeroBackgroundManager />
+        </CardContent>
+      </Card>
+
+      {/* Slideshow Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Photo Gallery</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SlideshowManager />
         </CardContent>
       </Card>
 

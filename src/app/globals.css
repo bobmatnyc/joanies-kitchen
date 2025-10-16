@@ -44,6 +44,24 @@
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-jk: 8px;
+
+  /* Mobile breakpoints */
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Safe area insets for notched devices */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+  /* Touch target sizes */
+  --touch-target-min: 44px;        /* iOS minimum */
+  --touch-target-material: 48px;   /* Material Design minimum */
 }
 
 :root {
@@ -213,4 +231,274 @@
     --tw-prose-th-borders: var(--jk-sage);
     --tw-prose-td-borders: var(--jk-sage);
   }
+}
+
+/* Mobile-First Optimizations */
+@layer utilities {
+  /* Touch targets - ensure minimum size for mobile interactions */
+  .touch-target {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+  }
+
+  .touch-target-material {
+    min-height: var(--touch-target-material);
+    min-width: var(--touch-target-material);
+  }
+
+  /* Safe area spacing for notched devices */
+  .safe-top {
+    padding-top: var(--safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: var(--safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: var(--safe-area-inset-right);
+  }
+
+  .safe-x {
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+  }
+
+  .safe-y {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  /* Prevent text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile tap feedback */
+  .tap-feedback {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    transition: opacity 0.15s ease-in-out;
+  }
+
+  .tap-feedback:active {
+    opacity: 0.7;
+  }
+}
+
+/* Mobile Typography and Layout */
+@media (max-width: 768px) {
+  html {
+    /* Prevent iOS zoom on input focus */
+    font-size: 16px;
+  }
+
+  body {
+    /* Improve font rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+  }
+
+  /* Touch-friendly inputs - prevent iOS zoom */
+  input, select, textarea, button {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Optimize hero text for mobile */
+  .jk-hero h1 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+  }
+
+  .jk-hero p {
+    font-size: 1.125rem;
+  }
+}
+
+/* Extra small devices (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  .jk-hero h1 {
+    font-size: 2rem;
+  }
+
+  /* Tighter padding on small screens */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Safe area insets for notched devices (iPhone X+, etc.) */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  header {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  footer {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Touch-friendly button styling */
+.btn, button, a[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+}
+
+/* Mobile-optimized card hover states (use active instead) */
+@media (hover: none) and (pointer: coarse) {
+  .recipe-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .recipe-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-in-out;
+  }
+}
+
+/* Hero Background Animations - Crossfade between images */
+@keyframes hero-crossfade-1 {
+  0% {
+    opacity: 0.15;
+  }
+  5% {
+    opacity: 0.15;
+  }
+  25% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 0.15;
+  }
+  95% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes hero-crossfade-2 {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.15;
+  }
+  60% {
+    opacity: 0.15;
+  }
+  75% {
+    opacity: 0;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
+}
+
+@keyframes float-slower {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(20px) translateX(-10px);
+  }
+}
+
+@keyframes rotate-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotate-slower {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+.animate-hero-crossfade-1 {
+  animation: hero-crossfade-1 20s ease-in-out infinite;
+}
+
+.animate-hero-crossfade-2 {
+  animation: hero-crossfade-2 20s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 40s ease-in-out infinite;
+}
+
+.animate-float-slower {
+  animation: float-slower 50s ease-in-out infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 120s linear infinite;
+}
+
+.animate-rotate-slower {
+  animation: rotate-slower 150s linear infinite;
 }

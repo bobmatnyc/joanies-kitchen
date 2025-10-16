@@ -86,7 +86,7 @@ export async function semanticSearchRecipes(
     );
 
     // Extract recipe IDs from embeddings
-    const recipeIds = similarEmbeddings.map(e => e.recipeId);
+    const recipeIds = similarEmbeddings.map(e => e.recipe_id);
 
     if (recipeIds.length === 0) {
       return {
@@ -114,8 +114,8 @@ export async function semanticSearchRecipes(
     if (!options.includePrivate || !userId) {
       // Only public or system recipes
       const visibilityCondition = or(
-        eq(recipes.isPublic, true),
-        eq(recipes.isSystemRecipe, true)
+        eq(recipes.is_public, true),
+        eq(recipes.is_system_recipe, true)
       );
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
@@ -123,9 +123,9 @@ export async function semanticSearchRecipes(
     } else {
       // Include user's private recipes + public/system recipes
       const visibilityCondition = or(
-        eq(recipes.isPublic, true),
-        eq(recipes.isSystemRecipe, true),
-        eq(recipes.userId, userId)
+        eq(recipes.is_public, true),
+        eq(recipes.is_system_recipe, true),
+        eq(recipes.user_id, userId)
       );
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
@@ -166,7 +166,7 @@ export async function semanticSearchRecipes(
     // Map recipes to include similarity scores
     const recipesWithSimilarity: RecipeWithSimilarity[] = results
       .map(recipe => {
-        const embedding = similarEmbeddings.find(e => e.recipeId === recipe.id);
+        const embedding = similarEmbeddings.find(e => e.recipe_id === recipe.id);
         return {
           ...recipe,
           similarity: embedding?.similarity || 0,
@@ -240,7 +240,7 @@ export async function findSimilarToRecipe(
 
       // Get recipe details and exclude the original recipe
       const recipeIds = similar
-        .map(e => e.recipeId)
+        .map(e => e.recipe_id)
         .filter(id => id !== recipeId);
 
       if (recipeIds.length === 0) {
@@ -254,7 +254,7 @@ export async function findSimilarToRecipe(
 
       const recipesWithSimilarity = similarRecipes
         .map(r => {
-          const sim = similar.find(s => s.recipeId === r.id);
+          const sim = similar.find(s => s.recipe_id === r.id);
           return {
             ...r,
             similarity: sim?.similarity || 0,
@@ -278,7 +278,7 @@ export async function findSimilarToRecipe(
 
     // Get recipe details and exclude the original recipe
     const recipeIds = similar
-      .map(e => e.recipeId)
+      .map(e => e.recipe_id)
       .filter(id => id !== recipeId);
 
     if (recipeIds.length === 0) {
@@ -292,7 +292,7 @@ export async function findSimilarToRecipe(
 
     const recipesWithSimilarity = similarRecipes
       .map(r => {
-        const sim = similar.find(s => s.recipeId === r.id);
+        const sim = similar.find(s => s.recipe_id === r.id);
         return {
           ...r,
           similarity: sim?.similarity || 0,
@@ -371,16 +371,16 @@ export async function hybridSearchRecipes(
     if (!options.includePrivate || !userId) {
       textConditions.push(
         or(
-          eq(recipes.isPublic, true),
-          eq(recipes.isSystemRecipe, true)
+          eq(recipes.is_public, true),
+          eq(recipes.is_system_recipe, true)
         )
       );
     } else {
       textConditions.push(
         or(
-          eq(recipes.isPublic, true),
-          eq(recipes.isSystemRecipe, true),
-          eq(recipes.userId, userId)
+          eq(recipes.is_public, true),
+          eq(recipes.is_system_recipe, true),
+          eq(recipes.user_id, userId)
         )
       );
     }
@@ -474,13 +474,13 @@ export async function getSearchSuggestions(
     // Build visibility conditions
     const visibilityConditions = userId
       ? or(
-          eq(recipes.isPublic, true),
-          eq(recipes.isSystemRecipe, true),
-          eq(recipes.userId, userId)
+          eq(recipes.is_public, true),
+          eq(recipes.is_system_recipe, true),
+          eq(recipes.user_id, userId)
         )
       : or(
-          eq(recipes.isPublic, true),
-          eq(recipes.isSystemRecipe, true)
+          eq(recipes.is_public, true),
+          eq(recipes.is_system_recipe, true)
         );
 
     // Get matching recipes

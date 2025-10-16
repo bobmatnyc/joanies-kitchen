@@ -14,7 +14,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
-const SOURCE_LOGO = path.join(PUBLIC_DIR, 'joanies-kitchen-logo.png');
+const SOURCE_LOGO = path.join(PUBLIC_DIR, 'ai-tomato-logo.png');
 
 interface FaviconSize {
   name: string;

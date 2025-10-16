@@ -6,71 +6,109 @@ import { ChefHat, BookOpen, ShoppingCart, Calendar, Sparkles, Trophy, ChevronRig
 import { getSharedRecipes, getTopRatedRecipes } from "@/app/actions/recipes";
 import { SharedRecipeCarousel } from "@/components/recipe/SharedRecipeCarousel";
 import { RecipeCard } from "@/components/recipe/RecipeCard";
+import { MobileContainer, MobileSpacer } from "@/components/mobile";
 
 export default async function Home() {
-  // Fetch shared recipes for carousel (limited to 15 for performance)
-  const sharedRecipesResult = await getSharedRecipes();
-  const sharedRecipes = sharedRecipesResult.success && sharedRecipesResult.data
-    ? sharedRecipesResult.data.slice(0, 15)
-    : [];
+  // Fetch recipes with error handling for production
+  let sharedRecipes: any[] = [];
+  let topRecipes: any[] = [];
 
-  // Fetch top 8 recipes for preview section
-  const topRecipes = await getTopRatedRecipes({ limit: 8 });
+  try {
+    const sharedRecipesResult = await getSharedRecipes();
+    sharedRecipes = sharedRecipesResult.success && sharedRecipesResult.data
+      ? sharedRecipesResult.data.slice(0, 15)
+      : [];
+  } catch (error) {
+    console.error('[Homepage] Failed to fetch shared recipes:', error);
+  }
+
+  try {
+    topRecipes = await getTopRatedRecipes({ limit: 8 });
+  } catch (error) {
+    console.error('[Homepage] Failed to fetch top-rated recipes:', error);
+  }
   return (
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
-      <section className="bg-jk-olive text-jk-linen py-20 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
+      <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
+        {/* Animated Background Images - Crossfade */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Textured illustration - left side, crossfading */}
+          <div className="absolute -left-20 top-0 w-1/2 h-full animate-hero-crossfade-1 animate-float-slow">
+            <Image
+              src="https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-textured.png"
+              alt=""
+              fill
+              className="object-cover object-left animate-rotate-slow"
+              priority
+            />
+          </div>
+
+          {/* Watercolor illustration - right side, crossfading */}
+          <div className="absolute -right-20 bottom-0 w-1/2 h-full animate-hero-crossfade-2 animate-float-slower">
+            <Image
+              src="https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-watercolor.png"
+              alt=""
+              fill
+              className="object-cover object-right animate-rotate-slower"
+              priority
+            />
+          </div>
+        </div>
+
+        <MobileContainer maxWidth="xl" className="relative z-10 text-center">
           <div className="flex justify-center mb-6">
             <Image
-              src="/joanies-kitchen-logo.png"
-              alt="Joanie's Kitchen Logo"
+              src="/ai-tomato-logo.png"
+              alt="Joanie's Kitchen - AI Tomato Logo"
               width={120}
               height={120}
               priority
               className="h-28 w-28 object-contain"
             />
           </div>
-          <h1 className="font-heading text-6xl md:text-7xl font-bold mb-4 text-jk-linen">
+          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 text-jk-linen">
             Joanie's Kitchen
           </h1>
-          <p className="font-body text-2xl md:text-3xl text-jk-sage italic mb-3">
+          <p className="font-body text-xl sm:text-2xl md:text-3xl text-jk-sage italic mb-3">
             From Garden to Table — with Heart and Soil
           </p>
-          <p className="font-ui text-lg text-jk-linen/90 max-w-2xl mx-auto mb-10">
+          <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
             Celebrate cooking with the seasons. Your personal recipe collection and AI-powered kitchen companion.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/discover">
-              <Button size="lg" className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-8 py-6 text-lg gap-2 rounded-jk">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
+            <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target" asChild>
+              <Link href="/discover">
                 <Sparkles className="h-5 w-5" />
                 Discover Recipes
-              </Button>
-            </Link>
-            <Link href="/recipes">
-              <Button size="lg" className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-8 py-6 text-lg rounded-jk">
+              </Link>
+            </Button>
+            <Button size="lg" className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target" asChild>
+              <Link href="/recipes">
                 <BookOpen className="h-5 w-5 mr-2" />
                 My Recipes
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
-        </div>
+        </MobileContainer>
       </section>
 
-      <div className="container mx-auto px-4 py-16">
+      <MobileContainer className="py-12 md:py-16">
         {/* Welcome Message */}
-        <div className="text-center mb-16 max-w-3xl mx-auto">
-          <h2 className="font-heading text-4xl text-jk-olive mb-4">Welcome to Your Kitchen</h2>
-          <p className="font-body text-lg text-jk-charcoal/80">
+        <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+          <h2 className="font-heading text-3xl md:text-4xl text-jk-olive mb-4">Welcome to Your Kitchen</h2>
+          <p className="font-body text-base md:text-lg text-jk-charcoal/80">
             Whether you're bringing fresh ingredients from your garden or exploring new seasonal flavors,
             Joanie's Kitchen helps you create wholesome, delicious meals with warmth and authenticity.
           </p>
         </div>
 
+        <MobileSpacer size="sm" />
+
         {/* Features Grid with Parchment Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <Link href="/discover">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+          <Link href="/discover" className="block h-full">
+            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Sparkles className="h-8 w-8 text-jk-tomato mb-2" />
                 <CardTitle className="font-heading text-jk-olive">Seasonal Discovery</CardTitle>
@@ -83,8 +121,8 @@ export default async function Home() {
             </Card>
           </Link>
 
-          <Link href="/recipes">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage">
+          <Link href="/recipes" className="block h-full">
+            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
               <CardHeader>
                 <BookOpen className="h-8 w-8 text-jk-clay mb-2" />
                 <CardTitle className="font-heading text-jk-olive">Your Recipe Garden</CardTitle>
@@ -97,8 +135,8 @@ export default async function Home() {
             </Card>
           </Link>
 
-          <Link href="/recipes/new">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage">
+          <Link href="/recipes/new" className="block h-full">
+            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
               <CardHeader>
                 <ChefHat className="h-8 w-8 text-jk-olive mb-2" />
                 <CardTitle className="font-heading text-jk-olive">Plant a Recipe</CardTitle>
@@ -114,19 +152,19 @@ export default async function Home() {
 
         {/* Top Recipes Preview */}
         {topRecipes.length > 0 && (
-          <section className="mt-16 mb-16">
-            <div className="jk-divider mb-12"></div>
-            <div className="text-center mb-12">
-              <Trophy className="h-12 w-12 text-jk-tomato mx-auto mb-4" />
-              <h2 className="text-4xl font-heading text-jk-olive mb-4">
+          <section className="mt-12 md:mt-16 mb-12 md:mb-16">
+            <div className="jk-divider mb-8 md:mb-12"></div>
+            <div className="text-center mb-8 md:mb-12">
+              <Trophy className="h-10 w-10 md:h-12 md:w-12 text-jk-tomato mx-auto mb-4" />
+              <h2 className="text-3xl md:text-4xl font-heading text-jk-olive mb-3 md:mb-4">
                 Top-Rated Recipes
               </h2>
-              <p className="text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body">
+              <p className="text-base md:text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body px-4">
                 Our most beloved recipes, tried, tested, and highly rated
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               {topRecipes.map((recipe, index) => (
                 <RecipeCard
                   key={recipe.id}
@@ -137,30 +175,35 @@ export default async function Home() {
             </div>
 
             <div className="text-center">
-              <Link href="/recipes/top-50">
-                <Button className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2">
+              <Button className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2 touch-target" asChild>
+                <Link href="/recipes/top-50">
                   View All Top 50 Recipes
                   <ChevronRight className="h-5 w-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </section>
         )}
 
         {/* About Joanie Section */}
-        <section className="mt-16 mb-16">
-          <div className="jk-divider mb-12"></div>
+        <section className="mt-12 md:mt-16 mb-12 md:mb-16">
+          <div className="jk-divider mb-8 md:mb-12"></div>
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               {/* Joanie's Portrait */}
               <div className="relative">
                 <div className="rounded-jk overflow-hidden border-4 border-jk-sage shadow-lg">
-                  <img
+                  <Image
                     src="/joanie-portrait.png"
                     alt="Joanie cooking in her kitchen with fresh vegetables"
-                    className="w-full h-auto"
                     width={600}
                     height={800}
+                    priority
+                    quality={85}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
+                    className="w-full h-auto"
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAFCAYAAABirU3bAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAM0lEQVR4nGNgYGD4z8DAwMDIwMDwn4GB4T8jIyPDfwYGhv+MjIwM/xkZGRn+MzIyMvwHAAZPAwf0XmANAAAAAElFTkSuQmCC"
                   />
                 </div>
                 {/* Decorative accents */}
@@ -169,12 +212,12 @@ export default async function Home() {
               </div>
 
               {/* About Text */}
-              <div className="space-y-6">
-                <h2 className="font-heading text-5xl text-jk-olive mb-6">
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="font-heading text-4xl md:text-5xl text-jk-olive mb-4 md:mb-6">
                   About Joanie
                 </h2>
 
-                <div className="space-y-4 text-jk-charcoal/80 font-body text-lg leading-relaxed">
+                <div className="space-y-3 md:space-y-4 text-jk-charcoal/80 font-body text-base md:text-lg leading-relaxed">
                   <p>
                     Joanie grew up in upstate New York helping her dad in his children's
                     clothing shop — and she's been mixing creativity with hard work ever
@@ -202,17 +245,17 @@ export default async function Home() {
                   </p>
                 </div>
 
-                <div className="flex gap-4 mt-8">
-                  <Link href="/about">
-                    <Button size="lg" className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk">
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-6 md:mt-8">
+                  <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+                    <Link href="/about">
                       Read My Story
-                    </Button>
-                  </Link>
-                  <Link href="/recipes">
-                    <Button size="lg" variant="outline" className="border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui font-medium rounded-jk">
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui font-medium rounded-jk touch-target" asChild>
+                    <Link href="/recipes">
                       Explore Recipes
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -221,12 +264,12 @@ export default async function Home() {
 
         {/* Shared Recipe Carousel */}
         {sharedRecipes.length > 0 && (
-          <div className="mt-16 mb-12">
-            <div className="jk-divider mb-12"></div>
-            <h2 className="font-heading text-4xl font-bold mb-4 text-center text-jk-olive">
+          <div className="mt-12 md:mt-16 mb-8 md:mb-12">
+            <div className="jk-divider mb-8 md:mb-12"></div>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-jk-olive">
               The Community Table
             </h2>
-            <p className="font-body text-center text-jk-charcoal/70 mb-8 max-w-2xl mx-auto">
+            <p className="font-body text-center text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
               Recipes shared with love from our community. Each dish tells a story of tradition, innovation, and the joy of cooking.
             </p>
             <SharedRecipeCarousel recipes={sharedRecipes} />
@@ -234,34 +277,34 @@ export default async function Home() {
         )}
 
         {/* Quick Actions */}
-        <div className="mt-16 text-center">
-          <div className="jk-divider mb-12"></div>
-          <h2 className="font-heading text-4xl font-bold mb-4 text-jk-olive">Ready to Start Cooking?</h2>
-          <p className="font-body text-lg text-jk-charcoal/70 mb-8 max-w-2xl mx-auto">
+        <div className="mt-12 md:mt-16 text-center">
+          <div className="jk-divider mb-8 md:mb-12"></div>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-jk-olive">Ready to Start Cooking?</h2>
+          <p className="font-body text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
             Every great meal begins with inspiration. Choose your path and let's create something wonderful.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/discover">
-              <Button size="lg" className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
+            <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+              <Link href="/discover">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Discover New Recipe
-              </Button>
-            </Link>
-            <Link href="/recipes/new">
-              <Button size="lg" className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium rounded-jk">
+              </Link>
+            </Button>
+            <Button size="lg" className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+              <Link href="/recipes/new">
                 <ChefHat className="h-4 w-4 mr-2" />
                 Add Recipe
-              </Button>
-            </Link>
-            <Link href="/recipes">
-              <Button size="lg" className="bg-jk-olive hover:bg-jk-olive/90 text-white font-ui font-medium rounded-jk">
+              </Link>
+            </Button>
+            <Button size="lg" className="w-full sm:w-auto bg-jk-olive hover:bg-jk-olive/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+              <Link href="/recipes">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Browse Collection
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
-      </div>
+      </MobileContainer>
     </div>
   );
 }

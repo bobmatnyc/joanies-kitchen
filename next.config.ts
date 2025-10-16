@@ -6,10 +6,17 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Disable optimizeCss due to critters dependency issue
+    // optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'react-icons', '@radix-ui/react-icons'],
   },
   output: 'standalone',
   images: {
-    unoptimized: true, // Temporarily disable optimization to allow all image sources
+    // Re-enable optimization for better FCP/LCP performance
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
@@ -169,6 +176,24 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'tasty.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.mariashriversundaypaper.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'annikaeats.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ljqhvy0frzhuigv1.public.blob.vercel-storage.com',
         port: '',
         pathname: '/**',
       },

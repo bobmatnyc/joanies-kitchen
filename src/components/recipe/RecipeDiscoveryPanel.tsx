@@ -470,10 +470,10 @@ export function RecipeDiscoveryPanel() {
                     {recipe.difficulty && (
                       <Badge variant="outline">{recipe.difficulty}</Badge>
                     )}
-                    {(recipe.prepTime || recipe.cookTime) && (
+                    {(recipe.prep_time || recipe.cook_time) && (
                       <Badge variant="outline">
                         <Clock className="w-3 h-3 mr-1" />
-                        {(recipe.prepTime || 0) + (recipe.cookTime || 0)} min
+                        {(recipe.prep_time || 0) + (recipe.cook_time || 0)} min
                       </Badge>
                     )}
                     {recipe.servings && (
@@ -502,13 +502,13 @@ export function RecipeDiscoveryPanel() {
 
                   {/* Provenance Info */}
                   <div className="flex items-center gap-4 text-xs text-muted-foreground border-t pt-3">
-                    {recipe.confidenceScore && (
+                    {recipe.confidence_score && (
                       <div className="flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" />
-                        <span>{(parseFloat(recipe.confidenceScore) * 100).toFixed(0)}% confidence</span>
+                        <span>{(parseFloat(recipe.confidence_score) * 100).toFixed(0)}% confidence</span>
                       </div>
                     )}
-                    {recipe.embeddingModel && (
+                    {recipe.embedding_model && (
                       <div className="flex items-center gap-1">
                         <Database className="w-3 h-3" />
                         <span>Vector indexed</span>
@@ -579,10 +579,10 @@ export function RecipeDiscoveryPanel() {
                 {showRecipe.difficulty && (
                   <Badge variant="outline">{showRecipe.difficulty}</Badge>
                 )}
-                {(showRecipe.prepTime || showRecipe.cookTime) && (
+                {(showRecipe.prep_time || showRecipe.cook_time) && (
                   <Badge variant="outline">
                     <Clock className="w-3 h-3 mr-1" />
-                    Total: {(showRecipe.prepTime || 0) + (showRecipe.cookTime || 0)} min
+                    Total: {(showRecipe.prep_time || 0) + (showRecipe.cook_time || 0)} min
                   </Badge>
                 )}
                 {showRecipe.servings && (
@@ -627,24 +627,24 @@ export function RecipeDiscoveryPanel() {
               <div className="border-t pt-4 space-y-2">
                 <h4 className="font-semibold text-sm">Discovery Information</h4>
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  {showRecipe.confidenceScore && (
+                  {showRecipe.confidence_score && (
                     <div>
-                      <strong>Confidence Score:</strong> {(parseFloat(showRecipe.confidenceScore) * 100).toFixed(0)}%
+                      <strong>Confidence Score:</strong> {(parseFloat(showRecipe.confidence_score) * 100).toFixed(0)}%
                     </div>
                   )}
-                  {showRecipe.validationModel && (
+                  {showRecipe.validation_model && (
                     <div>
-                      <strong>Validation Model:</strong> {showRecipe.validationModel.split('/').pop()}
+                      <strong>Validation Model:</strong> {showRecipe.validation_model.split('/').pop()}
                     </div>
                   )}
-                  {showRecipe.embeddingModel && (
+                  {showRecipe.embedding_model && (
                     <div>
-                      <strong>Embedding Model:</strong> {showRecipe.embeddingModel.split('/').pop()}
+                      <strong>Embedding Model:</strong> {showRecipe.embedding_model.split('/').pop()}
                     </div>
                   )}
-                  {showRecipe.discoveryDate && (
+                  {showRecipe.discovery_date && (
                     <div>
-                      <strong>Discovered:</strong> {new Date(showRecipe.discoveryDate).toLocaleDateString()}
+                      <strong>Discovered:</strong> {new Date(showRecipe.discovery_date).toLocaleDateString()}
                     </div>
                   )}
                 </div>

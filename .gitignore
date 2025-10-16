@@ -12,6 +12,13 @@
 
 # testing
 /coverage
+.vitest
+.vitest/
+/test-results/
+/playwright-report/
+
+# linting/formatting
+.biome
 
 # next.js
 /.next/
@@ -68,6 +75,12 @@ data/recipes/failed/
 
 # drizzle
 /drizzle
+
+# Build tracking (local only)
+.build-number
+build-history.json
+build-info.json
+.kuzu-memory-backups/
 
 # Added by Claude MPM /mpm-init
 $RECYCLE.BIN/

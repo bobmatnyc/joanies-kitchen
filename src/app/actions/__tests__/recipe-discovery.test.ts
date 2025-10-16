@@ -64,8 +64,8 @@ describe('Recipe Discovery Pipeline', () => {
       expect(result.success).toBe(true);
       // All saved recipes should have high confidence
       result.recipes.forEach(recipe => {
-        if (recipe.confidenceScore) {
-          expect(parseFloat(recipe.confidenceScore)).toBeGreaterThanOrEqual(0.8);
+        if (recipe.confidence_score) {
+          expect(parseFloat(recipe.confidence_score)).toBeGreaterThanOrEqual(0.8);
         }
       });
     }, 60000);
@@ -90,9 +90,9 @@ describe('Recipe Discovery Pipeline', () => {
 
       if (result.recipes.length > 0) {
         const recipe = result.recipes[0];
-        expect(recipe.searchQuery).toBe(query);
-        expect(recipe.discoveryDate).toBeTruthy();
-        expect(recipe.validationModel).toBe('anthropic/claude-3-haiku');
+        expect(recipe.search_query).toBe(query);
+        expect(recipe.discovery_date).toBeTruthy();
+        expect(recipe.validation_model).toBe('anthropic/claude-3-haiku');
         expect(recipe.source).toBeTruthy(); // Should have URL
       }
     }, 60000);
@@ -106,8 +106,8 @@ describe('Recipe Discovery Pipeline', () => {
 
       if (result.recipes.length > 0) {
         const recipe = result.recipes[0];
-        expect(recipe.embeddingModel).toBeTruthy();
-        expect(recipe.embeddingModel).toContain('all-MiniLM-L6-v2');
+        expect(recipe.embedding_model).toBeTruthy();
+        expect(recipe.embedding_model).toContain('all-MiniLM-L6-v2');
       }
     }, 60000);
   });
@@ -202,8 +202,8 @@ describe('Recipe Discovery Pipeline', () => {
           name: recipe.name,
           cuisine: recipe.cuisine,
           difficulty: recipe.difficulty,
-          confidence: recipe.confidenceScore,
-          hasEmbedding: !!recipe.embeddingModel,
+          confidence: recipe.confidence_score,
+          hasEmbedding: !!recipe.embedding_model,
         });
       }
     }, 120000); // 2 minute timeout

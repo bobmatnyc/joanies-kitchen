@@ -5,20 +5,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { X, SlidersHorizontal, Search } from 'lucide-react';
+import { X, SlidersHorizontal, Search, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface RecipeFiltersProps {
   availableCuisines?: string[];
   showSearch?: boolean;
   showSystemRecipeFilter?: boolean;
+  showTop50Toggle?: boolean;
 }
 
 export function RecipeFilters({
   availableCuisines = [],
   showSearch = true,
   showSystemRecipeFilter = false,
+  showTop50Toggle = false,
 }: RecipeFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,6 +33,7 @@ export function RecipeFilters({
   const [difficulty, setDifficulty] = useState(searchParams.get('difficulty') || '');
   const [cuisine, setCuisine] = useState(searchParams.get('cuisine') || '');
   const [isSystemRecipe, setIsSystemRecipe] = useState(searchParams.get('isSystemRecipe') || '');
+  const [showTop50, setShowTop50] = useState(searchParams.get('top50') === 'true');
 
   // Track active filters count
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
@@ -41,6 +45,7 @@ export function RecipeFilters({
     if (difficulty) count++;
     if (cuisine) count++;
     if (isSystemRecipe) count++;
+    // Don't count top50 as it's a special toggle
     setActiveFiltersCount(count);
   }, [searchQuery, minRating, difficulty, cuisine, isSystemRecipe]);
 
@@ -94,6 +99,12 @@ export function RecipeFilters({
     updateURL({ isSystemRecipe: actualValue });
   };
 
+  const handleTop50Toggle = (value: string) => {
+    const isTop50 = value === 'top50';
+    setShowTop50(isTop50);
+    updateURL({ top50: isTop50 ? 'true' : '' });
+  };
+
   const clearAllFilters = () => {
     setSearchQuery('');
     setMinRating('');
@@ -101,14 +112,32 @@ export function RecipeFilters({
     setCuisine('');
     setIsSystemRecipe('');
 
-    // Keep only sort parameter
+    // Keep sort and top50 parameters
     const params = new URLSearchParams();
     params.set('sort', sort);
+    if (showTop50) {
+      params.set('top50', 'true');
+    }
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
   return (
     <div className="space-y-4">
+      {/* Top 50 Toggle */}
+      {showTop50Toggle && (
+        <div className="flex justify-center mb-4">
+          <Tabs value={showTop50 ? 'top50' : 'all'} onValueChange={handleTop50Toggle}>
+            <TabsList>
+              <TabsTrigger value="all">All Recipes</TabsTrigger>
+              <TabsTrigger value="top50" className="gap-2">
+                <Star className="w-4 h-4 fill-current" />
+                Top 50
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
+
       {/* Search Bar */}
       {showSearch && (
         <form onSubmit={handleSearchSubmit} className="relative">

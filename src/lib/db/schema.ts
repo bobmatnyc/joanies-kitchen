@@ -24,89 +24,148 @@ const vector = customType<{ data: number[]; driverData: string }>({
 // Recipes table with authentication support
 export const recipes = pgTable('recipes', {
   id: text('id').primaryKey().$defaultFn(() => randomUUID()),
-  userId: text('user_id').notNull(), // Clerk user ID
+  user_id: text('user_id').notNull(), // Clerk user ID
+  chef_id: uuid('chef_id'), // Optional reference to chef (for chef-attributed recipes)
   name: text('name').notNull(),
   description: text('description'),
   ingredients: text('ingredients').notNull(), // JSON array of strings
   instructions: text('instructions').notNull(), // JSON array of strings
-  prepTime: integer('prep_time'), // in minutes
-  cookTime: integer('cook_time'), // in minutes
+  prep_time: integer('prep_time'), // in minutes
+  cook_time: integer('cook_time'), // in minutes
   servings: integer('servings'),
   difficulty: text('difficulty', { enum: ['easy', 'medium', 'hard'] }),
   cuisine: text('cuisine'),
   tags: text('tags'), // JSON array of strings
-  imageUrl: text('image_url'), // External URL only (deprecated - kept for backwards compatibility)
+  image_url: text('image_url'), // External URL only (deprecated - kept for backwards compatibility)
   images: text('images'), // JSON array of image URLs (up to 6)
-  isAiGenerated: boolean('is_ai_generated').default(false),
-  isPublic: boolean('is_public').default(false), // Recipe visibility
-  isSystemRecipe: boolean('is_system_recipe').default(false), // System/curated recipes
-  nutritionInfo: text('nutrition_info'), // JSON object with nutritional data
-  modelUsed: text('model_used'), // AI model used for generation
+  is_ai_generated: boolean('is_ai_generated').default(false),
+  is_public: boolean('is_public').default(false), // Recipe visibility
+  is_system_recipe: boolean('is_system_recipe').default(false), // System/curated recipes
+  nutrition_info: text('nutrition_info'), // JSON object with nutritional data
+  model_used: text('model_used'), // AI model used for generation
   source: text('source'), // Recipe source (URL, chef name, etc.)
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
 
   // Enhanced provenance tracking fields
-  searchQuery: text('search_query'), // Search query that discovered this recipe
-  discoveryDate: timestamp('discovery_date', { withTimezone: true }), // When recipe was discovered
-  confidenceScore: decimal('confidence_score', { precision: 3, scale: 2 }), // Validation confidence (0.00-1.00)
-  validationModel: text('validation_model'), // AI model used for validation
-  embeddingModel: text('embedding_model'), // Embedding model name for vector search
+  search_query: text('search_query'), // Search query that discovered this recipe
+  discovery_date: timestamp('discovery_date', { withTimezone: true }), // When recipe was discovered
+  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }), // Validation confidence (0.00-1.00)
+  validation_model: text('validation_model'), // AI model used for validation
+  embedding_model: text('embedding_model'), // Embedding model name for vector search
 
   // Week tracking for weekly recipe discovery
-  discoveryWeek: integer('discovery_week'), // ISO week number (1-52) when discovered
-  discoveryYear: integer('discovery_year'), // Year when discovered
-  publishedDate: timestamp('published_date'), // Original publication date from source
+  discovery_week: integer('discovery_week'), // ISO week number (1-52) when discovered
+  discovery_year: integer('discovery_year'), // Year when discovered
+  published_date: timestamp('published_date'), // Original publication date from source
 
   // Recipe ratings
-  systemRating: decimal('system_rating', { precision: 2, scale: 1 }), // AI-generated quality score (0.0-5.0)
-  systemRatingReason: text('system_rating_reason'), // Explanation of AI rating
-  avgUserRating: decimal('avg_user_rating', { precision: 2, scale: 1 }), // Average user rating
-  totalUserRatings: integer('total_user_ratings').default(0), // Count of user ratings
+  system_rating: decimal('system_rating', { precision: 2, scale: 1 }), // AI-generated quality score (0.0-5.0)
+  system_rating_reason: text('system_rating_reason'), // Explanation of AI rating
+  avg_user_rating: decimal('avg_user_rating', { precision: 2, scale: 1 }), // Average user rating
+  total_user_ratings: integer('total_user_ratings').default(0), // Count of user ratings
+
+  // SEO slug for friendly URLs
+  slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "grandmas-chocolate-chip-cookies")
 }, (table) => ({
   // Performance indexes for pagination and filtering
-  ratingIdx: index('idx_recipes_rating').on(table.systemRating.desc(), table.avgUserRating.desc()),
-  createdIdx: index('idx_recipes_created').on(table.createdAt.desc()),
-  userPublicIdx: index('idx_recipes_user_public').on(table.userId, table.isPublic),
-  systemIdx: index('idx_recipes_system').on(table.isSystemRecipe),
+  ratingIdx: index('idx_recipes_rating').on(table.system_rating.desc(), table.avg_user_rating.desc()),
+  createdIdx: index('idx_recipes_created').on(table.created_at.desc()),
+  userPublicIdx: index('idx_recipes_user_public').on(table.user_id, table.is_public),
+  systemIdx: index('idx_recipes_system').on(table.is_system_recipe),
   cuisineIdx: index('idx_recipes_cuisine').on(table.cuisine),
   difficultyIdx: index('idx_recipes_difficulty').on(table.difficulty),
-  publicSystemIdx: index('idx_recipes_public_system').on(table.isPublic, table.isSystemRecipe),
-  discoveryWeekIdx: index('idx_recipes_discovery_week').on(table.discoveryYear, table.discoveryWeek),
+  publicSystemIdx: index('idx_recipes_public_system').on(table.is_public, table.is_system_recipe),
+  discoveryWeekIdx: index('idx_recipes_discovery_week').on(table.discovery_year, table.discovery_week),
+  slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
 }));
 
 // Recipe Embeddings table for vector similarity search
 export const recipeEmbeddings = pgTable('recipe_embeddings', {
   id: uuid('id').primaryKey().defaultRandom(),
-  recipeId: text('recipe_id')
+  recipe_id: text('recipe_id')
     .notNull()
     .references(() => recipes.id, { onDelete: 'cascade' }),
   embedding: vector('embedding').notNull(),
-  embeddingText: text('embedding_text').notNull(),
-  modelName: varchar('model_name', { length: 100 })
+  embedding_text: text('embedding_text').notNull(),
+  model_name: varchar('model_name', { length: 100 })
     .notNull()
     .default('all-MiniLM-L6-v2'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
 // Recipe Ratings table for individual user ratings
 export const recipeRatings = pgTable('recipe_ratings', {
   id: uuid('id').primaryKey().defaultRandom(),
-  recipeId: text('recipe_id')
+  recipe_id: text('recipe_id')
     .notNull()
     .references(() => recipes.id, { onDelete: 'cascade' }),
-  userId: text('user_id').notNull(), // Clerk user ID
+  user_id: text('user_id').notNull(), // Clerk user ID
   rating: integer('rating').notNull(), // 0-5 star rating
   review: text('review'), // Optional review text
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
 }, (table) => ({
   // Unique constraint: one rating per user per recipe
-  recipeUserUnique: unique().on(table.recipeId, table.userId),
+  recipeUserUnique: unique().on(table.recipe_id, table.user_id),
   // Indexes for efficient queries
-  recipeIdIdx: index('recipe_ratings_recipe_id_idx').on(table.recipeId),
-  userIdIdx: index('recipe_ratings_user_id_idx').on(table.userId),
+  recipeIdIdx: index('recipe_ratings_recipe_id_idx').on(table.recipe_id),
+  userIdIdx: index('recipe_ratings_user_id_idx').on(table.user_id),
+}));
+
+// Recipe Flags table for content moderation
+export const recipeFlags = pgTable('recipe_flags', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipe_id: text('recipe_id')
+    .notNull()
+    .references(() => recipes.id, { onDelete: 'cascade' }),
+  user_id: text('user_id').notNull(), // Clerk user ID of reporter
+  reason: text('reason', {
+    enum: ['inappropriate', 'spam', 'copyright', 'quality', 'other']
+  }).notNull(),
+  description: text('description'), // Optional detailed explanation
+  status: text('status', {
+    enum: ['pending', 'reviewed', 'resolved', 'dismissed']
+  }).notNull().default('pending'),
+  reviewed_by: text('reviewed_by'), // Admin user ID who reviewed
+  reviewed_at: timestamp('reviewed_at'),
+  review_notes: text('review_notes'), // Admin notes on review
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  // Indexes for efficient queries
+  recipeIdIdx: index('recipe_flags_recipe_id_idx').on(table.recipe_id),
+  statusIdx: index('recipe_flags_status_idx').on(table.status),
+  userIdIdx: index('recipe_flags_user_id_idx').on(table.user_id),
+  createdAtIdx: index('recipe_flags_created_at_idx').on(table.created_at.desc()),
+}));
+
+// Slideshow photos table
+export const slideshowPhotos = pgTable('slideshow_photos', {
+  id: text('id').primaryKey().$defaultFn(() => randomUUID()),
+  image_url: text('image_url').notNull(), // Vercel Blob URL
+  caption: text('caption'),
+  display_order: integer('display_order').notNull().default(0), // For manual ordering
+  is_active: boolean('is_active').notNull().default(true), // Can hide without deleting
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  displayOrderIdx: index('slideshow_photos_display_order_idx').on(table.display_order),
+  isActiveIdx: index('slideshow_photos_is_active_idx').on(table.is_active),
+}));
+
+// Hero Background Images table
+export const heroBackgrounds = pgTable('hero_backgrounds', {
+  id: text('id').primaryKey().$defaultFn(() => randomUUID()),
+  image_url: text('image_url').notNull(), // Vercel Blob URL
+  display_order: integer('display_order').notNull().default(0), // For sequencing
+  is_active: boolean('is_active').notNull().default(true), // Can hide without deleting
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  displayOrderIdx: index('hero_backgrounds_display_order_idx').on(table.display_order),
+  isActiveIdx: index('hero_backgrounds_is_active_idx').on(table.is_active),
 }));
 
 // Type exports
@@ -116,6 +175,12 @@ export type RecipeEmbedding = typeof recipeEmbeddings.$inferSelect;
 export type NewRecipeEmbedding = typeof recipeEmbeddings.$inferInsert;
 export type RecipeRating = typeof recipeRatings.$inferSelect;
 export type NewRecipeRating = typeof recipeRatings.$inferInsert;
+export type RecipeFlag = typeof recipeFlags.$inferSelect;
+export type NewRecipeFlag = typeof recipeFlags.$inferInsert;
+export type SlideshowPhoto = typeof slideshowPhotos.$inferSelect;
+export type NewSlideshowPhoto = typeof slideshowPhotos.$inferInsert;
+export type HeroBackground = typeof heroBackgrounds.$inferSelect;
+export type NewHeroBackground = typeof heroBackgrounds.$inferInsert;
 
 // Zod schemas for validation
 export const insertRecipeSchema = createInsertSchema(recipes);
@@ -124,3 +189,9 @@ export const insertRecipeEmbeddingSchema = createInsertSchema(recipeEmbeddings);
 export const selectRecipeEmbeddingSchema = createSelectSchema(recipeEmbeddings);
 export const insertRecipeRatingSchema = createInsertSchema(recipeRatings);
 export const selectRecipeRatingSchema = createSelectSchema(recipeRatings);
+export const insertRecipeFlagSchema = createInsertSchema(recipeFlags);
+export const selectRecipeFlagSchema = createSelectSchema(recipeFlags);
+export const insertSlideshowPhotoSchema = createInsertSchema(slideshowPhotos);
+export const selectSlideshowPhotoSchema = createSelectSchema(slideshowPhotos);
+export const insertHeroBackgroundSchema = createInsertSchema(heroBackgrounds);
+export const selectHeroBackgroundSchema = createSelectSchema(heroBackgrounds);
