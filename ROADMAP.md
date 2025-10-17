@@ -1,7 +1,8 @@
 # Joanie's Kitchen Roadmap
 
-**Current Version**: 0.4.1 (Quality & Developer Experience)
-**Target**: Version 1.0 (Production-Ready)
+**Current Version**: 0.5.0 (Smart Features & Infrastructure - 60% Complete)
+**Next Priority**: Version 0.6.0 (Social Features - Likes, Forks, Comments)
+**Target**: Version 1.0 (Production-Ready - July 2025)
 **Recipe Count**: 3,276 (High-quality, deduplicated, AI-enhanced)
 
 ---
@@ -9,315 +10,66 @@
 ## ✅ Version 0.1.0 - Foundation (COMPLETED)
 *Launched: October 2024*
 
-### Core Infrastructure
-- ✅ Next.js 15 with App Router
-- ✅ TypeScript strict mode
-- ✅ Clerk authentication (dual-environment)
-- ✅ Neon PostgreSQL database
-- ✅ Drizzle ORM
-- ✅ Tailwind CSS v4
-- ✅ shadcn/ui components
+**Core Infrastructure**: Next.js 15 with App Router, TypeScript strict mode, Clerk authentication (dual-environment), Neon PostgreSQL with Drizzle ORM, Tailwind CSS v4, and shadcn/ui components.
 
-### Basic Features
-- ✅ Recipe CRUD operations
-- ✅ User authentication
-- ✅ Recipe browsing
-- ✅ Basic search
+**Basic Features**: Recipe CRUD operations, user authentication, recipe browsing, and basic search functionality.
 
 ---
 
 ## ✅ Version 0.2.0 - AI Integration (COMPLETED)
 *Launched: October 2024*
 
-### AI-Powered Features
-- ✅ OpenRouter integration (multi-LLM support)
-- ✅ AI recipe generation from ingredients
-- ✅ Recipe import from URLs
-- ✅ Perplexity-based recipe discovery
-- ✅ Quality evaluation (AI ratings 0-5)
-- ✅ Authentication gates for LLM features
+**AI-Powered Features**: OpenRouter integration with multi-LLM support, AI recipe generation from ingredients, recipe import from URLs, Perplexity-based discovery, quality evaluation (AI ratings 0-5), and authentication gates for LLM features.
 
-### Content
-- ✅ System recipe ingestion (600+ recipes)
-- ✅ TheMealDB integration
-- ✅ Recipe sharing (public/private)
+**Content**: System recipe ingestion (600+ recipes), TheMealDB integration, and recipe sharing (public/private).
 
 ---
 
 ## ✅ Version 0.3.0 - Branding & Content (COMPLETED)
 *Launched: October 2024*
 
-### Joanie's Kitchen Branding
-- ✅ Complete rebrand from Recipe Manager
-- ✅ Brand identity (colors, fonts, logo)
-- ✅ Custom logo and favicon
-- ✅ About Joanie content
-- ✅ Portrait integration
-- ✅ "From Garden to Table" messaging
+**Joanie's Kitchen Branding**: Complete rebrand from Recipe Manager, including custom logo/favicon, portrait integration, "From Garden to Table" messaging, and comprehensive brand identity.
 
-### Design System
-- ✅ Deep Olive (#5B6049) primary color
-- ✅ Sage Green (#A7BEA4) accents
-- ✅ Linen (#FAF5EE) backgrounds
-- ✅ Tomato (#E65F45) CTAs
-- ✅ Playfair Display + Lora fonts
+**Design System**: Deep Olive (#5B6049) primary, Sage Green (#A7BEA4) accents, Linen (#FAF5EE) backgrounds, Tomato (#E65F45) CTAs, with Playfair Display and Lora fonts.
 
 ---
 
 ## ✅ Version 0.4.0 - Scale & Performance (COMPLETED)
-*Current Version - October 2024*
+*October 2024*
 
-### Data Acquisition
-- ✅ Food.com integration (180K+ recipes)
-- ✅ Epicurious integration (20K+ recipes)
-- ✅ OpenRecipes integration (200K+ recipes)
-- ✅ Multi-source ingestion pipeline
-- ✅ Total potential: 400K+ recipes
+**Data Acquisition**: Multi-source ingestion pipeline with Food.com (180K+), Epicurious (20K+), and OpenRecipes (200K+) integrations. Total potential: 400K+ recipes.
 
-### Performance & Scale
-- ✅ Pagination (24 recipes per page)
-- ✅ Infinite scroll
-- ✅ Database indexing (8 specialized indexes)
-- ✅ Query optimization (<200ms for 100K recipes)
-- ✅ Lazy image loading
-- ✅ Advanced filtering (cuisine, difficulty, rating)
+**Performance & Scale**: Pagination (24 recipes/page), infinite scroll, database indexing (8 specialized indexes), query optimization (<200ms for 100K recipes), lazy image loading, and advanced filtering (cuisine, difficulty, rating).
 
-### UX Improvements
-- ✅ Clickable recipe cards (no View button)
-- ✅ Tag ontology (10 categories)
-- ✅ Nested tag display
-- ✅ Enhanced hover effects
-- ✅ Copy button on detail page
-- ✅ Ingredient amounts display
-- ✅ Top-rated recipes filtering
+**UX Improvements**: Clickable recipe cards, tag ontology (10 categories), nested tag display, enhanced hover effects, copy button, ingredient amounts display, and top-rated filtering.
 
 ---
 
 ## ✅ Version 0.4.1 - Quality & Developer Experience (COMPLETED)
 *Released: October 16, 2025*
 
-**Priority**: HIGH - Foundation for future development
+**Developer Experience**: Versioning system with build tracking (semantic versioning, automated CHANGELOG, 15 NPM scripts), type safety system (100% coverage, safe JSON parsing utilities, automated validation), and comprehensive documentation (20+ files, 12 guides).
 
-### Developer Experience
-- ✅ **Versioning System with Build Tracking**
-  - Semantic versioning (major, minor, patch)
-  - Automated build number tracking (last 100 builds)
-  - CHANGELOG.md auto-generation
-  - Git integration (tags, commits, push)
-  - Conventional commits support
-  - NPM scripts: `version:patch`, `version:minor`, `version:major`, `version:auto`
-  - Build history tracking in `version.json`
-  - Version info accessible in React components via `getVersionInfo()`
-  - Complete documentation (4 guides)
-  - Zero-config automated workflow
+**Data Acquisition**: Serious Eats recipe integration research complete (3,000+ professional recipes ready, Python recipe-scrapers library, cost-effective $14-57 solution vs $324-810 alternatives).
 
-- ✅ **Type Safety System**
-  - Frontend/backend type matching
-  - Safe JSON parsing utilities (`parseRecipe`, `parseChef`, `parseCollection`, etc.)
-  - Type guards and validators (`isValidRecipe`, `isValidChef`, etc.)
-  - `ParsedRecipe`, `ParsedChef`, `ParsedCollection` types
-  - Prevents runtime crashes from malformed data
-  - Complete documentation (3 guides)
-  - Automated type validation script (`validate-types.ts`)
-  - 100% type coverage
+**Chef System Enhancement**: Chef profile images with `ChefAvatar` component (4 size variants), Next.js Image optimization (WebP/AVIF), verified badges, Joanie's profile created, and responsive image sizing.
 
-### Data Acquisition
-- ✅ **Serious Eats Recipe Source Integration**
-  - Research completed for 3,000+ professionally tested recipes
-  - Python `recipe-scrapers` library integration (supports 350+ sites)
-  - Top 50 recipe URL list curated
-  - Production scraper script created (`scripts/scrape-serious-eats.py`)
-  - Database import script ready (`scripts/import-serious-eats.ts`)
-  - Cost-effective solution: $14-57 (vs $324-810 for alternatives)
-  - Timeline: 2-3 weeks for full ingestion
-  - Complete documentation (3 guides)
-  - Ready to expand beyond Epicurious recipes
-  - Next phase: 3,000+ professional recipes
+**Performance Optimization**: 60-80% FCP/LCP improvements (2.5s→0.8-1.2s FCP, 3.5s→1.2-2.0s LCP), hero image optimization (3.5MB→200-300KB), Next.js Image optimization enabled, and automated performance analysis tools.
 
-### Chef System Enhancement
-- ✅ **Chef Profile Images**
-  - `ChefAvatar` component (4 size variants: sm, md, lg, xl)
-  - Next.js Image optimization with WebP/AVIF support
-  - Fallback to chef initials when no image
-  - Verified badge (blue checkmark icon) for verified chefs
-  - Joanie's chef profile created in database
-  - Profile image: `/joanie-portrait.png` (optimized)
-  - Enhanced chef cards with images
-  - Enhanced chef profile pages with hero images
-  - Image management scripts
-  - NPM scripts: `chef:create:joanie`, `chef:images:add`
-  - Complete documentation (3 guides)
-  - Responsive image sizing for all breakpoints
+**Bug Fixes**: Nested anchor tag hydration errors resolved (14 components fixed), JSON parse errors eliminated (44 recipes fixed), zero React warnings.
 
-### Performance Optimization
-- ✅ **FCP and LCP Improvements (60-80% faster)**
-  - First Contentful Paint: 2.5s → 0.8-1.2s (68% improvement)
-  - Largest Contentful Paint: 3.5s → 1.2-2.0s (66% improvement)
-  - Hero image optimization: 3.5MB → 200-300KB (95% reduction)
-  - Re-enabled Next.js Image optimization (WebP/AVIF)
-  - Added `priority` flag for above-the-fold images
-  - Configured responsive device sizes (640w, 750w, 828w, 1080w, 1200w, 1920w, 2048w, 3840w)
-  - Updated all recipe card images to use Next.js Image
-  - Font preconnect hints for Google Fonts
-  - CSS optimization enabled
-  - NPM scripts: `perf:analyze`, `perf:analyze:full`
-  - Complete documentation (4 guides)
-  - Performance analysis automation
-  - Lighthouse score improvements expected
-
-### Bug Fixes
-- ✅ **Nested `<a>` Tag Hydration Errors**
-  - Fixed 14 components (MobileNav + homepage)
-  - Restructured Link patterns (moved onClick to outer Link)
-  - Valid HTML structure (no nested anchors)
-  - Zero React hydration warnings
-  - Improved navigation UX
-
-- ✅ **JSON Parse Errors (44 recipes)**
-  - Fixed PostgreSQL set notation issue (`{url1,url2}`)
-  - Added `JSON.stringify()` to image generation
-  - All recipes now parse correctly
-  - Zero JSON parse errors in production
-
-### Documentation
-- ✅ **Comprehensive Documentation Suite**
-  - 20+ new documentation files
-  - 12 comprehensive guides
-  - 5 quick references
-  - Implementation summaries
-  - Session summary with metrics
-  - Organized in `docs/` structure (guides, reference, features, fixes)
-  - Markdown-formatted for easy navigation
-
-### Statistics
-- **Files Created**: 62 new files
-- **Files Modified**: 12 existing files
-- **NPM Scripts Added**: 15 automation commands
-- **Documentation Files**: 20+
-- **Performance Improvement**: 60-80% (FCP/LCP)
-- **Type Coverage**: 100%
-- **Zero Errors**: JSON parse errors eliminated
-- **Zero Warnings**: React hydration warnings eliminated
+**Statistics**: 62 files created, 12 files modified, 15 NPM scripts added, 20+ documentation files, 60-80% performance improvement, 100% type coverage.
 
 ---
 
 ## ✅ Version 0.45.0 - Mobile Parity Phase 1 (COMPLETED)
 *Completed: October 2024 | Status: Phase 1 Complete, Phase 2 Pending*
 
-**Priority**: CRITICAL - Mobile users represent 60-70% of recipe site traffic
+**Mobile Foundation & Infrastructure (COMPLETED)**: Mobile-first CSS approach (Tailwind breakpoints), safe area insets for notched devices, touch-friendly input sizing (16px minimum), mobile typography optimization, responsive component system (MobileContainer, MobileSpacer, TouchTarget), mobile detection hooks (useMobileDetect, useBreakpoint, useOrientation, useTouchDevice), 18 mobile utility functions, recipe card mobile optimization (1 col mobile/2 tablet/3+ desktop), and homepage mobile-first redesign. See: `docs/guides/MOBILE_DEVELOPMENT.md`
 
-**Context**: Before adding advanced features, we need to ensure the existing desktop experience works flawlessly on mobile devices. This is a prerequisite for all subsequent versions.
+**Phase 2 (Pending)**: Navigation optimization (hamburger menu, bottom tabs), touch optimization (44x44px targets, swipe gestures, pull-to-refresh), mobile UX enhancements (typography, loading skeletons, offline indicators), performance optimization (bundle size <200KB, FCP <1.5s on 3G, Lighthouse Mobile Score 90+), and real device testing (iOS, Android).
 
-### Mobile Foundation & Infrastructure - **COMPLETED** ✅
-**See:** `docs/guides/MOBILE_DEVELOPMENT.md`
-
-**Responsive Infrastructure:**
-- ✅ Mobile-first CSS approach (Tailwind breakpoints: xs-2xl)
-- ✅ Safe area insets for notched devices (iPhone X+)
-- ✅ Touch-friendly input sizing (16px minimum, prevents iOS zoom)
-- ✅ Mobile typography optimization (line-height, contrast)
-- ✅ Responsive component system (MobileContainer, MobileSpacer, TouchTarget)
-- ✅ Mobile detection hooks (useMobileDetect, useBreakpoint, useOrientation, useTouchDevice)
-- ✅ 18 mobile utility functions (device detection, orientation, safe areas)
-- ✅ Recipe card mobile optimization (1 col mobile, 2 tablet, 3+ desktop)
-- ✅ Homepage mobile-first redesign
-
-**Phase 2 (Pending):**
-- ⏳ Navigation optimization (hamburger menu, bottom tabs)
-- ⏳ Search and filter interfaces (mobile-friendly)
-- ⏳ Form inputs (optimized for touch)
-- ⏳ Modal dialogs (fullscreen on mobile)
-
-**Touch Optimization:**
-- ⏳ Touch target sizes (minimum 44x44px)
-- ⏳ Swipe gestures for image galleries
-- ⏳ Pull-to-refresh on lists
-- ⏳ Tap feedback animations
-- ⏳ Prevent accidental touches
-
-**Mobile Navigation:**
-- ⏳ Bottom navigation bar (thumb-zone friendly)
-- ⏳ Collapsible header on scroll
-- ⏳ Back button behavior
-- ⏳ Breadcrumbs (mobile-optimized)
-- ⏳ Sticky action buttons
-
-### Performance Optimization - **0.5 weeks**
-
-**Mobile Network Performance:**
-- ⏳ Image optimization (Next.js Image, WebP)
-- ⏳ Lazy loading (images, components)
-- ⏳ Bundle size reduction (<200KB initial load)
-- ⏳ Code splitting (route-based)
-- ⏳ Font optimization (subset, preload)
-- ⏳ CSS optimization (purge unused)
-
-**Performance Targets:**
-- ⏳ First Contentful Paint: <1.5s (3G)
-- ⏳ Time to Interactive: <3s (3G)
-- ⏳ Largest Contentful Paint: <2.5s
-- ⏳ Cumulative Layout Shift: <0.1
-- ⏳ Lighthouse Mobile Score: 90+
-
-### Mobile UX Enhancements - **0.5 weeks**
-
-**Typography & Readability:**
-- ⏳ Mobile font sizes (16px minimum)
-- ⏳ Line height optimization (1.5-1.8)
-- ⏳ Readable text contrast (WCAG AA)
-- ⏳ Prevent text zoom issues
-
-**Mobile-Specific Features:**
-- ⏳ Viewport meta tags (no-zoom for forms)
-- ⏳ Safe area insets (notches, home indicators)
-- ⏳ Dark mode optimization
-- ⏳ Loading skeletons
-- ⏳ Error states (mobile-friendly)
-- ⏳ Offline indicators
-
-**Testing:**
-- ⏳ Real device testing (iOS, Android)
-- ⏳ Chrome DevTools mobile emulation
-- ⏳ Various screen sizes (320px - 768px)
-- ⏳ Touch interaction testing
-- ⏳ Network throttling tests (3G, 4G)
-
-### Technical Requirements
-
-**Tailwind CSS Breakpoints:**
-```css
-sm: 640px   // Small phones landscape
-md: 768px   // Tablets
-lg: 1024px  // Small desktops
-xl: 1280px  // Large desktops
-2xl: 1536px // Extra large
-```
-
-**Mobile Viewport:**
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-```
-
-**Touch Targets:**
-- Minimum: 44x44px (Apple), 48x48px (Material)
-- Spacing: 8px between interactive elements
-- Padding: 16px for comfortable tapping
-
-### Success Metrics
-- ✅ All pages render correctly on mobile (320px+)
-- ✅ Touch interactions work smoothly
-- ✅ No horizontal scrolling
-- ✅ Images load efficiently (<100KB per image)
-- ✅ Forms are easy to complete on mobile
-- ✅ Navigation is intuitive on small screens
-- ✅ Lighthouse Mobile Score: 90+
-- ✅ Zero mobile-specific bugs in production
-
-### Notes
-- This version is a **prerequisite** for user discovery features
-- Mobile users often cook with devices in hand
-- Recipe sites see 60-70% mobile traffic
-- Mobile parity before advanced features = better foundation
+**Context**: Prerequisite for user discovery features. Mobile users represent 60-70% of recipe site traffic and often cook with devices in hand.
 
 ---
 
@@ -376,11 +128,11 @@ xl: 1280px  // Large desktops
 - ⏳ Embedding generation (384d vectors)
 - ⏳ HuggingFace API integration
 
-### Ingredients & Meals - **PENDING** ⏳
+### Ingredients Database - **PENDING** ⏳
 - ⏳ Ingredients database (normalized, 1000+ entries)
-- ⏳ Meals feature (combine recipes into complete meals)
-- ⏳ Smart shopping lists (consolidated, serving-adjusted)
-- ⏳ Price estimation (LLM-based)
+- ⏳ Ingredient categorization (produce, dairy, meats, etc.)
+- ⏳ Ingredient search and autocomplete
+- ⏳ Nutritional data integration
 
 ### User Collections & Profiles (Phase 1) - **PENDING** ⏳
 **See:** `docs/guides/USER_DISCOVERY_FEATURES.md`
@@ -414,30 +166,70 @@ xl: 1280px  // Large desktops
 - ⏳ Recipe view history
 - ⏳ Personal recipe dashboard
 
+### Success Metrics
+- ⏳ 100% database fields standardized (snake_case)
+- ⏳ Semantic search accuracy > 85%
+- ⏳ 1000+ normalized ingredients in database
+- ⏳ User profiles functional for all users
+- ⏳ Collections feature fully operational
+
 ---
 
-## 📋 Version 0.55.0 - Social & Discovery (PLANNED)
-*Target: January 2025 | Estimated: 3.5 weeks*
+## 🚀 Version 0.6.0 - Social Features (NEXT PRIORITY)
+*Target: January 2025 | Estimated: 2.5 weeks*
 
-### Social Features (Phase 2) - **1.5 weeks**
+**Priority**: HIGH - Build community engagement and user interaction
 
-**Following System:**
+### Engagement & Interaction - **1.5 weeks**
+
+**Recipe Ranking System:**
+- ⏳ Thumbs-up/like system for recipes
+- ⏳ Like counter display on recipe cards
+- ⏳ User's liked recipes tracking
+- ⏳ Most-liked recipes sorting/filtering
+- ⏳ Like button with optimistic UI updates
+- ⏳ Database table: `recipe_likes` (user_id, recipe_id, created_at)
+
+**Recipe Forking ("Fork Recipe"):**
+- ⏳ "Fork this recipe" button on recipe detail pages
+- ⏳ Creates copy of recipe linked to original
+- ⏳ Attribution to original recipe and author
+- ⏳ User's forked recipes section in profile
+- ⏳ Fork counter on original recipes
+- ⏳ Database table: `recipe_forks` (id, recipe_id, original_recipe_id, user_id, created_at)
+- ⏳ Fork history/lineage tracking
+
+**Flat Commenting System:**
+- ⏳ Comment thread on recipe detail pages
+- ⏳ Flat comment structure (no nesting)
+- ⏳ Emoji support in comments (emoji picker integration)
+- ⏳ Comment editing and deletion
+- ⏳ Comment moderation (basic flagging)
+- ⏳ Database table: `recipe_comments` (id, recipe_id, user_id, content, created_at, updated_at)
+- ⏳ Comment count display on recipe cards
+
+**Recipe Layout Improvements:**
+- ⏳ Tag display optimization (max 3 rows with overflow)
+- ⏳ CSS grid layout for tags
+- ⏳ "Show more/less" toggle for tag overflow
+- ⏳ Responsive tag layout (mobile vs desktop)
+
+### Following System - **0.5 weeks**
+
+**User Following:**
 - ⏳ Follow/unfollow users
 - ⏳ Followers & following lists
 - ⏳ Mutual follow indicators
 - ⏳ Follow button on profiles
+- ⏳ Database table: `follows` (follower_id, following_id, created_at)
 
-**Engagement:**
+**Engagement Features:**
 - ⏳ Favorite button on recipe cards
 - ⏳ Save recipes to favorites
 - ⏳ Personal notes on favorites
 - ⏳ "My Favorites" page with organization
 
-**Database:**
-- ⏳ `follows` table (user relationships)
-- ⏳ Enhanced favorites with notes
-
-### Discovery Features (Phase 3) - **2 weeks**
+### Discovery Features - **0.5 weeks**
 
 **User Discovery:**
 - ⏳ Browse users/chefs page (`/discover/chefs`)
@@ -453,51 +245,191 @@ xl: 1280px  // Large desktops
 - ⏳ Trending collections algorithm
 - ⏳ Collection statistics
 
-**Components:**
+### Components
+- ⏳ LikeButton component (with counter)
+- ⏳ ForkButton component
+- ⏳ CommentThread component
+- ⏳ CommentForm component with emoji picker
+- ⏳ EmojiPicker component
+- ⏳ TagGrid component (max 3 rows)
 - ⏳ UserCard & UserGrid components
 - ⏳ CollectionCard & CollectionGrid
 - ⏳ FollowButton component
 - ⏳ FavoriteButton component
-- ⏳ FeaturedSection component
-- ⏳ RecommendedChefs widget
+
+### Success Metrics
+- ⏳ Like feature implemented on all recipe pages
+- ⏳ Fork feature creates exact copies with attribution
+- ⏳ Comments load and display correctly
+- ⏳ Emoji picker functional in comments
+- ⏳ Tags display in maximum 3 rows
+- ⏳ Following system functional
+- ⏳ User engagement metrics tracked (likes, forks, comments)
 
 ---
 
-## 📋 Version 0.6.0 - Intelligence (PLANNED)
-*Target: January 2025*
+## 🍽️ Version 0.65.0 - Meals Planning System (NEW MAJOR FEATURE)
+*Target: February 2025 | Estimated: 3.5 weeks*
 
-### Joanie's Fridge
-- ⏳ Plaintext fridge inventory (LLM parsing)
-- ⏳ Ingredient matching algorithm
-- ⏳ Recipe suggestions based on available ingredients
-- ⏳ "What can I make?" feature
-- ⏳ Future: Add a picture (image recognition)
+**Priority**: HIGH - Complete meal planning for occasions and events
 
-### Occasion-Based Meals
-- ⏳ Create meals for occasions (Thanksgiving, Date Night, etc.)
-- ⏳ Customizable meal templates
-- ⏳ Save personal meal plans
-- ⏳ Share occasion meals
+**Overview**: Occasion-based meal planning with AI assistance. Users select a theme/occasion, system suggests recipes, user builds complete multi-course meals.
 
-### Advanced AI
-- ⏳ Recipe content cleanup (titles, descriptions)
-- ⏳ Improved quality evaluation
-- ⏳ Nutritional analysis enhancement
+### Core Meal Builder - **1.5 weeks**
+
+**Occasion/Theme System:**
+- ⏳ New top-level page: `/meals`
+- ⏳ Occasion selector interface (dropdown/cards)
+- ⏳ Predefined occasions:
+  - Thanksgiving, Christmas, Easter, New Year's
+  - Date Night, Family Dinner, Birthday Party
+  - Summer BBQ, Picnic, Brunch, Game Day
+  - Casual, Formal, Outdoor, Indoor
+- ⏳ Custom occasion creation
+- ⏳ Occasion tags and categorization
+
+**Multi-Course Meal Builder:**
+- ⏳ Course type selector (Appetizers, Mains, Sides, Desserts)
+- ⏳ AI-powered recipe suggestions (filtered by occasion)
+- ⏳ Recipe cards with drag-and-drop
+- ⏳ Add/remove recipes from meal
+- ⏳ Recipe search within meal builder
+- ⏳ Serving size selector (number of people: 2, 4, 6, 8, 10+)
+- ⏳ Meal preview/menu view
+
+**Database Schema:**
+```sql
+CREATE TABLE meals (
+  id UUID PRIMARY KEY,
+  user_id VARCHAR(255),  -- NULL for anonymous users
+  name VARCHAR(255) NOT NULL,
+  occasion VARCHAR(100) NOT NULL,
+  servings INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE meal_recipes (
+  id UUID PRIMARY KEY,
+  meal_id UUID REFERENCES meals(id) ON DELETE CASCADE,
+  recipe_id UUID REFERENCES recipes(id) ON DELETE CASCADE,
+  course_type VARCHAR(50) NOT NULL,  -- appetizer, main, side, dessert
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE meal_occasions (
+  id UUID PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,
+  tags TEXT[],  -- array of tags
+  is_holiday BOOLEAN DEFAULT FALSE,
+  season VARCHAR(20)  -- spring, summer, fall, winter
+);
+```
+
+### AI Integration (GPT-4/Claude) - **1 week**
+
+**Recipe Suggestions:**
+- ⏳ LLM-based recipe recommendations by occasion
+- ⏳ Flavor profile matching
+- ⏳ Course balance validation
+- ⏳ Dietary restriction filtering
+- ⏳ Cuisine consistency suggestions
+
+**Meal Composition Assistance:**
+- ⏳ Validate meal composition (balance of flavors/courses)
+- ⏳ Suggest missing courses
+- ⏳ Recommend wine/beverage pairings
+- ⏳ Check for ingredient conflicts
+
+**Consolidated Shopping List:**
+- ⏳ Aggregate ingredients across all recipes
+- ⏳ Adjust quantities for serving size
+- ⏳ Remove duplicates and consolidate
+- ⏳ Categorize by grocery section
+- ⏳ Price estimation (LLM-based)
+
+**Meal Prep Timeline:**
+- ⏳ Step-by-step prep instructions
+- ⏳ Timeline optimization (what to prep when)
+- ⏳ Parallel task identification
+- ⏳ Critical path analysis
+- ⏳ Time-based todo list generation
+
+**Tools & Equipment:**
+- ⏳ Compile all needed tools/equipment
+- ⏳ Categorize (cookware, utensils, appliances)
+- ⏳ Identify potential conflicts (same oven needed)
+
+### Meal Summary View - **0.5 weeks**
+
+**Complete Menu Display:**
+- ⏳ Course-by-course layout
+- ⏳ Recipe names with images
+- ⏳ Servings display
+- ⏳ Total prep time (aggregated)
+- ⏳ Total cook time (aggregated)
+- ⏳ Print-friendly menu format
+
+**Consolidated Information:**
+- ⏳ Shopping list (quantities adjusted for servings)
+- ⏳ Meal prep ToDo list with timeline
+- ⏳ Tools/equipment needed list
+- ⏳ Estimated total cost (if price data available)
+- ⏳ Difficulty rating (aggregated)
+
+### User Features - **0.5 weeks**
+
+**Logged-in Users:**
+- ⏳ Save meals to profile
+- ⏳ Edit saved meals
+- ⏳ Share meals (public/private)
+- ⏳ Meal history/library
+- ⏳ Duplicate meals (create variations)
+- ⏳ Meal URLs (`/meals/[username]/[meal-slug]`)
+
+**Anonymous Users:**
+- ⏳ Build meal without account
+- ⏳ Print menu view
+- ⏳ Export shopping list (PDF)
+- ⏳ Export prep instructions (PDF)
+- ⏳ Save meal prompt (create account)
+
+### Components
+- ⏳ MealBuilder component (main interface)
+- ⏳ OccasionSelector component
+- ⏳ CourseSection component (appetizers, mains, etc.)
+- ⏳ RecipeSuggestions component (AI-powered)
+- ⏳ MealPreview component
+- ⏳ ShoppingListView component
+- ⏳ PrepTimelineView component
+- ⏳ ToolsEquipmentList component
+- ⏳ ServingSizeSelector component
+- ⏳ MealExportButtons component (PDF, print)
+
+### Success Metrics
+- ⏳ Meal builder functional for all occasions
+- ⏳ AI suggestions relevant and accurate (>80% user acceptance)
+- ⏳ Shopping list consolidation accurate (100%)
+- ⏳ Prep timeline generated correctly
+- ⏳ PDF export functional for anonymous users
+- ⏳ Logged-in users can save and share meals
+- ⏳ Mobile-friendly meal builder interface
+- ⏳ <2s load time for meal builder page
 
 ---
 
 ## 📋 Version 0.7.0 - Community & Sharing (PLANNED)
-*Target: February 2025 | Estimated: 2.5 weeks*
+*Target: March 2025 | Estimated: 2.5 weeks*
 
 ### Enhanced Social (Phase 4) - **1.5 weeks**
 **See:** `docs/guides/USER_DISCOVERY_FEATURES.md`
 
 **Activity & Engagement:**
 - ⏳ Activity feed (personal & following)
-- ⏳ Recipe comments & discussions
 - ⏳ Recipe variations/remixes
 - ⏳ Cook's notes on recipes
 - ⏳ User badges & achievements
+- ⏳ Cooking milestones
 
 **Advanced Discovery:**
 - ⏳ Advanced recommendation algorithms
@@ -507,7 +439,6 @@ xl: 1280px  // Large desktops
 
 **Components:**
 - ⏳ ActivityFeed component
-- ⏳ CommentThread component
 - ⏳ BadgeDisplay component
 - ⏳ TrendingCollections widget
 
@@ -523,7 +454,7 @@ xl: 1280px  // Large desktops
 ---
 
 ## 📋 Version 0.75.0 - SEO & Discoverability (PLANNED)
-*Target: February 2025 | Estimated: 2 weeks*
+*Target: April 2025 | Estimated: 2 weeks*
 
 ### SEO Infrastructure - **1 week**
 
@@ -606,95 +537,145 @@ CREATE INDEX idx_recipes_slug ON recipes(slug);
 ---
 
 ## 📋 Version 0.8.0 - Mobile & PWA (PLANNED)
-*Target: March 2025*
+*Target: May 2025 | Estimated: 2 weeks*
 
 **Note**: This version builds on mobile parity (0.45.0) to add advanced mobile features
 
-### Progressive Web App
+### Progressive Web App - **1 week**
 - ⏳ PWA manifest configuration
 - ⏳ Service worker implementation
 - ⏳ Offline recipe access
 - ⏳ Add to home screen prompt
 - ⏳ App-like experience
 
-### Advanced Mobile Features
+### Advanced Mobile Features - **0.5 weeks**
 - ⏳ Push notifications (recipe reminders)
 - ⏳ Background sync
-- ⏳ Camera integration (future)
 - ⏳ Share target API
 - ⏳ Install prompts
+- ⏳ Voice search integration
 
-### Enhanced Performance
+### Enhanced Performance - **0.5 weeks**
 - ⏳ Advanced service worker caching
 - ⏳ Precaching strategies
 - ⏳ Runtime caching
 - ⏳ Cache invalidation
 - ⏳ Network-first/Cache-first strategies
 
+### Success Metrics
+- ⏳ PWA installable on all platforms
+- ⏳ Offline mode functional for cached recipes
+- ⏳ <3s initial load time on 3G
+- ⏳ Push notifications working
+- ⏳ 100% Lighthouse PWA score
+
 ---
 
-## 📋 Version 0.9.0 - Advanced Features (PLANNED)
-*Target: April 2025*
+## 📋 Version 0.9.0 - Intelligence & Advanced Features (PLANNED)
+*Target: June 2025 | Estimated: 2.5 weeks*
 
-### Image Recognition
-- ⏳ Image recipe creation (OCR from cookbooks)
-- ⏳ Vision model integration (GPT-4 Vision or Gemini)
+### Joanie's Fridge (Smart Ingredient Matching) - **1 week**
+- ⏳ Plaintext fridge inventory (LLM parsing)
+- ⏳ Ingredient matching algorithm
+- ⏳ Recipe suggestions based on available ingredients
+- ⏳ "What can I make?" feature
+- ⏳ Expiration tracking and reminders
+- ⏳ Shopping list integration
+
+### Image Recognition - **1 week**
 - ⏳ Fridge photo recognition
 - ⏳ Ingredient detection from images
+- ⏳ Vision model integration (GPT-4 Vision or Gemini)
+- ⏳ Cookbook page OCR (already partially implemented)
+- ⏳ Food photo analysis
 
-### Analytics & Insights
-- ⏳ Cooking trends
+### Analytics & Insights - **0.5 weeks**
+- ⏳ Cooking trends dashboard
 - ⏳ Personal recipe analytics
-- ⏳ Most popular recipes
+- ⏳ Most popular recipes (by likes, forks, views)
 - ⏳ Seasonal recommendations
+- ⏳ User taste profile analysis
+
+### Success Metrics
+- ⏳ Fridge inventory parseable with >90% accuracy
+- ⏳ Recipe suggestions relevant to available ingredients
+- ⏳ Image recognition accuracy >85%
+- ⏳ Analytics dashboard functional
+- ⏳ User engagement insights actionable
 
 ---
 
 ## 🎯 Version 1.0 - Production Release (TARGET)
-*Target: May 2025*
+*Target: July 2025 | Estimated: 3 weeks*
 
-### Polish & Quality
+### Polish & Quality - **1.5 weeks**
 - ⏳ Comprehensive testing suite
-- ⏳ Performance audit (100% Lighthouse scores)
+  - Unit tests (80%+ coverage)
+  - Integration tests (critical paths)
+  - E2E tests (user workflows)
+- ⏳ Performance audit (95%+ Lighthouse scores)
 - ⏳ Accessibility (WCAG AA compliance)
-- ⏳ SEO optimization (LLM-powered slug generation, semantic URLs, meta tags)
-- ⏳ Error tracking (Sentry)
+- ⏳ SEO validation (all pages optimized)
+- ⏳ Error tracking (Sentry integration)
+- ⏳ Cross-browser testing (Chrome, Safari, Firefox, Edge)
+- ⏳ Security audit
 
-### Production Infrastructure
-- ⏳ CDN for images
-- ⏳ Rate limiting
+### Production Infrastructure - **1 week**
+- ⏳ CDN for images (Cloudflare/Vercel)
+- ⏳ Rate limiting (API endpoints)
 - ⏳ Usage quotas per user
 - ⏳ Backup and disaster recovery
-- ⏳ Monitoring and alerts
+- ⏳ Monitoring and alerts (Datadog/Vercel)
+- ⏳ Database optimization (query performance)
+- ⏳ Caching strategy (Redis/Vercel KV)
 
-### Documentation
-- ⏳ User guide
-- ⏳ API documentation
-- ⏳ Developer documentation
-- ⏳ Video tutorials
+### Documentation & Launch - **0.5 weeks**
+- ⏳ User guide (getting started, features)
+- ⏳ API documentation (public endpoints)
+- ⏳ Developer documentation (setup, architecture)
+- ⏳ Video tutorials (core features)
+- ⏳ FAQ and troubleshooting
 
 ### Launch Checklist
-- ⏳ Beta testing program
+- ⏳ Beta testing program (50-100 users)
 - ⏳ User feedback integration
-- ⏳ Marketing site
-- ⏳ Launch announcement
-- ⏳ Press kit
+- ⏳ Marketing site (landing page)
+- ⏳ Launch announcement (blog post, social media)
+- ⏳ Press kit (screenshots, features, contact)
+- ⏳ Terms of service & privacy policy
+- ⏳ Contact/support page
+
+### Success Metrics
+- ⏳ 95%+ Lighthouse scores (all categories)
+- ⏳ <2s page load time (global average)
+- ⏳ 99.9% uptime
+- ⏳ WCAG AA compliance (100%)
+- ⏳ Zero critical security vulnerabilities
+- ⏳ 80%+ test coverage
 
 ---
 
 ## 🚀 Post-1.0 (Future)
 
-### Integrations
-- Meal delivery services
-- Grocery delivery APIs
-- Smart kitchen devices
+### Integrations (Version 1.x)
+- Meal delivery services (Instacart, HelloFresh)
+- Grocery delivery APIs (Whole Foods, Amazon Fresh)
+- Smart kitchen devices (smart ovens, cooking thermometers)
 - Voice assistants (Alexa, Google Home)
+- Calendar integration (Google Calendar, Apple Calendar)
 
-### Premium Features
-- Meal planning AI assistant
-- Personal nutritionist
-- Cooking classes integration
-- Recipe development tools
+### Premium Features (Version 2.0+)
+- Meal planning AI assistant (personalized recommendations)
+- Personal nutritionist (dietary analysis, health goals)
+- Cooking classes integration (video tutorials, live classes)
+- Recipe development tools (for professional chefs)
+- White-label solution (for restaurants, food brands)
+
+### Community Features
+- Recipe contests and challenges
+- Chef verification badges
+- Cooking events and meetups
+- Recipe book publishing
 
 ---
 
@@ -708,15 +689,53 @@ CREATE INDEX idx_recipes_slug ON recipes(slug);
 - **2.0.0+**: Major architectural changes
 
 **Release Cadence**:
-- Minor versions: Monthly
-- Patch versions: As needed
+- Minor versions: Every 3-4 weeks
+- Patch versions: As needed (bug fixes, hotfixes)
 - Major version: When ready for production
 
 **Current Focus**: Getting to 1.0 with quality over speed
 
 ---
 
-**Key Changes (Latest Update)**:
+## Version Summary
+
+### Completed Versions (✅)
+- **0.1.0** - Foundation: Next.js 15, TypeScript, Clerk auth, Neon PostgreSQL, Drizzle ORM, basic CRUD
+- **0.2.0** - AI Integration: OpenRouter multi-LLM, AI generation, quality evaluation, 600+ system recipes
+- **0.3.0** - Branding & Content: Joanie's Kitchen rebrand, design system, brand identity
+- **0.4.0** - Scale & Performance: 400K+ recipe potential, pagination, indexing, advanced filtering
+- **0.4.1** - Quality & Developer Experience: Versioning system, type safety (100%), performance (60-80% FCP/LCP improvement), chef profiles, bug fixes (hydration, JSON parse)
+- **0.45.0 Phase 1** - Mobile Foundation: Responsive infrastructure, mobile hooks/utilities, touch-friendly design
+
+### In Progress (🔄)
+- **0.5.0** - Smart Features & Infrastructure (60% complete)
+  - ✅ Chef System, AI Upload, Recipe Cleanup
+  - ⏳ Semantic Search, Ingredients Database, User Profiles/Collections
+
+### Planned Versions (📋)
+- **0.6.0** - Social Features (2.5 weeks)
+  - Likes, Forks, Comments, Following, Discovery
+- **0.65.0** - Meals Planning System (3.5 weeks)
+  - Occasion-based meal builder, AI suggestions, Shopping lists, Prep timelines
+- **0.7.0** - Community & Sharing (2.5 weeks)
+  - Activity feeds, Badges, Enhanced export
+- **0.75.0** - SEO & Discoverability (2 weeks)
+  - Semantic URLs, Structured data, Analytics
+- **0.8.0** - Mobile & PWA (2 weeks)
+  - Progressive Web App, Offline mode, Push notifications
+- **0.9.0** - Intelligence & Advanced Features (2.5 weeks)
+  - Joanie's Fridge, Image recognition, Analytics
+- **1.0** - Production Release (3 weeks)
+  - Polish, Testing, Infrastructure, Launch
+
+### Timeline
+- **Current Version**: 0.5.0 (December 2024)
+- **Next Milestone**: 0.6.0 - Social Features (January 2025)
+- **Production Release**: Version 1.0 (July 2025)
+
+---
+
+**Key Changes (Latest Update - October 16, 2025)**:
 - ✅ **Version 0.4.1 COMPLETED**: Quality & Developer Experience foundation
   - Versioning system with build tracking (15 NPM scripts)
   - Type safety system (100% coverage)
@@ -726,15 +745,19 @@ CREATE INDEX idx_recipes_slug ON recipes(slug);
   - Bug fixes (hydration errors, JSON parse errors)
   - 20+ documentation files
 - ✅ Version 0.45.0 Phase 1 completed: Mobile foundation infrastructure
-- ✅ Version 0.5.0 progress: Chef System, AI Upload, Recipe Cleanup complete
+- ✅ Version 0.5.0 progress: Chef System, AI Upload, Recipe Cleanup complete (60%)
 - ✅ Infrastructure improvements: Snake_case standardization, Biome, Vitest
 - ✅ Epicurious import complete: 2,259 recipes (100% deduplicated)
 - ✅ Recipe content quality: 3,276 recipes cleaned and quality-filtered
 - ✅ Quality filtering: 6 low-quality recipes removed, minimum rating improved to 2.0
 - ✅ AI-generated images: 50 top-rated recipes with professional food photography
 - 📊 Total recipe count: 3,276 high-quality recipes (post-filtering)
-- 🆕 Version 0.75.0 added: SEO & Discoverability (LLM-powered semantic URLs)
-- Mobile parity Phase 2 and semantic search pending
-- Version 1.0 target: May 2025
+- 🆕 **ROADMAP REORGANIZATION**: New priority order for upcoming versions
+  - **Version 0.6.0**: Social Features (likes, forks, comments) - NEXT PRIORITY
+  - **Version 0.65.0**: Meals Planning System (NEW) - occasion-based meal builder
+  - Versions 0.7.0-0.9.0 renumbered to accommodate new priorities
+  - Version 1.0 target moved to July 2025 (was May 2025)
+- ⏳ Mobile parity Phase 2 and semantic search pending
+- ⏳ Social features (0.6.0) next priority after 0.5.0 completion
 
 *Last Updated: October 16, 2025*

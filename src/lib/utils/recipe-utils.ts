@@ -1,21 +1,34 @@
 import { type Recipe } from '@/lib/db/schema';
 
+// Helper function to safely parse JSON with fallback
+function safeJsonParse(value: string | any[], fallback: any[] = []): any[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (error) {
+      // If JSON parse fails, treat as plain text
+      console.warn('Failed to parse JSON, using fallback:', error);
+      // If it's a non-empty string, return it as a single-item array
+      return value.trim() ? [value.trim()] : fallback;
+    }
+  }
+
+  return fallback;
+}
+
 // Helper function to parse JSON fields for client-side use
 export function parseRecipe(recipe: Recipe) {
   return {
     ...recipe,
-    ingredients: typeof recipe.ingredients === 'string'
-      ? JSON.parse(recipe.ingredients)
-      : recipe.ingredients,
-    instructions: typeof recipe.instructions === 'string'
-      ? JSON.parse(recipe.instructions)
-      : recipe.instructions,
-    tags: recipe.tags
-      ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags)
-      : [],
-    images: recipe.images
-      ? (typeof recipe.images === 'string' ? JSON.parse(recipe.images) : recipe.images)
-      : [],
+    ingredients: safeJsonParse(recipe.ingredients, []),
+    instructions: safeJsonParse(recipe.instructions, []),
+    tags: safeJsonParse(recipe.tags, []),
+    images: safeJsonParse(recipe.images, []),
   };
 }
 
