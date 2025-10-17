@@ -1,12 +1,12 @@
 /**
  * Test script for Brave Search API integration
- * 
+ *
  * This script validates the API route implementation without making actual API calls.
  * Run with: node scripts/test-brave-search.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 console.log('================================================================================');
 console.log('BRAVE SEARCH API INTEGRATION - VALIDATION TEST');
@@ -18,7 +18,7 @@ const routePath = path.join(__dirname, '../src/app/api/brave-search/route.ts');
 if (fs.existsSync(routePath)) {
   console.log('✓ Route file exists:', routePath);
   const routeContent = fs.readFileSync(routePath, 'utf8');
-  
+
   // Check for required imports
   if (routeContent.includes('NextRequest') && routeContent.includes('NextResponse')) {
     console.log('✓ Next.js types imported');
@@ -26,7 +26,7 @@ if (fs.existsSync(routePath)) {
   if (routeContent.includes("from '@/lib/auth'")) {
     console.log('✓ Auth helper imported');
   }
-  
+
   // Check for security features
   if (routeContent.includes('userId')) {
     console.log('✓ Authentication check implemented');
@@ -40,10 +40,10 @@ if (fs.existsSync(routePath)) {
   if (routeContent.includes('429')) {
     console.log('✓ Rate limit error handling implemented');
   }
-  
+
   // Check for HTTP methods
   const methods = ['POST', 'GET', 'PUT', 'DELETE', 'PATCH'];
-  methods.forEach(method => {
+  methods.forEach((method) => {
     if (routeContent.includes(`export async function ${method}`)) {
       console.log(`✓ ${method} method handler defined`);
     }
@@ -57,7 +57,7 @@ const clientPath = path.join(__dirname, '../src/lib/brave-search.ts');
 if (fs.existsSync(clientPath)) {
   console.log('✓ Client library exists:', clientPath);
   const clientContent = fs.readFileSync(clientPath, 'utf8');
-  
+
   // Check for exports
   const exports = [
     'braveSearch',
@@ -66,9 +66,11 @@ if (fs.existsSync(clientPath)) {
     'getSearchErrorMessage',
     'BraveSearchAPIError',
   ];
-  exports.forEach(exp => {
-    if (clientContent.includes(`export function ${exp}`) || 
-        clientContent.includes(`export class ${exp}`)) {
+  exports.forEach((exp) => {
+    if (
+      clientContent.includes(`export function ${exp}`) ||
+      clientContent.includes(`export class ${exp}`)
+    ) {
       console.log(`✓ ${exp} exported`);
     }
   });
@@ -81,7 +83,7 @@ const docsPath = path.join(__dirname, '../BRAVE_SEARCH_API.md');
 if (fs.existsSync(docsPath)) {
   console.log('✓ Documentation exists:', docsPath);
   const docsContent = fs.readFileSync(docsPath, 'utf8');
-  
+
   if (docsContent.includes('Setup')) {
     console.log('✓ Setup instructions included');
   }
@@ -100,7 +102,7 @@ const examplePath = path.join(__dirname, '../src/components/example-brave-search
 if (fs.existsSync(examplePath)) {
   console.log('✓ Example component exists:', examplePath);
   const exampleContent = fs.readFileSync(examplePath, 'utf8');
-  
+
   if (exampleContent.includes('searchRecipes')) {
     console.log('✓ Uses searchRecipes function');
   }

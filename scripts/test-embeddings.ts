@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Test Script for Embedding Generation and Database Operations
  *
@@ -16,29 +17,28 @@
  *   npx tsx scripts/test-embeddings.ts
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { eq } from 'drizzle-orm';
 import {
+  buildRecipeEmbeddingText,
+  cosineSimilarity,
+  EmbeddingError,
+  findSimilar,
   generateEmbedding,
   generateEmbeddingsBatch,
   generateRecipeEmbedding,
-  buildRecipeEmbeddingText,
-  cosineSimilarity,
-  findSimilar,
-  EmbeddingError,
 } from '../src/lib/ai/embeddings';
+import { db } from '../src/lib/db';
 import {
-  saveRecipeEmbedding,
-  getRecipeEmbedding,
+  countRecipeEmbeddings,
   deleteRecipeEmbedding,
   findSimilarRecipes,
-  countRecipeEmbeddings,
+  getRecipeEmbedding,
   getRecipesNeedingEmbedding,
-  EmbeddingDatabaseError,
+  saveRecipeEmbedding,
 } from '../src/lib/db/embeddings';
-import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -64,7 +64,7 @@ function log(message: string, color?: keyof typeof colors) {
 }
 
 function logSection(title: string) {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   log(title, 'bright');
   console.log('='.repeat(60));
 }
@@ -125,7 +125,7 @@ async function runTest(
 }
 
 // Test sample data
-const sampleRecipes = [
+const _sampleRecipes = [
   {
     name: 'Spaghetti Carbonara',
     description: 'Classic Italian pasta with eggs, cheese, and pancetta',
@@ -183,7 +183,12 @@ async function testEmbeddingGeneration() {
       }
 
       logInfo(`Generated embedding with ${embedding.length} dimensions`);
-      logInfo(`Sample values: [${embedding.slice(0, 5).map(v => v.toFixed(4)).join(', ')}, ...]`);
+      logInfo(
+        `Sample values: [${embedding
+          .slice(0, 5)
+          .map((v) => v.toFixed(4))
+          .join(', ')}, ...]`
+      );
     },
     SKIP_API
   );
@@ -194,7 +199,7 @@ async function testEmbeddingGeneration() {
       const text = 'Test recipe text';
       const embedding = await generateEmbedding(text);
 
-      if (embedding.some(v => typeof v !== 'number' || isNaN(v))) {
+      if (embedding.some((v) => typeof v !== 'number' || Number.isNaN(v))) {
         throw new Error('Embedding contains invalid values');
       }
 
@@ -292,33 +297,30 @@ async function testBatchProcessing() {
 async function testRecipeEmbeddings() {
   logSection('TEST 3: Recipe-Specific Embeddings');
 
-  await runTest(
-    'Test 3.1: Build recipe embedding text',
-    async () => {
-      const recipe: any = {
-        id: 'test-1',
-        name: 'Test Recipe',
-        description: 'A delicious test recipe',
-        cuisine: 'International',
-        tags: JSON.stringify(['test', 'sample']),
-        ingredients: JSON.stringify(['ingredient1', 'ingredient2']),
-        difficulty: 'easy',
-      };
+  await runTest('Test 3.1: Build recipe embedding text', async () => {
+    const recipe: any = {
+      id: 'test-1',
+      name: 'Test Recipe',
+      description: 'A delicious test recipe',
+      cuisine: 'International',
+      tags: JSON.stringify(['test', 'sample']),
+      ingredients: JSON.stringify(['ingredient1', 'ingredient2']),
+      difficulty: 'easy',
+    };
 
-      const embeddingText = buildRecipeEmbeddingText(recipe);
-      logInfo(`Embedding text: "${embeddingText}"`);
+    const embeddingText = buildRecipeEmbeddingText(recipe);
+    logInfo(`Embedding text: "${embeddingText}"`);
 
-      if (!embeddingText.includes('Test Recipe')) {
-        throw new Error('Should include recipe name');
-      }
-      if (!embeddingText.includes('International')) {
-        throw new Error('Should include cuisine');
-      }
-      if (!embeddingText.includes('ingredient1')) {
-        throw new Error('Should include ingredients');
-      }
+    if (!embeddingText.includes('Test Recipe')) {
+      throw new Error('Should include recipe name');
     }
-  );
+    if (!embeddingText.includes('International')) {
+      throw new Error('Should include cuisine');
+    }
+    if (!embeddingText.includes('ingredient1')) {
+      throw new Error('Should include ingredients');
+    }
+  });
 
   await runTest(
     'Test 3.2: Generate embedding for recipe',
@@ -354,58 +356,69 @@ async function testRecipeEmbeddings() {
 async function testSimilarityCalculations() {
   logSection('TEST 4: Similarity Calculations');
 
-  await runTest(
-    'Test 4.1: Calculate cosine similarity',
-    async () => {
-      const vec1 = Array(384).fill(0).map(() => Math.random());
-      const vec2 = Array(384).fill(0).map(() => Math.random());
+  await runTest('Test 4.1: Calculate cosine similarity', async () => {
+    const vec1 = Array(384)
+      .fill(0)
+      .map(() => Math.random());
+    const vec2 = Array(384)
+      .fill(0)
+      .map(() => Math.random());
 
-      const similarity = cosineSimilarity(vec1, vec2);
+    const similarity = cosineSimilarity(vec1, vec2);
 
-      if (similarity < -1 || similarity > 1) {
-        throw new Error(`Invalid similarity score: ${similarity}`);
-      }
-
-      logInfo(`Similarity between random vectors: ${similarity.toFixed(4)}`);
+    if (similarity < -1 || similarity > 1) {
+      throw new Error(`Invalid similarity score: ${similarity}`);
     }
-  );
 
-  await runTest(
-    'Test 4.2: Identical vectors have similarity 1',
-    async () => {
-      const vec = Array(384).fill(0).map(() => Math.random());
-      const similarity = cosineSimilarity(vec, vec);
+    logInfo(`Similarity between random vectors: ${similarity.toFixed(4)}`);
+  });
 
-      if (Math.abs(similarity - 1.0) > 0.0001) {
-        throw new Error(`Expected similarity ~1.0, got ${similarity}`);
-      }
+  await runTest('Test 4.2: Identical vectors have similarity 1', async () => {
+    const vec = Array(384)
+      .fill(0)
+      .map(() => Math.random());
+    const similarity = cosineSimilarity(vec, vec);
 
-      logInfo(`Similarity of identical vectors: ${similarity.toFixed(6)}`);
+    if (Math.abs(similarity - 1.0) > 0.0001) {
+      throw new Error(`Expected similarity ~1.0, got ${similarity}`);
     }
-  );
 
-  await runTest(
-    'Test 4.3: Find similar embeddings',
-    async () => {
-      const query = Array(384).fill(0).map(() => Math.random());
-      const candidates = [
-        { id: 1, embedding: query, name: 'Exact match' },
-        { id: 2, embedding: Array(384).fill(0).map(() => Math.random()), name: 'Random 1' },
-        { id: 3, embedding: Array(384).fill(0).map(() => Math.random()), name: 'Random 2' },
-      ];
+    logInfo(`Similarity of identical vectors: ${similarity.toFixed(6)}`);
+  });
 
-      const similar = findSimilar(query, candidates, 2);
+  await runTest('Test 4.3: Find similar embeddings', async () => {
+    const query = Array(384)
+      .fill(0)
+      .map(() => Math.random());
+    const candidates = [
+      { id: 1, embedding: query, name: 'Exact match' },
+      {
+        id: 2,
+        embedding: Array(384)
+          .fill(0)
+          .map(() => Math.random()),
+        name: 'Random 1',
+      },
+      {
+        id: 3,
+        embedding: Array(384)
+          .fill(0)
+          .map(() => Math.random()),
+        name: 'Random 2',
+      },
+    ];
 
-      if (similar.length !== 2) {
-        throw new Error('Should return top 2 results');
-      }
-      if (similar[0].id !== 1) {
-        throw new Error('Most similar should be exact match');
-      }
+    const similar = findSimilar(query, candidates, 2);
 
-      logInfo(`Top result: "${similar[0].name}" (similarity: ${similar[0].similarity.toFixed(4)})`);
+    if (similar.length !== 2) {
+      throw new Error('Should return top 2 results');
     }
-  );
+    if (similar[0].id !== 1) {
+      throw new Error('Most similar should be exact match');
+    }
+
+    logInfo(`Top result: "${similar[0].name}" (similarity: ${similar[0].similarity.toFixed(4)})`);
+  });
 }
 
 async function testDatabaseOperations() {
@@ -413,10 +426,10 @@ async function testDatabaseOperations() {
 
   let testRecipeId: string | null = null;
 
-  await runTest(
-    'Test 5.1: Create test recipe in database',
-    async () => {
-      const [recipe] = await db.insert(recipes).values({
+  await runTest('Test 5.1: Create test recipe in database', async () => {
+    const [recipe] = await db
+      .insert(recipes)
+      .values({
         userId: 'test-user',
         name: 'Test Embedding Recipe',
         description: 'Recipe for testing embeddings',
@@ -425,26 +438,24 @@ async function testDatabaseOperations() {
         ingredients: JSON.stringify(['test ingredient 1', 'test ingredient 2']),
         instructions: JSON.stringify(['Test instruction 1']),
         isPublic: false,
-      }).returning();
+      })
+      .returning();
 
-      testRecipeId = recipe.id;
-      logInfo(`Created test recipe with ID: ${testRecipeId}`);
-    }
-  );
+    testRecipeId = recipe.id;
+    logInfo(`Created test recipe with ID: ${testRecipeId}`);
+  });
 
   await runTest(
     'Test 5.2: Save embedding to database',
     async () => {
       if (!testRecipeId) throw new Error('No test recipe created');
 
-      const embedding = Array(384).fill(0).map(() => Math.random());
+      const embedding = Array(384)
+        .fill(0)
+        .map(() => Math.random());
       const embeddingText = 'Test embedding text for recipe';
 
-      const saved = await saveRecipeEmbedding(
-        testRecipeId,
-        embedding,
-        embeddingText
-      );
+      const saved = await saveRecipeEmbedding(testRecipeId, embedding, embeddingText);
 
       if (!saved.id) {
         throw new Error('Failed to save embedding');
@@ -474,25 +485,19 @@ async function testDatabaseOperations() {
     SKIP_API
   );
 
-  await runTest(
-    'Test 5.4: Count embeddings',
-    async () => {
-      const count = await countRecipeEmbeddings();
-      logInfo(`Total embeddings in database: ${count}`);
+  await runTest('Test 5.4: Count embeddings', async () => {
+    const count = await countRecipeEmbeddings();
+    logInfo(`Total embeddings in database: ${count}`);
 
-      if (count < 0) {
-        throw new Error('Invalid count');
-      }
+    if (count < 0) {
+      throw new Error('Invalid count');
     }
-  );
+  });
 
-  await runTest(
-    'Test 5.5: Find recipes needing embeddings',
-    async () => {
-      const needsEmbedding = await getRecipesNeedingEmbedding();
-      logInfo(`Recipes needing embeddings: ${needsEmbedding.length}`);
-    }
-  );
+  await runTest('Test 5.5: Find recipes needing embeddings', async () => {
+    const needsEmbedding = await getRecipesNeedingEmbedding();
+    logInfo(`Recipes needing embeddings: ${needsEmbedding.length}`);
+  });
 
   await runTest(
     'Test 5.6: Vector similarity search',
@@ -531,15 +536,12 @@ async function testDatabaseOperations() {
     SKIP_API
   );
 
-  await runTest(
-    'Test 5.8: Clean up test recipe',
-    async () => {
-      if (!testRecipeId) throw new Error('No test recipe created');
+  await runTest('Test 5.8: Clean up test recipe', async () => {
+    if (!testRecipeId) throw new Error('No test recipe created');
 
-      await db.delete(recipes).where(eq(recipes.id, testRecipeId));
-      logInfo('Cleaned up test recipe');
-    }
-  );
+    await db.delete(recipes).where(eq(recipes.id, testRecipeId));
+    logInfo('Cleaned up test recipe');
+  });
 }
 
 async function testEndToEnd() {
@@ -551,16 +553,19 @@ async function testEndToEnd() {
     'Test 6.1: Full workflow - create recipe and generate embedding',
     async () => {
       // Create recipe
-      const [recipe] = await db.insert(recipes).values({
-        userId: 'test-user-e2e',
-        name: 'End-to-End Test Recipe',
-        description: 'Testing full embedding workflow',
-        cuisine: 'International',
-        tags: JSON.stringify(['test', 'e2e']),
-        ingredients: JSON.stringify(['ingredient A', 'ingredient B']),
-        instructions: JSON.stringify(['Step 1', 'Step 2']),
-        isPublic: false,
-      }).returning();
+      const [recipe] = await db
+        .insert(recipes)
+        .values({
+          userId: 'test-user-e2e',
+          name: 'End-to-End Test Recipe',
+          description: 'Testing full embedding workflow',
+          cuisine: 'International',
+          tags: JSON.stringify(['test', 'e2e']),
+          ingredients: JSON.stringify(['ingredient A', 'ingredient B']),
+          instructions: JSON.stringify(['Step 1', 'Step 2']),
+          isPublic: false,
+        })
+        .returning();
 
       e2eRecipeId = recipe.id;
 
@@ -627,11 +632,15 @@ async function main() {
     console.log('─'.repeat(60));
 
     const total = testResults.passed + testResults.failed + testResults.skipped;
-    const successRate = total > 0
-      ? ((testResults.passed / (testResults.passed + testResults.failed)) * 100).toFixed(1)
-      : '0';
+    const successRate =
+      total > 0
+        ? ((testResults.passed / (testResults.passed + testResults.failed)) * 100).toFixed(1)
+        : '0';
 
-    log(`\nSuccess Rate: ${successRate}% (${testResults.passed}/${testResults.passed + testResults.failed})`, 'bright');
+    log(
+      `\nSuccess Rate: ${successRate}% (${testResults.passed}/${testResults.passed + testResults.failed})`,
+      'bright'
+    );
 
     if (testResults.failed === 0) {
       log('\n✨ All tests passed!', 'green');
@@ -640,7 +649,6 @@ async function main() {
       log(`\n❌ ${testResults.failed} test(s) failed`, 'red');
       process.exit(1);
     }
-
   } catch (error: any) {
     logError(`\nFatal error: ${error.message}`);
     if (VERBOSE) {

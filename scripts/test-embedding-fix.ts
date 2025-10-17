@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
+
 /**
  * Test script to verify embedding generation fix
  * Tests the improved retry logic and error handling
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { generateEmbedding } from '../src/lib/ai/embeddings';
 
 // Load environment variables
@@ -31,7 +32,7 @@ async function main() {
   console.log('Test 1: Generate embedding for simple text');
   console.log('----------------------------------------');
 
-  const testText = "Delicious Italian pasta carbonara with eggs, cheese, and pancetta";
+  const testText = 'Delicious Italian pasta carbonara with eggs, cheese, and pancetta';
   console.log(`Text: "${testText}"`);
   console.log('');
 
@@ -47,14 +48,19 @@ async function main() {
     console.log('✓ SUCCESS!');
     console.log(`  Duration: ${duration}s`);
     console.log(`  Embedding dimension: ${embedding.length}`);
-    console.log(`  Sample values: [${embedding.slice(0, 5).map(v => v.toFixed(4)).join(', ')}, ...]`);
+    console.log(
+      `  Sample values: [${embedding
+        .slice(0, 5)
+        .map((v) => v.toFixed(4))
+        .join(', ')}, ...]`
+    );
     console.log('');
 
     // Verify embedding
     if (embedding.length !== 384) {
       throw new Error(`Wrong dimension: expected 384, got ${embedding.length}`);
     }
-    if (embedding.some(v => typeof v !== 'number' || isNaN(v))) {
+    if (embedding.some((v) => typeof v !== 'number' || Number.isNaN(v))) {
       throw new Error('Embedding contains invalid values');
     }
 
@@ -65,7 +71,6 @@ async function main() {
     console.log('='.repeat(60));
 
     process.exit(0);
-
   } catch (error: any) {
     console.log('');
     console.error('✗ FAILED!');

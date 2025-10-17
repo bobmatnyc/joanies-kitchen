@@ -1,16 +1,16 @@
-import { auth } from '@/lib/auth';
+import { ChefHat } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { isAdmin } from '@/lib/admin';
 import { getAllChefs } from '@/app/actions/chefs';
 import { AdminChefForm } from '@/components/admin/AdminChefForm';
 import { AdminScrapingPanel } from '@/components/admin/AdminScrapingPanel';
 import { ChefGrid } from '@/components/chef/ChefGrid';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChefHat } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { isAdmin } from '@/lib/admin';
+import { auth } from '@/lib/auth';
 
 export const metadata = {
   title: 'Manage Chefs | Admin',
-  description: 'Manage chefs and scrape recipes'
+  description: 'Manage chefs and scrape recipes',
 };
 
 export default async function AdminChefsPage() {
@@ -28,12 +28,8 @@ export default async function AdminChefsPage() {
       <div className="flex items-center gap-3 mb-8">
         <ChefHat className="w-8 h-8 text-jk-olive" />
         <div>
-          <h1 className="text-4xl font-heading text-jk-olive">
-            Manage Chefs
-          </h1>
-          <p className="text-jk-olive/60">
-            Add chefs and scrape their recipes
-          </p>
+          <h1 className="text-4xl font-heading text-jk-olive">Manage Chefs</h1>
+          <p className="text-jk-olive/60">Add chefs and scrape their recipes</p>
         </div>
       </div>
 
@@ -49,7 +45,8 @@ export default async function AdminChefsPage() {
             <p className="text-sm text-jk-olive">
               Total Chefs: <strong>{chefs.length}</strong>
               {' | '}
-              Total Recipes: <strong>{chefs.reduce((sum, chef) => sum + (chef.recipeCount || 0), 0)}</strong>
+              Total Recipes:{' '}
+              <strong>{chefs.reduce((sum, chef) => sum + (chef.recipeCount || 0), 0)}</strong>
             </p>
           </div>
           <ChefGrid

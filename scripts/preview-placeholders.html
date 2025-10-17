@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Placeholder Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+
+    .card-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-content {
+      padding: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-description {
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .card-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #f3f4f6;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .footer {
+      text-align: center;
+      color: white;
+      margin-top: 3rem;
+      padding: 2rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+    }
+
+    .footer h2 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .footer p {
+      line-height: 1.8;
+      margin-bottom: 0.5rem;
+    }
+
+    .check {
+      color: #10b981;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🍳 Recipe Placeholder Preview</h1>
+    <p class="subtitle">12 themed placeholder images for recipes without photos</p>
+
+    <div class="grid">
+      <!-- Breakfast -->
+      <div class="card">
+        <img src="../public/placeholders/breakfast.svg" alt="Breakfast" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Breakfast</h3>
+          <p class="card-description">Perfect for morning meals, pancakes, eggs, and coffee recipes</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Breakfast</span>
+            <span class="badge">Brunch</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">☕ Coffee cup icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lunch/Dinner -->
+      <div class="card">
+        <img src="../public/placeholders/lunch-dinner.svg" alt="Lunch/Dinner" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Lunch & Dinner</h3>
+          <p class="card-description">Main courses, hearty meals, and balanced dishes</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Main</span>
+            <span class="badge">Dinner</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🍽️ Plate with utensils</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dessert -->
+      <div class="card">
+        <img src="../public/placeholders/dessert.svg" alt="Dessert" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Dessert</h3>
+          <p class="card-description">Sweet treats, cakes, cookies, and indulgent delights</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Dessert</span>
+            <span class="badge">Sweet</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🧁 Cupcake icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Salad -->
+      <div class="card">
+        <img src="../public/placeholders/salad.svg" alt="Salad" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Salad</h3>
+          <p class="card-description">Fresh greens, healthy bowls, and crisp vegetables</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Salad</span>
+            <span class="badge">Healthy</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🥗 Bowl with greens</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Soup -->
+      <div class="card">
+        <img src="../public/placeholders/soup.svg" alt="Soup" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Soup</h3>
+          <p class="card-description">Warm soups, comforting stews, and liquid meals</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Soup</span>
+            <span class="badge">Stew</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🍲 Bowl with spoon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pasta -->
+      <div class="card">
+        <img src="../public/placeholders/pasta.svg" alt="Pasta" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Pasta</h3>
+          <p class="card-description">Italian classics, noodle dishes, and pizza</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Pasta</span>
+            <span class="badge">Italian</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🍝 Pasta with fork</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meat -->
+      <div class="card">
+        <img src="../public/placeholders/meat.svg" alt="Meat" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Meat Dish</h3>
+          <p class="card-description">Grilled, roasted, or fried meat-based recipes</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Beef</span>
+            <span class="badge">Chicken</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🥩 Steak icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seafood -->
+      <div class="card">
+        <img src="../public/placeholders/seafood.svg" alt="Seafood" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Seafood</h3>
+          <p class="card-description">Fish, shellfish, and ocean delicacies</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Fish</span>
+            <span class="badge">Seafood</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🐟 Fish icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vegetarian -->
+      <div class="card">
+        <img src="../public/placeholders/vegetarian.svg" alt="Vegetarian" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Vegetarian</h3>
+          <p class="card-description">Plant-based meals, vegan options, and veggie dishes</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Vegan</span>
+            <span class="badge">Vegetarian</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🥕 Vegetables icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Baked -->
+      <div class="card">
+        <img src="../public/placeholders/baked.svg" alt="Baked" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Baked Goods</h3>
+          <p class="card-description">Breads, pastries, and oven-baked delights</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Baked</span>
+            <span class="badge">Bread</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🍞 Bread loaf icon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Beverage -->
+      <div class="card">
+        <img src="../public/placeholders/beverage.svg" alt="Beverage" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Beverage</h3>
+          <p class="card-description">Drinks, smoothies, and refreshing liquids</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Beverage</span>
+            <span class="badge">Drink</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">🥤 Glass with straw</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generic -->
+      <div class="card">
+        <img src="../public/placeholders/generic.svg" alt="Generic" class="card-image">
+        <div class="card-content">
+          <h3 class="card-title">Generic Recipe</h3>
+          <p class="card-description">Fallback for recipes without specific categories</p>
+          <div style="margin-bottom: 1rem;">
+            <span class="badge">Default</span>
+          </div>
+          <div class="card-stats">
+            <span class="stat">👨‍🍳 Chef hat icon</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <h2>Implementation Details</h2>
+      <p><span class="check">✓</span> All images are SVG format (1.3KB - 2.9KB each)</p>
+      <p><span class="check">✓</span> Intelligent tag-based matching system</p>
+      <p><span class="check">✓</span> Priority order: Course → Meal Type → Ingredient → Method</p>
+      <p><span class="check">✓</span> Consistent design language with themed colors</p>
+      <p><span class="check">✓</span> Fully integrated into RecipeCard components</p>
+      <p><span class="check">✓</span> Tested with 20 different tag combinations</p>
+      <p style="margin-top: 1.5rem; font-style: italic; opacity: 0.9;">
+        Open this file in a browser to preview all placeholder images:<br>
+        <code style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem;">
+          file:///path/to/recipe-manager/scripts/preview-placeholders.html
+        </code>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

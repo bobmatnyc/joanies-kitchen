@@ -2,8 +2,8 @@
  * Test script to verify auth pages work with both configured and unconfigured Clerk states
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Read the current .env.local file
 const envPath = path.join(__dirname, '..', '.env.local');
@@ -12,7 +12,7 @@ let originalEnv = '';
 try {
   originalEnv = fs.readFileSync(envPath, 'utf8');
   console.log('✓ Found existing .env.local file');
-} catch (error) {
+} catch (_error) {
   console.log('No .env.local file found, will create one');
 }
 
@@ -28,7 +28,7 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 DATABASE_URL=postgresql://user:password@localhost:5432/recipe_manager
 `,
-    expectedBehavior: 'Should show "Authentication Not Configured" message'
+    expectedBehavior: 'Should show "Authentication Not Configured" message',
   },
   {
     name: 'YOUR_PUBLISHABLE_KEY (Unconfigured)',
@@ -40,8 +40,8 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 DATABASE_URL=postgresql://user:password@localhost:5432/recipe_manager
 `,
-    expectedBehavior: 'Should show "Authentication Not Configured" message'
-  }
+    expectedBehavior: 'Should show "Authentication Not Configured" message',
+  },
 ];
 
 console.log('\n=== Testing Auth Page Configurations ===\n');

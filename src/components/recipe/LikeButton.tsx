@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { ThumbsUp } from 'lucide-react';
-import { toggleRecipeLike } from '@/app/actions/social';
 import { useAuth } from '@clerk/nextjs';
+import { ThumbsUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { toggleRecipeLike } from '@/app/actions/social';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -82,17 +82,9 @@ export function LikeButton({
       aria-label={isLiked ? 'Unlike recipe' : 'Like recipe'}
     >
       <ThumbsUp
-        className={cn(
-          iconSize,
-          'transition-all duration-200',
-          isLiked && 'fill-current'
-        )}
+        className={cn(iconSize, 'transition-all duration-200', isLiked && 'fill-current')}
       />
-      {showCount && (
-        <span className={cn('font-medium', textSize)}>
-          {likesCount}
-        </span>
-      )}
+      {showCount && <span className={cn('font-medium', textSize)}>{likesCount}</span>}
     </Button>
   );
 }

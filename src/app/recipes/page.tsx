@@ -1,11 +1,11 @@
-import { getRecipesPaginated, type RecipeFilters } from '@/app/actions/recipes';
-import { auth } from '@/lib/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { ChefHat } from 'lucide-react';
-import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
+import Link from 'next/link';
+import { getRecipesPaginated, type RecipeFilters } from '@/app/actions/recipes';
 import { RecipeFilters as RecipeFiltersComponent } from '@/components/recipe/RecipeFilters';
+import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { auth } from '@/lib/auth';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
@@ -102,21 +102,22 @@ export default async function RecipesPage({ searchParams }: PageProps) {
   });
 
   const recipes = result.success && result.data ? result.data.recipes : [];
-  const pagination = result.success && result.data ? result.data.pagination : {
-    page: 1,
-    limit: 24,
-    total: 0,
-    totalPages: 0,
-    hasMore: false,
-  };
+  const pagination =
+    result.success && result.data
+      ? result.data.pagination
+      : {
+          page: 1,
+          limit: 24,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+        };
 
   return (
     <main className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-heading text-jk-olive mb-2">
-          My Recipes
-        </h1>
+        <h1 className="text-4xl font-heading text-jk-olive mb-2">My Recipes</h1>
         <p className="text-jk-charcoal/70 font-ui">
           {pagination.total} recipe{pagination.total !== 1 ? 's' : ''} in your collection
         </p>

@@ -6,8 +6,8 @@
  * Usage: tsx scripts/verify-pgvector-neon.ts
  */
 
+import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
-import path from 'path';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -75,7 +75,7 @@ async function verifyPgvector() {
     }
 
     log('✓ recipe_embeddings table exists with columns:', 'green');
-    tableResult.forEach(col => {
+    tableResult.forEach((col) => {
       const nullable = col.is_nullable === 'YES' ? 'NULL' : 'NOT NULL';
       const maxLength = col.character_maximum_length ? `(${col.character_maximum_length})` : '';
       log(`  - ${col.column_name}: ${col.data_type}${maxLength} ${nullable}`, 'cyan');
@@ -96,7 +96,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No indexes found on recipe_embeddings', 'yellow');
     } else {
       log(`✓ Found ${indexResult.length} index(es):`, 'green');
-      indexResult.forEach(idx => {
+      indexResult.forEach((idx) => {
         log(`  - ${idx.indexname}`, 'cyan');
         if (idx.indexdef.includes('hnsw')) {
           log('    ✓ HNSW index for fast vector search', 'green');
@@ -122,9 +122,18 @@ async function verifyPgvector() {
     `;
 
     log('✓ Vector operations successful:', 'green');
-    log(`  - Cosine similarity: ${parseFloat(similarityResult[0].cosine_similarity as string).toFixed(6)}`, 'cyan');
-    log(`  - L2 distance: ${parseFloat(similarityResult[0].l2_distance as string).toFixed(6)}`, 'cyan');
-    log(`  - Inner product: ${parseFloat(similarityResult[0].inner_product as string).toFixed(6)}`, 'cyan');
+    log(
+      `  - Cosine similarity: ${parseFloat(similarityResult[0].cosine_similarity as string).toFixed(6)}`,
+      'cyan'
+    );
+    log(
+      `  - L2 distance: ${parseFloat(similarityResult[0].l2_distance as string).toFixed(6)}`,
+      'cyan'
+    );
+    log(
+      `  - Inner product: ${parseFloat(similarityResult[0].inner_product as string).toFixed(6)}`,
+      'cyan'
+    );
 
     // Test recipes table new columns
     log('\n📝 Test 5: Recipe Table Enhancements', 'cyan');
@@ -140,7 +149,7 @@ async function verifyPgvector() {
       log(`⚠️  WARNING: Only ${recipeColumns.length}/5 new columns found`, 'yellow');
     } else {
       log('✓ All 5 provenance tracking columns added:', 'green');
-      recipeColumns.forEach(col => {
+      recipeColumns.forEach((col) => {
         log(`  - ${col.column_name} (${col.data_type})`, 'cyan');
       });
     }
@@ -167,7 +176,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No foreign key constraints found', 'yellow');
     } else {
       log('✓ Foreign key constraints:', 'green');
-      fkResult.forEach(fk => {
+      fkResult.forEach((fk) => {
         log(`  - ${fk.column_name} → ${fk.foreign_table_name}.${fk.foreign_column_name}`, 'cyan');
       });
     }
@@ -184,7 +193,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No triggers found', 'yellow');
     } else {
       log('✓ Triggers configured:', 'green');
-      triggerResult.forEach(trigger => {
+      triggerResult.forEach((trigger) => {
         log(`  - ${trigger.trigger_name} (${trigger.event_manipulation})`, 'cyan');
       });
     }
@@ -202,7 +211,7 @@ async function verifyPgvector() {
     log(`✓ Query execution time: ${perfEnd - perfStart}ms`, 'green');
 
     // Summary
-    log('\n' + '='.repeat(60), 'blue');
+    log(`\n${'='.repeat(60)}`, 'blue');
     log('✅ All tests passed successfully!', 'green');
     log('🎉 pgvector is fully operational and ready for semantic search', 'green');
     log('\n📊 Configuration Summary:', 'cyan');
@@ -219,7 +228,6 @@ async function verifyPgvector() {
     log(`  - Generate embedding: POST /api/embeddings/generate`, 'cyan');
     log(`  - Search recipes: POST /api/recipes/search { query: "spicy pasta" }`, 'cyan');
     log(`  - Similar recipes: GET /api/recipes/{id}/similar`, 'cyan');
-
   } catch (error) {
     log('\n❌ Verification failed!', 'red');
     const err = error as Error;
@@ -233,7 +241,7 @@ async function verifyPgvector() {
 }
 
 // Run verification
-verifyPgvector().catch(error => {
+verifyPgvector().catch((error) => {
   log(`\n💥 Unexpected error: ${error.message}`, 'red');
   process.exit(1);
 });

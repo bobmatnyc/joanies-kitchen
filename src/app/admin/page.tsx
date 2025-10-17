@@ -1,11 +1,12 @@
-import { Suspense } from 'react';
-import { StatsCard } from '@/components/admin/StatsCard';
-import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admin';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { SlideshowManager } from '@/components/admin/SlideshowManager';
+import { Suspense } from 'react';
+import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admin';
+import { FlaggedImagesManager } from '@/components/admin/FlaggedImagesManager';
 import { HeroBackgroundManager } from '@/components/admin/HeroBackgroundManager';
+import { SlideshowManager } from '@/components/admin/SlideshowManager';
+import { StatsCard } from '@/components/admin/StatsCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function StatsLoadingSkeleton() {
   return (
@@ -28,11 +29,7 @@ async function DashboardStats() {
   const statsResult = await getAdminRecipeStats();
 
   if (!statsResult.success || !statsResult.data) {
-    return (
-      <div className="text-center py-12 text-red-600">
-        Failed to load statistics
-      </div>
-    );
+    return <div className="text-center py-12 text-red-600">Failed to load statistics</div>;
   }
 
   const stats = statsResult.data;
@@ -44,12 +41,7 @@ async function DashboardStats() {
         value={stats.totalRecipes}
         description="All recipes in the database"
         icon={
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -65,12 +57,7 @@ async function DashboardStats() {
         value={stats.publicRecipes}
         description="Visible to all users"
         icon={
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -88,16 +75,11 @@ async function DashboardStats() {
       />
 
       <StatsCard
-        title="System Recipes"
+        title="Shared Recipes"
         value={stats.systemRecipes}
-        description="Curated system recipes"
+        description="Curated shared recipes"
         icon={
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -113,12 +95,7 @@ async function DashboardStats() {
         value={stats.totalUsers}
         description="Users with recipes"
         icon={
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -136,11 +113,7 @@ async function RecentActivity() {
   const activityResult = await getRecentRecipeActivity(10);
 
   if (!activityResult.success || !activityResult.data) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        Failed to load recent activity
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-500">Failed to load recent activity</div>;
   }
 
   const recentRecipes = activityResult.data;
@@ -148,9 +121,7 @@ async function RecentActivity() {
   return (
     <div className="space-y-4">
       {recentRecipes.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No recent activity
-        </div>
+        <div className="text-center py-8 text-gray-500">No recent activity</div>
       ) : (
         recentRecipes.map((recipe) => (
           <div
@@ -198,9 +169,7 @@ export default function AdminDashboard() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">
-          Manage recipes, users, and system settings
-        </p>
+        <p className="text-gray-600 mt-2">Manage recipes, users, and system settings</p>
       </div>
 
       {/* Statistics Cards */}
@@ -231,6 +200,16 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
+      {/* Flagged Images for Regeneration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Flagged Images</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FlaggedImagesManager />
+        </CardContent>
+      </Card>
+
       {/* Recent Activity */}
       <Card>
         <CardHeader>
@@ -239,9 +218,7 @@ export default function AdminDashboard() {
         <CardContent>
           <Suspense
             fallback={
-              <div className="text-center py-8 text-gray-500">
-                Loading recent activity...
-              </div>
+              <div className="text-center py-8 text-gray-500">Loading recent activity...</div>
             }
           >
             <RecentActivity />
@@ -299,9 +276,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Environment</span>
-                <span className="text-sm font-medium">
-                  {process.env.NODE_ENV || 'development'}
-                </span>
+                <span className="text-sm font-medium">{process.env.NODE_ENV || 'development'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Auth Provider</span>

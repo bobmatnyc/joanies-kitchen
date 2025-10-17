@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Import Serious Eats Top 50 recipes into database
  *
@@ -13,10 +14,10 @@
  *   - Database connection configured in .env.local
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 
 const TRANSFORMED_FILE = resolve(
   process.cwd(),
@@ -52,7 +53,7 @@ interface TransformedRecipe {
 }
 
 async function main() {
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
   console.log('IMPORTING SERIOUS EATS TOP 50 RECIPES');
   console.log('='.repeat(70));
 
@@ -75,21 +76,29 @@ async function main() {
   // Validate recipes
   console.log('\n📊 Validating recipes...');
   const recipesWithIssues = transformedRecipes.filter(
-    r => r._validation_issues && r._validation_issues.length > 0
+    (r) => r._validation_issues && r._validation_issues.length > 0
   );
 
   if (recipesWithIssues.length > 0) {
     console.log(`\n⚠️  ${recipesWithIssues.length} recipes have validation issues:`);
-    recipesWithIssues.forEach(r => {
+    recipesWithIssues.forEach((r) => {
       console.log(`   - ${r.name}: ${r._validation_issues?.join(', ')}`);
     });
     console.log('\nContinuing with import (issues logged)...');
   }
 
   // Prepare for database insertion
-  const dbRecords = transformedRecipes.map(recipe => {
+  const dbRecords = transformedRecipes.map((recipe) => {
     // Remove metadata fields (not in schema) and timestamp fields (database handles these)
-    const { _metadata, _validation_issues, created_at, updated_at, discovery_date, published_date, ...dbRecord } = recipe as any;
+    const {
+      _metadata,
+      _validation_issues,
+      created_at,
+      updated_at,
+      discovery_date,
+      published_date,
+      ...dbRecord
+    } = recipe as any;
 
     // Database will handle timestamps automatically
     // discovery_date and published_date are set by the database or can be null
@@ -110,7 +119,9 @@ async function main() {
       try {
         await db.insert(recipes).values(batch);
         inserted += batch.length;
-        console.log(`   ✅ Inserted batch ${Math.floor(i / BATCH_SIZE) + 1} (${inserted}/${dbRecords.length})`);
+        console.log(
+          `   ✅ Inserted batch ${Math.floor(i / BATCH_SIZE) + 1} (${inserted}/${dbRecords.length})`
+        );
       } catch (error: any) {
         errors += batch.length;
         console.error(`   ❌ Error inserting batch ${Math.floor(i / BATCH_SIZE) + 1}:`);
@@ -132,7 +143,7 @@ async function main() {
     }
 
     // Summary
-    console.log('\n' + '='.repeat(70));
+    console.log(`\n${'='.repeat(70)}`);
     console.log('IMPORT SUMMARY');
     console.log('='.repeat(70));
     console.log(`\n✅ Successfully inserted: ${inserted}/${dbRecords.length}`);
@@ -143,21 +154,25 @@ async function main() {
 
     // Statistics
     console.log('\n📊 Recipe Statistics:');
-    console.log(`   - With images: ${dbRecords.filter(r => {
-      try {
-        const imgs = JSON.parse(r.images);
-        return imgs && imgs.length > 0;
-      } catch {
-        return false;
-      }
-    }).length}`);
-    console.log(`   - With prep time: ${dbRecords.filter(r => r.prep_time).length}`);
-    console.log(`   - With cook time: ${dbRecords.filter(r => r.cook_time).length}`);
-    console.log(`   - With servings: ${dbRecords.filter(r => r.servings).length}`);
+    console.log(
+      `   - With images: ${
+        dbRecords.filter((r) => {
+          try {
+            const imgs = JSON.parse(r.images);
+            return imgs && imgs.length > 0;
+          } catch {
+            return false;
+          }
+        }).length
+      }`
+    );
+    console.log(`   - With prep time: ${dbRecords.filter((r) => r.prep_time).length}`);
+    console.log(`   - With cook time: ${dbRecords.filter((r) => r.cook_time).length}`);
+    console.log(`   - With servings: ${dbRecords.filter((r) => r.servings).length}`);
 
     // Category breakdown
     const categoryCount = new Map<string, number>();
-    transformedRecipes.forEach(r => {
+    transformedRecipes.forEach((r) => {
       const category = r._metadata?.category || 'Unknown';
       categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
     });
@@ -171,7 +186,7 @@ async function main() {
 
     // Author breakdown
     const authorCount = new Map<string, number>();
-    transformedRecipes.forEach(r => {
+    transformedRecipes.forEach((r) => {
       const author = r._metadata?.author || 'Unknown';
       authorCount.set(author, (authorCount.get(author) || 0) + 1);
     });
@@ -191,7 +206,6 @@ async function main() {
     console.log('   4. Test recipe display on /discover page');
 
     process.exit(inserted === dbRecords.length ? 0 : 1);
-
   } catch (error) {
     console.error('\n❌ Database import failed:');
     console.error(error);

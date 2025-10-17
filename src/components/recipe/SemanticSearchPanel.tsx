@@ -1,23 +1,37 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { semanticSearchRecipes, hybridSearchRecipes, type RecipeWithSimilarity, type SearchOptions } from '@/app/actions/semantic-search';
-import { RecipeCard } from './RecipeCard';
-import { Slider } from '@/components/ui/slider';
+import { Filter, Search, Sparkles, X } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import {
+  hybridSearchRecipes,
+  type RecipeWithSimilarity,
+  type SearchOptions,
+  semanticSearchRecipes,
+} from '@/app/actions/semantic-search';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, Sparkles, Filter, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { RecipeCard } from './RecipeCard';
 
 export interface SemanticSearchPanelProps {
   initialQuery?: string;
   onResultsChange?: (count: number) => void;
 }
 
-export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: SemanticSearchPanelProps) {
+export function SemanticSearchPanel({
+  initialQuery = '',
+  onResultsChange,
+}: SemanticSearchPanelProps) {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<RecipeWithSimilarity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,9 +65,10 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
         includePrivate: true,
       };
 
-      const result = searchMode === 'hybrid'
-        ? await hybridSearchRecipes(query, options)
-        : await semanticSearchRecipes(query, options);
+      const result =
+        searchMode === 'hybrid'
+          ? await hybridSearchRecipes(query, options)
+          : await semanticSearchRecipes(query, options);
 
       if (result.success) {
         setResults(result.recipes);
@@ -87,10 +102,8 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
 
   // Toggle dietary restriction
   const toggleDietaryRestriction = (restriction: string) => {
-    setDietaryRestrictions(prev =>
-      prev.includes(restriction)
-        ? prev.filter(r => r !== restriction)
-        : [...prev, restriction]
+    setDietaryRestrictions((prev) =>
+      prev.includes(restriction) ? prev.filter((r) => r !== restriction) : [...prev, restriction]
     );
   };
 
@@ -117,7 +130,8 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
             Semantic Recipe Search
           </CardTitle>
           <CardDescription>
-            Search recipes using natural language. Try queries like "comfort food for cold weather" or "quick healthy dinner"
+            Search recipes using natural language. Try queries like "comfort food for cold weather"
+            or "quick healthy dinner"
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -195,12 +209,7 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Filters</h3>
                 {hasActiveFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="h-8 text-xs"
-                  >
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
                     <X className="w-3 h-3 mr-1" />
                     Clear All
                   </Button>
@@ -213,7 +222,10 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
                   <Label htmlFor="cuisine-select" className="text-sm">
                     Cuisine
                   </Label>
-                  <Select value={cuisine || ''} onValueChange={(value) => setCuisine(value || undefined)}>
+                  <Select
+                    value={cuisine || ''}
+                    onValueChange={(value) => setCuisine(value || undefined)}
+                  >
                     <SelectTrigger id="cuisine-select">
                       <SelectValue placeholder="Any cuisine" />
                     </SelectTrigger>
@@ -237,7 +249,10 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
                   <Label htmlFor="difficulty-select" className="text-sm">
                     Difficulty
                   </Label>
-                  <Select value={difficulty || ''} onValueChange={(value) => setDifficulty(value || undefined)}>
+                  <Select
+                    value={difficulty || ''}
+                    onValueChange={(value) => setDifficulty(value || undefined)}
+                  >
                     <SelectTrigger id="difficulty-select">
                       <SelectValue placeholder="Any difficulty" />
                     </SelectTrigger>
@@ -272,9 +287,7 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
 
           {/* Error Display */}
           {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-              {error}
-            </div>
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">{error}</div>
           )}
         </CardContent>
       </Card>
@@ -287,9 +300,7 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
               Found {results.length} {results.length === 1 ? 'recipe' : 'recipes'}
             </h2>
             {searchMode === 'semantic' && (
-              <span className="text-sm text-muted-foreground">
-                Sorted by similarity
-              </span>
+              <span className="text-sm text-muted-foreground">Sorted by similarity</span>
             )}
           </div>
 
@@ -298,10 +309,7 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
               <div key={recipe.id} className="relative">
                 <RecipeCard recipe={recipe} />
                 {recipe.similarity > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="absolute top-2 left-2 z-10"
-                  >
+                  <Badge variant="secondary" className="absolute top-2 left-2 z-10">
                     {(recipe.similarity * 100).toFixed(0)}% match
                   </Badge>
                 )}
@@ -316,7 +324,8 @@ export function SemanticSearchPanel({ initialQuery = '', onResultsChange }: Sema
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              No recipes found. Try adjusting your search query or lowering the similarity threshold.
+              No recipes found. Try adjusting your search query or lowering the similarity
+              threshold.
             </p>
           </CardContent>
         </Card>

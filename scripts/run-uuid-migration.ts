@@ -1,5 +1,5 @@
-import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
 
 /**
  * Script to migrate recipe IDs from serial integers to UUIDs

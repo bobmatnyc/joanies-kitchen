@@ -5,9 +5,9 @@
  * with duplicate detection and validation.
  */
 
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
 
 /**
  * Reserved slugs that cannot be used for recipes
@@ -69,10 +69,40 @@ export function isReservedSlug(slug: string): boolean {
 export function generateSlugFromName(name: string): string {
   // Common filler words to remove for cleaner URLs
   const fillerWords = [
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-    'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during',
-    'before', 'after', 'above', 'below', 'between', 'under', 'again',
-    'very', 'really', 'best', 'ultimate', 'perfect', 'amazing', 'delicious',
+    'the',
+    'a',
+    'an',
+    'and',
+    'or',
+    'but',
+    'in',
+    'on',
+    'at',
+    'to',
+    'for',
+    'of',
+    'with',
+    'by',
+    'from',
+    'up',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'under',
+    'again',
+    'very',
+    'really',
+    'best',
+    'ultimate',
+    'perfect',
+    'amazing',
+    'delicious',
   ];
 
   let slug = name
@@ -88,7 +118,7 @@ export function generateSlugFromName(name: string): string {
     .replace(/^-+|-+$/g, '');
 
   // Split into words and filter out filler words
-  const words = slug.split('-').filter(word => {
+  const words = slug.split('-').filter((word) => {
     return word.length > 0 && !fillerWords.includes(word);
   });
 
@@ -140,7 +170,10 @@ export function validateSlug(slug: string): { valid: boolean; error?: string } {
   }
 
   if (!/^[a-z0-9-]+$/.test(slug)) {
-    return { valid: false, error: 'Slug must contain only lowercase letters, numbers, and hyphens' };
+    return {
+      valid: false,
+      error: 'Slug must contain only lowercase letters, numbers, and hyphens',
+    };
   }
 
   if (slug.startsWith('-') || slug.endsWith('-')) {
@@ -299,7 +332,7 @@ export async function batchCheckSlugs(slugs: string[]): Promise<Map<string, bool
       .from(recipes)
       .where(sql`${recipes.slug} = ANY(${slugs})`);
 
-    const existingSet = new Set(result.map(r => r.slug));
+    const existingSet = new Set(result.map((r) => r.slug));
     const resultMap = new Map<string, boolean>();
 
     for (const slug of slugs) {
@@ -331,7 +364,7 @@ export async function getAllSlugs(): Promise<string[]> {
       .from(recipes)
       .where(sql`${recipes.slug} IS NOT NULL`);
 
-    return result.map(r => r.slug).filter((s): s is string => s !== null);
+    return result.map((r) => r.slug).filter((s): s is string => s !== null);
   } catch (error) {
     console.error('Error getting all slugs:', error);
     return [];

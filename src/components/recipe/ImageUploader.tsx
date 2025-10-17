@@ -1,29 +1,27 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { X, Upload, Link, Image as ImageIcon, Move } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
+  rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Link, Move, Upload, X } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ImageUploaderProps {
   images: string[];
@@ -40,14 +38,9 @@ function SortableImage({
   index: number;
   onRemove: () => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: url });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: url,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -94,11 +87,7 @@ function SortableImage({
   );
 }
 
-export function ImageUploader({
-  images = [],
-  onChange,
-  maxImages = 6,
-}: ImageUploaderProps) {
+export function ImageUploader({ images = [], onChange, maxImages = 6 }: ImageUploaderProps) {
   const [urlInput, setUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,7 +148,7 @@ export function ImageUploader({
         });
       }
     },
-    [images.length, maxImages, onChange]
+    [images.length, maxImages, onChange, images]
   );
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -172,9 +161,7 @@ export function ImageUploader({
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((file) =>
-      file.type.startsWith('image/')
-    );
+    const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith('image/'));
 
     files.slice(0, maxImages - images.length).forEach((file) => {
       const reader = new FileReader();
@@ -197,11 +184,7 @@ export function ImageUploader({
 
       {/* Image Grid with Drag and Drop Reordering */}
       {images.length > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={images} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {images.map((url, index) => (

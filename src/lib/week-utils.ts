@@ -9,7 +9,7 @@ export interface WeekInfo {
   year: number;
   week: number;
   startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
 }
 
 /**
@@ -21,7 +21,7 @@ export interface WeekInfo {
  */
 export function getWeekInfo(weeksAgo: number = 0): WeekInfo {
   const now = new Date();
-  const targetDate = new Date(now.getTime() - (weeksAgo * 7 * 24 * 60 * 60 * 1000));
+  const targetDate = new Date(now.getTime() - weeksAgo * 7 * 24 * 60 * 60 * 1000);
 
   // Get ISO week number
   const firstDayOfYear = new Date(targetDate.getFullYear(), 0, 1);

@@ -27,8 +27,8 @@ async function main() {
   if (result.stats.stored > 0) {
     console.log('\nStored recipes:');
     result.recipes
-      .filter(r => r.status === 'stored')
-      .forEach(r => console.log(`  ✓ ${r.name}`));
+      .filter((r) => r.status === 'stored')
+      .forEach((r) => console.log(`  ✓ ${r.name}`));
   }
 }
 

@@ -5,10 +5,10 @@
  */
 
 import 'dotenv/config';
-import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
-import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
+import { recipes } from '@/lib/db/schema';
 
 // Chef signature recipe ideas
 const CHEF_RECIPES = [
@@ -24,7 +24,7 @@ const CHEF_RECIPES = [
     chefSlug: 'ina-garten',
     recipes: [
       { name: 'Roast Chicken with Lemon', cuisine: 'American', difficulty: 'easy' },
-      { name: 'Barefoot Contessa\'s Chocolate Cake', cuisine: 'American', difficulty: 'medium' },
+      { name: "Barefoot Contessa's Chocolate Cake", cuisine: 'American', difficulty: 'medium' },
       { name: 'Herb-Roasted Turkey Breast', cuisine: 'American', difficulty: 'medium' },
     ],
   },
@@ -115,7 +115,11 @@ async function generateChefRecipes() {
               name: recipeData.name,
               description: `A signature ${recipeData.name} recipe in the style of ${chef.name}. This is a placeholder recipe that should be replaced with authentic content.`,
               ingredients: JSON.stringify(['Placeholder ingredient 1', 'Placeholder ingredient 2']),
-              instructions: JSON.stringify(['Step 1: Prepare ingredients', 'Step 2: Cook', 'Step 3: Serve']),
+              instructions: JSON.stringify([
+                'Step 1: Prepare ingredients',
+                'Step 2: Cook',
+                'Step 3: Serve',
+              ]),
               prep_time: 15,
               cook_time: 30,
               servings: 4,
@@ -141,7 +145,6 @@ async function generateChefRecipes() {
 
           console.log(`  ✅ Created: ${recipeData.name}`);
           totalCreated++;
-
         } catch (error) {
           console.error(`  ❌ Error creating ${recipeData.name}:`, error);
         }
@@ -161,14 +164,9 @@ async function generateChefRecipes() {
         })
         .where(eq(chefs.id, chef.id));
 
-      const [updatedChef] = await db
-        .select()
-        .from(chefs)
-        .where(eq(chefs.id, chef.id))
-        .limit(1);
+      const [updatedChef] = await db.select().from(chefs).where(eq(chefs.id, chef.id)).limit(1);
 
       console.log(`\n📊 ${chef.name} now has ${updatedChef.recipe_count} recipes`);
-
     } catch (error) {
       console.error(`\n❌ Error processing ${chefData.chefSlug}:`, error);
     }

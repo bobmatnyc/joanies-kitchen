@@ -3,10 +3,10 @@
  * Quick script to see how many recipes need amount fixes
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import * as fs from 'fs';
-import * as path from 'path';
 
 function hasAmount(ingredient: string): boolean {
   const trimmed = ingredient.trim();
@@ -15,14 +15,16 @@ function hasAmount(ingredient: string): boolean {
 
 async function checkStatus() {
   console.log('📊 Ingredient Amounts Status Report\n');
-  console.log('━'.repeat(60) + '\n');
+  console.log(`${'━'.repeat(60)}\n`);
 
   // Get all recipes
-  const allRecipes = await db.select({
-    id: recipes.id,
-    name: recipes.name,
-    ingredients: recipes.ingredients,
-  }).from(recipes);
+  const allRecipes = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      ingredients: recipes.ingredients,
+    })
+    .from(recipes);
 
   let totalRecipes = 0;
   let recipesNeedingFixes = 0;
@@ -41,7 +43,7 @@ async function checkStatus() {
       if (!Array.isArray(ingredients)) continue;
 
       totalIngredients += ingredients.length;
-      const missingAmounts = ingredients.filter(ing => !hasAmount(ing));
+      const missingAmounts = ingredients.filter((ing) => !hasAmount(ing));
       ingredientsMissingAmounts += missingAmounts.length;
 
       if (missingAmounts.length > 0) {
@@ -55,7 +57,7 @@ async function checkStatus() {
       } else {
         recipesComplete++;
       }
-    } catch (error) {
+    } catch (_error) {
       recipesWithErrors++;
     }
   }
@@ -63,12 +65,18 @@ async function checkStatus() {
   // Print summary
   console.log('📈 Overall Statistics:');
   console.log(`  Total recipes: ${totalRecipes}`);
-  console.log(`  ✅ Complete (all have amounts): ${recipesComplete} (${(recipesComplete / totalRecipes * 100).toFixed(1)}%)`);
-  console.log(`  ⚠️  Need fixing: ${recipesNeedingFixes} (${(recipesNeedingFixes / totalRecipes * 100).toFixed(1)}%)`);
+  console.log(
+    `  ✅ Complete (all have amounts): ${recipesComplete} (${((recipesComplete / totalRecipes) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `  ⚠️  Need fixing: ${recipesNeedingFixes} (${((recipesNeedingFixes / totalRecipes) * 100).toFixed(1)}%)`
+  );
   console.log(`  ✗ Parsing errors: ${recipesWithErrors}`);
   console.log();
   console.log(`  Total ingredients: ${totalIngredients}`);
-  console.log(`  Missing amounts: ${ingredientsMissingAmounts} (${(ingredientsMissingAmounts / totalIngredients * 100).toFixed(1)}%)`);
+  console.log(
+    `  Missing amounts: ${ingredientsMissingAmounts} (${((ingredientsMissingAmounts / totalIngredients) * 100).toFixed(1)}%)`
+  );
   console.log();
 
   // Check progress file
@@ -83,7 +91,7 @@ async function checkStatus() {
       console.log(`  Failed: ${progress.failed}`);
       console.log(`  Last processed ID: ${progress.lastProcessedId}`);
       console.log();
-    } catch (error) {
+    } catch (_error) {
       console.log('⚠️  Could not read progress file\n');
     }
   } else {
@@ -92,7 +100,7 @@ async function checkStatus() {
 
   // Show sample of recipes needing fixes
   if (needsFixing.length > 0) {
-    console.log('━'.repeat(60) + '\n');
+    console.log(`${'━'.repeat(60)}\n`);
     console.log('📋 Sample of Recipes Needing Fixes (first 10):\n');
 
     needsFixing.slice(0, 10).forEach((recipe, i) => {
@@ -110,19 +118,29 @@ async function checkStatus() {
 
   // Estimate time/cost
   if (recipesNeedingFixes > 0) {
-    console.log('━'.repeat(60) + '\n');
+    console.log(`${'━'.repeat(60)}\n`);
     console.log('⏱️  Estimated Processing Time/Cost:\n');
     console.log('Option 1: Batch Overnight (Free)');
-    console.log(`  Time: ${Math.ceil(recipesNeedingFixes * 0.5)} - ${Math.ceil(recipesNeedingFixes * 1)} minutes (~${(recipesNeedingFixes / 100).toFixed(1)} hours)`);
+    console.log(
+      `  Time: ${Math.ceil(recipesNeedingFixes * 0.5)} - ${Math.ceil(recipesNeedingFixes * 1)} minutes (~${(recipesNeedingFixes / 100).toFixed(1)} hours)`
+    );
     console.log(`  Cost: $0\n`);
 
     console.log('Option 2: Anthropic Direct API');
-    console.log(`  Time: ${Math.ceil(recipesNeedingFixes / 600 * 60)} - ${Math.ceil(recipesNeedingFixes / 300 * 60)} minutes`);
-    console.log(`  Cost: $${(recipesNeedingFixes * 0.0004).toFixed(2)} - $${(recipesNeedingFixes * 0.0006).toFixed(2)}\n`);
+    console.log(
+      `  Time: ${Math.ceil((recipesNeedingFixes / 600) * 60)} - ${Math.ceil((recipesNeedingFixes / 300) * 60)} minutes`
+    );
+    console.log(
+      `  Cost: $${(recipesNeedingFixes * 0.0004).toFixed(2)} - $${(recipesNeedingFixes * 0.0006).toFixed(2)}\n`
+    );
 
     console.log('Option 3: OpenRouter Paid Credits');
-    console.log(`  Time: ${Math.ceil(recipesNeedingFixes / 500 * 60)} - ${Math.ceil(recipesNeedingFixes / 300 * 60)} minutes`);
-    console.log(`  Cost: $${(recipesNeedingFixes * 0.0003).toFixed(2)} - $${(recipesNeedingFixes * 0.0005).toFixed(2)}\n`);
+    console.log(
+      `  Time: ${Math.ceil((recipesNeedingFixes / 500) * 60)} - ${Math.ceil((recipesNeedingFixes / 300) * 60)} minutes`
+    );
+    console.log(
+      `  Cost: $${(recipesNeedingFixes * 0.0003).toFixed(2)} - $${(recipesNeedingFixes * 0.0005).toFixed(2)}\n`
+    );
   }
 
   console.log('━'.repeat(60));

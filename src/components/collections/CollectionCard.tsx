@@ -1,8 +1,8 @@
 'use client';
 
+import { BookOpen, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Lock } from 'lucide-react';
 import type { Collection } from '@/lib/db/user-discovery-schema';
 
 interface CollectionCardProps {
@@ -64,9 +64,7 @@ export function CollectionCard({
         </Link>
 
         {collection.description && (
-          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-            {collection.description}
-          </p>
+          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{collection.description}</p>
         )}
 
         {/* Author Info */}
@@ -82,20 +80,13 @@ export function CollectionCard({
         {/* Stats */}
         <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
           <span>{collection.recipe_count} recipes</span>
-          <span>
-            Updated {new Date(collection.updated_at).toLocaleDateString()}
-          </span>
+          <span>Updated {new Date(collection.updated_at).toLocaleDateString()}</span>
         </div>
 
         {/* Actions */}
         {showActions && (
           <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              className="flex-1"
-            >
+            <Button variant="outline" size="sm" onClick={onEdit} className="flex-1">
               Edit
             </Button>
             <Button

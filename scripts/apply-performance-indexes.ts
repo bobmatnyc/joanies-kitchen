@@ -8,10 +8,10 @@
  *   pnpm tsx scripts/apply-performance-indexes.ts
  */
 
-import { db } from '../src/lib/db';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { sql } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
+import { db } from '../src/lib/db';
 
 async function applyIndexes() {
   console.log('🚀 Applying performance indexes to recipes table...\n');
@@ -24,8 +24,8 @@ async function applyIndexes() {
     // Split into individual statements (separated by semicolons)
     const statements = sqlContent
       .split(';')
-      .map(s => s.trim())
-      .filter(s => s && !s.startsWith('--'));
+      .map((s) => s.trim())
+      .filter((s) => s && !s.startsWith('--'));
 
     console.log(`📝 Found ${statements.length} SQL statements to execute\n`);
 
@@ -99,7 +99,6 @@ async function applyIndexes() {
     console.log('   - Run ANALYZE recipes; periodically to update query planner statistics');
     console.log('   - Monitor index usage with pg_stat_user_indexes');
     console.log('');
-
   } catch (error) {
     console.error('❌ Error applying indexes:', error);
     process.exit(1);

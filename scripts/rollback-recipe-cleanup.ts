@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Rollback Recipe Cleanup Script
  *
@@ -12,11 +13,11 @@
  *   npx tsx scripts/rollback-recipe-cleanup.ts --latest
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import fs from 'fs/promises';
-import path from 'path';
 
 interface RollbackStats {
   total: number;
@@ -43,7 +44,7 @@ async function findBackupFile(identifier: string): Promise<string | null> {
     // Find the most recent backup
     const files = await fs.readdir(tmpDir);
     const backupFiles = files
-      .filter(f => f.startsWith('recipe-backup-') && f.endsWith('.json'))
+      .filter((f) => f.startsWith('recipe-backup-') && f.endsWith('.json'))
       .sort()
       .reverse();
 
@@ -66,12 +67,12 @@ async function findBackupFile(identifier: string): Promise<string | null> {
     console.error('\nAvailable backups:');
 
     const files = await fs.readdir(tmpDir);
-    const backupFiles = files.filter(f => f.startsWith('recipe-backup-') && f.endsWith('.json'));
+    const backupFiles = files.filter((f) => f.startsWith('recipe-backup-') && f.endsWith('.json'));
 
     if (backupFiles.length === 0) {
       console.error('  (none)');
     } else {
-      backupFiles.forEach(f => {
+      backupFiles.forEach((f) => {
         const timestamp = f.replace('recipe-backup-', '').replace('.json', '');
         console.error(`  - ${timestamp}`);
       });
@@ -111,9 +112,9 @@ async function rollbackRecipes(backupPath: string) {
     console.log('⚠️  LIVE MODE: Database will be updated!');
     console.log('Starting in 5 seconds... (Ctrl+C to cancel)\n');
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
 
     // Restore each recipe
     for (const recipe of backupRecipes) {
@@ -124,11 +125,7 @@ async function rollbackRecipes(backupPath: string) {
 
       try {
         // Check if recipe exists
-        const existing = await db
-          .select()
-          .from(recipes)
-          .where(eq(recipes.id, recipe.id))
-          .limit(1);
+        const existing = await db.select().from(recipes).where(eq(recipes.id, recipe.id)).limit(1);
 
         if (existing.length === 0) {
           console.log(`  ⚠️  Recipe not found in database (may have been deleted)`);
@@ -137,7 +134,8 @@ async function rollbackRecipes(backupPath: string) {
         }
 
         // Restore recipe data
-        await db.update(recipes)
+        await db
+          .update(recipes)
           .set({
             name: recipe.name,
             description: recipe.description,
@@ -158,7 +156,6 @@ async function rollbackRecipes(backupPath: string) {
 
         console.log(`  ✅ Restored successfully`);
         stats.restored++;
-
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`  ✗ Failed to restore: ${errorMessage}`);
@@ -173,7 +170,7 @@ async function rollbackRecipes(backupPath: string) {
       console.log();
     }
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
     console.log('✅ Rollback complete!\n');
     console.log('📊 Summary:');
     console.log('========');
@@ -189,16 +186,15 @@ async function rollbackRecipes(backupPath: string) {
       });
     }
 
-    const successRate = stats.total > 0
-      ? ((stats.restored / stats.total) * 100).toFixed(1)
-      : 0;
+    const successRate = stats.total > 0 ? ((stats.restored / stats.total) * 100).toFixed(1) : 0;
 
     console.log(`\n✨ Success rate: ${successRate}%`);
 
     if (stats.restored > 0) {
-      console.log(`\n💾 Database restored with ${stats.restored.toLocaleString()} recipes from backup`);
+      console.log(
+        `\n💾 Database restored with ${stats.restored.toLocaleString()} recipes from backup`
+      );
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
@@ -221,7 +217,7 @@ const identifier = args[0];
 
 // Find and rollback
 findBackupFile(identifier)
-  .then(backupPath => {
+  .then((backupPath) => {
     if (!backupPath) {
       process.exit(1);
     }

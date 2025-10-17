@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { adminBulkDeleteRecipes, adminBulkTogglePublic } from '@/app/actions/admin';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,8 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { adminBulkTogglePublic, adminBulkDeleteRecipes } from '@/app/actions/admin';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -45,7 +45,7 @@ export function BulkActionBar({
       } else {
         toast.error(result.error || 'Failed to publish recipes');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to publish recipes');
     } finally {
       setIsProcessing(false);
@@ -64,7 +64,7 @@ export function BulkActionBar({
       } else {
         toast.error(result.error || 'Failed to unpublish recipes');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to unpublish recipes');
     } finally {
       setIsProcessing(false);
@@ -83,7 +83,7 @@ export function BulkActionBar({
       } else {
         toast.error(result.error || 'Failed to delete recipes');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete recipes');
     } finally {
       setIsProcessing(false);
@@ -100,12 +100,7 @@ export function BulkActionBar({
           </span>
 
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBulkPublish}
-              disabled={isProcessing}
-            >
+            <Button size="sm" variant="outline" onClick={handleBulkPublish} disabled={isProcessing}>
               Publish All
             </Button>
 
@@ -129,12 +124,7 @@ export function BulkActionBar({
           </div>
         </div>
 
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onClearSelection}
-          disabled={isProcessing}
-        >
+        <Button size="sm" variant="ghost" onClick={onClearSelection} disabled={isProcessing}>
           Clear Selection
         </Button>
       </div>

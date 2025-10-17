@@ -1,6 +1,6 @@
 import 'server-only';
-import { getOpenRouterClient } from './openrouter-server';
 import { MODELS } from './openrouter';
+import { getOpenRouterClient } from './openrouter-server';
 
 export interface ParsedRecipe {
   name: string;
@@ -111,7 +111,9 @@ IMPORTANT:
     return parsed;
   } catch (error) {
     console.error('Error parsing recipe with AI:', error);
-    throw new Error(`Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -148,9 +150,9 @@ Be thorough and extract all visible information.`;
           role: 'user',
           content: [
             { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: imageUrl } }
-          ]
-        }
+            { type: 'image_url', image_url: { url: imageUrl } },
+          ],
+        },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,
@@ -171,7 +173,9 @@ Be thorough and extract all visible information.`;
     return parsed;
   } catch (error) {
     console.error('Error parsing recipe from image:', error);
-    throw new Error(`Failed to parse recipe from image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to parse recipe from image: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -190,7 +194,7 @@ export async function batchParseRecipes(
       results.push(parsed);
 
       // Small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error) {
       console.error('Error parsing recipe in batch:', error);
       // Continue with next recipe even if one fails

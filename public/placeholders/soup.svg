@@ -1,0 +1,39 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="soupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF3E0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFE0B2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#soupGrad)"/>
+
+  <!-- Soup bowl icon -->
+  <g transform="translate(400, 300)">
+    <!-- Bowl -->
+    <ellipse cx="0" cy="-10" rx="85" ry="18" fill="#FF9800" opacity="0.2"/>
+    <path d="M -85 -10 Q -85 40 -55 55 Q -25 65 0 65 Q 25 65 55 55 Q 85 40 85 -10" fill="#FF9800" opacity="0.2"/>
+    <ellipse cx="0" cy="-10" rx="85" ry="18" fill="none" stroke="#FF9800" stroke-width="3"/>
+    <path d="M -85 -10 Q -85 40 -55 55 Q -25 65 0 65 Q 25 65 55 55 Q 85 40 85 -10" fill="none" stroke="#FF9800" stroke-width="3"/>
+
+    <!-- Soup content -->
+    <ellipse cx="0" cy="-10" rx="75" ry="15" fill="#FFA726" opacity="0.4"/>
+
+    <!-- Steam -->
+    <path d="M -40 -30 Q -35 -50 -40 -60" fill="none" stroke="#FF9800" stroke-width="2" opacity="0.5"/>
+    <path d="M -10 -35 Q -5 -55 -10 -65" fill="none" stroke="#FF9800" stroke-width="2" opacity="0.5"/>
+    <path d="M 20 -32 Q 25 -52 20 -62" fill="none" stroke="#FF9800" stroke-width="2" opacity="0.5"/>
+    <path d="M 50 -28 Q 55 -48 50 -58" fill="none" stroke="#FF9800" stroke-width="2" opacity="0.5"/>
+
+    <!-- Spoon -->
+    <g transform="translate(100, 20) rotate(-45)">
+      <ellipse cx="0" cy="0" rx="15" ry="20" fill="#FF9800" opacity="0.3"/>
+      <rect x="-3" y="20" width="6" height="50" rx="3" fill="#FF9800" opacity="0.3"/>
+      <ellipse cx="0" cy="0" rx="15" ry="20" fill="none" stroke="#FF9800" stroke-width="2"/>
+      <rect x="-3" y="20" width="6" height="50" rx="3" fill="none" stroke="#FF9800" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- Text -->
+  <text x="400" y="500" font-family="Arial, sans-serif" font-size="32" fill="#FF9800" text-anchor="middle" opacity="0.6">Soup</text>
+</svg>

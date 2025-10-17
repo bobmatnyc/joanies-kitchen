@@ -8,22 +8,19 @@
  */
 
 import {
+  batchSaveRecipeEmbeddings,
+  findSimilarRecipes,
+  getRecipeEmbedding,
+  getRecipesNeedingEmbedding,
+  saveRecipeEmbedding,
+} from '@/lib/db/embeddings';
+import type { Recipe } from '@/lib/db/schema';
+import {
+  buildRecipeEmbeddingText,
+  cosineSimilarity,
   generateEmbedding,
   generateRecipeEmbedding,
-  generateEmbeddingsBatch,
-  cosineSimilarity,
-  buildRecipeEmbeddingText,
 } from './embeddings';
-
-import {
-  saveRecipeEmbedding,
-  getRecipeEmbedding,
-  findSimilarRecipes,
-  getRecipesNeedingEmbedding,
-  batchSaveRecipeEmbeddings,
-} from '@/lib/db/embeddings';
-
-import { Recipe } from '@/lib/db/schema';
 
 // ============================================================================
 // EXAMPLE 1: Generate and save embedding for a single recipe
@@ -39,12 +36,7 @@ export async function embedSingleRecipe(recipe: Recipe) {
     console.log(`Vector dimensions: ${result.embedding.length}`);
 
     // Save to database
-    await saveRecipeEmbedding(
-      recipe.id,
-      result.embedding,
-      result.embeddingText,
-      result.modelName
-    );
+    await saveRecipeEmbedding(recipe.id, result.embedding, result.embeddingText, result.modelName);
 
     console.log('✓ Embedding saved to database');
 
@@ -149,7 +141,7 @@ export async function generateMissingEmbeddings() {
 
       // Add delay to avoid rate limiting
       if (i + BATCH_SIZE < recipes.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -175,10 +167,7 @@ export async function compareRecipes(recipeId1: string, recipeId2: string) {
     }
 
     // Calculate similarity
-    const similarity = cosineSimilarity(
-      embedding1.embedding,
-      embedding2.embedding
-    );
+    const similarity = cosineSimilarity(embedding1.embedding, embedding2.embedding);
 
     console.log(`Similarity between recipes: ${(similarity * 100).toFixed(1)}%`);
 
@@ -230,10 +219,7 @@ export async function semanticSearchAPIExample(request: Request) {
     const { query } = await request.json();
 
     if (!query || query.trim().length === 0) {
-      return Response.json(
-        { error: 'Search query is required' },
-        { status: 400 }
-      );
+      return Response.json({ error: 'Search query is required' }, { status: 400 });
     }
 
     const results = await searchSimilarRecipes(query, 20);
@@ -243,13 +229,9 @@ export async function semanticSearchAPIExample(request: Request) {
       results,
       count: results.length,
     });
-
   } catch (error: any) {
     console.error('Semantic search API error:', error);
-    return Response.json(
-      { error: 'Search failed', details: error.message },
-      { status: 500 }
-    );
+    return Response.json({ error: 'Search failed', details: error.message }, { status: 500 });
   }
 }
 
@@ -289,8 +271,7 @@ export async function backgroundEmbeddingJob() {
         }
 
         // Rate limiting: 1 request per second
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`Failed to embed recipe ${recipe.id}:`, error);
         failed++;
@@ -305,7 +286,6 @@ export async function backgroundEmbeddingJob() {
       failed,
       total: recipes.length,
     };
-
   } catch (error) {
     console.error('Background job failed:', error);
     return {
@@ -319,10 +299,7 @@ export async function backgroundEmbeddingJob() {
 // EXAMPLE 9: Recipe recommendation system
 // ============================================================================
 
-export async function getRecommendationsForRecipe(
-  recipeId: string,
-  limit = 5
-) {
+export async function getRecommendationsForRecipe(recipeId: string, limit = 5) {
   try {
     // Get the recipe's embedding
     const embedding = await getRecipeEmbedding(recipeId);
@@ -350,7 +327,6 @@ export async function getRecommendationsForRecipe(
       }));
 
     return recommendations;
-
   } catch (error) {
     console.error('Failed to get recommendations:', error);
     throw error;

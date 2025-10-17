@@ -1,6 +1,6 @@
-import { db } from '../src/lib/db';
+import path from 'node:path';
 import { migrate } from 'drizzle-orm/neon-http/migrator';
-import path from 'path';
+import { db } from '../src/lib/db';
 
 async function initDatabase() {
   console.log('Initializing database...');

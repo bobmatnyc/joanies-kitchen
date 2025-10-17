@@ -20,19 +20,21 @@ console.log();
 
 // BEFORE FIX: This creates Invalid Date
 console.log('❌ BEFORE FIX (Broken Code):');
-console.log('   const publishedDate = metadata.publishedDate ? new Date(metadata.publishedDate) : null;');
+console.log(
+  '   const publishedDate = metadata.publishedDate ? new Date(metadata.publishedDate) : null;'
+);
 console.log();
 
 try {
   const brokenDate = new Date(problematicRecipe.publishedDate);
   console.log('   Created Date object:', brokenDate);
   console.log('   date.getTime():', brokenDate.getTime());
-  console.log('   isNaN(date.getTime()):', isNaN(brokenDate.getTime()));
+  console.log('   isNaN(date.getTime()):', Number.isNaN(brokenDate.getTime()));
   console.log();
 
   // This is what would be attempted in the database insert
   console.log('   Attempting to insert into database...');
-  if (isNaN(brokenDate.getTime())) {
+  if (Number.isNaN(brokenDate.getTime())) {
     console.log('   💥 ERROR: Invalid time value - PostgreSQL would reject this!');
   } else {
     console.log('   ✅ Would insert:', brokenDate.toISOString());
@@ -53,16 +55,18 @@ console.log();
 function validateAndParseDate(dateString) {
   if (!dateString) return null;
 
-  if (dateString.toLowerCase() === 'approximate' ||
-      dateString.toLowerCase() === 'unknown' ||
-      dateString.toLowerCase() === 'n/a') {
+  if (
+    dateString.toLowerCase() === 'approximate' ||
+    dateString.toLowerCase() === 'unknown' ||
+    dateString.toLowerCase() === 'n/a'
+  ) {
     console.log(`   ⚠️  Warning: Invalid date string: "${dateString}" - using null`);
     return null;
   }
 
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       console.log(`   ⚠️  Warning: Invalid date string: "${dateString}" - parsed to Invalid Date`);
       return null;
     }
@@ -111,7 +115,7 @@ const testValues = [
   undefined,
 ];
 
-testValues.forEach(value => {
+testValues.forEach((value) => {
   const result = validateAndParseDate(value);
   const status = result === null ? '✅ null' : `⚠️  ${result}`;
   console.log(`   "${value || '(empty)'}" → ${status}`);

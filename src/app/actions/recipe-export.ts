@@ -1,12 +1,12 @@
 'use server';
 
+import { and, eq, inArray, or } from 'drizzle-orm';
+import { jsPDF } from 'jspdf';
+import JSZip from 'jszip';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, and, inArray, or } from 'drizzle-orm';
-import { recipeToMarkdown, generateRecipeFilename } from '@/lib/utils/markdown-formatter';
-import JSZip from 'jszip';
-import { jsPDF } from 'jspdf';
+import { generateRecipeFilename, recipeToMarkdown } from '@/lib/utils/markdown-formatter';
 
 /**
  * Export a single recipe as markdown
@@ -55,10 +55,7 @@ export async function exportRecipesAsZip(recipeIds: string[]) {
 
   // Fetch all selected recipes
   const selectedRecipes = await db.query.recipes.findMany({
-    where: and(
-      inArray(recipes.id, recipeIds),
-      eq(recipes.user_id, userId)
-    ),
+    where: and(inArray(recipes.id, recipeIds), eq(recipes.user_id, userId)),
   });
 
   if (selectedRecipes.length === 0) {
@@ -144,17 +141,23 @@ export async function exportRecipeAsPDF(recipeId: string) {
   }
 
   // Parse JSON fields
-  const ingredients = typeof recipe.ingredients === 'string'
-    ? JSON.parse(recipe.ingredients)
-    : recipe.ingredients || [];
-  const instructions = typeof recipe.instructions === 'string'
-    ? JSON.parse(recipe.instructions)
-    : recipe.instructions || [];
+  const ingredients =
+    typeof recipe.ingredients === 'string'
+      ? JSON.parse(recipe.ingredients)
+      : recipe.ingredients || [];
+  const instructions =
+    typeof recipe.instructions === 'string'
+      ? JSON.parse(recipe.instructions)
+      : recipe.instructions || [];
   const tags = recipe.tags
-    ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags)
+    ? typeof recipe.tags === 'string'
+      ? JSON.parse(recipe.tags)
+      : recipe.tags
     : [];
   const nutritionInfo = recipe.nutrition_info
-    ? (typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
+    ? typeof recipe.nutrition_info === 'string'
+      ? JSON.parse(recipe.nutrition_info)
+      : recipe.nutrition_info
     : null;
 
   // Create PDF document
@@ -244,7 +247,7 @@ export async function exportRecipeAsPDF(recipeId: string) {
 
   // Generate PDF as base64
   const pdfContent = doc.output('datauristring').split(',')[1];
-  const filename = recipe.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '.pdf';
+  const filename = `${recipe.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.pdf`;
 
   return {
     content: pdfContent,

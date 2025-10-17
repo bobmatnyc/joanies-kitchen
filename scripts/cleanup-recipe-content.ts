@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Recipe Content Cleanup Script
  *
@@ -21,12 +22,12 @@
  *   npx tsx scripts/cleanup-recipe-content.ts --sample     # Test on 10 random recipes
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
-import fs from 'fs/promises';
-import path from 'path';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 interface CleanupOptions {
   dryRun: boolean;
@@ -92,10 +93,7 @@ function createOpenRouterClient() {
 /**
  * Clean up a single recipe using LLM
  */
-async function cleanupRecipe(
-  openrouter: OpenAI,
-  recipe: any
-): Promise<CleanupResult> {
+async function cleanupRecipe(openrouter: OpenAI, recipe: any): Promise<CleanupResult> {
   // Parse current ingredients
   let ingredients: string[];
   try {
@@ -103,7 +101,7 @@ async function cleanupRecipe(
     if (!Array.isArray(ingredients)) {
       throw new Error('Ingredients is not an array');
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       recipeId: recipe.id,
       originalName: recipe.name,
@@ -121,7 +119,7 @@ async function cleanupRecipe(
   }
 
   // Count ingredients needing amounts
-  const needsAmounts = ingredients.filter(ing => !hasAmount(ing)).length;
+  const _needsAmounts = ingredients.filter((ing) => !hasAmount(ing)).length;
 
   // Build LLM prompt
   const prompt = `You are a professional recipe editor. Clean up this recipe data:
@@ -174,12 +172,13 @@ Return ONLY valid JSON (no markdown, no explanation):
         messages: [
           {
             role: 'system',
-            content: 'You are a professional recipe editor. Always respond with valid JSON only, no markdown formatting.'
+            content:
+              'You are a professional recipe editor. Always respond with valid JSON only, no markdown formatting.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.3,
         max_tokens: 3000,
@@ -196,7 +195,7 @@ Return ONLY valid JSON (no markdown, no explanation):
         if (attempt < 3) {
           const waitSeconds = attempt * 3; // Reduced from 10s to 3s for paid model
           console.log(`  ⏳ Rate limit hit, waiting ${waitSeconds}s (attempt ${attempt}/3)...`);
-          await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+          await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
           continue;
         }
       }
@@ -227,17 +226,24 @@ Return ONLY valid JSON (no markdown, no explanation):
   const result = JSON.parse(cleanContent);
 
   // Validate response structure
-  if (!result.name || !result.description || !result.ingredients || !Array.isArray(result.ingredients)) {
+  if (
+    !result.name ||
+    !result.description ||
+    !result.ingredients ||
+    !Array.isArray(result.ingredients)
+  ) {
     throw new Error('Invalid response format: missing required fields');
   }
 
   if (result.ingredients.length !== ingredients.length) {
-    console.warn(`  ⚠️  Warning: Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`);
+    console.warn(
+      `  ⚠️  Warning: Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`
+    );
   }
 
   // Count how many ingredients were fixed
   const afterAmounts = result.ingredients.filter((ing: string) => hasAmount(ing)).length;
-  const beforeAmounts = ingredients.filter(ing => hasAmount(ing)).length;
+  const beforeAmounts = ingredients.filter((ing) => hasAmount(ing)).length;
   const ingredientsFixed = afterAmounts - beforeAmounts;
 
   return {
@@ -278,7 +284,11 @@ async function saveBackup(recipes: any[], timestamp: string): Promise<string> {
 /**
  * Save cleanup log to file
  */
-async function saveLog(results: CleanupResult[], stats: ProcessingStats, timestamp: string): Promise<string> {
+async function saveLog(
+  results: CleanupResult[],
+  stats: ProcessingStats,
+  timestamp: string
+): Promise<string> {
   const tmpDir = path.join(process.cwd(), 'tmp');
   await fs.mkdir(tmpDir, { recursive: true });
 
@@ -286,7 +296,7 @@ async function saveLog(results: CleanupResult[], stats: ProcessingStats, timesta
   const logData = {
     timestamp,
     stats,
-    results: results.filter(r => r.success),
+    results: results.filter((r) => r.success),
     errors: stats.errors,
   };
 
@@ -318,7 +328,9 @@ async function processRecipes(options: CleanupOptions) {
 
   console.log('🧹 Recipe Content Cleanup Script');
   console.log('================================\n');
-  console.log(`Mode: ${options.dryRun ? 'DRY RUN (use --execute to apply changes)' : 'EXECUTE (will update database)'}`);
+  console.log(
+    `Mode: ${options.dryRun ? 'DRY RUN (use --execute to apply changes)' : 'EXECUTE (will update database)'}`
+  );
   console.log(`Model: anthropic/claude-3-haiku (PAID - no rate limits)\n`);
 
   const stats: ProcessingStats = {
@@ -361,10 +373,10 @@ async function processRecipes(options: CleanupOptions) {
     if (!options.dryRun) {
       console.log('⚠️  LIVE MODE: Changes will be saved to database!');
       console.log('Starting in 5 seconds... (Ctrl+C to cancel)\n');
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
 
     const startTime = Date.now();
     const batchSize = 10;
@@ -417,8 +429,12 @@ async function processRecipes(options: CleanupOptions) {
 
           // Show sample transformations
           const changedIngredients = result.originalIngredients
-            .map((orig, i) => ({ orig, new: result.newIngredients[i], changed: orig !== result.newIngredients[i] }))
-            .filter(item => item.changed);
+            .map((orig, i) => ({
+              orig,
+              new: result.newIngredients[i],
+              changed: orig !== result.newIngredients[i],
+            }))
+            .filter((item) => item.changed);
 
           if (changedIngredients.length > 0) {
             const sampleCount = Math.min(2, changedIngredients.length);
@@ -430,8 +446,12 @@ async function processRecipes(options: CleanupOptions) {
           }
 
           // Update database if not dry run
-          if (!options.dryRun && (result.titleChanged || result.descriptionChanged || result.ingredientsFixed > 0)) {
-            await db.update(recipes)
+          if (
+            !options.dryRun &&
+            (result.titleChanged || result.descriptionChanged || result.ingredientsFixed > 0)
+          ) {
+            await db
+              .update(recipes)
               .set({
                 name: result.newName,
                 description: result.newDescription,
@@ -442,14 +462,17 @@ async function processRecipes(options: CleanupOptions) {
 
             console.log(`  💾 Updated in database`);
             stats.recipesUpdated++;
-          } else if (result.titleChanged || result.descriptionChanged || result.ingredientsFixed > 0) {
+          } else if (
+            result.titleChanged ||
+            result.descriptionChanged ||
+            result.ingredientsFixed > 0
+          ) {
             console.log(`  ✓ Would update in database (dry run)`);
             stats.recipesUpdated++;
           } else {
             console.log(`  ⏭️  No changes needed`);
             stats.skipped++;
           }
-
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`  ✗ Error: ${errorMessage}`);
@@ -469,26 +492,32 @@ async function processRecipes(options: CleanupOptions) {
         const remaining = stats.total - stats.processed;
         const eta = formatTimeEstimate(remaining, recipesPerMinute);
 
-        console.log(`\n⏱️  Progress: ${stats.processed}/${stats.total} (${((stats.processed / stats.total) * 100).toFixed(1)}%)`);
+        console.log(
+          `\n⏱️  Progress: ${stats.processed}/${stats.total} (${((stats.processed / stats.total) * 100).toFixed(1)}%)`
+        );
         console.log(`   Rate: ${recipesPerMinute.toFixed(1)} recipes/min | ETA: ${eta}`);
         console.log('   Waiting 2 seconds...');
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
     // Save log
     const logPath = await saveLog(results, stats, timestamp);
 
-    console.log('\n' + '━'.repeat(80) + '\n');
+    console.log(`\n${'━'.repeat(80)}\n`);
     console.log('✅ Processing complete!\n');
     console.log('📊 Summary:');
     console.log('========');
     console.log(`  Total processed: ${stats.processed.toLocaleString()}`);
     console.log(`  Titles updated: ${stats.titlesUpdated.toLocaleString()}`);
     console.log(`  Descriptions improved: ${stats.descriptionsUpdated.toLocaleString()}`);
-    console.log(`  Ingredients fixed: ${stats.ingredientsFixed.toLocaleString()} (avg ${(stats.ingredientsFixed / (stats.recipesUpdated || 1)).toFixed(1)} per recipe)`);
-    console.log(`  Recipes updated: ${stats.recipesUpdated.toLocaleString()} ${options.dryRun ? '(dry run)' : ''}`);
+    console.log(
+      `  Ingredients fixed: ${stats.ingredientsFixed.toLocaleString()} (avg ${(stats.ingredientsFixed / (stats.recipesUpdated || 1)).toFixed(1)} per recipe)`
+    );
+    console.log(
+      `  Recipes updated: ${stats.recipesUpdated.toLocaleString()} ${options.dryRun ? '(dry run)' : ''}`
+    );
     console.log(`  Skipped (no changes): ${stats.skipped.toLocaleString()}`);
     console.log(`  Failed: ${stats.failed.toLocaleString()}`);
 
@@ -502,9 +531,10 @@ async function processRecipes(options: CleanupOptions) {
       }
     }
 
-    const successRate = stats.total > 0
-      ? ((stats.recipesUpdated + stats.skipped) / stats.total * 100).toFixed(1)
-      : 0;
+    const successRate =
+      stats.total > 0
+        ? (((stats.recipesUpdated + stats.skipped) / stats.total) * 100).toFixed(1)
+        : 0;
 
     console.log(`\n✨ Success rate: ${successRate}%`);
     console.log(`\n📁 Files created:`);
@@ -515,13 +545,16 @@ async function processRecipes(options: CleanupOptions) {
       console.log(`\n💡 Next steps:`);
       console.log(`   - Review the changes above`);
       console.log(`   - Run with --execute to apply changes`);
-      console.log(`   - Use rollback script if needed: npx tsx scripts/rollback-recipe-cleanup.ts ${timestamp}`);
+      console.log(
+        `   - Use rollback script if needed: npx tsx scripts/rollback-recipe-cleanup.ts ${timestamp}`
+      );
     } else {
-      console.log(`\n💾 Database updated with ${stats.recipesUpdated.toLocaleString()} improved recipes`);
+      console.log(
+        `\n💾 Database updated with ${stats.recipesUpdated.toLocaleString()} improved recipes`
+      );
       console.log(`\n⚠️  If you need to rollback:`);
       console.log(`   npx tsx scripts/rollback-recipe-cleanup.ts ${timestamp}`);
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
@@ -532,7 +565,9 @@ async function processRecipes(options: CleanupOptions) {
 const args = process.argv.slice(2);
 const options: CleanupOptions = {
   dryRun: !args.includes('--execute'),
-  limit: args.find(a => a.startsWith('--limit='))?.split('=')[1] ? parseInt(args.find(a => a.startsWith('--limit='))!.split('=')[1], 10) : undefined,
+  limit: args.find((a) => a.startsWith('--limit='))?.split('=')[1]
+    ? parseInt(args.find((a) => a.startsWith('--limit='))?.split('=')[1], 10)
+    : undefined,
   sample: args.includes('--sample'),
 };
 

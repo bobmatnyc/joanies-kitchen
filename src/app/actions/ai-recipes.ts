@@ -1,9 +1,9 @@
 'use server';
 
+import type { ModelName } from '@/lib/ai/openrouter';
 import { generateRecipe } from '@/lib/ai/recipe-generator';
-import { createRecipe } from './recipes';
-import { ModelName } from '@/lib/ai/openrouter';
 import { requireAuth } from '@/lib/auth-guard';
+import { createRecipe } from './recipes';
 
 interface DiscoverRecipeOptions {
   query?: string;
@@ -25,7 +25,8 @@ export async function discoverRecipe(options: DiscoverRecipeOptions) {
     if (!process.env.OPENROUTER_API_KEY) {
       return {
         success: false,
-        error: 'OpenRouter API key is not configured. Please add OPENROUTER_API_KEY to your environment variables.'
+        error:
+          'OpenRouter API key is not configured. Please add OPENROUTER_API_KEY to your environment variables.',
       };
     }
 
@@ -51,7 +52,7 @@ export async function discoverRecipe(options: DiscoverRecipeOptions) {
     console.error('Failed to discover recipe:', error);
     return {
       success: false,
-      error: 'Failed to generate recipe. Please try again with different parameters.'
+      error: 'Failed to generate recipe. Please try again with different parameters.',
     };
   }
 }
@@ -75,10 +76,13 @@ export async function saveDiscoveredRecipe(recipe: any) {
       tags: recipe.tags ? JSON.stringify(recipe.tags) : null,
       image_url: recipe.imageUrl || recipe.image_url || null,
       is_ai_generated: true, // Mark as AI generated
-      nutrition_info: recipe.nutritionInfo || recipe.nutrition_info ? JSON.stringify(recipe.nutritionInfo || recipe.nutrition_info) : null,
+      nutrition_info:
+        recipe.nutritionInfo || recipe.nutrition_info
+          ? JSON.stringify(recipe.nutritionInfo || recipe.nutrition_info)
+          : null,
       model_used: recipe.modelUsed || recipe.model_used || null,
       source: recipe.source || null,
-      user_id: ''  // Will be set by createRecipe
+      user_id: '', // Will be set by createRecipe
     };
 
     // Use existing createRecipe action
@@ -87,7 +91,7 @@ export async function saveDiscoveredRecipe(recipe: any) {
     console.error('Failed to save discovered recipe:', error);
     return {
       success: false,
-      error: 'Failed to save the recipe. Please try again.'
+      error: 'Failed to save the recipe. Please try again.',
     };
   }
 }

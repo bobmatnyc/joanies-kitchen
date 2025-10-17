@@ -1,11 +1,11 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { chefs, chefRecipes, type Chef, type NewChef } from '@/lib/db/chef-schema';
-import { recipes } from '@/lib/db/schema';
-import { requireAdmin } from '@/lib/admin';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/admin';
+import { db } from '@/lib/db';
+import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
+import { recipes } from '@/lib/db/schema';
 
 /**
  * Create a new chef profile
@@ -15,11 +15,14 @@ export async function createChef(data: NewChef) {
   await requireAdmin();
 
   try {
-    const chef = await db.insert(chefs).values({
-      ...data,
-      slug: data.slug.toLowerCase().replace(/\s+/g, '-'),
-      updated_at: new Date(),
-    }).returning();
+    const chef = await db
+      .insert(chefs)
+      .values({
+        ...data,
+        slug: data.slug.toLowerCase().replace(/\s+/g, '-'),
+        updated_at: new Date(),
+      })
+      .returning();
 
     revalidatePath('/discover/chefs');
     revalidatePath('/admin/chefs');
@@ -27,7 +30,10 @@ export async function createChef(data: NewChef) {
     return { success: true, chef: chef[0] };
   } catch (error) {
     console.error('Error creating chef:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create chef' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create chef',
+    };
   }
 }
 
@@ -39,7 +45,8 @@ export async function updateChef(id: string, data: Partial<NewChef>) {
   await requireAdmin();
 
   try {
-    const chef = await db.update(chefs)
+    const chef = await db
+      .update(chefs)
       .set({
         ...data,
         updated_at: new Date(),
@@ -58,7 +65,10 @@ export async function updateChef(id: string, data: Partial<NewChef>) {
     return { success: true, chef: chef[0] };
   } catch (error) {
     console.error('Error updating chef:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update chef' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update chef',
+    };
   }
 }
 
@@ -89,7 +99,10 @@ export async function deleteChef(id: string) {
     return { success: true };
   } catch (error) {
     console.error('Error deleting chef:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to delete chef' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete chef',
+    };
   }
 }
 
@@ -118,7 +131,7 @@ export async function getChefBySlug(slug: string) {
       .orderBy(desc(recipes.created_at))
       .limit(24);
 
-    const recipesList = chefRecipesData.map(cr => cr.recipe);
+    const recipesList = chefRecipesData.map((cr) => cr.recipe);
 
     return {
       success: true,
@@ -165,7 +178,7 @@ export async function getAllChefs() {
     });
 
     // Transform snake_case to camelCase for frontend
-    const transformedChefs = allChefs.map(chef => ({
+    const transformedChefs = allChefs.map((chef) => ({
       id: chef.id,
       name: chef.name,
       slug: chef.slug,
@@ -217,7 +230,8 @@ export async function updateChefRecipeCount(chefId: string) {
 
     const recipeCount = Number(count[0]?.count || 0);
 
-    await db.update(chefs)
+    await db
+      .update(chefs)
       .set({ recipe_count: recipeCount, updated_at: new Date() })
       .where(eq(chefs.id, chefId));
 
@@ -240,20 +254,21 @@ export async function linkRecipeToChef(params: {
   await requireAdmin();
 
   try {
-    const link = await db.insert(chefRecipes).values({
-      chef_id: params.chefId,
-      recipe_id: params.recipeId,
-      original_url: params.originalUrl,
-      scraped_at: params.originalUrl ? new Date() : undefined,
-    }).returning();
+    const link = await db
+      .insert(chefRecipes)
+      .values({
+        chef_id: params.chefId,
+        recipe_id: params.recipeId,
+        original_url: params.originalUrl,
+        scraped_at: params.originalUrl ? new Date() : undefined,
+      })
+      .returning();
 
     // Update chef recipe count
     await updateChefRecipeCount(params.chefId);
 
     // Update recipe to reference chef
-    await db.update(recipes)
-      .set({ chef_id: params.chefId })
-      .where(eq(recipes.id, params.recipeId));
+    await db.update(recipes).set({ chef_id: params.chefId }).where(eq(recipes.id, params.recipeId));
 
     // Get chef slug for revalidation
     const chef = await db.query.chefs.findFirst({
@@ -268,7 +283,10 @@ export async function linkRecipeToChef(params: {
     return { success: true, link: link[0] };
   } catch (error) {
     console.error('Error linking recipe to chef:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to link recipe' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to link recipe',
+    };
   }
 }
 
@@ -276,28 +294,21 @@ export async function linkRecipeToChef(params: {
  * Unlink recipe from chef
  * Admin only
  */
-export async function unlinkRecipeFromChef(params: {
-  chef_id: string;
-  recipeId: string;
-}) {
+export async function unlinkRecipeFromChef(params: { chef_id: string; recipeId: string }) {
   await requireAdmin();
 
   try {
-    await db.delete(chefRecipes)
+    await db
+      .delete(chefRecipes)
       .where(
-        and(
-          eq(chefRecipes.chef_id, params.chef_id),
-          eq(chefRecipes.recipe_id, params.recipeId)
-        )
+        and(eq(chefRecipes.chef_id, params.chef_id), eq(chefRecipes.recipe_id, params.recipeId))
       );
 
     // Update chef recipe count
     await updateChefRecipeCount(params.chef_id);
 
     // Remove chef reference from recipe
-    await db.update(recipes)
-      .set({ chef_id: null })
-      .where(eq(recipes.id, params.recipeId));
+    await db.update(recipes).set({ chef_id: null }).where(eq(recipes.id, params.recipeId));
 
     // Get chef slug for revalidation
     const chef = await db.query.chefs.findFirst({

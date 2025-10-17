@@ -9,13 +9,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { CheckCircle, ExternalLink, Eye, Flag, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { reviewFlag } from '@/app/actions/flag-recipe';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Flag, ExternalLink, Eye, CheckCircle, XCircle } from 'lucide-react';
 
 interface FlagData {
   id: string;
@@ -64,7 +64,9 @@ const STATUS_COLORS: Record<string, string> = {
 function FlagCard({ flag }: { flag: FlagData }) {
   const router = useRouter();
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<'reviewed' | 'resolved' | 'dismissed'>('reviewed');
+  const [selectedAction, setSelectedAction] = useState<'reviewed' | 'resolved' | 'dismissed'>(
+    'reviewed'
+  );
   const [reviewNotes, setReviewNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,9 +117,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 <Badge className={STATUS_COLORS[flag.status] || 'bg-gray-100 text-gray-800'}>
                   {flag.status}
                 </Badge>
-                <Badge variant="outline">
-                  {REASON_LABELS[flag.reason] || flag.reason}
-                </Badge>
+                <Badge variant="outline">{REASON_LABELS[flag.reason] || flag.reason}</Badge>
                 <span className="text-xs text-gray-500">
                   {flag.created_at
                     ? new Date(flag.created_at).toLocaleDateString('en-US', {
@@ -137,9 +137,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
         <CardContent>
           {flag.description && (
             <div className="mb-4">
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-                {flag.description}
-              </p>
+              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">{flag.description}</p>
             </div>
           )}
 
@@ -149,11 +147,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
             </div>
 
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
+              <Button variant="outline" size="sm" asChild>
                 <Link href={`/recipes/${flag.recipe_id}`}>
                   <Eye className="w-4 h-4 mr-2" />
                   View Recipe
@@ -201,9 +195,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 {new Date(flag.reviewed_at).toLocaleDateString()}
               </div>
               {flag.review_notes && (
-                <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">
-                  {flag.review_notes}
-                </p>
+                <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{flag.review_notes}</p>
               )}
             </div>
           )}
@@ -223,8 +215,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 'Mark this flag as under review while you investigate further.'}
               {selectedAction === 'resolved' &&
                 'Confirm that appropriate action has been taken to resolve this flag.'}
-              {selectedAction === 'dismissed' &&
-                'Dismiss this flag if it does not require action.'}
+              {selectedAction === 'dismissed' && 'Dismiss this flag if it does not require action.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -249,11 +240,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setReviewDialogOpen(false)}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={() => setReviewDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
             <Button
@@ -263,8 +250,8 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 selectedAction === 'resolved'
                   ? 'bg-green-600 hover:bg-green-700'
                   : selectedAction === 'dismissed'
-                  ? 'bg-gray-600 hover:bg-gray-700'
-                  : ''
+                    ? 'bg-gray-600 hover:bg-gray-700'
+                    : ''
               }
             >
               {loading ? 'Saving...' : 'Confirm'}

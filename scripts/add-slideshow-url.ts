@@ -22,17 +22,19 @@ async function main() {
   try {
     // Get the current max display_order
     const existingPhotos = await db.select().from(slideshowPhotos);
-    const maxOrder = existingPhotos.length > 0
-      ? Math.max(...existingPhotos.map(p => p.display_order))
-      : 0;
+    const maxOrder =
+      existingPhotos.length > 0 ? Math.max(...existingPhotos.map((p) => p.display_order)) : 0;
 
     // Insert the photo
-    const [photo] = await db.insert(slideshowPhotos).values({
-      image_url: url,
-      caption: caption,
-      display_order: maxOrder + 1,
-      is_active: true,
-    }).returning();
+    const [photo] = await db
+      .insert(slideshowPhotos)
+      .values({
+        image_url: url,
+        caption: caption,
+        display_order: maxOrder + 1,
+        is_active: true,
+      })
+      .returning();
 
     console.log(`✅ Added photo #${photo.display_order}`);
     console.log(`   URL: ${photo.image_url}`);
@@ -40,7 +42,6 @@ async function main() {
       console.log(`   Caption: ${photo.caption}`);
     }
     console.log(`\nTotal photos: ${existingPhotos.length + 1}`);
-
   } catch (error) {
     console.error('Error adding photo:', error);
     process.exit(1);

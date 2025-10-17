@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { GitFork } from 'lucide-react';
-import { forkRecipe } from '@/app/actions/social';
 import { useAuth } from '@clerk/nextjs';
+import { GitFork } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import { forkRecipe } from '@/app/actions/social';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 interface ForkButtonProps {
   recipeId: string;
@@ -75,11 +75,7 @@ export function ForkButton({
       aria-label="Fork this recipe"
     >
       <GitFork className={cn(iconSize)} />
-      {showCount && (
-        <span className={cn('font-medium', textSize)}>
-          {forkCount}
-        </span>
-      )}
+      {showCount && <span className={cn('font-medium', textSize)}>{forkCount}</span>}
     </Button>
   );
 }

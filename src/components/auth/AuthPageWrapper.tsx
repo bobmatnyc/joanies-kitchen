@@ -1,8 +1,8 @@
 'use client';
 
-import { ReactNode } from 'react';
-import Link from 'next/link';
 import { SignIn, SignUp, UserProfile } from '@clerk/nextjs';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 // Check if Clerk keys are configured
 const isClerkConfigured =
@@ -22,9 +22,7 @@ export function AuthPageWrapper({ children, type }: AuthPageWrapperProps) {
       <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Authentication Not Configured
-            </h2>
+            <h2 className="text-3xl font-bold tracking-tight">Authentication Not Configured</h2>
             <p className="mt-4 text-sm text-muted-foreground">
               Clerk authentication is not configured for this application.
             </p>

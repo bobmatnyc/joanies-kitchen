@@ -1,14 +1,14 @@
 'use client';
 
+import { AlertCircle, CheckCircle2, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { scrapeChefRecipes } from '@/app/actions/chef-scraping';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Download, Loader2, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 
 export function AdminScrapingPanel() {
   const [chefSlug, setChefSlug] = useState('');
@@ -34,7 +34,7 @@ export function AdminScrapingPanel() {
       const result = await scrapeChefRecipes({
         chefSlug,
         sourceUrl,
-        limit: 10
+        limit: 10,
       });
 
       clearInterval(progressInterval);
@@ -115,9 +115,7 @@ export function AdminScrapingPanel() {
           {success && (
             <Alert className="border-green-500 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                {success}
-              </AlertDescription>
+              <AlertDescription className="text-green-800">{success}</AlertDescription>
             </Alert>
           )}
 
@@ -125,9 +123,7 @@ export function AdminScrapingPanel() {
           {error && (
             <Alert className="border-red-500 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                {error}
-              </AlertDescription>
+              <AlertDescription className="text-red-800">{error}</AlertDescription>
             </Alert>
           )}
 

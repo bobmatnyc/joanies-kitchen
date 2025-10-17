@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Apply Database Migrations to Production
  *
@@ -6,11 +7,11 @@
  * using the DATABASE_URL from .env.production
  */
 
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
 
 // Load production environment variables
 dotenv.config({ path: path.join(process.cwd(), '.env.production') });

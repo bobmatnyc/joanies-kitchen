@@ -1,8 +1,8 @@
+import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
 import { getRecipe } from '@/app/actions/recipes';
 import { RecipeForm } from '@/components/recipe/RecipeForm';
-import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
-import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 
 // Force dynamic rendering since we use authentication

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { RecipeCard } from './RecipeCard';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { type Recipe } from '@/lib/db/schema';
-import { type PaginationMetadata, type RecipeFilters } from '@/app/actions/recipes';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PaginationMetadata, RecipeFilters } from '@/app/actions/recipes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { Recipe } from '@/lib/db/schema';
+import { RecipeCard } from './RecipeCard';
 
 interface RecipeInfiniteListProps {
   initialRecipes: Recipe[];
@@ -136,9 +136,7 @@ export function RecipeInfiniteList({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <AlertCircle className="w-16 h-16 text-jk-clay/40 mb-4" />
-        <h3 className="text-xl font-heading text-jk-olive mb-2">
-          {emptyMessage}
-        </h3>
+        <h3 className="text-xl font-heading text-jk-olive mb-2">{emptyMessage}</h3>
         <p className="text-jk-charcoal/60 max-w-md">
           Try adjusting your filters or search criteria to find more recipes.
         </p>
@@ -151,11 +149,7 @@ export function RecipeInfiniteList({
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {recipes.map((recipe, index) => (
-          <RecipeCard
-            key={recipe.id}
-            recipe={recipe}
-            showRank={isTop50 ? index + 1 : undefined}
-          />
+          <RecipeCard key={recipe.id} recipe={recipe} showRank={isTop50 ? index + 1 : undefined} />
         ))}
       </div>
 
@@ -173,9 +167,7 @@ export function RecipeInfiniteList({
               <span>Loading more recipes...</span>
             </div>
           ) : (
-            <div className="text-jk-clay/60">
-              Scroll for more recipes...
-            </div>
+            <div className="text-jk-clay/60">Scroll for more recipes...</div>
           )}
         </div>
       )}

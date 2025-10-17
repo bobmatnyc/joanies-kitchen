@@ -4,10 +4,10 @@
  */
 
 import 'dotenv/config';
+import { readdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { put } from '@vercel/blob';
-import { readFileSync, readdirSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 
 async function uploadSlideshowImages() {
   console.log('📸 Uploading slideshow images to Vercel Blob...\n');
@@ -18,7 +18,7 @@ async function uploadSlideshowImages() {
   }
 
   const slideshowDir = join(homedir(), 'Downloads', 'slideshow');
-  const files = readdirSync(slideshowDir).filter(f => f.endsWith('.jpg'));
+  const files = readdirSync(slideshowDir).filter((f) => f.endsWith('.jpg'));
 
   console.log(`Found ${files.length} images to upload\n`);
 
@@ -43,6 +43,7 @@ async function uploadSlideshowImages() {
       const blob = await put(blobPath, buffer, {
         access: 'public',
         contentType: 'image/jpeg',
+        addRandomSuffix: false,
       });
 
       console.log(`   ✅ Uploaded: ${blob.url.substring(0, 70)}...\n`);
@@ -50,14 +51,13 @@ async function uploadSlideshowImages() {
       results.push({
         filename,
         url: blob.url,
-        size: sizeKB
+        size: sizeKB,
       });
 
       // Rate limiting: small delay between uploads
       if (i < files.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-
     } catch (error) {
       console.error(`   ❌ Failed:`, error);
       throw error;

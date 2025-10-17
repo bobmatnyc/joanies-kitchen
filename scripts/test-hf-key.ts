@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -19,7 +19,7 @@ async function testAPIKey() {
     const response = await fetch('https://api-inference.huggingface.co/models/bert-base-uncased', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ inputs: 'test text' }),
@@ -36,14 +36,17 @@ async function testAPIKey() {
   // Test 2: Original model with feature extraction
   console.log('Test 2: sentence-transformers/all-MiniLM-L6-v2 with /pipeline/feature-extraction');
   try {
-    const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: 'test text', options: { wait_for_model: true } }),
-    });
+    const response = await fetch(
+      'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: 'test text', options: { wait_for_model: true } }),
+      }
+    );
     const data = await response.json();
     console.log(`Status: ${response.status}`);
     if (response.status === 401 || response.status === 403) {
@@ -60,14 +63,17 @@ async function testAPIKey() {
   // Test 3: Try direct model endpoint
   console.log('Test 3: sentence-transformers/all-MiniLM-L6-v2 with /models endpoint');
   try {
-    const response = await fetch('https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: 'test text' }),
-    });
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: 'test text' }),
+      }
+    );
     const data = await response.json();
     console.log(`Status: ${response.status}`);
     console.log(`Response:`, JSON.stringify(data).substring(0, 200));

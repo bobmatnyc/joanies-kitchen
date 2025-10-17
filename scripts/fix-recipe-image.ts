@@ -1,7 +1,7 @@
+import { put } from '@vercel/blob';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { put } from '@vercel/blob';
 
 // Get recipe ID from command line
 const recipeId = process.argv[2];
@@ -16,7 +16,9 @@ if (!recipeId) {
 async function getUnsplashImage(recipeName: string, cuisine: string | null): Promise<string> {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
   if (!accessKey) {
-    throw new Error('UNSPLASH_ACCESS_KEY not found in environment. Get one at https://unsplash.com/developers');
+    throw new Error(
+      'UNSPLASH_ACCESS_KEY not found in environment. Get one at https://unsplash.com/developers'
+    );
   }
 
   // Create search query from recipe name and cuisine
@@ -33,7 +35,7 @@ async function getUnsplashImage(recipeName: string, cuisine: string | null): Pro
     `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
     {
       headers: {
-        'Authorization': `Client-ID ${accessKey}`,
+        Authorization: `Client-ID ${accessKey}`,
       },
     }
   );
@@ -91,11 +93,7 @@ async function fixRecipeImage() {
     console.log(`🔍 Fetching recipe: ${recipeId}`);
 
     // Fetch the recipe
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (!recipe) {
       console.error(`❌ Recipe not found: ${recipeId}`);
@@ -110,7 +108,7 @@ async function fixRecipeImage() {
     if (recipe.images) {
       try {
         currentImages = JSON.parse(recipe.images);
-      } catch (e) {
+      } catch (_e) {
         console.warn('⚠️ Could not parse existing images JSON');
       }
     }

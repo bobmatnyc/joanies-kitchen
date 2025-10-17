@@ -5,11 +5,11 @@
  */
 
 import 'dotenv/config';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { chefRecipes } from '@/lib/db/chef-schema';
-import { eq, sql } from 'drizzle-orm';
 import { put } from '@vercel/blob';
+import { eq, sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { chefRecipes } from '@/lib/db/chef-schema';
+import { recipes } from '@/lib/db/schema';
 
 interface Recipe {
   id: string;
@@ -21,7 +21,7 @@ interface Recipe {
 
 async function generateRecipeImage(recipeName: string, cuisine: string | null): Promise<string> {
   const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-  
+
   if (!openrouterApiKey) {
     throw new Error('OPENROUTER_API_KEY not found in environment');
   }
@@ -37,7 +37,7 @@ async function generateRecipeImage(recipeName: string, cuisine: string | null): 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openrouterApiKey}`,
+        Authorization: `Bearer ${openrouterApiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002',
         'X-Title': 'Recipe Manager - Image Generation',
@@ -63,17 +63,16 @@ async function generateRecipeImage(recipeName: string, cuisine: string | null): 
     }
 
     const data = await response.json();
-    
+
     // Extract image URL from response
     const imageUrl = data.choices?.[0]?.message?.content;
-    
+
     if (!imageUrl) {
       throw new Error('No image URL in response');
     }
 
     console.log(`      ✅ Image generated successfully`);
     return imageUrl;
-
   } catch (error) {
     console.error(`      ❌ Error generating image:`, error);
     throw error;
@@ -83,7 +82,7 @@ async function generateRecipeImage(recipeName: string, cuisine: string | null): 
 async function uploadImageToBlob(imageUrl: string, recipeName: string): Promise<string> {
   try {
     console.log(`      Downloading image from DALL-E...`);
-    
+
     // Download the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
@@ -112,7 +111,6 @@ async function uploadImageToBlob(imageUrl: string, recipeName: string): Promise<
 
     console.log(`      ✅ Uploaded to Blob: ${blob.url}`);
     return blob.url;
-
   } catch (error) {
     console.error(`      ❌ Error uploading to Blob:`, error);
     throw error;
@@ -139,9 +137,7 @@ async function generateChefRecipeImages() {
     })
     .from(recipes)
     .innerJoin(chefRecipes, eq(chefRecipes.recipe_id, recipes.id))
-    .where(
-      sql`(${recipes.images} IS NULL OR ${recipes.images}::text = '[]')`
-    )
+    .where(sql`(${recipes.images} IS NULL OR ${recipes.images}::text = '[]')`)
     .limit(30); // Limit for cost control
 
   console.log(`Found ${recipesWithoutImages.length} recipes needing images\n`);
@@ -151,9 +147,11 @@ async function generateChefRecipeImages() {
 
   for (let i = 0; i < recipesWithoutImages.length; i++) {
     const { recipe } = recipesWithoutImages[i];
-    
-    console.log(`\n[${ i + 1}/${recipesWithoutImages.length}] ${recipe.name}`);
-    console.log(`   Cuisine: ${recipe.cuisine || 'N/A'} | Difficulty: ${recipe.difficulty || 'N/A'}`);
+
+    console.log(`\n[${i + 1}/${recipesWithoutImages.length}] ${recipe.name}`);
+    console.log(
+      `   Cuisine: ${recipe.cuisine || 'N/A'} | Difficulty: ${recipe.difficulty || 'N/A'}`
+    );
 
     try {
       // Step 1: Generate image with DALL-E
@@ -177,15 +175,11 @@ async function generateChefRecipeImages() {
       // Rate limiting: wait 2 seconds between requests
       if (i < recipesWithoutImages.length - 1) {
         console.log(`   ⏳ Waiting 2s before next request...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-
     } catch (error) {
       console.error(`   ❌ Failed to generate image for ${recipe.name}:`, error);
       errorCount++;
-      
-      // Continue with next recipe after error
-      continue;
     }
   }
 

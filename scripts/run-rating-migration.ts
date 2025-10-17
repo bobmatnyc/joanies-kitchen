@@ -2,10 +2,10 @@
  * Script to run the recipe rating migration
  */
 
-import { db } from '../src/lib/db';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { sql } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
+import { db } from '../src/lib/db';
 
 async function runMigration() {
   console.log('Starting recipe rating migration...');
@@ -21,30 +21,27 @@ async function runMigration() {
     // Remove comments and split by semicolons
     const cleanedSQL = migrationSQL
       .split('\n')
-      .filter(line => !line.trim().startsWith('--'))
+      .filter((line) => !line.trim().startsWith('--'))
       .join('\n');
 
     const statements = cleanedSQL
       .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
     console.log(`Executing ${statements.length} SQL statements...`);
 
     for (let i = 0; i < statements.length; i++) {
       const statement = statements[i];
       console.log(`\n[${i + 1}/${statements.length}] Executing...`);
-      console.log(statement.substring(0, 100) + '...');
+      console.log(`${statement.substring(0, 100)}...`);
 
       try {
         await db.execute(sql.raw(statement));
         console.log('✓ Success');
       } catch (error: any) {
         // Ignore "already exists" errors
-        if (
-          error.message.includes('already exists') ||
-          error.message.includes('duplicate')
-        ) {
+        if (error.message.includes('already exists') || error.message.includes('duplicate')) {
           console.log('⊘ Already exists (skipped)');
         } else {
           throw error;
@@ -91,7 +88,6 @@ async function runMigration() {
     } else {
       console.log('\n✗ recipe_ratings table NOT found');
     }
-
   } catch (error) {
     console.error('\n✗ Migration failed:', error);
     process.exit(1);

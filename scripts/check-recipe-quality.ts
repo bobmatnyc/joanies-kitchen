@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Check Recipe Quality Ratings
  *
@@ -6,9 +7,8 @@
  * and identify low-quality recipes that may need removal.
  */
 
+import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
-import { sql, lt, isNull, and } from 'drizzle-orm';
 
 async function checkQualityRatings() {
   console.log('🔍 Recipe Quality Analysis');
@@ -38,21 +38,39 @@ async function checkQualityRatings() {
     console.log('📊 Overall Statistics:');
     console.log('━'.repeat(80));
     console.log(`Total recipes: ${Number(data.total).toLocaleString()}`);
-    console.log(`Rated recipes: ${Number(data.rated).toLocaleString()} (${((Number(data.rated) / Number(data.total)) * 100).toFixed(1)}%)`);
-    console.log(`Unrated recipes: ${Number(data.unrated).toLocaleString()} (${((Number(data.unrated) / Number(data.total)) * 100).toFixed(1)}%)`);
+    console.log(
+      `Rated recipes: ${Number(data.rated).toLocaleString()} (${((Number(data.rated) / Number(data.total)) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `Unrated recipes: ${Number(data.unrated).toLocaleString()} (${((Number(data.unrated) / Number(data.total)) * 100).toFixed(1)}%)`
+    );
 
     if (Number(data.rated) > 0) {
-      console.log(`\nRating Range: ${Number(data.min_rating).toFixed(1)} - ${Number(data.max_rating).toFixed(1)}`);
+      console.log(
+        `\nRating Range: ${Number(data.min_rating).toFixed(1)} - ${Number(data.max_rating).toFixed(1)}`
+      );
       console.log(`Average Rating: ${Number(data.avg_rating).toFixed(2)}`);
 
       console.log('\n📈 Rating Distribution:');
       console.log('━'.repeat(80));
-      console.log(`0.0-0.9 (Unusable):   ${Number(data.unusable).toLocaleString().padStart(6)} recipes (${((Number(data.unusable) / Number(data.rated)) * 100).toFixed(1)}%)`);
-      console.log(`1.0-1.9 (Poor):       ${Number(data.poor).toLocaleString().padStart(6)} recipes (${((Number(data.poor) / Number(data.rated)) * 100).toFixed(1)}%)`);
-      console.log(`2.0-2.9 (Fair):       ${Number(data.fair).toLocaleString().padStart(6)} recipes (${((Number(data.fair) / Number(data.rated)) * 100).toFixed(1)}%)`);
-      console.log(`3.0-3.9 (Good):       ${Number(data.good).toLocaleString().padStart(6)} recipes (${((Number(data.good) / Number(data.rated)) * 100).toFixed(1)}%)`);
-      console.log(`4.0-4.9 (Very Good):  ${Number(data.very_good).toLocaleString().padStart(6)} recipes (${((Number(data.very_good) / Number(data.rated)) * 100).toFixed(1)}%)`);
-      console.log(`5.0 (Excellent):      ${Number(data.excellent).toLocaleString().padStart(6)} recipes (${((Number(data.excellent) / Number(data.rated)) * 100).toFixed(1)}%)`);
+      console.log(
+        `0.0-0.9 (Unusable):   ${Number(data.unusable).toLocaleString().padStart(6)} recipes (${((Number(data.unusable) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
+      console.log(
+        `1.0-1.9 (Poor):       ${Number(data.poor).toLocaleString().padStart(6)} recipes (${((Number(data.poor) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
+      console.log(
+        `2.0-2.9 (Fair):       ${Number(data.fair).toLocaleString().padStart(6)} recipes (${((Number(data.fair) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
+      console.log(
+        `3.0-3.9 (Good):       ${Number(data.good).toLocaleString().padStart(6)} recipes (${((Number(data.good) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
+      console.log(
+        `4.0-4.9 (Very Good):  ${Number(data.very_good).toLocaleString().padStart(6)} recipes (${((Number(data.very_good) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
+      console.log(
+        `5.0 (Excellent):      ${Number(data.excellent).toLocaleString().padStart(6)} recipes (${((Number(data.excellent) / Number(data.rated)) * 100).toFixed(1)}%)`
+      );
     }
 
     // Get source breakdown
@@ -79,7 +97,9 @@ async function checkQualityRatings() {
       const avgRating = row.avg_rating ? Number(row.avg_rating).toFixed(2) : 'N/A';
       const lowQuality = Number(row.low_quality);
 
-      console.log(`${source.padEnd(30)} ${count.toLocaleString().padStart(6)} recipes | Rated: ${ratedCount.toLocaleString().padStart(5)} | Avg: ${String(avgRating).padStart(4)} | Low: ${lowQuality.toLocaleString().padStart(4)}`);
+      console.log(
+        `${source.padEnd(30)} ${count.toLocaleString().padStart(6)} recipes | Rated: ${ratedCount.toLocaleString().padStart(5)} | Avg: ${String(avgRating).padStart(4)} | Low: ${lowQuality.toLocaleString().padStart(4)}`
+      );
     }
 
     // Sample low-quality recipes
@@ -117,17 +137,25 @@ async function checkQualityRatings() {
     const fairQualityTotal = Number(data.fair);
 
     if (lowQualityTotal > 0) {
-      console.log(`\n🔴 REMOVE: ${lowQualityTotal.toLocaleString()} recipes rated < 2.0 (${((lowQualityTotal / Number(data.total)) * 100).toFixed(1)}% of total)`);
+      console.log(
+        `\n🔴 REMOVE: ${lowQualityTotal.toLocaleString()} recipes rated < 2.0 (${((lowQualityTotal / Number(data.total)) * 100).toFixed(1)}% of total)`
+      );
       console.log('   These recipes have critical quality issues and should be removed.');
     }
 
     if (fairQualityTotal > 0) {
-      console.log(`\n🟡 REVIEW: ${fairQualityTotal.toLocaleString()} recipes rated 2.0-2.9 (${((fairQualityTotal / Number(data.total)) * 100).toFixed(1)}% of total)`);
-      console.log('   These recipes have significant issues and may need manual review or cleanup.');
+      console.log(
+        `\n🟡 REVIEW: ${fairQualityTotal.toLocaleString()} recipes rated 2.0-2.9 (${((fairQualityTotal / Number(data.total)) * 100).toFixed(1)}% of total)`
+      );
+      console.log(
+        '   These recipes have significant issues and may need manual review or cleanup.'
+      );
     }
 
     if (Number(data.unrated) > 0) {
-      console.log(`\n⚪ RATE: ${Number(data.unrated).toLocaleString()} recipes without ratings (${((Number(data.unrated) / Number(data.total)) * 100).toFixed(1)}% of total)`);
+      console.log(
+        `\n⚪ RATE: ${Number(data.unrated).toLocaleString()} recipes without ratings (${((Number(data.unrated) / Number(data.total)) * 100).toFixed(1)}% of total)`
+      );
       console.log('   Run quality evaluation script to rate these recipes.');
     }
 
@@ -137,7 +165,6 @@ async function checkQualityRatings() {
     console.log('2. Run: npx tsx scripts/remove-low-quality-recipes.ts --dry-run');
     console.log('3. If satisfied, run: npx tsx scripts/remove-low-quality-recipes.ts --execute');
     console.log('4. For manual review: npx tsx scripts/export-low-quality-recipes.ts');
-
   } catch (error) {
     console.error('\n❌ Error:', error);
     process.exit(1);

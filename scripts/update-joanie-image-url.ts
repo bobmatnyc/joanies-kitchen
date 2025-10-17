@@ -1,14 +1,16 @@
 #!/usr/bin/env tsx
+
 /**
  * Update Joanie's image URL to Blob URL
  */
 
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 async function updateJoanieImage() {
-  const blobUrl = 'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/chefs/joanie-portrait.png';
+  const blobUrl =
+    'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/chefs/joanie-portrait.png';
 
   const [updatedChef] = await db
     .update(chefs)

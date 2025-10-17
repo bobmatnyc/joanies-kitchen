@@ -1,21 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { useState } from 'react';
+import { RecipeImageFlag } from '@/components/admin/RecipeImageFlag';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ImageCarouselProps {
   images: string[];
   title?: string;
   className?: string;
+  recipeId?: string;
+  isFlagged?: boolean | null;
+  isAdmin?: boolean;
 }
 
-export function ImageCarousel({ images, title, className = '' }: ImageCarouselProps) {
+export function ImageCarousel({
+  images,
+  title,
+  className = '',
+  recipeId,
+  isFlagged,
+  isAdmin = false,
+}: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -24,15 +30,11 @@ export function ImageCarousel({ images, title, className = '' }: ImageCarouselPr
   }
 
   const goToPrevious = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? images.length - 1 : prevIndex - 1
-    );
+    setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
   };
 
   const goToNext = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === images.length - 1 ? 0 : prevIndex + 1
-    );
+    setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
   };
 
   const goToSlide = (index: number) => {
@@ -53,6 +55,11 @@ export function ImageCarousel({ images, title, className = '' }: ImageCarouselPr
             target.src = '/api/placeholder/800/600';
           }}
         />
+
+        {/* Admin Image Flag Button */}
+        {recipeId && isAdmin && (
+          <RecipeImageFlag recipeId={recipeId} isFlagged={isFlagged || false} isAdmin={isAdmin} />
+        )}
 
         {/* Navigation Arrows */}
         {images.length > 1 && (
@@ -113,9 +120,7 @@ export function ImageCarousel({ images, title, className = '' }: ImageCarouselPr
                   target.src = '/api/placeholder/80/80';
                 }}
               />
-              {index === currentIndex && (
-                <div className="absolute inset-0 bg-primary/10" />
-              )}
+              {index === currentIndex && <div className="absolute inset-0 bg-primary/10" />}
             </button>
           ))}
         </div>
@@ -247,9 +252,7 @@ export function ImageGrid({ images, maxImages = 4 }: { images: string[]; maxImag
           />
           {index === displayImages.length - 1 && remainingCount > 0 && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <span className="text-white text-2xl font-semibold">
-                +{remainingCount}
-              </span>
+              <span className="text-white text-2xl font-semibold">+{remainingCount}</span>
             </div>
           )}
         </div>

@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Upload, Trash2, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
-import {
-  getAllBackgrounds,
-  createBackground,
-  updateBackground,
-  deleteBackground,
-  reorderBackground,
-} from '@/app/actions/hero-backgrounds';
-import type { HeroBackground } from '@/lib/db/schema';
+import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import {
+  createBackground,
+  deleteBackground,
+  getAllBackgrounds,
+  reorderBackground,
+  updateBackground,
+} from '@/app/actions/hero-backgrounds';
+import { Button } from '@/components/ui/button';
+import type { HeroBackground } from '@/lib/db/schema';
 
 export function HeroBackgroundManager() {
   const [backgrounds, setBackgrounds] = useState<HeroBackground[]>([]);
@@ -21,7 +21,7 @@ export function HeroBackgroundManager() {
 
   useEffect(() => {
     loadBackgrounds();
-  }, []);
+  }, [loadBackgrounds]);
 
   async function loadBackgrounds() {
     setIsLoading(true);
@@ -61,7 +61,7 @@ export function HeroBackgroundManager() {
       if (result.success) {
         await loadBackgrounds();
       } else {
-        alert('Failed to create background: ' + result.error);
+        alert(`Failed to create background: ${result.error}`);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -78,7 +78,7 @@ export function HeroBackgroundManager() {
     if (result.success) {
       await loadBackgrounds();
     } else {
-      alert('Failed to toggle active: ' + result.error);
+      alert(`Failed to toggle active: ${result.error}`);
     }
   }
 
@@ -91,7 +91,7 @@ export function HeroBackgroundManager() {
     }
   }
 
-  async function handleDelete(id: string, imageUrl: string) {
+  async function handleDelete(id: string, _imageUrl: string) {
     if (!confirm('Are you sure you want to delete this background image?')) {
       return;
     }
@@ -100,7 +100,7 @@ export function HeroBackgroundManager() {
     if (result.success) {
       await loadBackgrounds();
     } else {
-      alert('Failed to delete: ' + result.error);
+      alert(`Failed to delete: ${result.error}`);
     }
   }
 
@@ -147,10 +147,7 @@ export function HeroBackgroundManager() {
           </div>
         ) : (
           backgrounds.map((bg, index) => (
-            <div
-              key={bg.id}
-              className="flex items-center gap-4 p-4 border rounded-lg bg-white"
-            >
+            <div key={bg.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white">
               {/* Preview Thumbnail */}
               <div className="relative w-32 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
                 <Image
@@ -167,15 +164,11 @@ export function HeroBackgroundManager() {
                 <div className="text-sm font-medium text-gray-900 truncate">
                   Order: {bg.display_order}
                 </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {bg.image_url}
-                </div>
+                <div className="text-xs text-gray-500 truncate">{bg.image_url}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      bg.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                      bg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}
                   >
                     {bg.is_active ? 'Active' : 'Inactive'}
@@ -212,11 +205,7 @@ export function HeroBackgroundManager() {
                   onClick={() => handleToggleActive(bg.id, bg.is_active)}
                   title={bg.is_active ? 'Deactivate' : 'Activate'}
                 >
-                  {bg.is_active ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
+                  {bg.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </Button>
 
                 {/* Delete */}

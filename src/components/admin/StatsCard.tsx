@@ -20,16 +20,10 @@ export function StatsCard({ title, value, description, icon, trend }: StatsCardP
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-        {description && (
-          <p className="text-xs text-gray-600 mt-1">{description}</p>
-        )}
+        {description && <p className="text-xs text-gray-600 mt-1">{description}</p>}
         {trend && (
           <div className="flex items-center mt-2 text-xs">
-            <span
-              className={`font-medium ${
-                trend.isPositive ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
+            <span className={`font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
               {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
             </span>
             <span className="text-gray-500 ml-1">from last month</span>

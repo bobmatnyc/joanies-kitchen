@@ -6,8 +6,8 @@
  * Usage: tsx scripts/run-migration-split.ts
  */
 
+import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
-import path from 'path';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -51,35 +51,35 @@ async function runMigration() {
     try {
       await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS search_query TEXT;`;
       log('  ✓ Added search_query', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('  ⚠️  search_query already exists', 'yellow');
     }
 
     try {
       await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS discovery_date TIMESTAMP WITH TIME ZONE;`;
       log('  ✓ Added discovery_date', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('  ⚠️  discovery_date already exists', 'yellow');
     }
 
     try {
       await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS confidence_score DECIMAL(3, 2);`;
       log('  ✓ Added confidence_score', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('  ⚠️  confidence_score already exists', 'yellow');
     }
 
     try {
       await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS validation_model TEXT;`;
       log('  ✓ Added validation_model', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('  ⚠️  validation_model already exists', 'yellow');
     }
 
     try {
       await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS embedding_model TEXT;`;
       log('  ✓ Added embedding_model', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('  ⚠️  embedding_model already exists', 'yellow');
     }
 
@@ -108,7 +108,7 @@ async function runMigration() {
         USING hnsw (embedding vector_cosine_ops);
       `;
       log('✓ HNSW index created for vector similarity search', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('⚠️  Index may already exist', 'yellow');
     }
 
@@ -120,7 +120,7 @@ async function runMigration() {
         ON recipe_embeddings(recipe_id);
       `;
       log('✓ recipe_id index created', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('⚠️  Index may already exist', 'yellow');
     }
 
@@ -148,7 +148,7 @@ async function runMigration() {
         EXECUTE FUNCTION update_recipe_embeddings_updated_at();
       `;
       log('✓ Trigger created for automatic timestamp updates', 'green');
-    } catch (e) {
+    } catch (_e) {
       log('⚠️  Trigger setup may have issues', 'yellow');
     }
 
@@ -186,7 +186,6 @@ async function runMigration() {
 
     log('\n✅ Migration completed successfully!', 'green');
     log('🎉 pgvector is ready for semantic recipe search', 'green');
-
   } catch (error) {
     log('\n❌ Migration failed!', 'red');
     const err = error as Error;
@@ -197,7 +196,7 @@ async function runMigration() {
 }
 
 // Run migration
-runMigration().catch(error => {
+runMigration().catch((error) => {
   log(`\n💥 Unexpected error: ${error.message}`, 'red');
   process.exit(1);
 });

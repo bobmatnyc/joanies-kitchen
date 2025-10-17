@@ -7,11 +7,11 @@
  * Run: node scripts/verify-auth-gates.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 console.log('🔒 Authentication Gates Verification\n');
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 
 const results = {
   passed: [],
@@ -89,11 +89,15 @@ checks.forEach((check) => {
     // Check for function usage
     if (check.functions) {
       check.functions.forEach((funcName) => {
-        const funcPattern = new RegExp(`(export\\s+async\\s+function\\s+${funcName}|const\\s+${funcName}\\s*=)`);
+        const funcPattern = new RegExp(
+          `(export\\s+async\\s+function\\s+${funcName}|const\\s+${funcName}\\s*=)`
+        );
         if (!funcPattern.test(content)) {
           results.warnings.push(`⚠️  ${check.description}: Function ${funcName} not found`);
         } else if (!content.includes('requireAuth')) {
-          results.failed.push(`❌ ${check.description}: Function ${funcName} missing requireAuth()`);
+          results.failed.push(
+            `❌ ${check.description}: Function ${funcName} missing requireAuth()`
+          );
         }
       });
     }
@@ -145,7 +149,7 @@ if (results.failed.length > 0) {
 }
 
 // Summary
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 console.log(`\n📊 Summary:`);
 console.log(`   ✅ Passed: ${results.passed.length}`);
 console.log(`   ⚠️  Warnings: ${results.warnings.length}`);
@@ -153,5 +157,7 @@ console.log(`   ❌ Failed: ${results.failed.length}`);
 
 // Exit code
 const exitCode = results.failed.length > 0 ? 1 : 0;
-console.log(`\n${exitCode === 0 ? '✅ All authentication gates verified!' : '❌ Some checks failed'}\n`);
+console.log(
+  `\n${exitCode === 0 ? '✅ All authentication gates verified!' : '❌ Some checks failed'}\n`
+);
 process.exit(exitCode);

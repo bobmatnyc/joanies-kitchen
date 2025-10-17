@@ -1,0 +1,37 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="pastaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF9C4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFF59D;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#pastaGrad)"/>
+
+  <!-- Pasta plate icon -->
+  <g transform="translate(400, 300)">
+    <!-- Plate -->
+    <ellipse cx="0" cy="20" rx="95" ry="25" fill="#F57C00" opacity="0.2"/>
+    <ellipse cx="0" cy="20" rx="95" ry="25" fill="none" stroke="#F57C00" stroke-width="3"/>
+    <ellipse cx="0" cy="20" rx="75" ry="20" fill="none" stroke="#F57C00" stroke-width="2" opacity="0.5"/>
+
+    <!-- Pasta strands -->
+    <path d="M -50 -20 Q -40 -10 -30 -15 Q -20 -20 -10 -10 Q 0 0 10 -8 Q 20 -15 30 -8 Q 40 0 50 -10" fill="none" stroke="#FBC02D" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+    <path d="M -55 -10 Q -45 0 -35 -5 Q -25 -10 -15 0 Q -5 10 5 2 Q 15 -5 25 2 Q 35 10 45 0" fill="none" stroke="#FDD835" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+    <path d="M -45 5 Q -35 15 -25 10 Q -15 5 -5 15 Q 5 25 15 17 Q 25 10 35 17 Q 45 25 55 15" fill="none" stroke="#F9A825" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Fork -->
+    <g transform="translate(-110, -10) rotate(-20)">
+      <rect x="-3" y="-40" width="6" height="70" rx="3" fill="#F57C00"/>
+      <line x1="-8" y1="-40" x2="-8" y2="-20" stroke="#F57C00" stroke-width="2"/>
+      <line x1="0" y1="-40" x2="0" y2="-20" stroke="#F57C00" stroke-width="2"/>
+      <line x1="8" y1="-40" x2="8" y2="-20" stroke="#F57C00" stroke-width="2"/>
+
+      <!-- Pasta on fork -->
+      <ellipse cx="0" cy="-25" rx="12" ry="8" fill="#FDD835" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- Text -->
+  <text x="400" y="500" font-family="Arial, sans-serif" font-size="32" fill="#F57C00" text-anchor="middle" opacity="0.6">Pasta</text>
+</svg>

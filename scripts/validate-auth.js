@@ -23,7 +23,7 @@ function colorize(text, color) {
 }
 
 function printSection(title) {
-  console.log('\n' + colorize('='.repeat(60), 'cyan'));
+  console.log(`\n${colorize('='.repeat(60), 'cyan')}`);
   console.log(colorize(`   ${title}`, 'cyan'));
   console.log(colorize('='.repeat(60), 'cyan'));
 }
@@ -67,40 +67,48 @@ function validateAuth() {
   printSection('Authentication Configuration Validator');
 
   // Basic environment check
-  console.log('\n' + colorize('📋 Environment:', 'blue'));
+  console.log(`\n${colorize('📋 Environment:', 'blue')}`);
   console.log(`  NODE_ENV: ${colorize(process.env.NODE_ENV || 'development', 'cyan')}`);
   console.log(`  Current Directory: ${process.cwd()}`);
 
   // Check for .env.local file
-  const fs = require('fs');
-  const path = require('path');
+  const fs = require('node:fs');
+  const path = require('node:path');
   const envPath = path.join(process.cwd(), '.env.local');
   const hasEnvFile = fs.existsSync(envPath);
 
-  console.log(`  .env.local: ${hasEnvFile ? colorize('✓ Found', 'green') : colorize('✗ Not Found', 'red')}`);
+  console.log(
+    `  .env.local: ${hasEnvFile ? colorize('✓ Found', 'green') : colorize('✗ Not Found', 'red')}`
+  );
 
   if (!hasEnvFile) {
-    console.log('\n' + colorize('⚠️  Warning: .env.local file not found!', 'yellow'));
+    console.log(`\n${colorize('⚠️  Warning: .env.local file not found!', 'yellow')}`);
     console.log('  Create .env.local from .env.example:');
-    console.log('  ' + colorize('cp .env.example .env.local', 'cyan'));
+    console.log(`  ${colorize('cp .env.example .env.local', 'cyan')}`);
     return;
   }
 
   // Application Configuration
-  console.log('\n' + colorize('🌐 Application Configuration:', 'blue'));
-  const hasAppUrl = checkEnvVar('NEXT_PUBLIC_APP_URL', false);
+  console.log(`\n${colorize('🌐 Application Configuration:', 'blue')}`);
+  const _hasAppUrl = checkEnvVar('NEXT_PUBLIC_APP_URL', false);
 
   // Database Configuration
-  console.log('\n' + colorize('🗄️  Database Configuration:', 'blue'));
+  console.log(`\n${colorize('🗄️  Database Configuration:', 'blue')}`);
   const hasDb = checkEnvVar('DATABASE_URL', true, (v) => v.includes('postgresql://'));
   checkEnvVar('DATABASE_URL_UNPOOLED', false);
 
   // Clerk Authentication
-  console.log('\n' + colorize('🔐 Clerk Authentication:', 'blue'));
-  const hasPublishableKey = checkEnvVar('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', false,
-    (v) => v.startsWith('pk_test_') || v.startsWith('pk_live_'));
-  const hasSecretKey = checkEnvVar('CLERK_SECRET_KEY', false,
-    (v) => v.startsWith('sk_test_') || v.startsWith('sk_live_'));
+  console.log(`\n${colorize('🔐 Clerk Authentication:', 'blue')}`);
+  const hasPublishableKey = checkEnvVar(
+    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    false,
+    (v) => v.startsWith('pk_test_') || v.startsWith('pk_live_')
+  );
+  const hasSecretKey = checkEnvVar(
+    'CLERK_SECRET_KEY',
+    false,
+    (v) => v.startsWith('sk_test_') || v.startsWith('sk_live_')
+  );
 
   checkEnvVar('NEXT_PUBLIC_CLERK_SIGN_IN_URL', false);
   checkEnvVar('NEXT_PUBLIC_CLERK_SIGN_UP_URL', false);
@@ -109,12 +117,13 @@ function validateAuth() {
 
   // Development Auth Flag
   const enableDevAuth = process.env.ENABLE_DEV_AUTH === 'true';
-  console.log(`\n  ENABLE_DEV_AUTH: ${enableDevAuth ? colorize('✓ Enabled', 'green') : colorize('○ Disabled', 'yellow')}`);
+  console.log(
+    `\n  ENABLE_DEV_AUTH: ${enableDevAuth ? colorize('✓ Enabled', 'green') : colorize('○ Disabled', 'yellow')}`
+  );
 
   // AI Features
-  console.log('\n' + colorize('🤖 AI Features:', 'blue'));
-  const hasAI = checkEnvVar('OPENROUTER_API_KEY', false,
-    (v) => v.startsWith('sk-or-'));
+  console.log(`\n${colorize('🤖 AI Features:', 'blue')}`);
+  const hasAI = checkEnvVar('OPENROUTER_API_KEY', false, (v) => v.startsWith('sk-or-'));
 
   // Determine authentication status
   const isClerkConfigured = hasPublishableKey && hasSecretKey;
@@ -151,14 +160,14 @@ function validateAuth() {
 
   // Localhost testing instructions
   if (authEnabled && !isProduction) {
-    console.log('\n' + colorize('🚀 Ready for localhost testing!', 'green'));
-    console.log('\n' + colorize('To test authentication:', 'blue'));
-    console.log('  1. Run: ' + colorize('npm run dev', 'cyan'));
-    console.log('  2. Visit: ' + colorize('http://localhost:3004', 'cyan'));
+    console.log(`\n${colorize('🚀 Ready for localhost testing!', 'green')}`);
+    console.log(`\n${colorize('To test authentication:', 'blue')}`);
+    console.log(`  1. Run: ${colorize('npm run dev', 'cyan')}`);
+    console.log(`  2. Visit: ${colorize('http://localhost:3004', 'cyan')}`);
     console.log('  3. Click "Sign In" to test authentication');
   } else if (isClerkConfigured && !enableDevAuth) {
-    console.log('\n' + colorize('💡 To enable authentication on localhost:', 'blue'));
-    console.log('  1. Add to .env.local: ' + colorize('ENABLE_DEV_AUTH=true', 'cyan'));
+    console.log(`\n${colorize('💡 To enable authentication on localhost:', 'blue')}`);
+    console.log(`  1. Add to .env.local: ${colorize('ENABLE_DEV_AUTH=true', 'cyan')}`);
     console.log('  2. Restart your development server');
   }
 
@@ -171,17 +180,17 @@ function validateAuth() {
     const secEnv = secKey.includes('sk_test_') ? 'test' : 'live';
 
     if (pubEnv !== secEnv) {
-      console.log('\n' + colorize('⚠️  Warning: Key environment mismatch!', 'yellow'));
+      console.log(`\n${colorize('⚠️  Warning: Key environment mismatch!', 'yellow')}`);
       console.log(`   Publishable key is ${pubEnv}, Secret key is ${secEnv}`);
     }
 
     if (isProduction && pubEnv === 'test') {
-      console.log('\n' + colorize('⚠️  Warning: Using test keys in production!', 'yellow'));
+      console.log(`\n${colorize('⚠️  Warning: Using test keys in production!', 'yellow')}`);
       console.log('   Switch to live keys for production deployment');
     }
   }
 
-  console.log('\n' + colorize('='.repeat(60), 'cyan') + '\n');
+  console.log(`\n${colorize('='.repeat(60), 'cyan')}\n`);
 }
 
 // Run validation

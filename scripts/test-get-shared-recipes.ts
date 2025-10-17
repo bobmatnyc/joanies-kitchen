@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 async function testGetSharedRecipes() {
   console.log('\n=== Testing getSharedRecipes() function ===\n');
@@ -29,7 +29,7 @@ async function testGetSharedRecipes() {
 
     // Test query without error
     console.log('\n3. Testing complete schema access...');
-    const testQuery = await db
+    const _testQuery = await db
       .select({
         id: recipes.id,
         name: recipes.name,
@@ -49,7 +49,6 @@ async function testGetSharedRecipes() {
     console.log('- is_system_recipe column: EXISTS');
     console.log('- images column: EXISTS');
     console.log('\ngetSharedRecipes() should now work without errors!');
-
   } catch (error) {
     console.error('\n✗ Error testing shared recipes:', error);
     throw error;

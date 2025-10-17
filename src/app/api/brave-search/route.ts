@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
 // Type definitions for request/response
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     try {
       body = await request.json();
-    } catch (parseError) {
+    } catch (_parseError) {
       return NextResponse.json<BraveSearchError>(
         { error: 'Invalid request body', details: 'Request body must be valid JSON' },
         { status: 400 }
@@ -92,12 +92,14 @@ export async function POST(request: NextRequest) {
     searchUrl.searchParams.set('q', query.trim());
     searchUrl.searchParams.set('count', count.toString());
 
-    console.log(`Brave Search API request: userId=${userId}, query="${query.substring(0, 50)}...", count=${count}`);
+    console.log(
+      `Brave Search API request: userId=${userId}, query="${query.substring(0, 50)}...", count=${count}`
+    );
 
     const response = await fetch(searchUrl.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Accept-Encoding': 'gzip',
         'X-Subscription-Token': apiKey,
       },
@@ -162,20 +164,21 @@ export async function POST(request: NextRequest) {
     const data: BraveSearchResponse = await response.json();
 
     // Log successful search
-    console.log(`Brave Search API: Success for userId=${userId}, results=${data.web?.results?.length || 0}`);
+    console.log(
+      `Brave Search API: Success for userId=${userId}, results=${data.web?.results?.length || 0}`
+    );
 
     return NextResponse.json(data, { status: 200 });
-
   } catch (error) {
     // Handle unexpected errors
     console.error('Brave Search API: Unexpected error:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const _errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
     return NextResponse.json<BraveSearchError>(
       {
         error: 'Search failed',
-        details: 'An unexpected error occurred while processing your request'
+        details: 'An unexpected error occurred while processing your request',
       },
       { status: 500 }
     );

@@ -41,7 +41,7 @@ export function parseMarkdownRecipe(markdownContent: string): ParsedRecipe {
   // Parse content for ingredients and instructions
   const lines = content.split('\n');
   let currentSection = '';
-  let instructionNumber = 0;
+  let _instructionNumber = 0;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -53,7 +53,7 @@ export function parseMarkdownRecipe(markdownContent: string): ParsedRecipe {
     }
     if (trimmedLine.match(/^#{1,2}\s+(Instructions?|Directions?|Steps?)/i)) {
       currentSection = 'instructions';
-      instructionNumber = 0;
+      _instructionNumber = 0;
       continue;
     }
     if (trimmedLine.match(/^#{1,2}\s/)) {
@@ -81,7 +81,7 @@ export function parseMarkdownRecipe(markdownContent: string): ParsedRecipe {
       // Handle continuation of previous instruction (non-empty lines without markers)
       else if (trimmedLine && recipe.instructions.length > 0) {
         // Append to the last instruction
-        recipe.instructions[recipe.instructions.length - 1] += ' ' + trimmedLine;
+        recipe.instructions[recipe.instructions.length - 1] += ` ${trimmedLine}`;
       }
     }
   }

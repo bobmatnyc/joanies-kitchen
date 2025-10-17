@@ -11,16 +11,16 @@
  *   tsx scripts/test-recipe-slugs.ts
  */
 
+import { eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { sql, isNull, eq } from 'drizzle-orm';
 import {
   generateSlugFromName,
   generateUniqueSlug,
-  validateSlug,
   isReservedSlug,
-  slugExists,
   RESERVED_SLUGS,
+  slugExists,
+  validateSlug,
 } from '@/lib/utils/slug';
 
 interface TestResult {
@@ -62,7 +62,9 @@ async function testSlugGeneration(): Promise<boolean> {
   for (const testCase of testCases) {
     const result = generateSlugFromName(testCase.input);
     if (result !== testCase.expected) {
-      console.error(`  ✗ Failed: "${testCase.input}" -> "${result}" (expected "${testCase.expected}")`);
+      console.error(
+        `  ✗ Failed: "${testCase.input}" -> "${result}" (expected "${testCase.expected}")`
+      );
       return false;
     }
   }
@@ -76,12 +78,12 @@ async function testSlugGeneration(): Promise<boolean> {
 async function testSlugValidation(): Promise<boolean> {
   const validSlugs = ['chocolate-chip-cookies', 'pasta-carbonara', 'easy-breakfast'];
   const invalidSlugs = [
-    'Chocolate Chip Cookies',  // Contains uppercase
-    'pasta--carbonara',        // Double hyphen
-    '-chocolate-chip',         // Starts with hyphen
-    'chocolate-chip-',         // Ends with hyphen
-    'new',                     // Reserved slug
-    'admin',                   // Reserved slug
+    'Chocolate Chip Cookies', // Contains uppercase
+    'pasta--carbonara', // Double hyphen
+    '-chocolate-chip', // Starts with hyphen
+    'chocolate-chip-', // Ends with hyphen
+    'new', // Reserved slug
+    'admin', // Reserved slug
   ];
 
   for (const slug of validSlugs) {
@@ -196,7 +198,7 @@ async function testSlugFormatConsistency(): Promise<boolean> {
  */
 async function testUniqueSlugGeneration(): Promise<boolean> {
   // Test that generateUniqueSlug handles collisions
-  const testName = "Chocolate Chip Cookies";
+  const testName = 'Chocolate Chip Cookies';
   const slug1 = await generateUniqueSlug(testName);
   const validation = validateSlug(slug1);
 
@@ -216,11 +218,7 @@ async function testQueryPerformance(): Promise<boolean> {
 
   // Test slug lookup performance (should use index)
   const startTime = Date.now();
-  await db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.slug, testSlug))
-    .limit(1);
+  await db.select().from(recipes).where(eq(recipes.slug, testSlug)).limit(1);
   const duration = Date.now() - startTime;
 
   // Should be fast with index (<100ms even on large dataset)
@@ -251,19 +249,23 @@ async function testNoReservedSlugsInUse(): Promise<boolean> {
  * Test 10: Statistics check
  */
 async function testStatistics(): Promise<boolean> {
-  const stats = await db.select({
-    total: sql<number>`count(*)::int`,
-    withSlugs: sql<number>`count(${recipes.slug})::int`,
-    withoutSlugs: sql<number>`sum(case when ${recipes.slug} is null then 1 else 0 end)::int`,
-    uniqueSlugs: sql<number>`count(distinct ${recipes.slug})::int`,
-    publicRecipes: sql<number>`sum(case when ${recipes.is_public} then 1 else 0 end)::int`,
-  }).from(recipes);
+  const stats = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      withSlugs: sql<number>`count(${recipes.slug})::int`,
+      withoutSlugs: sql<number>`sum(case when ${recipes.slug} is null then 1 else 0 end)::int`,
+      uniqueSlugs: sql<number>`count(distinct ${recipes.slug})::int`,
+      publicRecipes: sql<number>`sum(case when ${recipes.is_public} then 1 else 0 end)::int`,
+    })
+    .from(recipes);
 
   const result = stats[0];
 
   console.log('\n  Statistics:');
   console.log(`    Total Recipes: ${result.total}`);
-  console.log(`    With Slugs: ${result.withSlugs} (${Math.round((result.withSlugs / result.total) * 100)}%)`);
+  console.log(
+    `    With Slugs: ${result.withSlugs} (${Math.round((result.withSlugs / result.total) * 100)}%)`
+  );
   console.log(`    Without Slugs: ${result.withoutSlugs}`);
   console.log(`    Unique Slugs: ${result.uniqueSlugs}`);
   console.log(`    Public Recipes: ${result.publicRecipes}`);
@@ -297,10 +299,10 @@ async function main() {
   console.log('║                     TEST RESULTS                               ║');
   console.log('╚════════════════════════════════════════════════════════════════╝\n');
 
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
 
-  results.forEach(result => {
+  results.forEach((result) => {
     const status = result.passed ? '✓' : '✗';
     const duration = result.duration ? ` (${result.duration}ms)` : '';
     console.log(`${status} ${result.name}${duration}`);
@@ -309,9 +311,9 @@ async function main() {
     }
   });
 
-  console.log('\n' + '─'.repeat(66));
+  console.log(`\n${'─'.repeat(66)}`);
   console.log(`Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`);
-  console.log('─'.repeat(66) + '\n');
+  console.log(`${'─'.repeat(66)}\n`);
 
   if (failed > 0) {
     console.log('❌ TESTS FAILED\n');
@@ -323,7 +325,7 @@ async function main() {
 }
 
 // Run tests
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

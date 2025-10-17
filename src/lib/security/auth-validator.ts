@@ -111,14 +111,9 @@ export class AuthSecurityValidator {
    */
   private validateRouteProtection(): void {
     // Check for unprotected sensitive routes
-    const sensitiveRoutes = [
-      '/admin',
-      '/api/admin',
-      '/api/users',
-      '/settings',
-    ];
+    const sensitiveRoutes = ['/admin', '/api/admin', '/api/users', '/settings'];
 
-    sensitiveRoutes.forEach(route => {
+    sensitiveRoutes.forEach((route) => {
       if (!this.isRouteProtected(route)) {
         this.addIssue({
           severity: 'high',
@@ -199,13 +194,16 @@ export class AuthSecurityValidator {
    * Helper to check if a route is protected
    */
   private isRouteProtected(route: string): boolean {
-    return authConfig.routes.protected.some(pattern => {
-      const regex = new RegExp(`^${pattern.replace(/\(\.\*\)/g, '.*')}$`);
-      return regex.test(route);
-    }) || authConfig.routes.apiProtected.some(pattern => {
-      const regex = new RegExp(`^${pattern.replace(/\(\.\*\)/g, '.*')}$`);
-      return regex.test(route);
-    });
+    return (
+      authConfig.routes.protected.some((pattern) => {
+        const regex = new RegExp(`^${pattern.replace(/\(\.\*\)/g, '.*')}$`);
+        return regex.test(route);
+      }) ||
+      authConfig.routes.apiProtected.some((pattern) => {
+        const regex = new RegExp(`^${pattern.replace(/\(\.\*\)/g, '.*')}$`);
+        return regex.test(route);
+      })
+    );
   }
 
   /**
@@ -241,14 +239,15 @@ export async function runSecurityAudit(): Promise<{
   const issues = await validator.validate();
 
   // Sort issues by severity
-  issues.sort((a, b) =>
-    AuthSecurityValidator.getSeverityScore(b.severity) -
-    AuthSecurityValidator.getSeverityScore(a.severity)
+  issues.sort(
+    (a, b) =>
+      AuthSecurityValidator.getSeverityScore(b.severity) -
+      AuthSecurityValidator.getSeverityScore(a.severity)
   );
 
   // Determine overall status
-  const criticalCount = issues.filter(i => i.severity === 'critical').length;
-  const highCount = issues.filter(i => i.severity === 'high').length;
+  const criticalCount = issues.filter((i) => i.severity === 'critical').length;
+  const highCount = issues.filter((i) => i.severity === 'high').length;
 
   let status: 'APPROVED' | 'NEEDS_IMPROVEMENT' | 'BLOCKED';
   if (criticalCount > 0) {
@@ -260,7 +259,7 @@ export async function runSecurityAudit(): Promise<{
   }
 
   // Generate summary
-  const summary = `Found ${issues.length} security issues: ${criticalCount} critical, ${highCount} high, ${issues.filter(i => i.severity === 'medium').length} medium, ${issues.filter(i => i.severity === 'low').length} low`;
+  const summary = `Found ${issues.length} security issues: ${criticalCount} critical, ${highCount} high, ${issues.filter((i) => i.severity === 'medium').length} medium, ${issues.filter((i) => i.severity === 'low').length} low`;
 
   return { status, issues, summary };
 }

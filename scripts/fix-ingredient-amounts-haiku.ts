@@ -24,10 +24,10 @@
  *   pnpm fix:amounts:haiku:test         # Fix only first 10 recipes
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 interface ProcessStats {
   total: number;
@@ -106,16 +106,17 @@ Return ONLY valid JSON with an "ingredients" array. No markdown, no code blocks:
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       response = await openrouter.chat.completions.create({
-        model: 'anthropic/claude-3.5-haiku-20241022',  // Very cheap and reliable
+        model: 'anthropic/claude-3.5-haiku-20241022', // Very cheap and reliable
         messages: [
           {
             role: 'system',
-            content: 'You are a professional chef providing recipe ingredient amounts. Always respond with valid JSON only.'
+            content:
+              'You are a professional chef providing recipe ingredient amounts. Always respond with valid JSON only.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.3,
         max_tokens: 2000,
@@ -131,8 +132,10 @@ Return ONLY valid JSON with an "ingredients" array. No markdown, no code blocks:
       if (error.status === 429) {
         if (attempt < 3) {
           const waitSeconds = attempt * 15; // 15s, 30s
-          console.log(`  ⏳ Rate limit hit, waiting ${waitSeconds}s before retry (attempt ${attempt}/3)...`);
-          await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+          console.log(
+            `  ⏳ Rate limit hit, waiting ${waitSeconds}s before retry (attempt ${attempt}/3)...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
           continue;
         }
       }
@@ -141,7 +144,7 @@ Return ONLY valid JSON with an "ingredients" array. No markdown, no code blocks:
       if (error.status >= 500 && error.status < 600 && attempt < 3) {
         const waitSeconds = attempt * 10;
         console.log(`  ⏳ Server error, retrying in ${waitSeconds}s (attempt ${attempt}/3)...`);
-        await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+        await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
         continue;
       }
 
@@ -179,7 +182,9 @@ Return ONLY valid JSON with an "ingredients" array. No markdown, no code blocks:
     }
 
     if (result.ingredients.length !== ingredients.length) {
-      console.warn(`  ⚠️  Warning: Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`);
+      console.warn(
+        `  ⚠️  Warning: Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`
+      );
     }
 
     return result.ingredients;
@@ -202,7 +207,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
   console.log(`Cost: ~$0.0002 per recipe (~$0.20 for 968 recipes)\n`);
   console.log('Starting in 3 seconds...\n');
 
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   const stats: ProcessStats = {
     total: 0,
@@ -225,7 +230,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
     stats.total = allRecipes.length;
 
     console.log(`📊 Found ${stats.total} recipes to process\n`);
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
 
     for (const recipe of allRecipes) {
       stats.processed++;
@@ -242,14 +247,14 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
           if (!Array.isArray(ingredients)) {
             throw new Error('Ingredients is not an array');
           }
-        } catch (error) {
+        } catch (_error) {
           console.log(`  ✗ Invalid ingredients format, skipping\n`);
           stats.skipped++;
           continue;
         }
 
         // Check if amounts already present
-        const ingredientsWithoutAmounts = ingredients.filter(ing => !hasAmount(ing));
+        const ingredientsWithoutAmounts = ingredients.filter((ing) => !hasAmount(ing));
 
         if (ingredientsWithoutAmounts.length === 0) {
           console.log(`  ✓ Already has amounts (${ingredients.length} ingredients), skipping\n`);
@@ -257,7 +262,9 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
           continue;
         }
 
-        console.log(`  📝 Missing amounts: ${ingredientsWithoutAmounts.length}/${ingredients.length} ingredients`);
+        console.log(
+          `  📝 Missing amounts: ${ingredientsWithoutAmounts.length}/${ingredients.length} ingredients`
+        );
         console.log(`  🤖 Requesting LLM enhancement...`);
 
         // Add amounts using Claude Haiku
@@ -277,10 +284,11 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
 
         // Update database (unless dry run)
         if (!dryRun) {
-          await db.update(recipes)
+          await db
+            .update(recipes)
             .set({
               ingredients: JSON.stringify(withAmounts),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(recipes.id, recipe.id));
 
@@ -302,8 +310,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
         console.log();
 
         // Rate limit - 1 request per second (very conservative for Haiku)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`  ✗ Failed: ${errorMessage}\n`);
@@ -323,7 +330,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
     const avgTimePerRecipe = totalTime / stats.processed;
     const avgSeconds = (avgTimePerRecipe / 1000).toFixed(1);
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
     console.log('✅ Processing complete!\n');
     console.log('📊 Final Statistics:');
     console.log(`  Total recipes: ${stats.total}`);
@@ -342,9 +349,8 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
     }
 
     // Calculate success rate
-    const successRate = stats.total > 0
-      ? ((stats.updated + stats.skipped) / stats.total * 100).toFixed(1)
-      : 0;
+    const successRate =
+      stats.total > 0 ? (((stats.updated + stats.skipped) / stats.total) * 100).toFixed(1) : 0;
 
     console.log(`\n✨ Success rate: ${successRate}%`);
 
@@ -357,7 +363,6 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
     if (!dryRun && stats.updated > 0) {
       console.log(`\n💾 Database updated with ${stats.updated} improved recipes`);
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
@@ -367,7 +372,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number }
 // Parse command line arguments
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
-const limitArg = args.find(arg => arg.startsWith('--limit='));
+const limitArg = args.find((arg) => arg.startsWith('--limit='));
 const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
 
 // Run the script

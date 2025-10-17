@@ -9,15 +9,15 @@
 // Load environment variables
 import 'dotenv/config';
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { put } from '@vercel/blob';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
-import { put } from '@vercel/blob';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 async function uploadJoanieImage() {
-  console.log('📸 Uploading Joanie\'s portrait to Vercel Blob...\n');
+  console.log("📸 Uploading Joanie's portrait to Vercel Blob...\n");
 
   try {
     // Check for Blob token
@@ -28,11 +28,7 @@ async function uploadJoanieImage() {
     }
 
     // Get Joanie's chef profile
-    const [joanie] = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.slug, 'joanie'))
-      .limit(1);
+    const [joanie] = await db.select().from(chefs).where(eq(chefs.slug, 'joanie')).limit(1);
 
     if (!joanie) {
       console.log('❌ Joanie chef profile not found!');
@@ -80,9 +76,8 @@ async function uploadJoanieImage() {
     console.log(`New image: ${updatedChef.profile_image_url}`);
     console.log('='.repeat(70));
 
-    console.log('\n🎉 Success! Joanie\'s portrait is now hosted on Vercel Blob.');
+    console.log("\n🎉 Success! Joanie's portrait is now hosted on Vercel Blob.");
     console.log(`🌐 View profile: http://localhost:3002/chef/joanie`);
-
   } catch (error) {
     console.error('\n❌ Script failed:', error);
     process.exit(1);

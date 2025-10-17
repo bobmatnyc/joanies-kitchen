@@ -12,10 +12,10 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { recipes, recipeRatings } from '@/lib/db/schema';
-import { eq, and, avg, count, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { recipeRatings, recipes } from '@/lib/db/schema';
 
 export interface RateRecipeResult {
   success: boolean;
@@ -113,7 +113,9 @@ export async function rateRecipe(
       })
       .where(eq(recipes.id, recipeId));
 
-    console.log(`[Rate Recipe] Updated recipe stats - Avg: ${avgRating.toFixed(1)}, Total: ${totalRatings}`);
+    console.log(
+      `[Rate Recipe] Updated recipe stats - Avg: ${avgRating.toFixed(1)}, Total: ${totalRatings}`
+    );
 
     // Revalidate the recipe page to show updated ratings
     revalidatePath(`/recipes/${recipeId}`);
@@ -125,7 +127,6 @@ export async function rateRecipe(
       avgUserRating: parseFloat(avgRating.toFixed(1)),
       totalRatings,
     };
-
   } catch (error: any) {
     console.error('[Rate Recipe] Error:', error);
     return {
@@ -141,9 +142,7 @@ export async function rateRecipe(
  * @param recipeId - Recipe ID to check
  * @returns User's rating or null if not rated
  */
-export async function getUserRating(
-  recipeId: string
-): Promise<{
+export async function getUserRating(recipeId: string): Promise<{
   rating: number;
   review?: string;
   createdAt?: Date;
@@ -159,12 +158,7 @@ export async function getUserRating(
     const userRating = await db
       .select()
       .from(recipeRatings)
-      .where(
-        and(
-          eq(recipeRatings.recipe_id, recipeId),
-          eq(recipeRatings.user_id, userId)
-        )
-      )
+      .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userId)))
       .limit(1);
 
     if (userRating.length === 0) {
@@ -177,7 +171,6 @@ export async function getUserRating(
       createdAt: userRating[0].created_at || undefined,
       updatedAt: userRating[0].updated_at || undefined,
     };
-
   } catch (error: any) {
     console.error('[Get User Rating] Error:', error);
     return null;
@@ -194,14 +187,16 @@ export async function getUserRating(
 export async function getRecipeRatings(
   recipeId: string,
   limit: number = 10
-): Promise<{
-  id: string;
-  user_id: string;
-  rating: number;
-  review?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}[]> {
+): Promise<
+  {
+    id: string;
+    user_id: string;
+    rating: number;
+    review?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  }[]
+> {
   try {
     const ratings = await db
       .select()
@@ -210,7 +205,7 @@ export async function getRecipeRatings(
       .orderBy(sql`${recipeRatings.created_at} DESC`)
       .limit(limit);
 
-    return ratings.map(r => ({
+    return ratings.map((r) => ({
       id: r.id,
       user_id: r.user_id,
       rating: r.rating,
@@ -218,7 +213,6 @@ export async function getRecipeRatings(
       created_at: r.created_at || undefined,
       updated_at: r.updated_at || undefined,
     }));
-
   } catch (error: any) {
     console.error('[Get Recipe Ratings] Error:', error);
     return [];
@@ -260,12 +254,7 @@ export async function deleteRating(
     // Delete the rating
     await db
       .delete(recipeRatings)
-      .where(
-        and(
-          eq(recipeRatings.recipe_id, recipeId),
-          eq(recipeRatings.user_id, userToDelete)
-        )
-      );
+      .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete)));
 
     // Recalculate average
     const stats = await db
@@ -294,7 +283,6 @@ export async function deleteRating(
     revalidatePath('/recipes');
 
     return { success: true };
-
   } catch (error: any) {
     console.error('[Delete Rating] Error:', error);
     return {

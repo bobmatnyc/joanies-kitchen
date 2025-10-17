@@ -18,9 +18,7 @@
   "mcpServers": {
     "kuzu-memory": {
       "command": "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory",
-      "args": [
-        "mcp"
-      ],
+      "args": ["mcp"],
       "env": {
         "KUZU_MEMORY_PROJECT_ROOT": "/Users/masa/Projects/recipe-manager",
         "KUZU_MEMORY_DB": "/Users/masa/Projects/recipe-manager/kuzu-memories"

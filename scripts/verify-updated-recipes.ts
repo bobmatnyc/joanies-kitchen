@@ -3,9 +3,9 @@
  * Quick script to check if recipes were successfully updated with amounts
  */
 
+import { inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { inArray } from 'drizzle-orm';
 
 async function verifyUpdates() {
   console.log('🔍 Verifying Updated Recipes\n');

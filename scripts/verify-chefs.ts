@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import { db } from '@/lib/db';
-import { chefs } from '@/lib/db/chef-schema';
 
 async function verifyChefs() {
   console.log('🧑‍🍳 CHEF PROFILES IN DATABASE\n');
@@ -11,7 +10,7 @@ async function verifyChefs() {
   });
 
   console.log(`Total chefs: ${result.length}\n`);
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   result.forEach((chef, i) => {
     console.log(`\n${i + 1}. ${chef.name}`);
@@ -24,7 +23,7 @@ async function verifyChefs() {
     console.log(`   Recipe Count: ${chef.recipe_count}`);
   });
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('\n✅ Verification complete!');
   console.log('\nNext steps:');
   console.log('  1. Visit http://localhost:3004/discover/chefs');

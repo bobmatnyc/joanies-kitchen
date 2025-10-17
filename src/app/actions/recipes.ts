@@ -1,10 +1,11 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { recipes, type NewRecipe, type Recipe } from '@/lib/db/schema';
-import { eq, desc, like, or, and, gte, asc, sql, SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, like, or, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
+import { db } from '@/lib/db';
+import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // Get all unique tags from recipes
@@ -19,16 +20,13 @@ export async function getAllTags() {
       ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
       : eq(recipes.is_public, true);
 
-    const allRecipes = await db
-      .select({ tags: recipes.tags })
-      .from(recipes)
-      .where(accessCondition);
+    const allRecipes = await db.select({ tags: recipes.tags }).from(recipes).where(accessCondition);
 
     // Extract and aggregate unique tags
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
 
-    allRecipes.forEach(recipe => {
+    allRecipes.forEach((recipe) => {
       if (recipe.tags) {
         try {
           const parsedTags = JSON.parse(recipe.tags);
@@ -39,10 +37,10 @@ export async function getAllTags() {
               tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
             });
           }
-        } catch (e) {
+        } catch (_e) {
           // Handle non-JSON tags (might be comma-separated string)
-          const tags = recipe.tags.split(',').map(t => t.trim().toLowerCase());
-          tags.forEach(tag => {
+          const tags = recipe.tags.split(',').map((t) => t.trim().toLowerCase());
+          tags.forEach((tag) => {
             if (tag) {
               tagSet.add(tag);
               tagCounts[tag] = (tagCounts[tag] || 0) + 1;
@@ -62,8 +60,8 @@ export async function getAllTags() {
       success: true,
       data: {
         tags: sortedTags,
-        counts: tagCounts
-      }
+        counts: tagCounts,
+      },
     };
   } catch (error) {
     console.error('Failed to fetch tags:', error);
@@ -88,13 +86,10 @@ export async function getRecipes(selectedTags?: string[]) {
 
     // Add tag filtering conditions if tags are selected
     if (selectedTags && selectedTags.length > 0) {
-      const normalizedTags = selectedTags.map(tag => tag.toLowerCase());
-      const tagConditions = normalizedTags.map(tag =>
-        or(
-          like(recipes.tags, `%"${tag}"%`),
-          like(recipes.tags, `%${tag}%`)
-        )
-      ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+      const normalizedTags = selectedTags.map((tag) => tag.toLowerCase());
+      const tagConditions = normalizedTags
+        .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
+        .filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
       conditions.push(...tagConditions);
     }
 
@@ -109,20 +104,20 @@ export async function getRecipes(selectedTags?: string[]) {
     // Additional client-side filtering for exact tag matches
     let filteredResults = results;
     if (selectedTags && selectedTags.length > 0) {
-      const normalizedTags = selectedTags.map(tag => tag.toLowerCase());
-      filteredResults = results.filter(recipe => {
+      const normalizedTags = selectedTags.map((tag) => tag.toLowerCase());
+      filteredResults = results.filter((recipe) => {
         if (!recipe.tags) return false;
 
         try {
           const recipeTags = JSON.parse(recipe.tags);
           if (Array.isArray(recipeTags)) {
             const normalizedRecipeTags = recipeTags.map((t: string) => t.toLowerCase());
-            return normalizedTags.every(tag => normalizedRecipeTags.includes(tag));
+            return normalizedTags.every((tag) => normalizedRecipeTags.includes(tag));
           }
-        } catch (e) {
+        } catch (_e) {
           // Handle non-JSON tags
-          const recipeTags = recipe.tags.split(',').map(t => t.trim().toLowerCase());
-          return normalizedTags.every(tag => recipeTags.includes(tag));
+          const recipeTags = recipe.tags.split(',').map((t) => t.trim().toLowerCase());
+          return normalizedTags.every((tag) => recipeTags.includes(tag));
         }
         return false;
       });
@@ -141,19 +136,11 @@ export async function getRecipe(idOrSlug: string) {
     const { userId } = await auth();
 
     // Try to fetch by slug first (SEO-friendly)
-    let recipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.slug, idOrSlug))
-      .limit(1);
+    let recipe = await db.select().from(recipes).where(eq(recipes.slug, idOrSlug)).limit(1);
 
     // If not found by slug, try by ID (backwards compatibility)
     if (recipe.length === 0) {
-      recipe = await db
-        .select()
-        .from(recipes)
-        .where(eq(recipes.id, idOrSlug))
-        .limit(1);
+      recipe = await db.select().from(recipes).where(eq(recipes.id, idOrSlug)).limit(1);
     }
 
     if (recipe.length === 0) {
@@ -177,11 +164,7 @@ export async function getRecipe(idOrSlug: string) {
 export async function getRecipeBySlug(slug: string) {
   try {
     const { userId } = await auth();
-    const recipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.slug, slug))
-      .limit(1);
+    const recipe = await db.select().from(recipes).where(eq(recipes.slug, slug)).limit(1);
 
     if (recipe.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -234,7 +217,9 @@ export async function searchRecipes(query: string) {
 }
 
 // Create a new recipe
-export async function createRecipe(data: Omit<NewRecipe, 'id' | 'created_at' | 'updated_at' | 'user_id'>) {
+export async function createRecipe(
+  data: Omit<NewRecipe, 'id' | 'created_at' | 'updated_at' | 'user_id'>
+) {
   try {
     const { userId } = await auth();
 
@@ -250,23 +235,30 @@ export async function createRecipe(data: Omit<NewRecipe, 'id' | 'created_at' | '
       ...data,
       user_id: userId,
       slug, // Add generated slug
-      ingredients: typeof data.ingredients === 'string'
-        ? data.ingredients
-        : JSON.stringify(data.ingredients),
-      instructions: typeof data.instructions === 'string'
-        ? data.instructions
-        : JSON.stringify(data.instructions),
+      ingredients:
+        typeof data.ingredients === 'string' ? data.ingredients : JSON.stringify(data.ingredients),
+      instructions:
+        typeof data.instructions === 'string'
+          ? data.instructions
+          : JSON.stringify(data.instructions),
       tags: data.tags
-        ? (typeof data.tags === 'string' ? data.tags : JSON.stringify(data.tags))
+        ? typeof data.tags === 'string'
+          ? data.tags
+          : JSON.stringify(data.tags)
         : null,
     };
 
-    const result = await db
-      .insert(recipes)
-      .values(recipeData)
-      .returning();
+    const result = await db.insert(recipes).values(recipeData).returning();
 
+    // Invalidate all recipe-related caches
+    invalidateRecipeCaches();
+
+    // Revalidate all pages that display recipes
     revalidatePath('/recipes');
+    revalidatePath('/shared'); // Public recipes page
+    revalidatePath('/'); // Homepage with shared recipes carousel
+    revalidatePath('/recipes/top-50'); // Top 50 page if recipe is highly rated
+
     return { success: true, data: result[0] };
   } catch (error) {
     console.error('Failed to create recipe:', error);
@@ -287,11 +279,7 @@ export async function updateRecipe(
     }
 
     // Check if user owns this recipe
-    const existingRecipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, id))
-      .limit(1);
+    const existingRecipe = await db.select().from(recipes).where(eq(recipes.id, id)).limit(1);
 
     if (existingRecipe.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -306,28 +294,26 @@ export async function updateRecipe(
 
     // System recipes cannot be modified
     if (recipe.is_system_recipe) {
-      return { success: false, error: 'System recipes cannot be modified' };
+      return { success: false, error: 'Shared recipes cannot be modified' };
     }
 
     // Ensure ingredients and instructions are JSON strings if they're arrays
     const updateData: any = { ...data };
 
     if (data.ingredients) {
-      updateData.ingredients = typeof data.ingredients === 'string'
-        ? data.ingredients
-        : JSON.stringify(data.ingredients);
+      updateData.ingredients =
+        typeof data.ingredients === 'string' ? data.ingredients : JSON.stringify(data.ingredients);
     }
 
     if (data.instructions) {
-      updateData.instructions = typeof data.instructions === 'string'
-        ? data.instructions
-        : JSON.stringify(data.instructions);
+      updateData.instructions =
+        typeof data.instructions === 'string'
+          ? data.instructions
+          : JSON.stringify(data.instructions);
     }
 
     if (data.tags) {
-      updateData.tags = typeof data.tags === 'string'
-        ? data.tags
-        : JSON.stringify(data.tags);
+      updateData.tags = typeof data.tags === 'string' ? data.tags : JSON.stringify(data.tags);
     }
 
     updateData.updatedAt = new Date();
@@ -338,8 +324,21 @@ export async function updateRecipe(
       .where(and(eq(recipes.id, id), eq(recipes.user_id, userId)))
       .returning();
 
+    // Invalidate caches for this specific recipe and all searches
+    invalidateRecipeById(id);
+    invalidateRecipeCaches();
+
+    // Revalidate all pages that display this recipe
     revalidatePath('/recipes');
     revalidatePath(`/recipes/${id}`);
+    // If recipe has slug, revalidate slug-based URL too
+    if (result[0]?.slug) {
+      revalidatePath(`/recipes/${result[0].slug}`);
+    }
+    revalidatePath('/shared'); // Public recipes page
+    revalidatePath('/'); // Homepage
+    revalidatePath('/recipes/top-50'); // Top 50 page
+
     return { success: true, data: result[0] };
   } catch (error) {
     console.error('Failed to update recipe:', error);
@@ -357,11 +356,7 @@ export async function deleteRecipe(id: string) {
     }
 
     // Check if user owns this recipe
-    const existingRecipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, id))
-      .limit(1);
+    const existingRecipe = await db.select().from(recipes).where(eq(recipes.id, id)).limit(1);
 
     if (existingRecipe.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -376,15 +371,25 @@ export async function deleteRecipe(id: string) {
 
     // System recipes cannot be deleted
     if (recipe.is_system_recipe) {
-      return { success: false, error: 'System recipes cannot be deleted' };
+      return { success: false, error: 'Shared recipes cannot be deleted' };
     }
 
-    const result = await db
-      .delete(recipes)
-      .where(eq(recipes.id, id))
-      .returning();
+    const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
 
+    // Invalidate caches for this specific recipe and all searches
+    invalidateRecipeById(id);
+    invalidateRecipeCaches();
+
+    // Revalidate all pages that displayed this recipe
     revalidatePath('/recipes');
+    revalidatePath(`/recipes/${id}`);
+    // If recipe had slug, revalidate slug-based URL too
+    if (recipe.slug) {
+      revalidatePath(`/recipes/${recipe.slug}`);
+    }
+    revalidatePath('/shared'); // Public recipes page
+    revalidatePath('/'); // Homepage
+    revalidatePath('/recipes/top-50'); // Top 50 page
     return { success: true, data: result[0] };
   } catch (error) {
     console.error('Failed to delete recipe:', error);
@@ -421,11 +426,7 @@ export async function toggleRecipeVisibility(id: string) {
     }
 
     // Get the current recipe
-    const recipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, id))
-      .limit(1);
+    const recipe = await db.select().from(recipes).where(eq(recipes.id, id)).limit(1);
 
     if (recipe.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -438,7 +439,7 @@ export async function toggleRecipeVisibility(id: string) {
 
     // System recipes cannot have their visibility changed
     if (recipe[0].is_system_recipe) {
-      return { success: false, error: 'System recipes are always public and cannot be modified' };
+      return { success: false, error: 'Shared recipes are always public and cannot be modified' };
     }
 
     // Toggle the is_public field
@@ -446,10 +447,14 @@ export async function toggleRecipeVisibility(id: string) {
       .update(recipes)
       .set({
         is_public: !recipe[0].is_public,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(and(eq(recipes.id, id), eq(recipes.user_id, userId)))
       .returning();
+
+    // Invalidate caches (visibility change affects search results)
+    invalidateRecipeById(id);
+    invalidateRecipeCaches();
 
     revalidatePath('/recipes');
     revalidatePath(`/recipes/${id}`);
@@ -470,13 +475,10 @@ export async function getSharedRecipes(selectedTags?: string[]) {
 
     // Add tag filtering conditions if tags are selected
     if (selectedTags && selectedTags.length > 0) {
-      const normalizedTags = selectedTags.map(tag => tag.toLowerCase());
-      const tagConditions = normalizedTags.map(tag =>
-        or(
-          like(recipes.tags, `%"${tag}"%`),
-          like(recipes.tags, `%${tag}%`)
-        )
-      ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+      const normalizedTags = selectedTags.map((tag) => tag.toLowerCase());
+      const tagConditions = normalizedTags
+        .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
+        .filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
       conditions.push(...tagConditions);
     }
 
@@ -491,20 +493,20 @@ export async function getSharedRecipes(selectedTags?: string[]) {
     // Additional client-side filtering for exact tag matches
     let filteredResults = results;
     if (selectedTags && selectedTags.length > 0) {
-      const normalizedTags = selectedTags.map(tag => tag.toLowerCase());
-      filteredResults = results.filter(recipe => {
+      const normalizedTags = selectedTags.map((tag) => tag.toLowerCase());
+      filteredResults = results.filter((recipe) => {
         if (!recipe.tags) return false;
 
         try {
           const recipeTags = JSON.parse(recipe.tags);
           if (Array.isArray(recipeTags)) {
             const normalizedRecipeTags = recipeTags.map((t: string) => t.toLowerCase());
-            return normalizedTags.every(tag => normalizedRecipeTags.includes(tag));
+            return normalizedTags.every((tag) => normalizedRecipeTags.includes(tag));
           }
-        } catch (e) {
+        } catch (_e) {
           // Handle non-JSON tags
-          const recipeTags = recipe.tags.split(',').map(t => t.trim().toLowerCase());
-          return normalizedTags.every(tag => recipeTags.includes(tag));
+          const recipeTags = recipe.tags.split(',').map((t) => t.trim().toLowerCase());
+          return normalizedTags.every((tag) => recipeTags.includes(tag));
         }
         return false;
       });
@@ -598,7 +600,7 @@ export async function markAsSystemRecipe(recipeId: string, isSystem: boolean = t
       .set({
         is_system_recipe: isSystem,
         is_public: true, // System recipes should always be public
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(recipes.id, recipeId))
       .returning();
@@ -606,6 +608,10 @@ export async function markAsSystemRecipe(recipeId: string, isSystem: boolean = t
     if (result.length === 0) {
       return { success: false, error: 'Recipe not found' };
     }
+
+    // Invalidate caches (system recipe flag affects search results)
+    invalidateRecipeById(recipeId);
+    invalidateRecipeCaches();
 
     revalidatePath('/shared');
     revalidatePath(`/recipes/${recipeId}`);
@@ -650,11 +656,7 @@ export interface PaginatedRecipeResponse {
 }
 
 // Get top-rated recipes with combined system and user ratings
-export async function getTopRatedRecipes({
-  limit = 50
-}: {
-  limit?: number
-} = {}) {
+export async function getTopRatedRecipes({ limit = 50 }: { limit?: number } = {}) {
   try {
     // Query recipes ordered by rating (system + user average)
     const topRecipes = await db
@@ -663,10 +665,7 @@ export async function getTopRatedRecipes({
       .where(
         and(
           eq(recipes.is_public, true),
-          or(
-            sql`${recipes.system_rating} IS NOT NULL`,
-            sql`${recipes.avg_user_rating} IS NOT NULL`
-          )
+          or(sql`${recipes.system_rating} IS NOT NULL`, sql`${recipes.avg_user_rating} IS NOT NULL`)
         )
       )
       .orderBy(
@@ -702,7 +701,11 @@ export async function getRecipesPaginated({
   limit = 24,
   filters = {},
   sort = 'rating',
-}: PaginationParams): Promise<{ success: boolean; data?: PaginatedRecipeResponse; error?: string }> {
+}: PaginationParams): Promise<{
+  success: boolean;
+  data?: PaginatedRecipeResponse;
+  error?: string;
+}> {
   try {
     const { userId } = await auth();
     const offset = (page - 1) * limit;
@@ -720,10 +723,7 @@ export async function getRecipesPaginated({
 
       // If requesting public recipes and user is authenticated, include their recipes too
       if (filters.isPublic && userId) {
-        const accessCondition = or(
-          eq(recipes.is_public, true),
-          eq(recipes.user_id, userId)
-        );
+        const accessCondition = or(eq(recipes.is_public, true), eq(recipes.user_id, userId));
         if (accessCondition) {
           // Replace last condition with combined access condition
           conditions.pop();
@@ -732,10 +732,7 @@ export async function getRecipesPaginated({
       }
     } else if (userId) {
       // Default: authenticated user sees their recipes + public recipes
-      const accessCondition = or(
-        eq(recipes.user_id, userId),
-        eq(recipes.is_public, true)
-      );
+      const accessCondition = or(eq(recipes.user_id, userId), eq(recipes.is_public, true));
       if (accessCondition) {
         conditions.push(accessCondition);
       }
@@ -762,7 +759,7 @@ export async function getRecipesPaginated({
     }
 
     // Search query filter
-    if (filters.searchQuery && filters.searchQuery.trim()) {
+    if (filters.searchQuery?.trim()) {
       const searchPattern = `%${filters.searchQuery.trim()}%`;
       const searchCondition = or(
         like(recipes.name, searchPattern),
@@ -777,13 +774,10 @@ export async function getRecipesPaginated({
 
     // Tag filtering (if specified)
     if (filters.tags && filters.tags.length > 0) {
-      const normalizedTags = filters.tags.map(tag => tag.toLowerCase());
-      const tagConditions = normalizedTags.map(tag =>
-        or(
-          like(recipes.tags, `%"${tag}"%`),
-          like(recipes.tags, `%${tag}%`)
-        )
-      ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+      const normalizedTags = filters.tags.map((tag) => tag.toLowerCase());
+      const tagConditions = normalizedTags
+        .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
+        .filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
 
       conditions.push(...tagConditions);
     }
@@ -797,7 +791,7 @@ export async function getRecipesPaginated({
       orderByClause = [
         desc(recipes.system_rating),
         desc(recipes.avg_user_rating),
-        desc(recipes.created_at)
+        desc(recipes.created_at),
       ];
     } else if (sort === 'recent') {
       orderByClause = [desc(recipes.created_at)];
@@ -831,20 +825,20 @@ export async function getRecipesPaginated({
     // Additional client-side tag filtering for exact matches (if tags specified)
     let filteredResults = results;
     if (filters.tags && filters.tags.length > 0) {
-      const normalizedTags = filters.tags.map(tag => tag.toLowerCase());
-      filteredResults = results.filter(recipe => {
+      const normalizedTags = filters.tags.map((tag) => tag.toLowerCase());
+      filteredResults = results.filter((recipe) => {
         if (!recipe.tags) return false;
 
         try {
           const recipeTags = JSON.parse(recipe.tags);
           if (Array.isArray(recipeTags)) {
             const normalizedRecipeTags = recipeTags.map((t: string) => t.toLowerCase());
-            return normalizedTags.every(tag => normalizedRecipeTags.includes(tag));
+            return normalizedTags.every((tag) => normalizedRecipeTags.includes(tag));
           }
-        } catch (e) {
+        } catch (_e) {
           // Handle non-JSON tags
-          const recipeTags = recipe.tags.split(',').map(t => t.trim().toLowerCase());
-          return normalizedTags.every(tag => recipeTags.includes(tag));
+          const recipeTags = recipe.tags.split(',').map((t) => t.trim().toLowerCase());
+          return normalizedTags.every((tag) => recipeTags.includes(tag));
         }
         return false;
       });

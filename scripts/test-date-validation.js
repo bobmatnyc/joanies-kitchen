@@ -13,9 +13,11 @@ function validateAndParseDate(dateString) {
   if (!dateString) return null;
 
   // Reject known invalid values
-  if (dateString.toLowerCase() === 'approximate' ||
-      dateString.toLowerCase() === 'unknown' ||
-      dateString.toLowerCase() === 'n/a') {
+  if (
+    dateString.toLowerCase() === 'approximate' ||
+    dateString.toLowerCase() === 'unknown' ||
+    dateString.toLowerCase() === 'n/a'
+  ) {
     console.warn(`[Store] Invalid date string: "${dateString}" - using null`);
     return null;
   }
@@ -24,7 +26,7 @@ function validateAndParseDate(dateString) {
     const date = new Date(dateString);
 
     // Check if date is valid
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       console.warn(`[Store] Invalid date string: "${dateString}" - parsed to Invalid Date`);
       return null;
     }
@@ -75,7 +77,7 @@ testCases.forEach((test, index) => {
   const isValid = result !== null;
   const expectedValid = test.expected === 'valid';
 
-  const success = (isValid === expectedValid);
+  const success = isValid === expectedValid;
 
   if (success) {
     passed++;

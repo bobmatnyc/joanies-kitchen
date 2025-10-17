@@ -101,7 +101,7 @@ export async function searchRecipesWithSerpAPI(
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -141,7 +141,6 @@ export async function searchRecipesWithSerpAPI(
         timeTaken: data.search_information?.time_taken_displayed,
       },
     };
-
   } catch (error: any) {
     console.error('[SerpAPI] Search failed:', error.message);
     return {
@@ -162,9 +161,9 @@ export async function searchRecipesWithSerpAPI(
  * const filtered = filterRecipeSites(searchResults);
  */
 export function filterRecipeSites(results: SerpAPIRecipeResult[]): SerpAPIRecipeResult[] {
-  return results.filter(result => {
+  return results.filter((result) => {
     const domain = extractDomain(result.link).toLowerCase();
-    return RECIPE_SITES.some(site => domain.includes(site));
+    return RECIPE_SITES.some((site) => domain.includes(site));
   });
 }
 
@@ -200,5 +199,5 @@ export function getSupportedRecipeSites(): string[] {
  */
 export function isRecipeSite(url: string): boolean {
   const domain = extractDomain(url).toLowerCase();
-  return RECIPE_SITES.some(site => domain.includes(site));
+  return RECIPE_SITES.some((site) => domain.includes(site));
 }

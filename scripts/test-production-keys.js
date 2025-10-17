@@ -5,8 +5,8 @@
  * This script verifies that the authentication setup works correctly
  */
 
-const https = require('https');
-const http = require('http');
+const https = require('node:https');
+const http = require('node:http');
 
 const LOCALHOST_URL = 'http://localhost:3004';
 const PRODUCTION_PUBLISHABLE_KEY = 'pk_live_Y2xlcmsucmVjaXBlcy5oZWxwJA';
@@ -17,7 +17,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 function log(message, color = colors.reset) {
@@ -29,7 +29,7 @@ async function makeRequest(url, options = {}) {
     const protocol = url.startsWith('https') ? https : http;
     const req = protocol.get(url, options, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', (chunk) => (data += chunk));
       res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, data }));
     });
     req.on('error', reject);
@@ -48,7 +48,7 @@ async function testAuthConfiguration() {
     } else {
       log(`   ⚠ Server responded with status: ${response.statusCode}`, colors.yellow);
     }
-  } catch (error) {
+  } catch (_error) {
     log('   ✗ Server is not running on localhost:3004', colors.red);
     log('   Please run: npm run dev', colors.yellow);
     return;
@@ -68,7 +68,7 @@ async function testAuthConfiguration() {
     } else {
       log('   ⚠ Clerk is using standard configuration', colors.yellow);
     }
-  } catch (error) {
+  } catch (_error) {
     log('   ⚠ Could not fetch Clerk configuration', colors.yellow);
   }
 
@@ -99,7 +99,7 @@ async function testAuthConfiguration() {
     } else {
       log(`   ⚠ Sign-in page returned status: ${response.statusCode}`, colors.yellow);
     }
-  } catch (error) {
+  } catch (_error) {
     log('   ✗ Could not access sign-in page', colors.red);
   }
 
@@ -114,7 +114,7 @@ async function testAuthConfiguration() {
     } else {
       log(`   ⚠ Clerk proxy returned status: ${response.statusCode}`, colors.yellow);
     }
-  } catch (error) {
+  } catch (_error) {
     log('   ✗ Clerk proxy endpoint not accessible', colors.red);
   }
 

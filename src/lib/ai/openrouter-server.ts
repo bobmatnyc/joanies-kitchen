@@ -21,4 +21,4 @@ export function getOpenRouterClient() {
 }
 
 // Re-export the constants from the client-safe file
-export { MODELS, MODEL_CATEGORIES, type ModelName } from './openrouter';
+export { MODEL_CATEGORIES, MODELS, type ModelName } from './openrouter';

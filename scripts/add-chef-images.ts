@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Add Chef Profile Images
  *
@@ -9,11 +10,11 @@
  *   pnpm tsx scripts/add-chef-images.ts
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
 
 interface ChefImageMapping {
   slug: string;
@@ -41,7 +42,7 @@ const CHEF_IMAGES: ChefImageMapping[] = [
     slug: 'kenji-lopez-alt',
     imageUrl: '/chef-images/kenji-lopez-alt.png',
     source: 'Serious Eats / Public profile photo',
-    license: 'Fair use - publicly available profile photo'
+    license: 'Fair use - publicly available profile photo',
   },
   // Add more chefs here as images become available
   // {
@@ -74,11 +75,7 @@ async function addChefImages() {
 
     try {
       // Check if chef exists
-      const [chef] = await db
-        .select()
-        .from(chefs)
-        .where(eq(chefs.slug, mapping.slug))
-        .limit(1);
+      const [chef] = await db.select().from(chefs).where(eq(chefs.slug, mapping.slug)).limit(1);
 
       if (!chef) {
         console.log(`⚠️  Chef not found: ${mapping.slug}`);
@@ -108,7 +105,7 @@ async function addChefImages() {
         .update(chefs)
         .set({
           profile_image_url: mapping.imageUrl,
-          updated_at: new Date()
+          updated_at: new Date(),
         })
         .where(eq(chefs.slug, mapping.slug));
 
@@ -121,7 +118,6 @@ async function addChefImages() {
         console.log(`   License: ${mapping.license}`);
       }
       updated++;
-
     } catch (error) {
       console.error(`❌ Error updating ${mapping.slug}:`, error);
       failed++;

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { auth } from '@/lib/auth';
 
 /**
  * Admin Access Control Utilities
@@ -8,9 +8,9 @@ import { auth } from '@/lib/auth'
  */
 
 export interface AdminCheckResult {
-  isAdmin: boolean
-  userId: string | null
-  sessionClaims: any
+  isAdmin: boolean;
+  userId: string | null;
+  sessionClaims: any;
 }
 
 /**
@@ -18,15 +18,15 @@ export interface AdminCheckResult {
  * @returns Admin status and user information
  */
 export async function checkAdminAccess(): Promise<AdminCheckResult> {
-  const { sessionClaims, userId } = await auth()
-  const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined
-  const isAdmin = metadata?.isAdmin === 'true'
+  const { sessionClaims, userId } = await auth();
+  const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
+  const isAdmin = metadata?.isAdmin === 'true';
 
   return {
     isAdmin,
     userId,
-    sessionClaims
-  }
+    sessionClaims,
+  };
 }
 
 /**
@@ -36,17 +36,17 @@ export async function checkAdminAccess(): Promise<AdminCheckResult> {
  * @returns User ID if admin check passes
  */
 export async function requireAdmin(): Promise<{ userId: string }> {
-  const { isAdmin, userId } = await checkAdminAccess()
+  const { isAdmin, userId } = await checkAdminAccess();
 
   if (!isAdmin) {
-    throw new Error('Admin access required')
+    throw new Error('Admin access required');
   }
 
   if (!userId) {
-    throw new Error('Authentication required')
+    throw new Error('Authentication required');
   }
 
-  return { userId }
+  return { userId };
 }
 
 /**
@@ -54,8 +54,8 @@ export async function requireAdmin(): Promise<{ userId: string }> {
  * Useful for additional verification in sensitive operations
  */
 export async function isUserAdmin(checkUserId: string): Promise<boolean> {
-  const { isAdmin, userId } = await checkAdminAccess()
-  return isAdmin && userId === checkUserId
+  const { isAdmin, userId } = await checkAdminAccess();
+  return isAdmin && userId === checkUserId;
 }
 
 /**

@@ -72,6 +72,6 @@ console.log('- /src/components/recipe/RecipeForm.tsx (added sharing toggle)');
 console.log('- /src/app/layout.tsx (added Shared nav link)');
 console.log('- /package.json (added @radix-ui/react-switch)');
 
-console.log('\n' + '='.repeat(60));
+console.log(`\n${'='.repeat(60)}`);
 console.log('Happy Testing! 🎉');
 console.log('='.repeat(60));

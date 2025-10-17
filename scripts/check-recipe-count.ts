@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
+import { count, eq, sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { sql, eq, count } from 'drizzle-orm';
 
 async function checkRecipeCount() {
   console.log('\n=== Recipe Database Statistics ===\n');
@@ -36,7 +36,7 @@ async function checkRecipeCount() {
       .groupBy(recipes.source)
       .orderBy(sql`count DESC`);
 
-    sources.forEach(s => {
+    sources.forEach((s) => {
       console.log(`${s.source || 'NULL'}: ${s.count}`);
     });
 
@@ -52,11 +52,11 @@ async function checkRecipeCount() {
       .groupBy(recipes.systemRating)
       .orderBy(recipes.systemRating);
 
-    ratingDistribution.forEach(r => {
+    ratingDistribution.forEach((r) => {
       console.log(`${r.rating}/5.0: ${r.count} recipes`);
     });
 
-    console.log('\n' + '='.repeat(50));
+    console.log(`\n${'='.repeat(50)}`);
   } catch (error: any) {
     console.error('Error:', error.message);
     throw error;

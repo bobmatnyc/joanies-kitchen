@@ -1,27 +1,80 @@
 #!/usr/bin/env tsx
+
 /**
  * Generate embeddings for ALL recipes in the database
  *
- * This script processes recipes in batches to avoid overwhelming the API
- * Includes progress tracking, error handling, and resumption capability
+ * Production-ready script with checkpoint/resume, detailed logging, and safety features
+ * Processes recipes in batches to avoid overwhelming the API
+ *
+ * Features:
+ * - Checkpoint/resume capability every 50 recipes
+ * - Retry logic for failed embeddings (max 3 attempts)
+ * - Detailed error logging to file
+ * - Progress tracking with ETA
+ * - Embedding quality validation
+ * - Dry-run and limit modes for testing
+ * - Cost and time estimation
  *
  * Usage:
- *   npx tsx scripts/generate-all-embeddings.ts [--batch-size=50] [--delay=2000]
+ *   npx tsx scripts/generate-all-embeddings.ts                    # Dry run (default)
+ *   npx tsx scripts/generate-all-embeddings.ts --execute          # Execute (with confirmation)
+ *   npx tsx scripts/generate-all-embeddings.ts --limit=10         # Test on 10 recipes
+ *   npx tsx scripts/generate-all-embeddings.ts --resume           # Resume from last checkpoint
+ *   npx tsx scripts/generate-all-embeddings.ts --batch-size=10    # Custom batch size
+ *   npx tsx scripts/generate-all-embeddings.ts --delay=1000       # Custom delay (ms)
  */
 
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
-import { generateRecipeEmbedding } from '../src/lib/ai/embeddings';
-import { saveRecipeEmbedding, countRecipeEmbeddings } from '../src/lib/db/embeddings';
+import { EmbeddingError, generateRecipeEmbedding } from '../src/lib/ai/embeddings';
+import { db } from '../src/lib/db';
+import { countRecipeEmbeddings, saveRecipeEmbedding } from '../src/lib/db/embeddings';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 // Configuration
-const BATCH_SIZE = parseInt(process.argv.find(arg => arg.startsWith('--batch-size='))?.split('=')[1] || '50', 10);
-const DELAY_MS = parseInt(process.argv.find(arg => arg.startsWith('--delay='))?.split('=')[1] || '2000', 10);
-const DRY_RUN = process.argv.includes('--dry-run');
+const BATCH_SIZE = parseInt(
+  process.argv.find((arg) => arg.startsWith('--batch-size='))?.split('=')[1] || '10',
+  10
+);
+const DELAY_MS = parseInt(
+  process.argv.find((arg) => arg.startsWith('--delay='))?.split('=')[1] || '2000',
+  10
+);
+const DRY_RUN = !process.argv.includes('--execute');
+const LIMIT = process.argv.find((arg) => arg.startsWith('--limit='))?.split('=')[1]
+  ? parseInt(process.argv.find((arg) => arg.startsWith('--limit='))?.split('=')[1], 10)
+  : undefined;
+const RESUME = process.argv.includes('--resume');
+const CHECKPOINT_INTERVAL = 50; // Save checkpoint every 50 recipes
+const MAX_RETRIES = 3;
+
+// Types
+interface Checkpoint {
+  timestamp: string;
+  processedRecipeIds: string[];
+  stats: ProcessingStats;
+}
+
+interface ProcessingStats {
+  total: number;
+  processed: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  retried: number;
+  startTime: number;
+  checkpointsSaved: number;
+}
+
+interface FailedRecipe {
+  recipeId: string;
+  recipeName: string;
+  error: string;
+  attempts: number;
+}
 
 const colors = {
   reset: '\x1b[0m',
@@ -31,6 +84,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
+  magenta: '\x1b[35m',
 };
 
 function log(message: string, color = colors.reset) {
@@ -40,10 +94,10 @@ function log(message: string, color = colors.reset) {
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
+  const secs = Math.round(seconds % 60);
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m ${secs}s`;
+    return `${hours}h ${minutes}m`;
   } else if (minutes > 0) {
     return `${minutes}m ${secs}s`;
   } else {
@@ -51,152 +105,462 @@ function formatTime(seconds: number): string {
   }
 }
 
+function getTimestamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+}
+
+async function ensureTmpDir(): Promise<string> {
+  const tmpDir = path.resolve(process.cwd(), 'tmp');
+  await fs.mkdir(tmpDir, { recursive: true });
+  return tmpDir;
+}
+
+async function saveCheckpoint(checkpoint: Checkpoint, tmpDir: string): Promise<string> {
+  const checkpointPath = path.join(tmpDir, 'embedding-generation-checkpoint.json');
+  await fs.writeFile(checkpointPath, JSON.stringify(checkpoint, null, 2));
+  return checkpointPath;
+}
+
+async function loadCheckpoint(tmpDir: string): Promise<Checkpoint | null> {
+  const checkpointPath = path.join(tmpDir, 'embedding-generation-checkpoint.json');
+  try {
+    const data = await fs.readFile(checkpointPath, 'utf-8');
+    return JSON.parse(data);
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function clearCheckpoint(tmpDir: string): Promise<void> {
+  const checkpointPath = path.join(tmpDir, 'embedding-generation-checkpoint.json');
+  try {
+    await fs.unlink(checkpointPath);
+  } catch (_error) {
+    // Ignore if file doesn't exist
+  }
+}
+
+async function appendErrorLog(error: FailedRecipe, tmpDir: string): Promise<void> {
+  const logPath = path.join(tmpDir, 'embedding-errors.log');
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] Recipe: ${error.recipeName} (${error.recipeId}) | Attempts: ${error.attempts} | Error: ${error.error}\n`;
+  await fs.appendFile(logPath, logLine);
+}
+
+function validateEmbeddingQuality(embedding: number[]): { valid: boolean; reason?: string } {
+  if (embedding.length !== 384) {
+    return { valid: false, reason: `Invalid dimension: ${embedding.length}` };
+  }
+
+  if (embedding.some((val) => typeof val !== 'number' || Number.isNaN(val))) {
+    return { valid: false, reason: 'Contains NaN or non-numeric values' };
+  }
+
+  if (embedding.some((val) => !Number.isFinite(val))) {
+    return { valid: false, reason: 'Contains Infinity' };
+  }
+
+  // Check if embedding is all zeros (indicates generation failure)
+  if (embedding.every((val) => val === 0)) {
+    return { valid: false, reason: 'All zeros (invalid embedding)' };
+  }
+
+  return { valid: true };
+}
+
+async function generateEmbeddingWithRetry(
+  recipe: any,
+  maxRetries: number,
+  tmpDir: string
+): Promise<{ success: boolean; attempts: number; error?: string }> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await generateRecipeEmbedding(recipe);
+
+      // Validate embedding quality
+      const validation = validateEmbeddingQuality(result.embedding);
+      if (!validation.valid) {
+        throw new Error(`Quality validation failed: ${validation.reason}`);
+      }
+
+      await saveRecipeEmbedding(
+        recipe.id,
+        result.embedding,
+        result.embeddingText,
+        result.modelName
+      );
+
+      return { success: true, attempts: attempt };
+    } catch (error: any) {
+      const isLastAttempt = attempt === maxRetries;
+      const errorMessage =
+        error instanceof EmbeddingError ? `[${error.code}] ${error.message}` : error.message;
+
+      if (isLastAttempt) {
+        // Log to error file
+        await appendErrorLog(
+          {
+            recipeId: recipe.id,
+            recipeName: recipe.name,
+            error: errorMessage,
+            attempts: attempt,
+          },
+          tmpDir
+        );
+
+        return { success: false, attempts: attempt, error: errorMessage };
+      }
+
+      // Wait before retry (exponential backoff)
+      const retryDelay = Math.min(DELAY_MS * 2 ** (attempt - 1), 10000);
+      log(
+        `    ⏳ Retry ${attempt}/${maxRetries} in ${(retryDelay / 1000).toFixed(1)}s...`,
+        colors.yellow
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+
+  return { success: false, attempts: maxRetries, error: 'Max retries exceeded' };
+}
+
 async function main() {
-  log('\n' + '='.repeat(80), colors.bright);
-  log('BULK EMBEDDING GENERATION FOR ALL RECIPES', colors.bright);
-  log('='.repeat(80) + '\n', colors.bright);
+  const tmpDir = await ensureTmpDir();
+
+  log(`\n${'='.repeat(80)}`, colors.bright);
+  log('PRODUCTION-READY EMBEDDING GENERATION FOR ALL RECIPES', colors.bright);
+  log(`${'='.repeat(80)}\n`, colors.bright);
 
   if (DRY_RUN) {
     log('⚠️  DRY RUN MODE - No embeddings will be generated', colors.yellow);
+    log('   Use --execute flag to apply changes', colors.yellow);
+  } else {
+    log('🚀 EXECUTE MODE - Embeddings will be generated and saved', colors.green);
   }
 
   // Check API key
   if (!process.env.HUGGINGFACE_API_KEY && !DRY_RUN) {
-    log('❌ HUGGINGFACE_API_KEY not configured', colors.red);
-    log('   Add it to .env.local to continue', colors.yellow);
+    log('\n❌ HUGGINGFACE_API_KEY not configured', colors.red);
+    log('   Get your API key from: https://huggingface.co/settings/tokens', colors.yellow);
+    log('   Add it to .env.local as: HUGGINGFACE_API_KEY=hf_...', colors.yellow);
     process.exit(1);
   }
 
+  // Load checkpoint if resuming
+  let checkpoint: Checkpoint | null = null;
+  let processedRecipeIds = new Set<string>();
+
+  if (RESUME) {
+    checkpoint = await loadCheckpoint(tmpDir);
+    if (checkpoint) {
+      log(
+        `\n📂 Resuming from checkpoint (${checkpoint.processedRecipeIds.length} recipes already processed)`,
+        colors.cyan
+      );
+      processedRecipeIds = new Set(checkpoint.processedRecipeIds);
+    } else {
+      log('\n⚠️  No checkpoint found, starting from beginning', colors.yellow);
+    }
+  }
+
   // Get total counts
-  log('Checking database...', colors.cyan);
+  log('\n🔍 Checking database...', colors.cyan);
   const totalRecipes = await db.execute(sql`SELECT COUNT(*) as count FROM recipes`);
   const recipeCount = Number(totalRecipes.rows[0]?.count || 0);
   const embeddingCount = await countRecipeEmbeddings();
-  const missing = recipeCount - embeddingCount;
+  let missing = recipeCount - embeddingCount;
 
-  log(`\nDatabase Status:`, colors.cyan);
-  log(`  Total recipes: ${recipeCount}`, colors.blue);
-  log(`  With embeddings: ${embeddingCount} (${((embeddingCount / recipeCount) * 100).toFixed(1)}%)`, colors.blue);
-  log(`  Missing embeddings: ${missing}`, missing > 0 ? colors.yellow : colors.green);
+  // Adjust for already processed in this session
+  if (checkpoint) {
+    missing = Math.max(0, missing - processedRecipeIds.size);
+  }
 
-  if (missing === 0) {
+  // Apply limit if specified
+  const targetCount = LIMIT ? Math.min(LIMIT, missing) : missing;
+
+  log(`\n📊 Database Status:`, colors.cyan);
+  log(`  Total recipes: ${recipeCount.toLocaleString()}`, colors.blue);
+  log(
+    `  With embeddings: ${embeddingCount.toLocaleString()} (${((embeddingCount / recipeCount) * 100).toFixed(1)}%)`,
+    colors.blue
+  );
+  log(
+    `  Missing embeddings: ${missing.toLocaleString()}`,
+    missing > 0 ? colors.yellow : colors.green
+  );
+
+  if (LIMIT) {
+    log(`  Limit applied: ${LIMIT.toLocaleString()}`, colors.magenta);
+    log(`  Will process: ${targetCount.toLocaleString()}`, colors.magenta);
+  }
+
+  if (checkpoint) {
+    log(
+      `  Already processed (this session): ${processedRecipeIds.size.toLocaleString()}`,
+      colors.cyan
+    );
+  }
+
+  if (targetCount === 0) {
     log('\n✅ All recipes already have embeddings!', colors.green);
+    await clearCheckpoint(tmpDir);
     process.exit(0);
   }
 
-  // Estimate time
-  const estimatedSeconds = Math.ceil((missing * (DELAY_MS + 3000)) / 1000); // 3s per embedding + delay
+  // Estimate time and cost
+  const avgTimePerRecipe = 3; // seconds (includes API call + delay)
+  const estimatedSeconds = targetCount * avgTimePerRecipe;
   const estimatedTime = formatTime(estimatedSeconds);
+  const estimatedCost = 0; // HuggingFace Inference API is free tier friendly
 
-  log(`\nConfiguration:`, colors.cyan);
+  log(`\n⚙️  Configuration:`, colors.cyan);
+  log(`  Model: BAAI/bge-small-en-v1.5 (384 dimensions)`, colors.blue);
   log(`  Batch size: ${BATCH_SIZE} recipes`, colors.blue);
-  log(`  Delay between requests: ${DELAY_MS}ms`, colors.blue);
-  log(`  Estimated time: ${estimatedTime}`, colors.blue);
+  log(`  Delay between batches: ${DELAY_MS}ms`, colors.blue);
+  log(`  Max retries: ${MAX_RETRIES} attempts`, colors.blue);
+  log(`  Checkpoint interval: Every ${CHECKPOINT_INTERVAL} recipes`, colors.blue);
+  log(`  Estimated time: ~${estimatedTime}`, colors.blue);
+  log(`  Estimated cost: $${estimatedCost} (free tier)`, colors.green);
 
   // Confirm
   if (!DRY_RUN) {
-    log(`\n⚠️  This will generate ${missing} embeddings`, colors.yellow);
+    log(`\n⚠️  CONFIRMATION REQUIRED`, colors.yellow);
+    log(`   This will generate ${targetCount.toLocaleString()} embeddings`, colors.yellow);
+    log(`   Estimated time: ${estimatedTime}`, colors.yellow);
     log(`   Press Ctrl+C to cancel, or wait 5 seconds to continue...`, colors.yellow);
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
 
-  // Process in batches
-  let processed = 0;
-  let success = 0;
-  let failed = 0;
-  const startTime = Date.now();
+  // Initialize stats
+  const stats: ProcessingStats = checkpoint?.stats || {
+    total: targetCount,
+    processed: 0,
+    success: 0,
+    failed: 0,
+    skipped: 0,
+    retried: 0,
+    startTime: Date.now(),
+    checkpointsSaved: 0,
+  };
+
+  const failedRecipes: FailedRecipe[] = [];
+  const startTime = checkpoint ? checkpoint.stats.startTime : Date.now();
 
   log(`\n${'='.repeat(80)}`, colors.cyan);
-  log('Starting batch processing...', colors.cyan);
+  log('🚀 Starting batch processing...', colors.cyan);
   log('='.repeat(80), colors.cyan);
 
-  while (processed < missing) {
-    // Get next batch
-    const batch = await db.execute(sql`
+  while (stats.processed < targetCount) {
+    // Get next batch, excluding already processed recipes
+    let query = sql`
       SELECT r.*
       FROM recipes r
       LEFT JOIN recipe_embeddings e ON r.id = e.recipe_id
       WHERE e.id IS NULL
-      LIMIT ${BATCH_SIZE}
-    `);
+    `;
 
+    // Exclude already processed recipes if resuming
+    if (processedRecipeIds.size > 0) {
+      const idsArray = Array.from(processedRecipeIds);
+      query = sql`
+        SELECT r.*
+        FROM recipes r
+        LEFT JOIN recipe_embeddings e ON r.id = e.recipe_id
+        WHERE e.id IS NULL AND r.id NOT IN ${idsArray}
+      `;
+    }
+
+    query = sql`${query} LIMIT ${BATCH_SIZE}`;
+
+    const batch = await db.execute(query);
     const recipes = batch.rows as any[];
 
     if (recipes.length === 0) {
-      break; // No more recipes to process
+      log('\n✅ No more recipes to process', colors.green);
+      break;
     }
 
-    log(`\n[Batch ${Math.floor(processed / BATCH_SIZE) + 1}] Processing ${recipes.length} recipes...`, colors.cyan);
+    const batchNum = Math.floor(stats.processed / BATCH_SIZE) + 1;
+    log(`\n[Batch ${batchNum}] Processing ${recipes.length} recipes...`, colors.cyan);
 
     for (let i = 0; i < recipes.length; i++) {
+      if (stats.processed >= targetCount) {
+        log(`\n⚠️  Reached target count of ${targetCount}, stopping...`, colors.yellow);
+        break;
+      }
+
       const recipe = recipes[i];
-      const overall = processed + i + 1;
+      const overall = stats.processed + 1;
+      const percentage = ((overall / targetCount) * 100).toFixed(1);
 
-      try {
-        log(`  [${overall}/${missing}] ${recipe.name}...`, colors.blue);
+      log(`\n[${overall}/${targetCount}] (${percentage}%) ${recipe.name}`, colors.blue);
+      log(`  ID: ${recipe.id}`, colors.blue);
 
-        if (!DRY_RUN) {
-          const result = await generateRecipeEmbedding(recipe);
-          await saveRecipeEmbedding(
-            recipe.id,
-            result.embedding,
-            result.embeddingText,
-            result.modelName
+      if (DRY_RUN) {
+        log(`  ✓ Would generate embedding (dry run)`, colors.green);
+        stats.success++;
+      } else {
+        const result = await generateEmbeddingWithRetry(recipe, MAX_RETRIES, tmpDir);
+
+        if (result.success) {
+          log(
+            `  ✅ Success (${result.attempts} attempt${result.attempts > 1 ? 's' : ''})`,
+            colors.green
           );
-
-          // Delay to avoid rate limits
-          if (i < recipes.length - 1 || processed + recipes.length < missing) {
-            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+          stats.success++;
+          if (result.attempts > 1) {
+            stats.retried++;
           }
+        } else {
+          log(`  ❌ Failed after ${result.attempts} attempts: ${result.error}`, colors.red);
+          stats.failed++;
+          failedRecipes.push({
+            recipeId: recipe.id,
+            recipeName: recipe.name,
+            error: result.error || 'Unknown error',
+            attempts: result.attempts,
+          });
         }
 
-        log(`    ✓ Success`, colors.green);
-        success++;
-      } catch (error: any) {
-        log(`    ✗ Failed: ${error.message}`, colors.red);
-        failed++;
+        // Delay to avoid rate limits (except on last recipe)
+        if (i < recipes.length - 1 && overall < targetCount) {
+          await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+        }
+      }
+
+      stats.processed++;
+      processedRecipeIds.add(recipe.id);
+
+      // Save checkpoint periodically
+      if (stats.processed % CHECKPOINT_INTERVAL === 0 && !DRY_RUN) {
+        const checkpointData: Checkpoint = {
+          timestamp: new Date().toISOString(),
+          processedRecipeIds: Array.from(processedRecipeIds),
+          stats,
+        };
+        const _checkpointPath = await saveCheckpoint(checkpointData, tmpDir);
+        stats.checkpointsSaved++;
+        log(`  💾 Checkpoint saved (${stats.checkpointsSaved})`, colors.magenta);
       }
     }
 
-    processed += recipes.length;
-
     // Progress report
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const remaining = missing - processed;
-    const rate = processed / elapsed; // recipes per second
-    const eta = remaining > 0 ? Math.ceil(remaining / rate) : 0;
+    const elapsed = (Date.now() - startTime) / 1000;
+    const remaining = targetCount - stats.processed;
+    const rate = stats.processed / elapsed; // recipes per second
+    const eta = remaining > 0 ? remaining / rate : 0;
 
-    log(`\nProgress: ${processed}/${missing} (${((processed / missing) * 100).toFixed(1)}%)`, colors.cyan);
-    log(`  Success: ${success} | Failed: ${failed}`, success > failed ? colors.green : colors.yellow);
+    log(`\n📊 Progress Report:`, colors.cyan);
+    log(
+      `  Processed: ${stats.processed.toLocaleString()}/${targetCount.toLocaleString()} (${((stats.processed / targetCount) * 100).toFixed(1)}%)`,
+      colors.blue
+    );
+    log(
+      `  Success: ${stats.success.toLocaleString()} | Failed: ${stats.failed.toLocaleString()} | Retried: ${stats.retried.toLocaleString()}`,
+      stats.success > stats.failed ? colors.green : colors.yellow
+    );
     log(`  Elapsed: ${formatTime(elapsed)} | ETA: ${formatTime(eta)}`, colors.blue);
+    log(`  Rate: ${(rate * 60).toFixed(1)} recipes/min`, colors.blue);
+
+    if (stats.processed < targetCount) {
+      log(`  ⏳ Waiting ${DELAY_MS}ms before next batch...`, colors.cyan);
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+    }
   }
 
   // Final summary
-  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const totalTime = (Date.now() - startTime) / 1000;
+  const finalCount = await countRecipeEmbeddings();
+  const totalRecipesResult = await db.execute(sql`SELECT COUNT(*) as count FROM recipes`);
+  const totalRecipesCount = Number(totalRecipesResult.rows[0]?.count || 0);
+  const coverage = ((finalCount / totalRecipesCount) * 100).toFixed(1);
 
   log(`\n${'='.repeat(80)}`, colors.bright);
-  log('GENERATION COMPLETE', colors.bright);
+  log('✅ GENERATION COMPLETE', colors.bright);
   log('='.repeat(80), colors.bright);
 
-  log(`\nResults:`, colors.cyan);
-  log(`  Total processed: ${processed}`, colors.blue);
-  log(`  Successful: ${success}`, colors.green);
-  log(`  Failed: ${failed}`, failed > 0 ? colors.red : colors.green);
+  log(`\n📊 Final Results:`, colors.cyan);
+  log(`  Total processed: ${stats.processed.toLocaleString()}`, colors.blue);
+  log(`  Successful: ${stats.success.toLocaleString()}`, colors.green);
+  log(`  Failed: ${stats.failed.toLocaleString()}`, stats.failed > 0 ? colors.red : colors.green);
+  log(
+    `  Retried: ${stats.retried.toLocaleString()}`,
+    stats.retried > 0 ? colors.yellow : colors.blue
+  );
+  log(`  Checkpoints saved: ${stats.checkpointsSaved}`, colors.magenta);
   log(`  Total time: ${formatTime(totalTime)}`, colors.blue);
+  log(
+    `  Average rate: ${((stats.processed / totalTime) * 60).toFixed(1)} recipes/min`,
+    colors.blue
+  );
 
-  if (failed > 0) {
-    log(`\n⚠️  ${failed} recipes failed to generate embeddings`, colors.yellow);
-    log(`   You can re-run this script to retry failed recipes`, colors.yellow);
-  } else if (success > 0) {
-    log(`\n✅ All embeddings generated successfully!`, colors.green);
+  log(`\n📈 Database Coverage:`, colors.cyan);
+  log(`  Total recipes: ${totalRecipesCount.toLocaleString()}`, colors.blue);
+  log(`  With embeddings: ${finalCount.toLocaleString()} (${coverage}%)`, colors.green);
+
+  if (stats.failed > 0) {
+    log(`\n⚠️  Failed Recipes (${stats.failed}):`, colors.yellow);
+    const displayCount = Math.min(10, failedRecipes.length);
+    for (let i = 0; i < displayCount; i++) {
+      const failed = failedRecipes[i];
+      log(`  ${i + 1}. ${failed.recipeName}`, colors.red);
+      log(`     ID: ${failed.recipeId}`, colors.red);
+      log(`     Error: ${failed.error}`, colors.red);
+      log(`     Attempts: ${failed.attempts}`, colors.red);
+    }
+    if (failedRecipes.length > displayCount) {
+      log(`  ... and ${failedRecipes.length - displayCount} more`, colors.red);
+    }
+    log(`\n   Error log saved to: ${path.join(tmpDir, 'embedding-errors.log')}`, colors.yellow);
+    log(`   You can re-run with --resume to retry failed recipes`, colors.yellow);
+  } else if (stats.success > 0) {
+    log(`\n✨ All embeddings generated successfully!`, colors.green);
   }
 
-  // Final count
-  const finalCount = await countRecipeEmbeddings();
-  const coverage = ((finalCount / recipeCount) * 100).toFixed(1);
-  log(`\nFinal Coverage: ${finalCount}/${recipeCount} (${coverage}%)`, colors.bright);
+  // Save final report
+  if (!DRY_RUN) {
+    const reportPath = path.join(tmpDir, `embedding-generation-report-${getTimestamp()}.json`);
+    await fs.writeFile(
+      reportPath,
+      JSON.stringify(
+        {
+          timestamp: new Date().toISOString(),
+          stats,
+          failedRecipes,
+          configuration: {
+            batchSize: BATCH_SIZE,
+            delayMs: DELAY_MS,
+            maxRetries: MAX_RETRIES,
+            checkpointInterval: CHECKPOINT_INTERVAL,
+            model: 'BAAI/bge-small-en-v1.5',
+          },
+          coverage: {
+            total: totalRecipesCount,
+            withEmbeddings: finalCount,
+            percentage: coverage,
+          },
+        },
+        null,
+        2
+      )
+    );
+    log(`\n📁 Report saved to: ${reportPath}`, colors.cyan);
+  }
 
-  process.exit(failed > 0 ? 1 : 0);
+  // Clear checkpoint on successful completion
+  if (stats.failed === 0) {
+    await clearCheckpoint(tmpDir);
+    log(`\n🗑️  Checkpoint cleared (no failures)`, colors.green);
+  }
+
+  if (DRY_RUN) {
+    log(`\n💡 Next Steps:`, colors.cyan);
+    log(`   - Review the output above`, colors.blue);
+    log(`   - Run with --execute to generate embeddings`, colors.blue);
+    log(`   - Use --limit=10 to test on a small batch first`, colors.blue);
+  }
+
+  process.exit(stats.failed > 0 ? 1 : 0);
 }
 
 main().catch((error) => {

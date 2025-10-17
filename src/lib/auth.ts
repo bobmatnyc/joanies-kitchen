@@ -1,5 +1,5 @@
 import { auth as clerkAuth } from '@clerk/nextjs/server';
-import { isClerkConfigured, isAuthEnabled } from './auth-config';
+import { isAuthEnabled } from './auth-config';
 
 export async function auth() {
   // Check if authentication is enabled

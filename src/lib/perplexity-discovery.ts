@@ -10,7 +10,7 @@
  */
 
 import OpenAI from 'openai';
-import { WeekInfo } from '@/lib/week-utils';
+import type { WeekInfo } from '@/lib/week-utils';
 
 const perplexity = new OpenAI({
   apiKey: process.env.PERPLEXITY_API_KEY || '',
@@ -47,7 +47,9 @@ export async function discoverWeeklyRecipes(
     const cuisineFilter = options?.cuisine ? ` focusing on ${options.cuisine} cuisine` : '';
     const maxResults = options?.maxResults || 10;
 
-    console.log(`[Perplexity] Discovering${cuisineFilter} recipes from week ${weekInfo.week}, ${weekInfo.year}`);
+    console.log(
+      `[Perplexity] Discovering${cuisineFilter} recipes from week ${weekInfo.week}, ${weekInfo.year}`
+    );
     console.log(`[Perplexity] Date range: ${weekInfo.startDate} to ${weekInfo.endDate}`);
 
     // Optimized prompt for better discovery rate
@@ -114,10 +116,12 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
 
     const response = await perplexity.chat.completions.create({
       model: 'sonar',
-      messages: [{
-        role: 'user',
-        content: prompt,
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
       temperature: 0.2, // Lower temperature for more focused results
       max_tokens: 4000,
     });
@@ -155,7 +159,9 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
       );
     });
 
-    console.log(`[Perplexity] Found ${validRecipes.length} valid recipes for week ${weekInfo.year}-W${weekInfo.week}`);
+    console.log(
+      `[Perplexity] Found ${validRecipes.length} valid recipes for week ${weekInfo.year}-W${weekInfo.week}`
+    );
 
     return {
       success: true,
@@ -167,7 +173,6 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
         source: r.source || '',
       })),
     };
-
   } catch (error: any) {
     console.error('[Perplexity] Discovery failed:', error.message);
     return {

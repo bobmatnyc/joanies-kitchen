@@ -1,16 +1,11 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import {
-  favorites,
-  userProfiles,
-  type Favorite,
-  type NewFavorite,
-} from '@/lib/db/user-discovery-schema';
-import { recipes } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
+import { favorites } from '@/lib/db/user-discovery-schema';
 
 /**
  * Favorites Server Actions
@@ -34,23 +29,16 @@ export async function addFavorite(recipeId: string) {
       return { success: false, error: 'Please sign in to favorite recipes' };
     }
 
-    // Check if user has a profile
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.user_id, userId))
-      .limit(1);
+    // Ensure user has a profile (auto-create if needed)
+    const { ensureUserProfile } = await import('./user-profiles');
+    const profile = await ensureUserProfile();
 
     if (!profile) {
-      return { success: false, error: 'Please create a profile first' };
+      return { success: false, error: 'Failed to create user profile' };
     }
 
     // Check if recipe exists
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (!recipe) {
       return { success: false, error: 'Recipe not found' };

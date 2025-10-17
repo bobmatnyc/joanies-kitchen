@@ -6,11 +6,11 @@
  */
 
 import 'dotenv/config';
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { eq, isNull, sql } from 'drizzle-orm';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const MODEL = 'google/gemini-2.5-flash-image-preview';
@@ -63,10 +63,10 @@ COMPOSITION:
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3003',
-      'X-Title': 'Joanie\'s Kitchen - Recipe Manager',
+      'X-Title': "Joanie's Kitchen - Recipe Manager",
     },
     body: JSON.stringify({
       model: MODEL,
@@ -90,7 +90,7 @@ COMPOSITION:
   const data = await response.json();
 
   // Debug: Log response structure
-  console.log('📦 Response structure:', JSON.stringify(data, null, 2).slice(0, 500) + '...');
+  console.log('📦 Response structure:', `${JSON.stringify(data, null, 2).slice(0, 500)}...`);
 
   // Check if image was generated
   const message = data.choices?.[0]?.message;
@@ -168,7 +168,7 @@ async function saveImage(imageData: any, recipeId: string, recipeName: string): 
  */
 async function main() {
   console.log('\n============================================================');
-  console.log('🎨 JOANIE\'S KITCHEN - RECIPE IMAGE GENERATION TEST');
+  console.log("🎨 JOANIE'S KITCHEN - RECIPE IMAGE GENERATION TEST");
   console.log('============================================================\n');
   console.log(`Model: ${MODEL}`);
   console.log(`Cost per image: ~$0.039 (1024x1024)`);
@@ -187,9 +187,7 @@ async function main() {
         ingredients: recipes.ingredients,
       })
       .from(recipes)
-      .where(
-        sql`(${recipes.images} IS NULL OR ${recipes.images}::jsonb = '[]'::jsonb)`
-      )
+      .where(sql`(${recipes.images} IS NULL OR ${recipes.images}::jsonb = '[]'::jsonb)`)
       .orderBy(sql`RANDOM()`)
       .limit(3);
 
@@ -247,9 +245,8 @@ async function main() {
         // Rate limiting: wait 2 seconds between requests
         if (index < sampleRecipes.length - 1) {
           console.log('\n⏳ Waiting 2 seconds before next request...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-
       } catch (error) {
         console.error(`❌ Failed to generate image for ${recipe.name}:`, error);
         console.error(error instanceof Error ? error.message : String(error));
@@ -273,11 +270,10 @@ async function main() {
 
       console.log('\n💡 Next steps:');
       console.log('  1. Review generated images in tmp/ai-recipe-images/');
-      console.log('  2. Assess quality and style match to Joanie\'s Kitchen brand');
+      console.log("  2. Assess quality and style match to Joanie's Kitchen brand");
       console.log('  3. If satisfied, can batch generate for remaining recipes');
       console.log(`  4. Estimated cost for all 3,276 recipes: $${(3276 * 0.039).toFixed(2)}\n`);
     }
-
   } catch (error) {
     console.error('\n❌ Error:', error);
     throw error;

@@ -1,13 +1,9 @@
+import { UserButton } from '@clerk/nextjs';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Server-side auth check
   const { sessionClaims } = await auth();
 
@@ -73,9 +69,7 @@ export default async function AdminLayout({
       </header>
 
       {/* Admin Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
     </div>
   );
 }

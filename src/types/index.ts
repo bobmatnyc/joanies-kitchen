@@ -1,7 +1,7 @@
 // Re-export database types
 export type {
-  Recipe,
   NewRecipe,
+  Recipe,
 } from '@/lib/db/schema';
 
 // UI-specific types
@@ -25,7 +25,7 @@ export interface ShoppingListItem {
 export interface MealPlanEntry {
   date: string;
   breakfast?: number; // Recipe ID
-  lunch?: number;     // Recipe ID
-  dinner?: number;    // Recipe ID
-  snack?: number;     // Recipe ID
+  lunch?: number; // Recipe ID
+  dinner?: number; // Recipe ID
+  snack?: number; // Recipe ID
 }

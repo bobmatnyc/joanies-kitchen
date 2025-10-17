@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { AlertCircle, CheckCircle2, Link, Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { uploadRecipeWithAI, uploadRecipeFromUrl } from '@/app/actions/ai-upload';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { uploadRecipeFromUrl, uploadRecipeWithAI } from '@/app/actions/ai-upload';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Link, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 
 type UploadMode = 'text' | 'url';
 
@@ -29,7 +29,7 @@ export function AIRecipeUploader() {
     try {
       const result = await uploadRecipeWithAI({
         text,
-        images: [] // TODO: Implement image upload to cloud storage
+        images: [], // TODO: Implement image upload to cloud storage
       });
 
       if (result.success && result.recipe) {
@@ -88,9 +88,7 @@ export function AIRecipeUploader() {
 
         <TabsContent value="text" className="space-y-4 mt-6">
           <div>
-            <label className="text-sm font-medium text-jk-olive">
-              Recipe Text
-            </label>
+            <label className="text-sm font-medium text-jk-olive">Recipe Text</label>
             <Textarea
               placeholder="Paste your recipe here (any format works!)...
 
@@ -139,9 +137,7 @@ Instructions:
 
         <TabsContent value="url" className="space-y-4 mt-6">
           <div>
-            <label className="text-sm font-medium text-jk-olive">
-              Recipe URL
-            </label>
+            <label className="text-sm font-medium text-jk-olive">Recipe URL</label>
             <Input
               type="url"
               placeholder="https://example.com/recipe"
@@ -154,11 +150,7 @@ Instructions:
             </p>
           </div>
 
-          <Button
-            onClick={handleUrlUpload}
-            disabled={!url.trim() || isLoading}
-            className="w-full"
-          >
+          <Button onClick={handleUrlUpload} disabled={!url.trim() || isLoading} className="w-full">
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -178,9 +170,7 @@ Instructions:
       {success && (
         <Alert className="mt-4 border-green-500 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            {success}
-          </AlertDescription>
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
         </Alert>
       )}
 
@@ -188,18 +178,15 @@ Instructions:
       {error && (
         <Alert className="mt-4 border-red-500 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            {error}
-          </AlertDescription>
+          <AlertDescription className="text-red-800">{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Info Box */}
       <div className="mt-6 p-4 bg-jk-linen rounded-lg border border-jk-olive/20">
         <p className="text-sm text-jk-olive-dark">
-          <strong>AI Powered:</strong> Our AI will parse your recipe and extract
-          ingredients with amounts, instructions, cook times, and more! Just paste
-          any recipe text or provide a URL.
+          <strong>AI Powered:</strong> Our AI will parse your recipe and extract ingredients with
+          amounts, instructions, cook times, and more! Just paste any recipe text or provide a URL.
         </p>
       </div>
     </div>

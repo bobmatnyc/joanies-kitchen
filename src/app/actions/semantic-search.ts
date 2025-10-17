@@ -1,11 +1,18 @@
 'use server';
 
+import { and, eq, like, or, sql } from 'drizzle-orm';
 import { generateEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
-import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
-import { db } from '@/lib/db';
-import { recipes, recipeEmbeddings, type Recipe } from '@/lib/db/schema';
 import { auth } from '@/lib/auth';
-import { eq, or, like, and, sql } from 'drizzle-orm';
+import {
+  ENABLE_CACHE_STATS,
+  generateSemanticSearchKey,
+  generateSimilarRecipesKey,
+  searchCaches,
+} from '@/lib/cache';
+import { db } from '@/lib/db';
+import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
+import { type Recipe, recipes } from '@/lib/db/schema';
+import { type RankingMode, rankRecipes } from '@/lib/search';
 
 /**
  * Search options for semantic and hybrid search
@@ -17,6 +24,10 @@ export interface SearchOptions {
   difficulty?: 'easy' | 'medium' | 'hard';
   dietaryRestrictions?: string[];
   includePrivate?: boolean;
+  /** Ranking mode to use (default: 'balanced') */
+  rankingMode?: RankingMode;
+  /** Include score breakdown for debugging */
+  includeScoreBreakdown?: boolean;
 }
 
 /**
@@ -75,6 +86,21 @@ export async function semanticSearchRecipes(
     const limit = options.limit || 20;
     const minSimilarity = options.minSimilarity || 0.3;
 
+    // Generate cache key
+    const cacheKey = generateSemanticSearchKey(query, {
+      ...options,
+      userId: userId || 'anonymous',
+    });
+
+    // Check cache
+    const cached = searchCaches.semantic.get<SemanticSearchResult>(cacheKey);
+    if (cached) {
+      if (ENABLE_CACHE_STATS) {
+        console.log(`[Cache HIT] Semantic search: ${query.substring(0, 50)}`);
+      }
+      return cached;
+    }
+
     // Generate embedding for query
     const queryEmbedding = await generateEmbedding(query);
 
@@ -86,7 +112,7 @@ export async function semanticSearchRecipes(
     );
 
     // Extract recipe IDs from embeddings
-    const recipeIds = similarEmbeddings.map(e => e.recipe_id);
+    const recipeIds = similarEmbeddings.map((e) => e.recipe_id);
 
     if (recipeIds.length === 0) {
       return {
@@ -96,9 +122,7 @@ export async function semanticSearchRecipes(
     }
 
     // Build filter conditions
-    const conditions = [
-      sql`${recipes.id} IN ${recipeIds}`
-    ];
+    const conditions = [sql`${recipes.id} IN ${recipeIds}`];
 
     // Apply cuisine filter
     if (options.cuisine) {
@@ -141,45 +165,54 @@ export async function semanticSearchRecipes(
     // Apply dietary restrictions filter (tags-based)
     let results = filteredRecipes;
     if (options.dietaryRestrictions && options.dietaryRestrictions.length > 0) {
-      results = filteredRecipes.filter(recipe => {
+      results = filteredRecipes.filter((recipe) => {
         if (!recipe.tags) return false;
 
         try {
-          const tags = typeof recipe.tags === 'string'
-            ? JSON.parse(recipe.tags)
-            : recipe.tags;
+          const tags = typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags;
 
           if (!Array.isArray(tags)) return false;
 
           // Recipe must have at least one of the dietary restrictions
-          return options.dietaryRestrictions!.some(restriction =>
-            tags.some((tag: string) =>
-              tag.toLowerCase().includes(restriction.toLowerCase())
-            )
+          return options.dietaryRestrictions?.some((restriction) =>
+            tags.some((tag: string) => tag.toLowerCase().includes(restriction.toLowerCase()))
           );
-        } catch (error) {
+        } catch (_error) {
           return false;
         }
       });
     }
 
     // Map recipes to include similarity scores
-    const recipesWithSimilarity: RecipeWithSimilarity[] = results
-      .map(recipe => {
-        const embedding = similarEmbeddings.find(e => e.recipe_id === recipe.id);
-        return {
-          ...recipe,
-          similarity: embedding?.similarity || 0,
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    const recipesWithSimilarity: RecipeWithSimilarity[] = results.map((recipe) => {
+      const embedding = similarEmbeddings.find((e) => e.recipe_id === recipe.id);
+      return {
+        ...recipe,
+        similarity: embedding?.similarity || 0,
+      };
+    });
 
-    return {
+    // Apply weighted ranking algorithm
+    const rankedRecipes = rankRecipes(recipesWithSimilarity, {
+      mode: options.rankingMode || 'balanced',
+      includeScoreBreakdown: options.includeScoreBreakdown || false,
+    });
+
+    // Apply limit after ranking
+    const finalRecipes = rankedRecipes.slice(0, limit);
+
+    const result = {
       success: true,
-      recipes: recipesWithSimilarity,
+      recipes: finalRecipes,
     };
 
+    // Store in cache
+    searchCaches.semantic.set(cacheKey, result);
+    if (ENABLE_CACHE_STATS) {
+      console.log(`[Cache MISS] Semantic search: ${query.substring(0, 50)}`);
+    }
+
+    return result;
   } catch (error: any) {
     console.error('Semantic search failed:', error);
     return {
@@ -207,8 +240,20 @@ export async function findSimilarToRecipe(
   limit: number = 10
 ): Promise<SemanticSearchResult> {
   try {
+    // Generate cache key
+    const cacheKey = generateSimilarRecipesKey(recipeId, limit);
+
+    // Check cache
+    const cached = searchCaches.similar.get<SemanticSearchResult>(cacheKey);
+    if (cached) {
+      if (ENABLE_CACHE_STATS) {
+        console.log(`[Cache HIT] Similar recipes: ${recipeId}`);
+      }
+      return cached;
+    }
+
     // Get the recipe's embedding
-    let embedding = await getRecipeEmbedding(recipeId);
+    const embedding = await getRecipeEmbedding(recipeId);
 
     if (!embedding) {
       // Generate embedding if missing
@@ -225,23 +270,21 @@ export async function findSimilarToRecipe(
       }
 
       // Generate and save embedding
-      const result = await generateRecipeEmbedding(recipe);
+      const embeddingResult = await generateRecipeEmbedding(recipe);
       const { saveRecipeEmbedding } = await import('@/lib/db/embeddings');
       await saveRecipeEmbedding(
         recipeId,
-        result.embedding,
-        result.embeddingText,
-        result.modelName
+        embeddingResult.embedding,
+        embeddingResult.embeddingText,
+        embeddingResult.modelName
       );
 
       // Use the newly generated embedding
-      const embeddingVector = result.embedding;
+      const embeddingVector = embeddingResult.embedding;
       const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5);
 
       // Get recipe details and exclude the original recipe
-      const recipeIds = similar
-        .map(e => e.recipe_id)
-        .filter(id => id !== recipeId);
+      const recipeIds = similar.map((e) => e.recipe_id).filter((id) => id !== recipeId);
 
       if (recipeIds.length === 0) {
         return { success: true, recipes: [] };
@@ -252,34 +295,45 @@ export async function findSimilarToRecipe(
         .from(recipes)
         .where(sql`${recipes.id} IN ${recipeIds}`);
 
-      const recipesWithSimilarity = similarRecipes
-        .map(r => {
-          const sim = similar.find(s => s.recipe_id === r.id);
-          return {
-            ...r,
-            similarity: sim?.similarity || 0,
-          };
-        })
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, limit);
+      const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
+        const sim = similar.find((s) => s.recipe_id === r.id);
+        return {
+          ...r,
+          similarity: sim?.similarity || 0,
+        };
+      });
 
-      return {
+      // Apply ranking (use semantic mode for similar recipes)
+      const rankedRecipes = rankRecipes(recipesWithSimilarity, {
+        mode: 'semantic', // Prioritize similarity for similar recipe recommendations
+      });
+
+      const finalRecipes = rankedRecipes.slice(0, limit);
+
+      const result = {
         success: true,
-        recipes: recipesWithSimilarity,
+        recipes: finalRecipes,
       };
+
+      // Store in cache
+      searchCaches.similar.set(cacheKey, result);
+      if (ENABLE_CACHE_STATS) {
+        console.log(`[Cache MISS] Similar recipes: ${recipeId}`);
+      }
+
+      return result;
     }
 
     // Use existing embedding
-    const embeddingVector = typeof embedding.embedding === 'string'
-      ? JSON.parse(embedding.embedding)
-      : embedding.embedding;
+    const embeddingVector =
+      typeof embedding.embedding === 'string'
+        ? JSON.parse(embedding.embedding)
+        : embedding.embedding;
 
     const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5);
 
     // Get recipe details and exclude the original recipe
-    const recipeIds = similar
-      .map(e => e.recipe_id)
-      .filter(id => id !== recipeId);
+    const recipeIds = similar.map((e) => e.recipe_id).filter((id) => id !== recipeId);
 
     if (recipeIds.length === 0) {
       return { success: true, recipes: [] };
@@ -290,22 +344,33 @@ export async function findSimilarToRecipe(
       .from(recipes)
       .where(sql`${recipes.id} IN ${recipeIds}`);
 
-    const recipesWithSimilarity = similarRecipes
-      .map(r => {
-        const sim = similar.find(s => s.recipe_id === r.id);
-        return {
-          ...r,
-          similarity: sim?.similarity || 0,
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
+      const sim = similar.find((s) => s.recipe_id === r.id);
+      return {
+        ...r,
+        similarity: sim?.similarity || 0,
+      };
+    });
 
-    return {
+    // Apply ranking (use semantic mode for similar recipes)
+    const rankedRecipes = rankRecipes(recipesWithSimilarity, {
+      mode: 'semantic', // Prioritize similarity for similar recipe recommendations
+    });
+
+    const finalRecipes = rankedRecipes.slice(0, limit);
+
+    const result = {
       success: true,
-      recipes: recipesWithSimilarity,
+      recipes: finalRecipes,
     };
 
+    // Store in cache
+    searchCaches.similar.set(cacheKey, result);
+    if (ENABLE_CACHE_STATS) {
+      console.log(`[Cache MISS] Similar recipes: ${recipeId}`);
+    }
+
+    return result;
   } catch (error: any) {
     console.error('Find similar failed:', error);
     return {
@@ -344,6 +409,23 @@ export async function hybridSearchRecipes(
     const { userId } = await auth();
     const limit = options.limit || 20;
 
+    // Generate cache key (use semantic cache with 'hybrid' prefix)
+    const cacheKey = `hybrid:${generateSemanticSearchKey(query, {
+      ...options,
+      userId: userId || 'anonymous',
+    })}`;
+
+    // Check cache
+    const cached = searchCaches.hybrid.get<SemanticSearchResult & { mergedCount?: number }>(
+      cacheKey
+    );
+    if (cached) {
+      if (ENABLE_CACHE_STATS) {
+        console.log(`[Cache HIT] Hybrid search: ${query.substring(0, 50)}`);
+      }
+      return cached;
+    }
+
     // 1. Get semantic search results
     const semanticResults = await semanticSearchRecipes(query, {
       ...options,
@@ -364,17 +446,12 @@ export async function hybridSearchRecipes(
         like(recipes.description, searchPattern),
         like(recipes.tags, searchPattern),
         like(recipes.cuisine, searchPattern)
-      )
+      ),
     ];
 
     // Apply visibility filter for text search
     if (!options.includePrivate || !userId) {
-      textConditions.push(
-        or(
-          eq(recipes.is_public, true),
-          eq(recipes.is_system_recipe, true)
-        )
-      );
+      textConditions.push(or(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true)));
     } else {
       textConditions.push(
         or(
@@ -392,11 +469,14 @@ export async function hybridSearchRecipes(
       .limit(limit * 2);
 
     // 3. Merge and rank results
-    const merged = new Map<string, RecipeWithSimilarity & {
-      semanticRank?: number;
-      textRank?: number;
-      combinedRank: number;
-    }>();
+    const merged = new Map<
+      string,
+      RecipeWithSimilarity & {
+        semanticRank?: number;
+        textRank?: number;
+        combinedRank: number;
+      }
+    >();
 
     // Add semantic results with high weight (0.7)
     semanticResults.recipes.forEach((recipe, index) => {
@@ -435,12 +515,19 @@ export async function hybridSearchRecipes(
       .sort((a, b) => a.combinedRank - b.combinedRank)
       .slice(0, limit);
 
-    return {
+    const result = {
       success: true,
       recipes: sorted,
       mergedCount: merged.size,
     };
 
+    // Store in cache
+    searchCaches.hybrid.set(cacheKey, result);
+    if (ENABLE_CACHE_STATS) {
+      console.log(`[Cache MISS] Hybrid search: ${query.substring(0, 50)}`);
+    }
+
+    return result;
   } catch (error: any) {
     console.error('Hybrid search failed:', error);
     return {
@@ -478,10 +565,7 @@ export async function getSearchSuggestions(
           eq(recipes.is_system_recipe, true),
           eq(recipes.user_id, userId)
         )
-      : or(
-          eq(recipes.is_public, true),
-          eq(recipes.is_system_recipe, true)
-        );
+      : or(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true));
 
     // Get matching recipes
     const matches = await db
@@ -506,23 +590,21 @@ export async function getSearchSuggestions(
     // Extract unique suggestions
     const suggestions = new Set<string>();
 
-    matches.forEach(match => {
+    matches.forEach((match) => {
       // Add recipe name if it matches
       if (match.name.toLowerCase().includes(partial.toLowerCase())) {
         suggestions.add(match.name);
       }
 
       // Add cuisine if it matches
-      if (match.cuisine && match.cuisine.toLowerCase().includes(partial.toLowerCase())) {
+      if (match.cuisine?.toLowerCase().includes(partial.toLowerCase())) {
         suggestions.add(match.cuisine);
       }
 
       // Add matching tags
       if (match.tags) {
         try {
-          const tags = typeof match.tags === 'string'
-            ? JSON.parse(match.tags)
-            : match.tags;
+          const tags = typeof match.tags === 'string' ? JSON.parse(match.tags) : match.tags;
 
           if (Array.isArray(tags)) {
             tags.forEach((tag: string) => {
@@ -531,7 +613,7 @@ export async function getSearchSuggestions(
               }
             });
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore parse errors
         }
       }
@@ -541,7 +623,6 @@ export async function getSearchSuggestions(
       success: true,
       suggestions: Array.from(suggestions).slice(0, limit),
     };
-
   } catch (error: any) {
     console.error('Get suggestions failed:', error);
     return {

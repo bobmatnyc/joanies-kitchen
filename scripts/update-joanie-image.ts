@@ -4,23 +4,27 @@
  */
 
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { put } from '@vercel/blob';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
-import { put } from '@vercel/blob';
-import { readFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 
 async function updateJoanieImage() {
-  console.log('📸 Updating Joanie\'s chef profile image...\n');
+  console.log("📸 Updating Joanie's chef profile image...\n");
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     console.error('❌ Error: BLOB_READ_WRITE_TOKEN not found');
     process.exit(1);
   }
 
-  const imagePath = join(homedir(), 'Downloads', '504041340_10057695487601842_5079363680862032781_n.jpg');
+  const imagePath = join(
+    homedir(),
+    'Downloads',
+    '504041340_10057695487601842_5079363680862032781_n.jpg'
+  );
 
   try {
     // Step 1: Upload to Vercel Blob
@@ -60,7 +64,6 @@ async function updateJoanieImage() {
     console.log('═'.repeat(70));
     console.log(`\n🎉 Joanie's profile image updated successfully!`);
     console.log(`\n🌐 View at: http://localhost:3002/discover/chefs`);
-
   } catch (error) {
     console.error('\n❌ Error:', error);
     throw error;

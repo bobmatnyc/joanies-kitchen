@@ -7,8 +7,10 @@
 
 import postgres from 'postgres';
 
-const OLD_DB = 'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-bold-credit-adu57qxu-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
-const NEW_DB = 'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
+const OLD_DB =
+  'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-bold-credit-adu57qxu-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
+const NEW_DB =
+  'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
 
 async function migrateData() {
   console.log('🔄 Connecting to databases...\n');
@@ -20,13 +22,13 @@ async function migrateData() {
     // Get recipe count from old database
     console.log('📊 Checking old database...');
     const oldRecipes = await oldSql`SELECT COUNT(*) as count FROM recipes`;
-    const oldCount = parseInt(oldRecipes[0].count);
+    const oldCount = parseInt(oldRecipes[0].count, 10);
     console.log(`   Found ${oldCount} recipes in old database\n`);
 
     // Get recipe count from new database
     console.log('📊 Checking new database...');
     const newRecipes = await newSql`SELECT COUNT(*) as count FROM recipes`;
-    const newCount = parseInt(newRecipes[0].count);
+    const newCount = parseInt(newRecipes[0].count, 10);
     console.log(`   Found ${newCount} recipes in new database\n`);
 
     if (oldCount === 0) {
@@ -72,7 +74,7 @@ async function migrateData() {
       }
     }
 
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${'='.repeat(80)}`);
     console.log('📊 MIGRATION SUMMARY');
     console.log('='.repeat(80));
     console.log(`Total recipes in old database: ${oldCount}`);
@@ -80,14 +82,13 @@ async function migrateData() {
     console.log(`Recipes migrated: ${inserted}`);
     console.log(`Recipes skipped (duplicates): ${skipped}`);
     console.log(`Total recipes in new database after: ${newCount + inserted}`);
-    console.log('='.repeat(80) + '\n');
+    console.log(`${'='.repeat(80)}\n`);
 
     if (inserted > 0) {
       console.log('✅ Migration completed successfully!\n');
     } else {
       console.log('ℹ️  No new recipes to migrate.\n');
     }
-
   } catch (error) {
     console.error('\n❌ Migration failed:', error);
     throw error;

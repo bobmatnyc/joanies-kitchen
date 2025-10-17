@@ -10,10 +10,10 @@
 
 'use client';
 
-import { useState } from 'react';
 import { Star } from 'lucide-react';
-import { rateRecipe } from '@/app/actions/rate-recipe';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { rateRecipe } from '@/app/actions/rate-recipe';
 
 interface RecipeRatingProps {
   recipeId: string;
@@ -32,7 +32,7 @@ interface RecipeRatingProps {
 function toNumber(value: number | string | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  return isNaN(num) ? null : num;
+  return Number.isNaN(num) ? null : num;
 }
 
 /**
@@ -60,12 +60,7 @@ function StarDisplay({
         const isFilled = starValue <= Math.round(rating);
 
         return (
-          <Star
-            key={i}
-            className={`w-4 h-4 ${
-              isFilled ? colorClasses[color] : 'text-gray-300'
-            }`}
-          />
+          <Star key={i} className={`w-4 h-4 ${isFilled ? colorClasses[color] : 'text-gray-300'}`} />
         );
       })}
     </div>
@@ -105,9 +100,7 @@ function StarRatingInput({
           >
             <Star
               className={`w-8 h-8 ${
-                isFilled
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'text-gray-300'
+                isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
               }`}
             />
           </button>
@@ -158,9 +151,7 @@ export function RecipeRating({
 
       if (result.success) {
         setSuccessMessage(
-          initialUserRating
-            ? 'Rating updated successfully!'
-            : 'Rating submitted successfully!'
+          initialUserRating ? 'Rating updated successfully!' : 'Rating submitted successfully!'
         );
 
         // Refresh the page to show updated ratings
@@ -183,19 +174,13 @@ export function RecipeRating({
       {systemRating !== null && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm font-medium text-blue-900">
-              AI Quality Score
-            </span>
+            <span className="text-sm font-medium text-blue-900">AI Quality Score</span>
             <StarDisplay rating={systemRating} color="blue" />
             <span className="text-sm font-semibold text-blue-900">
               {systemRating.toFixed(1)}/5.0
             </span>
           </div>
-          {systemRatingReason && (
-            <p className="text-sm text-blue-700 mt-2">
-              {systemRatingReason}
-            </p>
-          )}
+          {systemRatingReason && <p className="text-sm text-blue-700 mt-2">{systemRatingReason}</p>}
         </div>
       )}
 
@@ -203,9 +188,7 @@ export function RecipeRating({
       {avgUserRating !== null && totalUserRatings > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-green-900">
-              Community Rating
-            </span>
+            <span className="text-sm font-medium text-green-900">Community Rating</span>
             <StarDisplay rating={avgUserRating} color="green" />
             <span className="text-sm font-semibold text-green-900">
               {avgUserRating.toFixed(1)}/5.0
@@ -238,10 +221,7 @@ export function RecipeRating({
           </div>
 
           <div className="mb-4">
-            <label
-              htmlFor="review"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="review" className="block text-sm font-medium text-gray-700 mb-2">
               Review (optional)
             </label>
             <textarea
@@ -272,18 +252,12 @@ export function RecipeRating({
             disabled={loading || selectedRating === 0}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            {loading
-              ? 'Saving...'
-              : initialUserRating
-              ? 'Update Rating'
-              : 'Submit Rating'}
+            {loading ? 'Saving...' : initialUserRating ? 'Update Rating' : 'Submit Rating'}
           </button>
         </div>
       ) : (
         <div className="border rounded-lg p-4 bg-gray-50">
-          <p className="text-sm text-gray-600 text-center">
-            Please sign in to rate this recipe
-          </p>
+          <p className="text-sm text-gray-600 text-center">Please sign in to rate this recipe</p>
         </div>
       )}
     </div>

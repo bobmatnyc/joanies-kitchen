@@ -14,10 +14,10 @@
 
 import { useState } from 'react';
 import {
-  searchRecipes,
+  type BraveSearchResult,
   getSearchErrorMessage,
   isRecoverableSearchError,
-  type BraveSearchResult,
+  searchRecipes,
 } from '@/lib/brave-search';
 
 export function ExampleBraveSearch() {

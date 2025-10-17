@@ -1,6 +1,6 @@
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
 
 async function verifyStoredRecipes() {
   console.log('Querying database for week 38 recipes...\n');
@@ -47,8 +47,9 @@ async function verifyStoredRecipes() {
     console.log(`   Total Recipes: ${stats[0].total}`);
     console.log(`   With Embeddings: ${stats[0].withEmbeddings}`);
     console.log(`   Without Embeddings: ${stats[0].withoutEmbeddings}`);
-    console.log(`   Success Rate: ${((stats[0].withEmbeddings / stats[0].total) * 100).toFixed(1)}%`);
-
+    console.log(
+      `   Success Rate: ${((stats[0].withEmbeddings / stats[0].total) * 100).toFixed(1)}%`
+    );
   } catch (error) {
     console.error('❌ Database query failed:', error);
     throw error;

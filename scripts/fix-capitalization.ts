@@ -10,17 +10,17 @@
  *   pnpm run fix:capitalization:sample       # Test on 50 recipes
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
     'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
-    'X-Title': 'Joanie\'s Kitchen - Recipe Capitalization',
+    'X-Title': "Joanie's Kitchen - Recipe Capitalization",
   },
 });
 
@@ -56,24 +56,44 @@ function needsCapitalization(text: string): boolean {
  * Apply automatic title case (simple rules)
  */
 function applyTitleCase(text: string): string {
-  const smallWords = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'the', 'to', 'with'];
+  const smallWords = [
+    'a',
+    'an',
+    'and',
+    'as',
+    'at',
+    'but',
+    'by',
+    'for',
+    'from',
+    'in',
+    'into',
+    'of',
+    'on',
+    'or',
+    'the',
+    'to',
+    'with',
+  ];
 
   const words = text.toLowerCase().split(' ');
 
-  return words.map((word, index) => {
-    // Always capitalize first and last word
-    if (index === 0 || index === words.length - 1) {
+  return words
+    .map((word, index) => {
+      // Always capitalize first and last word
+      if (index === 0 || index === words.length - 1) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+
+      // Don't capitalize small words unless they're the first word
+      if (smallWords.includes(word)) {
+        return word;
+      }
+
+      // Capitalize everything else
       return word.charAt(0).toUpperCase() + word.slice(1);
-    }
-
-    // Don't capitalize small words unless they're the first word
-    if (smallWords.includes(word)) {
-      return word;
-    }
-
-    // Capitalize everything else
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  }).join(' ');
+    })
+    .join(' ');
 }
 
 /**
@@ -83,24 +103,32 @@ function applySentenceCase(text: string): string {
   // Split into sentences
   const sentences = text.split(/([.!?]\s+)/);
 
-  return sentences.map(sentence => {
-    if (sentence.match(/^[.!?]\s+$/)) return sentence;
+  return sentences
+    .map((sentence) => {
+      if (sentence.match(/^[.!?]\s+$/)) return sentence;
 
-    const trimmed = sentence.trim();
-    if (trimmed.length === 0) return sentence;
+      const trimmed = sentence.trim();
+      if (trimmed.length === 0) return sentence;
 
-    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-  }).join('');
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    })
+    .join('');
 }
 
 /**
  * Use LLM for complex capitalization fixes
  */
-async function fixWithLLM(text: string, type: 'title' | 'description' | 'instruction'): Promise<string> {
+async function fixWithLLM(
+  text: string,
+  type: 'title' | 'description' | 'instruction'
+): Promise<string> {
   const prompts = {
-    title: 'Fix the capitalization of this recipe title. Use title case (capitalize major words). Return ONLY the corrected title, nothing else.',
-    description: 'Fix the capitalization of this recipe description. Use sentence case (capitalize first letter of sentences). Return ONLY the corrected description, nothing else.',
-    instruction: 'Fix the capitalization of this recipe instruction. Use sentence case. Return ONLY the corrected instruction, nothing else.',
+    title:
+      'Fix the capitalization of this recipe title. Use title case (capitalize major words). Return ONLY the corrected title, nothing else.',
+    description:
+      'Fix the capitalization of this recipe description. Use sentence case (capitalize first letter of sentences). Return ONLY the corrected description, nothing else.',
+    instruction:
+      'Fix the capitalization of this recipe instruction. Use sentence case. Return ONLY the corrected instruction, nothing else.',
   };
 
   try {
@@ -138,9 +166,7 @@ async function processRecipe(
 
   // Check title
   if (needsCapitalization(recipe.name)) {
-    const fixed = useLLM
-      ? await fixWithLLM(recipe.name, 'title')
-      : applyTitleCase(recipe.name);
+    const fixed = useLLM ? await fixWithLLM(recipe.name, 'title') : applyTitleCase(recipe.name);
 
     if (fixed !== recipe.name) {
       changes.title = { old: recipe.name, new: fixed };
@@ -264,12 +290,14 @@ async function fixCapitalization() {
 
     processed++;
     if (processed % 10 === 0) {
-      console.log(`Progress: ${processed}/${allRecipes.length} (${((processed / allRecipes.length) * 100).toFixed(1)}%)\n`);
+      console.log(
+        `Progress: ${processed}/${allRecipes.length} (${((processed / allRecipes.length) * 100).toFixed(1)}%)\n`
+      );
     }
 
     // Rate limiting for LLM
     if (useLLM) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // 500ms between requests
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms between requests
     }
   }
 
@@ -280,7 +308,9 @@ async function fixCapitalization() {
   console.log(`Total recipes checked: ${allRecipes.length}`);
   console.log(`Recipes with fixes: ${fixes.length}`);
   console.log(`Recipes without issues: ${allRecipes.length - fixes.length}`);
-  console.log(`Percentage needing fixes: ${((fixes.length / allRecipes.length) * 100).toFixed(1)}%`);
+  console.log(
+    `Percentage needing fixes: ${((fixes.length / allRecipes.length) * 100).toFixed(1)}%`
+  );
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   if (dryRun) {

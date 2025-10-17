@@ -1,10 +1,10 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { heroBackgrounds, type HeroBackground, type NewHeroBackground } from '@/lib/db/schema';
 import { auth } from '@clerk/nextjs/server';
-import { eq, desc, asc, sql } from 'drizzle-orm';
 import { del } from '@vercel/blob';
+import { asc, desc, eq, sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { heroBackgrounds, type NewHeroBackground } from '@/lib/db/schema';
 
 /**
  * Get all active hero backgrounds (for homepage)
@@ -71,10 +71,7 @@ export async function createBackground(imageUrl: string, displayOrder?: number) 
       is_active: true,
     };
 
-    const [background] = await db
-      .insert(heroBackgrounds)
-      .values(newBackground)
-      .returning();
+    const [background] = await db.insert(heroBackgrounds).values(newBackground).returning();
 
     return { success: true, data: background };
   } catch (error) {
@@ -138,9 +135,7 @@ export async function deleteBackground(id: string) {
     }
 
     // Delete from database
-    await db
-      .delete(heroBackgrounds)
-      .where(eq(heroBackgrounds.id, id));
+    await db.delete(heroBackgrounds).where(eq(heroBackgrounds.id, id));
 
     // Delete from Vercel Blob (only if it's a blob URL)
     if (background.image_url.includes('blob.vercel-storage.com')) {
@@ -181,19 +176,20 @@ export async function reorderBackground(id: string, direction: 'up' | 'down') {
     }
 
     // Find the adjacent background to swap with
-    const adjacentQuery = direction === 'up'
-      ? db
-          .select()
-          .from(heroBackgrounds)
-          .where(sql`${heroBackgrounds.display_order} < ${current.display_order}`)
-          .orderBy(desc(heroBackgrounds.display_order))
-          .limit(1)
-      : db
-          .select()
-          .from(heroBackgrounds)
-          .where(sql`${heroBackgrounds.display_order} > ${current.display_order}`)
-          .orderBy(asc(heroBackgrounds.display_order))
-          .limit(1);
+    const adjacentQuery =
+      direction === 'up'
+        ? db
+            .select()
+            .from(heroBackgrounds)
+            .where(sql`${heroBackgrounds.display_order} < ${current.display_order}`)
+            .orderBy(desc(heroBackgrounds.display_order))
+            .limit(1)
+        : db
+            .select()
+            .from(heroBackgrounds)
+            .where(sql`${heroBackgrounds.display_order} > ${current.display_order}`)
+            .orderBy(asc(heroBackgrounds.display_order))
+            .limit(1);
 
     const [adjacent] = await adjacentQuery;
 

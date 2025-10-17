@@ -1,10 +1,10 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { recipeLikes, recipeForks, recipeComments, recipes } from '@/lib/db/schema';
-import { eq, and, count, desc } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
 
 // ==================
 // RECIPE LIKES
@@ -25,24 +25,14 @@ export async function toggleRecipeLike(recipeId: string) {
     const existingLike = await db
       .select()
       .from(recipeLikes)
-      .where(
-        and(
-          eq(recipeLikes.recipe_id, recipeId),
-          eq(recipeLikes.user_id, userId)
-        )
-      )
+      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)))
       .limit(1);
 
     if (existingLike.length > 0) {
       // Unlike: remove the like
       await db
         .delete(recipeLikes)
-        .where(
-          and(
-            eq(recipeLikes.recipe_id, recipeId),
-            eq(recipeLikes.user_id, userId)
-          )
-        );
+        .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)));
 
       // Get updated count
       const likesCount = await getRecipeLikesCount(recipeId);
@@ -123,12 +113,7 @@ export async function hasUserLikedRecipe(recipeId: string) {
     const result = await db
       .select()
       .from(recipeLikes)
-      .where(
-        and(
-          eq(recipeLikes.recipe_id, recipeId),
-          eq(recipeLikes.user_id, userId)
-        )
-      )
+      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)))
       .limit(1);
 
     return {
@@ -465,9 +450,7 @@ export async function deleteRecipeComment(commentId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    await db
-      .delete(recipeComments)
-      .where(eq(recipeComments.id, commentId));
+    await db.delete(recipeComments).where(eq(recipeComments.id, commentId));
 
     revalidatePath(`/recipes/${comment[0].recipe_id}`);
 
@@ -491,12 +474,7 @@ export async function getRecipeCommentCount(recipeId: string) {
     const result = await db
       .select({ count: count() })
       .from(recipeComments)
-      .where(
-        and(
-          eq(recipeComments.recipe_id, recipeId),
-          eq(recipeComments.is_flagged, false)
-        )
-      );
+      .where(and(eq(recipeComments.recipe_id, recipeId), eq(recipeComments.is_flagged, false)));
 
     return {
       success: true,

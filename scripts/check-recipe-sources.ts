@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
 
 async function checkSources() {
   console.log('Checking recipe sources in database...\n');
@@ -21,7 +21,7 @@ async function checkSources() {
 
   console.log('Top 20 Recipe Sources:');
   console.log('='.repeat(80));
-  sources.forEach(s => {
+  sources.forEach((s) => {
     console.log(`${String(s.count).padStart(6)} recipes | ${s.source}`);
   });
   console.log('='.repeat(80));
@@ -35,7 +35,7 @@ async function checkSources() {
     .where(sql`${recipes.source} LIKE '%seriouseats%'`)
     .limit(10);
 
-  seRecipes.forEach(r => {
+  seRecipes.forEach((r) => {
     console.log(`${r.name}`);
     console.log(`  Source: ${r.source}\n`);
   });

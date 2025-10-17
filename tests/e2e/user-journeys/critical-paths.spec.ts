@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { TEST_RECIPES, RECIPE_PATHS } from '../fixtures/test-recipes';
+import { expect, test } from '@playwright/test';
+import { RECIPE_PATHS, TEST_RECIPES } from '../fixtures/test-recipes';
 
 /**
  * UAT Test Suite: Critical User Journeys
@@ -38,7 +38,7 @@ test.describe('Critical User Journeys', () => {
 
     // Step 3: User clicks on a recipe that looks interesting
     const firstRecipe = recipeCards.first();
-    const recipeName = await firstRecipe.locator('h2, h3').textContent();
+    const _recipeName = await firstRecipe.locator('h2, h3').textContent();
     await firstRecipe.click();
 
     // Step 4: User views recipe details
@@ -218,9 +218,7 @@ test.describe('Critical User Journeys', () => {
       await expect(firstImage).toBeVisible();
 
       // Verify image loaded
-      const naturalWidth = await firstImage.evaluate(
-        (img: HTMLImageElement) => img.naturalWidth
-      );
+      const naturalWidth = await firstImage.evaluate((img: HTMLImageElement) => img.naturalWidth);
       expect(naturalWidth).toBeGreaterThan(0);
     }
 

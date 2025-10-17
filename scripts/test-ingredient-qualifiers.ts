@@ -9,7 +9,11 @@ import { hasValidAmountOrQualifier, normalizeIngredient } from '../src/lib/utils
 // Test cases with expected results
 const testCases = [
   // Valid ingredients with amounts
-  { ingredient: '2 cups all-purpose flour', shouldPass: true, normalized: '2 cups all-purpose flour' },
+  {
+    ingredient: '2 cups all-purpose flour',
+    shouldPass: true,
+    normalized: '2 cups all-purpose flour',
+  },
   { ingredient: '1 tablespoon olive oil', shouldPass: true, normalized: '1 tablespoon olive oil' },
   { ingredient: '½ cup milk', shouldPass: true, normalized: '½ cup milk' },
   { ingredient: 'A pinch of nutmeg', shouldPass: true, normalized: 'A pinch of nutmeg' },
@@ -29,7 +33,7 @@ const testCases = [
 ];
 
 console.log('🧪 Testing Ingredient Qualifier Handling\n');
-console.log('=' .repeat(80));
+console.log('='.repeat(80));
 
 let passed = 0;
 let failed = 0;
@@ -64,7 +68,7 @@ testCases.forEach((test, index) => {
   console.log('');
 });
 
-console.log('=' .repeat(80));
+console.log('='.repeat(80));
 console.log(`\n📊 Results: ${passed} passed, ${failed} failed out of ${testCases.length} tests`);
 
 if (failed === 0) {

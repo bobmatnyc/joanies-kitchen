@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { semanticSearchRecipes, hybridSearchRecipes, type SearchOptions } from '@/app/actions/semantic-search';
+import { type NextRequest, NextResponse } from 'next/server';
+import {
+  hybridSearchRecipes,
+  type SearchOptions,
+  semanticSearchRecipes,
+} from '@/app/actions/semantic-search';
 
 /**
  * POST /api/search/semantic
@@ -38,12 +42,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform search based on mode
-    const result = mode === 'hybrid'
-      ? await hybridSearchRecipes(query, options as SearchOptions)
-      : await semanticSearchRecipes(query, options as SearchOptions);
+    const result =
+      mode === 'hybrid'
+        ? await hybridSearchRecipes(query, options as SearchOptions)
+        : await semanticSearchRecipes(query, options as SearchOptions);
 
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
-
   } catch (error: any) {
     console.error('API semantic search error:', error);
     return NextResponse.json(
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
     const mode = searchParams.get('mode') || 'semantic';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
     const minSimilarity = parseFloat(searchParams.get('minSimilarity') || '0.5');
     const cuisine = searchParams.get('cuisine') || undefined;
     const difficulty = searchParams.get('difficulty') || undefined;
@@ -91,12 +95,12 @@ export async function GET(request: NextRequest) {
       includePrivate: true,
     };
 
-    const result = mode === 'hybrid'
-      ? await hybridSearchRecipes(query, options)
-      : await semanticSearchRecipes(query, options);
+    const result =
+      mode === 'hybrid'
+        ? await hybridSearchRecipes(query, options)
+        : await semanticSearchRecipes(query, options);
 
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
-
   } catch (error: any) {
     console.error('API semantic search error:', error);
     return NextResponse.json(

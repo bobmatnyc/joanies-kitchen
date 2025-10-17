@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 async function check() {
   const [joanie] = await db.select().from(chefs).where(eq(chefs.slug, 'joanie')).limit(1);

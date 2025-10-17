@@ -2,10 +2,9 @@
 
 import dynamic from 'next/dynamic';
 
-export const Dialog = dynamic(
-  () => import('./dialog').then((mod) => ({ default: mod.Dialog })),
-  { ssr: false }
-);
+export const Dialog = dynamic(() => import('./dialog').then((mod) => ({ default: mod.Dialog })), {
+  ssr: false,
+});
 
 export const DialogContent = dynamic(
   () => import('./dialog').then((mod) => ({ default: mod.DialogContent })),

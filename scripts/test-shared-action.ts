@@ -3,9 +3,9 @@
  * This verifies the action works end-to-end with the fixed schema
  */
 
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
 
 async function testSharedRecipesAction() {
   console.log('\n=== Testing getSharedRecipes() Server Action ===\n');
@@ -40,7 +40,7 @@ async function testSharedRecipesAction() {
       .from(recipes)
       .where(
         and(
-          eq(recipes.isPublic, true),
+          eq(recipes.isPublic, true)
           // Could add more conditions here
         )
       )
@@ -55,7 +55,7 @@ async function testSharedRecipesAction() {
     if (complexQuery.length > 0) {
       const sample = complexQuery[0];
       const requiredFields = ['id', 'name', 'userId', 'isPublic', 'isSystemRecipe'];
-      const missingFields = requiredFields.filter(field => !(field in sample));
+      const missingFields = requiredFields.filter((field) => !(field in sample));
 
       if (missingFields.length > 0) {
         console.error(`   ✗ Missing fields: ${missingFields.join(', ')}`);
@@ -70,7 +70,7 @@ async function testSharedRecipesAction() {
 
     // Final verification
     console.log('\n4. Schema synchronization verification...');
-    const schemaTest = await db
+    const _schemaTest = await db
       .select({
         userId: recipes.userId,
         isPublic: recipes.isPublic,
@@ -92,7 +92,6 @@ async function testSharedRecipesAction() {
     console.log('- ✅ SharedRecipeCarousel ready to use');
 
     return { success: true, recipeCount: publicRecipes.length };
-
   } catch (error) {
     console.error('\n❌ ERROR: Server action test failed');
     console.error('Error details:', error);
@@ -109,11 +108,11 @@ async function testSharedRecipesAction() {
 
 // Run the test
 testSharedRecipesAction()
-  .then(result => {
+  .then((result) => {
     console.log(`\n✓ Test completed successfully (${result.recipeCount} recipes found)`);
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('\n✗ Test failed:', error.message);
     process.exit(1);
   });

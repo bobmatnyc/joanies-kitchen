@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
 import { headers } from 'next/headers';
+import { type NextRequest, NextResponse } from 'next/server';
+import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,20 +12,12 @@ export async function POST(request: NextRequest) {
     // Skip auth for localhost
     if (!isLocalhost) {
       // For production, add auth check here
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Parse request body
     const body = await request.json();
-    const {
-      weeksAgo = 0,
-      cuisine,
-      maxResults = 10,
-      autoApprove = false,
-    } = body;
+    const { weeksAgo = 0, cuisine, maxResults = 10, autoApprove = false } = body;
 
     // Validate inputs
     if (typeof weeksAgo !== 'number' || weeksAgo < 0 || weeksAgo > 52) {
@@ -36,10 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (maxResults > 50) {
-      return NextResponse.json(
-        { error: 'maxResults cannot exceed 50' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'maxResults cannot exceed 50' }, { status: 400 });
     }
 
     // Run the crawl
@@ -50,7 +39,6 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(result, { status: 200 });
-
   } catch (error: unknown) {
     const err = error as Error;
     console.error('Crawl API error:', err);

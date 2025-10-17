@@ -8,14 +8,13 @@
  * - Test data setup
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { discoverRecipes, discoverRecipeFromUrl } from '../recipe-discovery';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { discoverRecipeFromUrl, discoverRecipes } from '../recipe-discovery';
 
 describe('Recipe Discovery Pipeline', () => {
   // Skip tests if API keys not available
-  const hasApiKeys = process.env.OPENROUTER_API_KEY &&
-                     process.env.BRAVE_API_KEY &&
-                     process.env.HUGGINGFACE_API_KEY;
+  const hasApiKeys =
+    process.env.OPENROUTER_API_KEY && process.env.BRAVE_API_KEY && process.env.HUGGINGFACE_API_KEY;
 
   beforeAll(() => {
     if (!hasApiKeys) {
@@ -48,7 +47,7 @@ describe('Recipe Discovery Pipeline', () => {
 
       expect(result.success).toBe(true);
       // Check if recipes have Italian cuisine
-      result.recipes.forEach(recipe => {
+      result.recipes.forEach((recipe) => {
         expect(recipe.cuisine?.toLowerCase()).toContain('italian');
       });
     }, 60000);
@@ -63,7 +62,7 @@ describe('Recipe Discovery Pipeline', () => {
 
       expect(result.success).toBe(true);
       // All saved recipes should have high confidence
-      result.recipes.forEach(recipe => {
+      result.recipes.forEach((recipe) => {
         if (recipe.confidence_score) {
           expect(parseFloat(recipe.confidence_score)).toBeGreaterThanOrEqual(0.8);
         }
@@ -256,9 +255,7 @@ describe('Pipeline Components', () => {
 
       expect(validResult.success).toBe(true);
       expect(Array.isArray(validResult.recipes)).toBe(true);
-      expect(validResult.stats.searched).toBeGreaterThanOrEqual(
-        validResult.stats.validated
-      );
+      expect(validResult.stats.searched).toBeGreaterThanOrEqual(validResult.stats.validated);
     });
   });
 });
@@ -269,7 +266,7 @@ describe('Component Unit Tests (Mocked)', () => {
     const parseTime = (timeStr?: string): number | null => {
       if (!timeStr) return null;
       const match = timeStr.match(/(\d+)/);
-      return match ? parseInt(match[1]) : null;
+      return match ? parseInt(match[1], 10) : null;
     };
 
     expect(parseTime('15 minutes')).toBe(15);
@@ -295,11 +292,7 @@ describe('Component Unit Tests (Mocked)', () => {
   });
 
   it('should build search query correctly', () => {
-    const buildQuery = (
-      query: string,
-      cuisine?: string,
-      ingredients?: string[]
-    ) => {
+    const buildQuery = (query: string, cuisine?: string, ingredients?: string[]) => {
       let searchQuery = `${query} recipe`;
       if (cuisine) searchQuery += ` ${cuisine}`;
       if (ingredients?.length) {
@@ -310,7 +303,8 @@ describe('Component Unit Tests (Mocked)', () => {
 
     expect(buildQuery('pasta')).toBe('pasta recipe');
     expect(buildQuery('pasta', 'Italian')).toBe('pasta recipe Italian');
-    expect(buildQuery('pasta', 'Italian', ['tomatoes', 'basil']))
-      .toBe('pasta recipe Italian with tomatoes basil');
+    expect(buildQuery('pasta', 'Italian', ['tomatoes', 'basil'])).toBe(
+      'pasta recipe Italian with tomatoes basil'
+    );
   });
 });

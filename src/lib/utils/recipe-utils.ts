@@ -1,4 +1,35 @@
-import { type Recipe } from '@/lib/db/schema';
+import type { Recipe } from '@/lib/db/schema';
+
+// Helper function to safely parse a field that could be JSON array or plain text
+function safeParseArray(value: string | string[] | null | undefined): string[] {
+  // Already an array
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  // Null or undefined
+  if (!value) {
+    return [];
+  }
+
+  // Try parsing as JSON
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    // If parsed but not an array, treat as single item
+    return [String(parsed)];
+  } catch {
+    // Not valid JSON - treat as plain text
+    // Split on newlines if multi-line, otherwise single item
+    const lines = value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    return lines.length > 0 ? lines : [value];
+  }
+}
 
 // Helper function to safely parse JSON with fallback
 function safeJsonParse(value: string | any[], fallback: any[] = []): any[] {
@@ -25,10 +56,10 @@ function safeJsonParse(value: string | any[], fallback: any[] = []): any[] {
 export function parseRecipe(recipe: Recipe) {
   return {
     ...recipe,
-    ingredients: safeJsonParse(recipe.ingredients, []),
-    instructions: safeJsonParse(recipe.instructions, []),
-    tags: safeJsonParse(recipe.tags, []),
-    images: safeJsonParse(recipe.images, []),
+    ingredients: safeParseArray(recipe.ingredients),
+    instructions: safeParseArray(recipe.instructions),
+    tags: recipe.tags ? safeParseArray(recipe.tags) : [],
+    images: recipe.images ? safeParseArray(recipe.images) : [],
   };
 }
 
@@ -56,7 +87,10 @@ export function hasValidAmountOrQualifier(ingredient: string): boolean {
 
   // Check if ingredient has a measurable amount
   // Numbers, fractions, or common amount words at the start
-  const hasAmount = /^[\d½¼¾⅓⅔⅛⅜⅝⅞]|^(a |an |one |two |three |four |five |six |some |few |several |pinch of |dash of |splash of )/i.test(trimmed);
+  const hasAmount =
+    /^[\d½¼¾⅓⅔⅛⅜⅝⅞]|^(a |an |one |two |three |four |five |six |some |few |several |pinch of |dash of |splash of )/i.test(
+      trimmed
+    );
 
   return hasAmount;
 }

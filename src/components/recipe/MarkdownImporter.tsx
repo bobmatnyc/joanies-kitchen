@@ -1,15 +1,26 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, FileText, Upload, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
+import {
+  importRecipeFromMarkdown,
+  importRecipesFromMarkdown,
+  previewMarkdownRecipe,
+} from '@/app/actions/recipe-import';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { importRecipeFromMarkdown, importRecipesFromMarkdown, previewMarkdownRecipe } from '@/app/actions/recipe-import';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface MarkdownImporterProps {
   onImportComplete?: (count: number) => void;
@@ -58,16 +69,19 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
       }
     }
 
-    setFiles(prev => [...prev, ...newFiles]);
+    setFiles((prev) => [...prev, ...newFiles]);
   };
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
 
-    const fileList = e.dataTransfer.files;
-    await processFiles(fileList);
-  }, []);
+      const fileList = e.dataTransfer.files;
+      await processFiles(fileList);
+    },
+    [processFiles]
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -76,7 +90,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleImport = async () => {
@@ -101,7 +115,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
       } else {
         // Multiple file import
         const result = await importRecipesFromMarkdown(
-          files.map(f => ({ name: f.name, content: f.content }))
+          files.map((f) => ({ name: f.name, content: f.content }))
         );
 
         if (result.success) {
@@ -136,14 +150,11 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
       description="Import recipes from markdown files with YAML frontmatter. Perfect for migrating your existing recipe collection."
       icon={<Upload className="h-12 w-12" />}
     >
-      <>
-        <Card>
-          <CardHeader>
-            <CardTitle>Import Recipes from Markdown</CardTitle>
-            <CardDescription>
-              Upload one or more markdown files to import recipes
-            </CardDescription>
-          </CardHeader>
+      <Card>
+        <CardHeader>
+          <CardTitle>Import Recipes from Markdown</CardTitle>
+          <CardDescription>Upload one or more markdown files to import recipes</CardDescription>
+        </CardHeader>
         <CardContent>
           {/* Drop Zone */}
           <div
@@ -168,9 +179,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
             />
 
             <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium mb-2">
-              Drop markdown files here or click to browse
-            </p>
+            <p className="text-lg font-medium mb-2">Drop markdown files here or click to browse</p>
             <p className="text-sm text-muted-foreground">
               Supports .md files with YAML frontmatter
             </p>
@@ -190,17 +199,11 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
                     <div className="flex-1">
                       <p className="font-medium text-sm">{file.name}</p>
                       {file.recipe && (
-                        <p className="text-xs text-muted-foreground">
-                          {file.recipe.title}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{file.recipe.title}</p>
                       )}
                     </div>
-                    {file.recipe && (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    )}
-                    {file.error && (
-                      <AlertCircle className="w-4 h-4 text-destructive" />
-                    )}
+                    {file.recipe && <CheckCircle className="w-4 h-4 text-green-600" />}
+                    {file.error && <AlertCircle className="w-4 h-4 text-destructive" />}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -228,17 +231,10 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
               ))}
 
               <div className="flex justify-end gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setFiles([])}
-                  disabled={importing}
-                >
+                <Button variant="outline" onClick={() => setFiles([])} disabled={importing}>
                   Clear All
                 </Button>
-                <Button
-                  onClick={handleImport}
-                  disabled={importing || files.length === 0}
-                >
+                <Button onClick={handleImport} disabled={importing || files.length === 0}>
                   {importing ? 'Importing...' : `Import ${files.length} Recipe(s)`}
                 </Button>
               </div>
@@ -252,9 +248,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedFile?.name}</DialogTitle>
-            <DialogDescription>
-              Preview of the parsed recipe data
-            </DialogDescription>
+            <DialogDescription>Preview of the parsed recipe data</DialogDescription>
           </DialogHeader>
 
           {selectedFile?.recipe ? (
@@ -262,9 +256,7 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
               <div>
                 <h3 className="font-semibold mb-2">{selectedFile.recipe.title}</h3>
                 {selectedFile.recipe.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFile.recipe.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{selectedFile.recipe.description}</p>
                 )}
               </div>
 
@@ -285,7 +277,9 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
 
               {selectedFile.recipe.ingredients.length > 0 && (
                 <div>
-                  <h4 className="font-medium mb-1">Ingredients ({selectedFile.recipe.ingredients.length})</h4>
+                  <h4 className="font-medium mb-1">
+                    Ingredients ({selectedFile.recipe.ingredients.length})
+                  </h4>
                   <ul className="text-sm space-y-1">
                     {selectedFile.recipe.ingredients.slice(0, 5).map((ing: string, i: number) => (
                       <li key={i}>• {ing}</li>
@@ -301,10 +295,15 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
 
               {selectedFile.recipe.instructions.length > 0 && (
                 <div>
-                  <h4 className="font-medium mb-1">Instructions ({selectedFile.recipe.instructions.length} steps)</h4>
+                  <h4 className="font-medium mb-1">
+                    Instructions ({selectedFile.recipe.instructions.length} steps)
+                  </h4>
                   <ol className="text-sm space-y-1">
                     {selectedFile.recipe.instructions.slice(0, 3).map((inst: string, i: number) => (
-                      <li key={i}>{i + 1}. {inst.substring(0, 100)}{inst.length > 100 && '...'}</li>
+                      <li key={i}>
+                        {i + 1}. {inst.substring(0, 100)}
+                        {inst.length > 100 && '...'}
+                      </li>
                     ))}
                     {selectedFile.recipe.instructions.length > 3 && (
                       <li className="text-muted-foreground">
@@ -318,7 +317,9 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
               {selectedFile.recipe.tags && selectedFile.recipe.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {selectedFile.recipe.tags.map((tag: string, i: number) => (
-                    <Badge key={i} variant="secondary">{tag}</Badge>
+                    <Badge key={i} variant="secondary">
+                      {tag}
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -337,7 +338,6 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </>
     </RequireAuth>
   );
 }

@@ -3,7 +3,7 @@
  * Handles proxying requests to Clerk API with domain bypass for development
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 // Clerk API configuration
 const CLERK_API_URL = 'https://api.clerk.com';
@@ -22,10 +22,7 @@ async function handleRequest(
   const isDev = process.env.NODE_ENV === 'development';
 
   if (!isProdKeys || !isDev) {
-    return NextResponse.json(
-      { error: 'Proxy not available' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Proxy not available' }, { status: 403 });
   }
 
   // Reconstruct the path
@@ -80,10 +77,7 @@ async function handleRequest(
     responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Modify any recipes.help URLs in the response to localhost
-    const modifiedBody = responseBody.replace(
-      /https:\/\/recipes\.help/g,
-      'http://localhost:3004'
-    );
+    const modifiedBody = responseBody.replace(/https:\/\/recipes\.help/g, 'http://localhost:3004');
 
     return new NextResponse(modifiedBody, {
       status: response.status,
@@ -93,7 +87,10 @@ async function handleRequest(
   } catch (error) {
     console.error('[Clerk Proxy] Request failed:', error);
     return NextResponse.json(
-      { error: 'Proxy request failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Proxy request failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }

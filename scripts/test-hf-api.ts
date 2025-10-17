@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -20,7 +20,7 @@ async function testAPI() {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
+        Authorization: `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -36,7 +36,10 @@ async function testAPI() {
 
     if (response.ok) {
       const data = JSON.parse(text);
-      console.log('✓ API working! Embedding dimension:', Array.isArray(data[0]) ? data[0].length : data.length);
+      console.log(
+        '✓ API working! Embedding dimension:',
+        Array.isArray(data[0]) ? data[0].length : data.length
+      );
     } else {
       console.error('❌ API error:', text);
     }

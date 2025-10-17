@@ -6,9 +6,9 @@
  * Usage: tsx scripts/run-migration-neon.ts [migration-file]
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
-import fs from 'fs';
-import path from 'path';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -112,7 +112,7 @@ async function runMigration() {
       WHERE tablename = 'recipe_embeddings';
     `;
     log(`✓ Created ${indexResult.length} index(es) on recipe_embeddings:`, 'green');
-    indexResult.forEach(row => {
+    indexResult.forEach((row) => {
       log(`  - ${row.indexname}`, 'cyan');
     });
 
@@ -124,13 +124,12 @@ async function runMigration() {
         AND column_name IN ('search_query', 'discovery_date', 'confidence_score', 'validation_model', 'embedding_model');
     `;
     log(`✓ Added ${columnResult.length} new column(s) to recipes table:`, 'green');
-    columnResult.forEach(row => {
+    columnResult.forEach((row) => {
       log(`  - ${row.column_name} (${row.data_type})`, 'cyan');
     });
 
     log('\n✅ Migration completed successfully!', 'green');
     log('🎉 pgvector is now enabled for semantic recipe search', 'green');
-
   } catch (error: unknown) {
     log('\n❌ Migration failed!', 'red');
     const err = error as Error;
@@ -147,7 +146,7 @@ async function runMigration() {
 }
 
 // Run migration
-runMigration().catch(error => {
+runMigration().catch((error) => {
   log(`\n💥 Unexpected error: ${error.message}`, 'red');
   process.exit(1);
 });

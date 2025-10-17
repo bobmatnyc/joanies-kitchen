@@ -1,10 +1,10 @@
-import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import { ProfileEditor } from '@/components/profile/ProfileEditor';
+import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
+import { ProfileEditor } from '@/components/profile/ProfileEditor';
 
 export const metadata = {
-  title: 'Edit Profile - Joanie\'s Kitchen',
+  title: "Edit Profile - Joanie's Kitchen",
   description: 'Edit your chef profile',
 };
 

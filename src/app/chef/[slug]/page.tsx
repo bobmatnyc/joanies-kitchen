@@ -1,10 +1,10 @@
+import { ChefHat, Globe, Instagram, Youtube } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { FaXTwitter } from 'react-icons/fa6';
 import { getChefBySlug } from '@/app/actions/chefs';
+import { ChefAvatar } from '@/components/chef/ChefAvatar';
 import { RecipeList } from '@/components/recipe/RecipeList';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Instagram, Youtube, ChefHat } from 'lucide-react';
-import { FaXTwitter } from 'react-icons/fa6';
-import { ChefAvatar } from '@/components/chef/ChefAvatar';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!chefResult.success || !chefResult.chef) {
     return {
-      title: 'Chef Not Found'
+      title: 'Chef Not Found',
     };
   }
 
@@ -20,15 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: `${chef.display_name || chef.name} | Joanie's Kitchen`,
-    description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`
+    description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
   };
 }
 
-export default async function ChefProfilePage({
-  params
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function ChefProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const chefResult = await getChefBySlug(slug);
 
@@ -61,9 +57,7 @@ export default async function ChefProfilePage({
               </h1>
             </div>
 
-            {chef.bio && (
-              <p className="text-jk-olive/80 mb-4 text-lg">{chef.bio}</p>
-            )}
+            {chef.bio && <p className="text-jk-olive/80 mb-4 text-lg">{chef.bio}</p>}
 
             {/* Specialties */}
             {chef.specialties && chef.specialties.length > 0 && (
@@ -150,9 +144,7 @@ export default async function ChefProfilePage({
         ) : (
           <div className="text-center py-12 bg-jk-linen rounded-lg border border-jk-olive/20">
             <ChefHat className="w-12 h-12 mx-auto text-jk-olive/20 mb-3" />
-            <p className="text-jk-olive/60">
-              No recipes yet from this chef. Check back soon!
-            </p>
+            <p className="text-jk-olive/60">No recipes yet from this chef. Check back soon!</p>
           </div>
         )}
       </div>

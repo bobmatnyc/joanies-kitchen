@@ -3,7 +3,7 @@
  * Test script to verify version system functionality
  */
 
-import { getVersionInfo, getVersionString, VERSION, BUILD, BUILD_DATE } from '../src/lib/version';
+import { BUILD, BUILD_DATE, getVersionInfo, getVersionString, VERSION } from '../src/lib/version';
 
 console.log('\n🧪 Testing Version System\n');
 console.log('─'.repeat(50));
@@ -40,8 +40,8 @@ console.log(`  Valid semver: ${versionPattern.test(VERSION)}`);
 // Test 6: Build date format
 console.log('\n✓ Test 6: Build Date Format');
 const date = new Date(BUILD_DATE);
-console.log(`  Valid ISO date: ${!isNaN(date.getTime())}`);
+console.log(`  Valid ISO date: ${!Number.isNaN(date.getTime())}`);
 console.log(`  Parsed date: ${date.toLocaleString()}`);
 
-console.log('\n' + '─'.repeat(50));
+console.log(`\n${'─'.repeat(50)}`);
 console.log('\n✅ All tests passed!\n');

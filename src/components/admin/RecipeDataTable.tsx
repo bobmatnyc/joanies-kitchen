@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { type Recipe } from '@/lib/db/schema';
-import { RecipeRow } from './RecipeRow';
-import { BulkActionBar } from './BulkActionBar';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -13,7 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import type { Recipe } from '@/lib/db/schema';
+import { BulkActionBar } from './BulkActionBar';
+import { RecipeRow } from './RecipeRow';
 
 interface RecipeDataTableProps {
   recipes: Recipe[];
@@ -58,10 +58,7 @@ export function RecipeDataTable({ recipes }: RecipeDataTableProps) {
   // Pagination
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedRecipes = filteredRecipes.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedRecipes = filteredRecipes.slice(startIndex, startIndex + itemsPerPage);
 
   // Selection handlers
   const toggleAll = () => {
@@ -115,7 +112,7 @@ export function RecipeDataTable({ recipes }: RecipeDataTableProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="system">System Recipes</SelectItem>
+            <SelectItem value="system">Shared Recipes</SelectItem>
             <SelectItem value="user">User Recipes</SelectItem>
           </SelectContent>
         </Select>
@@ -147,8 +144,7 @@ export function RecipeDataTable({ recipes }: RecipeDataTableProps) {
                 <th className="w-12 px-6 py-3">
                   <Checkbox
                     checked={
-                      paginatedRecipes.length > 0 &&
-                      selectedIds.size === paginatedRecipes.length
+                      paginatedRecipes.length > 0 && selectedIds.size === paginatedRecipes.length
                     }
                     onCheckedChange={toggleAll}
                   />

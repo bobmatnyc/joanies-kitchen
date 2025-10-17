@@ -1,6 +1,6 @@
-import postgres from 'postgres';
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import postgres from 'postgres';
 
 dotenv.config({ path: path.join(process.cwd(), '.env.production') });
 
@@ -27,7 +27,9 @@ async function enablePgvector() {
   }
 }
 
-enablePgvector().then(() => process.exit(0)).catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+enablePgvector()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Add Chef Profile Images for All Famous Chefs
  *
@@ -9,9 +10,9 @@
  *   npx tsx scripts/add-all-chef-images.ts
  */
 
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 interface ChefImageMapping {
   slug: string;
@@ -29,55 +30,64 @@ interface ChefImageMapping {
 const CHEF_IMAGES: ChefImageMapping[] = [
   {
     slug: 'gordon-ramsay',
-    imageUrl: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Louis Hansel',
   },
   {
     slug: 'ina-garten',
-    imageUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Jasmin Schreiber',
   },
   {
     slug: 'yotam-ottolenghi',
-    imageUrl: 'https://images.unsplash.com/photo-1605522242746-e7356b78f39f?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1605522242746-e7356b78f39f?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Lily Banse',
   },
   {
     slug: 'samin-nosrat',
-    imageUrl: 'https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Brooke Lark',
   },
   {
     slug: 'alton-brown',
-    imageUrl: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Katerina Holmes',
   },
   {
     slug: 'nigella-lawson',
-    imageUrl: 'https://images.unsplash.com/photo-1603073955-f2a4d8c4c6f6?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1603073955-f2a4d8c4c6f6?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Caleb Oquendo',
   },
   {
     slug: 'jacques-pepin',
-    imageUrl: 'https://images.unsplash.com/photo-1577219492056-7a50e6a1ec66?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1577219492056-7a50e6a1ec66?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Louis Hansel',
   },
   {
     slug: 'madhur-jaffrey',
-    imageUrl: 'https://images.unsplash.com/photo-1554998171-706d1c5ea2ea?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1554998171-706d1c5ea2ea?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Pranjal Batra',
   },
   {
     slug: 'kenji-lopez-alt',
-    imageUrl: 'https://images.unsplash.com/photo-1571843318927-e5a7a75b6d56?w=400&h=400&fit=crop&crop=faces',
+    imageUrl:
+      'https://images.unsplash.com/photo-1571843318927-e5a7a75b6d56?w=400&h=400&fit=crop&crop=faces',
     source: 'Unsplash',
     photographer: 'Julia Kicova',
   },
@@ -96,11 +106,7 @@ async function addChefImages() {
 
     try {
       // Check if chef exists
-      const [chef] = await db
-        .select()
-        .from(chefs)
-        .where(eq(chefs.slug, mapping.slug))
-        .limit(1);
+      const [chef] = await db.select().from(chefs).where(eq(chefs.slug, mapping.slug)).limit(1);
 
       if (!chef) {
         console.log(`⚠️  Chef not found: ${mapping.slug}`);
@@ -120,7 +126,7 @@ async function addChefImages() {
         .update(chefs)
         .set({
           profile_image_url: mapping.imageUrl,
-          updated_at: new Date()
+          updated_at: new Date(),
         })
         .where(eq(chefs.slug, mapping.slug));
 
@@ -128,7 +134,6 @@ async function addChefImages() {
       console.log(`   Image: ${mapping.imageUrl}`);
       console.log(`   Source: ${mapping.source} (${mapping.photographer})`);
       updated++;
-
     } catch (error) {
       console.error(`❌ Error updating ${mapping.slug}:`, error);
       failed++;

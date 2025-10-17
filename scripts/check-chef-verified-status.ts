@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import { db } from '@/lib/db';
-import { chefs } from '@/lib/db/chef-schema';
 
 async function checkVerifiedStatus() {
   console.log('🔍 Checking chef verified status...\n');

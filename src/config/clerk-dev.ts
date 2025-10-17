@@ -107,8 +107,7 @@ export function getClerkApiConfig() {
 export function shouldUseProductionKeysOverride(): boolean {
   return (
     process.env.NODE_ENV === 'development' &&
-    (process.env.FORCE_PRODUCTION_KEYS === 'true' ||
-     process.env.USE_PRODUCTION_CLERK === 'true')
+    (process.env.FORCE_PRODUCTION_KEYS === 'true' || process.env.USE_PRODUCTION_CLERK === 'true')
   );
 }
 
@@ -121,10 +120,10 @@ export function getClerkKeys() {
   if (forceProduction) {
     // Use production keys even in development
     return {
-      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
-                     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-      secretKey: process.env.CLERK_SECRET_KEY_PROD ||
-                process.env.CLERK_SECRET_KEY,
+      publishableKey:
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+      secretKey: process.env.CLERK_SECRET_KEY_PROD || process.env.CLERK_SECRET_KEY,
       isProdKeys: true,
     };
   }

@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
-import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
+import { db } from '../src/lib/db';
 
 async function generateReport() {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('  FOOD.COM SAMPLE INGESTION REPORT');
   console.log('='.repeat(80));
   console.log(`Generated: ${new Date().toISOString()}`);
@@ -58,8 +58,12 @@ async function generateReport() {
       console.log(`Start time: ${start.toISOString()}`);
       console.log(`End time: ${end.toISOString()}`);
       console.log(`Total duration: ${durationMinutes.toFixed(2)} minutes`);
-      console.log(`Processing rate: ${(stats.last_hour / durationSeconds).toFixed(2)} recipes/second`);
-      console.log(`Average time per recipe: ${(durationSeconds / stats.last_hour).toFixed(2)} seconds`);
+      console.log(
+        `Processing rate: ${(stats.last_hour / durationSeconds).toFixed(2)} recipes/second`
+      );
+      console.log(
+        `Average time per recipe: ${(durationSeconds / stats.last_hour).toFixed(2)} seconds`
+      );
       console.log('');
     }
 
@@ -85,7 +89,7 @@ async function generateReport() {
     console.log('Quality Rating Distribution:');
     ratingDist.rows.forEach((row: any) => {
       const rating = parseFloat(row.system_rating);
-      const count = parseInt(row.count);
+      const count = parseInt(row.count, 10);
       const pct = parseFloat(row.percentage);
       const bar = '█'.repeat(Math.ceil(pct / 2));
       console.log(`  ${rating.toFixed(1)}/5.0: ${bar} ${count} recipes (${pct.toFixed(1)}%)`);
@@ -180,7 +184,6 @@ async function generateReport() {
     console.log('');
 
     console.log('='.repeat(80));
-
   } catch (error: any) {
     console.error('❌ Error generating report:', error.message);
     throw error;
@@ -189,7 +192,7 @@ async function generateReport() {
 
 generateReport()
   .then(() => process.exit(0))
-  .catch(error => {
+  .catch((error) => {
     console.error(error);
     process.exit(1);
   });

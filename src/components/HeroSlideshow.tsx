@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 const SLIDESHOW_IMAGES = [
   'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-textured.png',

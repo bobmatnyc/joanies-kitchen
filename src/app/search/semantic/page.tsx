@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { SemanticSearchPanel } from '@/components/recipe/SemanticSearchPanel';
 
 export const metadata: Metadata = {
@@ -11,12 +11,10 @@ export default function SemanticSearchPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Semantic Recipe Search
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Semantic Recipe Search</h1>
           <p className="text-muted-foreground text-lg">
-            Use natural language to find recipes that match what you're craving.
-            Try queries like "comfort food for cold weather" or "quick healthy dinner".
+            Use natural language to find recipes that match what you're craving. Try queries like
+            "comfort food for cold weather" or "quick healthy dinner".
           </p>
         </div>
 
@@ -40,12 +38,16 @@ export default function SemanticSearchPage() {
                 key={example}
                 className="p-4 text-left border rounded-lg hover:bg-accent transition-colors"
                 onClick={() => {
-                  const input = document.querySelector('input[placeholder*="Describe"]') as HTMLInputElement;
+                  const input = document.querySelector(
+                    'input[placeholder*="Describe"]'
+                  ) as HTMLInputElement;
                   if (input) {
                     input.value = example;
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     // Trigger search
-                    const searchButton = document.querySelector('button:has-text("Search")') as HTMLButtonElement;
+                    const searchButton = document.querySelector(
+                      'button:has-text("Search")'
+                    ) as HTMLButtonElement;
                     searchButton?.click();
                   }
                 }}
@@ -83,7 +85,8 @@ export default function SemanticSearchPage() {
               </div>
               <h3 className="font-semibold">Smart Results</h3>
               <p className="text-sm text-muted-foreground">
-                Get recipes ranked by similarity, with filtering options for cuisine, difficulty, and dietary needs.
+                Get recipes ranked by similarity, with filtering options for cuisine, difficulty,
+                and dietary needs.
               </p>
             </div>
           </div>

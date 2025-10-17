@@ -5,7 +5,8 @@ const sql = neon(databaseUrl);
 
 async function checkPublicRecipes() {
   try {
-    const recipes = await sql`SELECT id, name, is_public, image_url, images FROM recipes WHERE is_public = true LIMIT 10`;
+    const recipes =
+      await sql`SELECT id, name, is_public, image_url, images FROM recipes WHERE is_public = true LIMIT 10`;
 
     console.log(`\n========================================`);
     console.log(`PUBLIC RECIPES IN DATABASE: ${recipes.length}`);
@@ -34,7 +35,6 @@ async function checkPublicRecipes() {
     // Also check total recipe count
     const allRecipes = await sql`SELECT COUNT(*) as count FROM recipes`;
     console.log(`Total recipes in database: ${allRecipes[0].count}`);
-
   } catch (error) {
     console.error('Error:', error.message);
     console.error(error);

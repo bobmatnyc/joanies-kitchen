@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -12,17 +12,20 @@ async function testAPIFormats() {
   // Test 1: Object with "inputs" key (current format)
   console.log('Test 1: Object with "inputs" key');
   try {
-    const response = await fetch('https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: 'test text',
-        options: { wait_for_model: true }
-      }),
-    });
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: 'test text',
+          options: { wait_for_model: true },
+        }),
+      }
+    );
     const data = await response.json();
     console.log(`Status: ${response.status}`);
     console.log(`Response:`, JSON.stringify(data).substring(0, 150));
@@ -38,14 +41,17 @@ async function testAPIFormats() {
   // Test 2: Plain string
   console.log('Test 2: Plain string (no object wrapper)');
   try {
-    const response = await fetch('https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify('test text'),
-    });
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify('test text'),
+      }
+    );
     const data = await response.json();
     console.log(`Status: ${response.status}`);
     console.log(`Response:`, JSON.stringify(data).substring(0, 150));
@@ -61,11 +67,16 @@ async function testAPIFormats() {
   return null;
 }
 
-testAPIFormats().then(result => {
+testAPIFormats().then((result) => {
   if (result) {
     console.log('SUCCESS! Found working format.');
     console.log(`Embedding dimensions: ${result.length}`);
-    console.log(`Sample values: [${result.slice(0, 5).map((v: number) => v.toFixed(4)).join(', ')}, ...]`);
+    console.log(
+      `Sample values: [${result
+        .slice(0, 5)
+        .map((v: number) => v.toFixed(4))
+        .join(', ')}, ...]`
+    );
     process.exit(0);
   } else {
     console.log('All formats failed!');

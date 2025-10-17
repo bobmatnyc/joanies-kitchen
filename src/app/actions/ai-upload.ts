@@ -1,11 +1,11 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { auth } from '@/lib/auth';
-import { parseRecipeWithAI, parseRecipeFromImage } from '@/lib/ai/recipe-parser';
 import { revalidatePath } from 'next/cache';
 import { MODELS } from '@/lib/ai/openrouter';
+import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 /**
  * Upload and parse recipe using AI
@@ -39,26 +39,33 @@ export async function uploadRecipeWithAI(params: {
     }
 
     // Create recipe in database
-    const recipe = await db.insert(recipes).values({
-      user_id: userId,
-      name: parsed.name,
-      description: parsed.description || '',
-      ingredients: JSON.stringify(parsed.ingredients),
-      instructions: JSON.stringify(parsed.instructions),
-      prep_time: parsed.prepTime || null,
-      cook_time: parsed.cookTime || null,
-      servings: parsed.servings || null,
-      difficulty: parsed.difficulty || null,
-      cuisine: parsed.cuisine || null,
-      tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-      images: params.images ? JSON.stringify(params.images) : (parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null),
-      image_url: params.images?.[0] || parsed.imageUrl || null,
-      nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-      is_ai_generated: true,
-      is_public: false, // User can change this later
-      model_used: params.parseFromImage ? MODELS.GPT_4O : MODELS.CLAUDE_SONNET_4_5,
-      source: 'AI Upload',
-    }).returning();
+    const recipe = await db
+      .insert(recipes)
+      .values({
+        user_id: userId,
+        name: parsed.name,
+        description: parsed.description || '',
+        ingredients: JSON.stringify(parsed.ingredients),
+        instructions: JSON.stringify(parsed.instructions),
+        prep_time: parsed.prepTime || null,
+        cook_time: parsed.cookTime || null,
+        servings: parsed.servings || null,
+        difficulty: parsed.difficulty || null,
+        cuisine: parsed.cuisine || null,
+        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+        images: params.images
+          ? JSON.stringify(params.images)
+          : parsed.imageUrl
+            ? JSON.stringify([parsed.imageUrl])
+            : null,
+        image_url: params.images?.[0] || parsed.imageUrl || null,
+        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+        is_ai_generated: true,
+        is_public: false, // User can change this later
+        model_used: params.parseFromImage ? MODELS.GPT_4O : MODELS.CLAUDE_SONNET_4_5,
+        source: 'AI Upload',
+      })
+      .returning();
 
     revalidatePath('/recipes');
 
@@ -99,31 +106,36 @@ export async function uploadRecipeFromUrl(url: string) {
       markdown: scraped.markdown,
       html: scraped.html,
       images: scraped.metadata?.ogImage
-        ? (Array.isArray(scraped.metadata.ogImage) ? scraped.metadata.ogImage : [scraped.metadata.ogImage])
+        ? Array.isArray(scraped.metadata.ogImage)
+          ? scraped.metadata.ogImage
+          : [scraped.metadata.ogImage]
         : undefined,
     });
 
     // Create recipe
-    const recipe = await db.insert(recipes).values({
-      user_id: userId,
-      name: parsed.name,
-      description: parsed.description || '',
-      ingredients: JSON.stringify(parsed.ingredients),
-      instructions: JSON.stringify(parsed.instructions),
-      prep_time: parsed.prepTime || null,
-      cook_time: parsed.cookTime || null,
-      servings: parsed.servings || null,
-      difficulty: parsed.difficulty || null,
-      cuisine: parsed.cuisine || null,
-      tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-      images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-      image_url: parsed.imageUrl || null,
-      nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-      is_ai_generated: true,
-      is_public: false,
-      model_used: MODELS.CLAUDE_SONNET_4_5,
-      source: url,
-    }).returning();
+    const recipe = await db
+      .insert(recipes)
+      .values({
+        user_id: userId,
+        name: parsed.name,
+        description: parsed.description || '',
+        ingredients: JSON.stringify(parsed.ingredients),
+        instructions: JSON.stringify(parsed.instructions),
+        prep_time: parsed.prepTime || null,
+        cook_time: parsed.cookTime || null,
+        servings: parsed.servings || null,
+        difficulty: parsed.difficulty || null,
+        cuisine: parsed.cuisine || null,
+        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+        images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
+        image_url: parsed.imageUrl || null,
+        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+        is_ai_generated: true,
+        is_public: false,
+        model_used: MODELS.CLAUDE_SONNET_4_5,
+        source: url,
+      })
+      .returning();
 
     revalidatePath('/recipes');
 

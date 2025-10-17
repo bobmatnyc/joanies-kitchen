@@ -1,7 +1,7 @@
-import { Metadata } from 'next';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { marked } from 'marked';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
@@ -31,9 +31,7 @@ export default async function RoadmapPage() {
                 ← Back to About
               </Link>
             </nav>
-            <h1 className="text-5xl font-heading text-jk-linen mb-4">
-              Product Roadmap
-            </h1>
+            <h1 className="text-5xl font-heading text-jk-linen mb-4">Product Roadmap</h1>
             <p className="text-xl text-jk-sage">
               Our journey from garden to table, one version at a time
             </p>
@@ -50,23 +48,15 @@ export default async function RoadmapPage() {
               <div className="text-sm text-jk-clay font-semibold uppercase tracking-wide mb-1">
                 Current Version
               </div>
-              <div className="text-4xl font-heading text-jk-olive">
-                0.4.0
-              </div>
-              <div className="text-jk-charcoal/70 mt-2">
-                Scale & Performance Release
-              </div>
+              <div className="text-4xl font-heading text-jk-olive">0.4.0</div>
+              <div className="text-jk-charcoal/70 mt-2">Scale & Performance Release</div>
             </div>
             <div className="text-right">
               <div className="text-sm text-jk-clay font-semibold uppercase tracking-wide mb-1">
                 Target
               </div>
-              <div className="text-4xl font-heading text-jk-tomato">
-                1.0.0
-              </div>
-              <div className="text-jk-charcoal/70 mt-2">
-                Production Release
-              </div>
+              <div className="text-4xl font-heading text-jk-tomato">1.0.0</div>
+              <div className="text-jk-charcoal/70 mt-2">Production Release</div>
             </div>
           </div>
 
@@ -125,12 +115,10 @@ export default async function RoadmapPage() {
 
         {/* Call to Action */}
         <div className="max-w-4xl mx-auto mt-12 p-8 bg-gradient-to-br from-jk-olive to-jk-clay rounded-lg text-center">
-          <h3 className="text-2xl font-heading text-jk-linen mb-3">
-            Want to contribute?
-          </h3>
+          <h3 className="text-2xl font-heading text-jk-linen mb-3">Want to contribute?</h3>
           <p className="text-jk-linen/90 mb-6 max-w-2xl mx-auto">
-            We're building Joanie's Kitchen in public. Check back regularly for updates,
-            or follow our progress on GitHub.
+            We're building Joanie's Kitchen in public. Check back regularly for updates, or follow
+            our progress on GitHub.
           </p>
           <Link
             href="/about"

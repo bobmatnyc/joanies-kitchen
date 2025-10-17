@@ -1,20 +1,18 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import {
-  collections,
-  collectionRecipes,
-  userProfiles,
-  insertCollectionSchema,
-  insertCollectionRecipeSchema,
-  type Collection,
-  type NewCollection,
-  type CollectionRecipe,
-} from '@/lib/db/user-discovery-schema';
-import { recipes } from '@/lib/db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
+import {
+  type Collection,
+  collectionRecipes,
+  collections,
+  insertCollectionRecipeSchema,
+  insertCollectionSchema,
+  userProfiles,
+} from '@/lib/db/user-discovery-schema';
 
 /**
  * Collection Server Actions
@@ -42,15 +40,12 @@ export async function createCollection(data: {
       return { success: false, error: 'Unauthorized - Please sign in' };
     }
 
-    // Check if user has a profile
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.user_id, userId))
-      .limit(1);
+    // Ensure user has a profile (auto-create if needed)
+    const { ensureUserProfile } = await import('./user-profiles');
+    const profile = await ensureUserProfile();
 
     if (!profile) {
-      return { success: false, error: 'Please create a profile first' };
+      return { success: false, error: 'Failed to create user profile' };
     }
 
     // Generate slug from name
@@ -69,10 +64,7 @@ export async function createCollection(data: {
     });
 
     // Create collection
-    const [newCollection] = await db
-      .insert(collections)
-      .values(validatedData)
-      .returning();
+    const [newCollection] = await db.insert(collections).values(validatedData).returning();
 
     revalidatePath('/collections');
     revalidatePath(`/profile/${profile.username}`);
@@ -318,9 +310,7 @@ export async function getCollectionBySlug(username: string, slug: string) {
     const [collection] = await db
       .select()
       .from(collections)
-      .where(
-        and(eq(collections.user_id, profile.user_id), eq(collections.slug, slug))
-      )
+      .where(and(eq(collections.user_id, profile.user_id), eq(collections.slug, slug)))
       .limit(1);
 
     if (!collection) {
@@ -423,11 +413,7 @@ export async function addRecipeToCollection(
     }
 
     // Check if recipe exists
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (!recipe) {
       return { success: false, error: 'Recipe not found' };
@@ -481,10 +467,7 @@ export async function addRecipeToCollection(
 /**
  * Remove recipe from collection
  */
-export async function removeRecipeFromCollection(
-  collectionId: string,
-  recipeId: string
-) {
+export async function removeRecipeFromCollection(collectionId: string, recipeId: string) {
   try {
     const { userId } = await auth();
 
@@ -538,10 +521,7 @@ export async function removeRecipeFromCollection(
 /**
  * Reorder recipes in collection
  */
-export async function reorderCollectionRecipes(
-  collectionId: string,
-  recipeIds: string[]
-) {
+export async function reorderCollectionRecipes(collectionId: string, recipeIds: string[]) {
   try {
     const { userId } = await auth();
 
@@ -589,5 +569,96 @@ export async function reorderCollectionRecipes(
   } catch (error) {
     console.error('Error reordering recipes:', error);
     return { success: false, error: 'Failed to reorder recipes' };
+  }
+}
+
+// ============================================================================
+// COLLECTION MEMBERSHIP CHECKS
+// ============================================================================
+
+/**
+ * Get all collections that contain a specific recipe
+ * Only returns collections visible to the current user
+ */
+export async function getRecipeCollections(recipeId: string): Promise<Collection[]> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return [];
+    }
+
+    // Get collections containing this recipe
+    const recipeCollectionsList = await db
+      .select({
+        collection: collections,
+      })
+      .from(collectionRecipes)
+      .innerJoin(collections, eq(collectionRecipes.collection_id, collections.id))
+      .where(
+        and(
+          eq(collectionRecipes.recipe_id, recipeId),
+          eq(collections.user_id, userId) // Only user's own collections
+        )
+      )
+      .orderBy(desc(collections.created_at));
+
+    return recipeCollectionsList.map((c) => c.collection);
+  } catch (error) {
+    console.error('Error fetching recipe collections:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if a recipe is in a specific collection
+ */
+export async function isRecipeInCollection(
+  recipeId: string,
+  collectionId: string
+): Promise<boolean> {
+  try {
+    const [existingEntry] = await db
+      .select()
+      .from(collectionRecipes)
+      .where(
+        and(
+          eq(collectionRecipes.recipe_id, recipeId),
+          eq(collectionRecipes.collection_id, collectionId)
+        )
+      )
+      .limit(1);
+
+    return !!existingEntry;
+  } catch (error) {
+    console.error('Error checking collection membership:', error);
+    return false;
+  }
+}
+
+/**
+ * Get collection IDs that contain a specific recipe (for current user)
+ * Useful for bulk checking which collections a recipe is in
+ */
+export async function getRecipeCollectionIds(recipeId: string): Promise<string[]> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return [];
+    }
+
+    const userCollections = await db
+      .select({
+        collection_id: collectionRecipes.collection_id,
+      })
+      .from(collectionRecipes)
+      .innerJoin(collections, eq(collectionRecipes.collection_id, collections.id))
+      .where(and(eq(collectionRecipes.recipe_id, recipeId), eq(collections.user_id, userId)));
+
+    return userCollections.map((c) => c.collection_id);
+  } catch (error) {
+    console.error('Error fetching recipe collection IDs:', error);
+    return [];
   }
 }

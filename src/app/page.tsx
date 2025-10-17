@@ -1,39 +1,65 @@
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChefHat, BookOpen, ShoppingCart, Calendar, Sparkles, Trophy, ChevronRight } from "lucide-react";
-import { getSharedRecipes, getTopRatedRecipes } from "@/app/actions/recipes";
-import { SharedRecipeCarousel } from "@/components/recipe/SharedRecipeCarousel";
-import { RecipeCard } from "@/components/recipe/RecipeCard";
-import { MobileContainer, MobileSpacer } from "@/components/mobile";
-import { HeroSlideshow } from "@/components/HeroSlideshow";
+import { BookOpen, Calendar, ChefHat, ChevronRight, Sparkles, Trophy } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { getBackgroundImages } from '@/app/actions/background-images';
+import { getSharedRecipes, getTopRatedRecipes } from '@/app/actions/recipes';
+import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
+import { MobileContainer, MobileSpacer } from '@/components/mobile';
+import { RecipeCard } from '@/components/recipe/RecipeCard';
+import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+// ISR: Revalidate homepage every 5 minutes
+// Homepage shows dynamic data (shared recipes, top recipes, background images) but can be cached
+export const revalidate = 300; // 5 minutes
 
 export default async function Home() {
-  // Fetch recipes with error handling for production
-  let sharedRecipes: any[] = [];
-  let topRecipes: any[] = [];
+  // Parallel data fetching for improved performance
+  // All three fetches are independent - no data dependencies
+  const [sharedRecipesResult, topRecipesResult, backgroundImagesResult] = await Promise.allSettled([
+    getSharedRecipes(),
+    getTopRatedRecipes({ limit: 8 }),
+    getBackgroundImages(),
+  ]);
 
-  try {
-    const sharedRecipesResult = await getSharedRecipes();
-    sharedRecipes = sharedRecipesResult.success && sharedRecipesResult.data
-      ? sharedRecipesResult.data.slice(0, 15)
+  // Extract data with fallbacks for failed promises
+  const sharedRecipes =
+    sharedRecipesResult.status === 'fulfilled' &&
+    sharedRecipesResult.value.success &&
+    sharedRecipesResult.value.data
+      ? sharedRecipesResult.value.data.slice(0, 15)
       : [];
-  } catch (error) {
-    console.error('[Homepage] Failed to fetch shared recipes:', error);
-  }
 
-  try {
-    topRecipes = await getTopRatedRecipes({ limit: 8 });
-  } catch (error) {
-    console.error('[Homepage] Failed to fetch top-rated recipes:', error);
+  const topRecipes = topRecipesResult.status === 'fulfilled' ? topRecipesResult.value : [];
+
+  const backgroundImages =
+    backgroundImagesResult.status === 'fulfilled' &&
+    backgroundImagesResult.value.success &&
+    backgroundImagesResult.value.data
+      ? backgroundImagesResult.value.data
+      : [];
+
+  // Log errors (optional - helps with debugging)
+  if (sharedRecipesResult.status === 'rejected') {
+    console.error('[Homepage] Failed to fetch shared recipes:', sharedRecipesResult.reason);
+  }
+  if (topRecipesResult.status === 'rejected') {
+    console.error('[Homepage] Failed to fetch top-rated recipes:', topRecipesResult.reason);
+  }
+  if (backgroundImagesResult.status === 'rejected') {
+    console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
   }
   return (
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
       <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
-        {/* Animated Background Slideshow - Full Coverage with Fading */}
-        <HeroSlideshow />
+        {/* Background Images Slideshow - Auto-discovered from /public/backgrounds/ */}
+        <HeroBackgroundSlideshow
+          images={backgroundImages}
+          displayDuration={6000}
+          fadeDuration={2000}
+        />
 
         <MobileContainer maxWidth="xl" className="relative z-10 text-center">
           <div className="flex justify-center mb-6">
@@ -53,16 +79,25 @@ export default async function Home() {
             From Garden to Table — with Heart and Soil
           </p>
           <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
-            Celebrate cooking with the seasons. Your personal recipe collection and AI-powered kitchen companion.
+            Celebrate cooking with the seasons. Your personal recipe collection and AI-powered
+            kitchen companion.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
-            <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target" asChild>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target"
+              asChild
+            >
               <Link href="/discover">
                 <Sparkles className="h-5 w-5" />
                 Discover Recipes
               </Link>
             </Button>
-            <Button size="lg" className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target" asChild>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target"
+              asChild
+            >
               <Link href="/recipes">
                 <BookOpen className="h-5 w-5 mr-2" />
                 My Recipes
@@ -75,17 +110,20 @@ export default async function Home() {
       <MobileContainer className="py-12 md:py-16">
         {/* Welcome Message */}
         <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
-          <h2 className="font-heading text-3xl md:text-4xl text-jk-olive mb-4">Welcome to Your Kitchen</h2>
+          <h2 className="font-heading text-3xl md:text-4xl text-jk-olive mb-4">
+            Welcome to Your Kitchen
+          </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/80">
-            Whether you're bringing fresh ingredients from your garden or exploring new seasonal flavors,
-            Joanie's Kitchen helps you create wholesome, delicious meals with warmth and authenticity.
+            Whether you're bringing fresh ingredients from your garden or exploring new seasonal
+            flavors, Joanie's Kitchen helps you create wholesome, delicious meals with warmth and
+            authenticity.
           </p>
         </div>
 
         <MobileSpacer size="sm" />
 
         {/* Features Grid with Parchment Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
           <Link href="/discover" className="block h-full">
             <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -94,7 +132,8 @@ export default async function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="font-body text-jk-charcoal/70">
-                  Discover recipes that celebrate what's fresh and in season. Let our AI guide you to wholesome, flavorful meals.
+                  Discover recipes that celebrate what's fresh and in season. Let our AI guide you
+                  to wholesome, flavorful meals.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -108,7 +147,23 @@ export default async function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="font-body text-jk-charcoal/70">
-                  Nurture your collection of cherished recipes. Browse, organize, and tend to your culinary favorites.
+                  Nurture your collection of cherished recipes. Browse, organize, and tend to your
+                  culinary favorites.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/meals" className="block h-full">
+            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <Calendar className="h-8 w-8 text-jk-clay mb-2" />
+                <CardTitle className="font-heading text-jk-olive">Plan Meals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="font-body text-jk-charcoal/70">
+                  Create complete meals, generate shopping lists, and organize your weekly menu with
+                  ease.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -122,7 +177,8 @@ export default async function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="font-body text-jk-charcoal/70">
-                  Add your family treasures and personal creations. Each recipe is a seed for delicious memories.
+                  Add your family treasures and personal creations. Each recipe is a seed for
+                  delicious memories.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -145,16 +201,15 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               {topRecipes.map((recipe, index) => (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  showRank={index + 1}
-                />
+                <RecipeCard key={recipe.id} recipe={recipe} showRank={index + 1} />
               ))}
             </div>
 
             <div className="text-center">
-              <Button className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2 touch-target" asChild>
+              <Button
+                className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2 touch-target"
+                asChild
+              >
                 <Link href="/recipes/top-50">
                   View All Top 50 Recipes
                   <ChevronRight className="h-5 w-5" />
@@ -198,21 +253,20 @@ export default async function Home() {
 
                 <div className="space-y-3 md:space-y-4 text-jk-charcoal/80 font-body text-base md:text-lg leading-relaxed">
                   <p>
-                    Joanie grew up in upstate New York helping her dad in his children's
-                    clothing shop — and she's been mixing creativity with hard work ever
-                    since. After a career in finance in London and New York, she followed
-                    her heart back to the kitchen and the garden.
+                    Joanie grew up in upstate New York helping her dad in his children's clothing
+                    shop — and she's been mixing creativity with hard work ever since. After a
+                    career in finance in London and New York, she followed her heart back to the
+                    kitchen and the garden.
                   </p>
                   <p>
                     A trained chef, lifelong gardener, and volunteer firefighter in
-                    Hastings-on-Hudson, Joanie now cooks from her terraced home
-                    overlooking the Hudson River, where she grows everything from shiso
-                    to figs — and turns "nothing in the fridge" into something
-                    unforgettable.
+                    Hastings-on-Hudson, Joanie now cooks from her terraced home overlooking the
+                    Hudson River, where she grows everything from shiso to figs — and turns "nothing
+                    in the fridge" into something unforgettable.
                   </p>
 
                   <p className="text-jk-clay font-medium text-lg mt-6">
-                    Follow her garden at{" "}
+                    Follow her garden at{' '}
                     <a
                       href="https://www.instagram.com/terracesonward/"
                       target="_blank"
@@ -225,15 +279,20 @@ export default async function Home() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-6 md:mt-8">
-                  <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
-                    <Link href="/about">
-                      Read My Story
-                    </Link>
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target"
+                    asChild
+                  >
+                    <Link href="/about">Read My Story</Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui font-medium rounded-jk touch-target" asChild>
-                    <Link href="/recipes">
-                      Explore Recipes
-                    </Link>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui font-medium rounded-jk touch-target"
+                    asChild
+                  >
+                    <Link href="/recipes">Explore Recipes</Link>
                   </Button>
                 </div>
               </div>
@@ -249,7 +308,8 @@ export default async function Home() {
               The Community Table
             </h2>
             <p className="font-body text-center text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              Recipes shared with love from our community. Each dish tells a story of tradition, innovation, and the joy of cooking.
+              Recipes shared with love from our community. Each dish tells a story of tradition,
+              innovation, and the joy of cooking.
             </p>
             <SharedRecipeCarousel recipes={sharedRecipes} />
           </div>
@@ -258,24 +318,39 @@ export default async function Home() {
         {/* Quick Actions */}
         <div className="mt-12 md:mt-16 text-center">
           <div className="jk-divider mb-8 md:mb-12"></div>
-          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-jk-olive">Ready to Start Cooking?</h2>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-jk-olive">
+            Ready to Start Cooking?
+          </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-            Every great meal begins with inspiration. Choose your path and let's create something wonderful.
+            Every great meal begins with inspiration. Choose your path and let's create something
+            wonderful.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
-            <Button size="lg" className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target"
+              asChild
+            >
               <Link href="/discover">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Discover New Recipe
               </Link>
             </Button>
-            <Button size="lg" className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium rounded-jk touch-target"
+              asChild
+            >
               <Link href="/recipes/new">
                 <ChefHat className="h-4 w-4 mr-2" />
                 Add Recipe
               </Link>
             </Button>
-            <Button size="lg" className="w-full sm:w-auto bg-jk-olive hover:bg-jk-olive/90 text-white font-ui font-medium rounded-jk touch-target" asChild>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-olive hover:bg-jk-olive/90 text-white font-ui font-medium rounded-jk touch-target"
+              asChild
+            >
               <Link href="/recipes">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Browse Collection

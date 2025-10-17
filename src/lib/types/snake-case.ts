@@ -26,9 +26,7 @@ export type SnakeCase<S extends string> = S extends `${infer T}${infer U}`
  * // Result: { user_id: string; is_active: boolean; created_at: Date }
  */
 export type ToSnakeCase<T> = {
-  [K in keyof T as SnakeCase<K & string>]: T[K] extends object
-    ? ToSnakeCase<T[K]>
-    : T[K];
+  [K in keyof T as SnakeCase<K & string>]: T[K] extends object ? ToSnakeCase<T[K]> : T[K];
 };
 
 /**
@@ -52,9 +50,7 @@ export type CamelCase<S extends string> = S extends `${infer P}_${infer Q}${infe
  * // Result: { userId: string; isActive: boolean; createdAt: Date }
  */
 export type ToCamelCase<T> = {
-  [K in keyof T as CamelCase<K & string>]: T[K] extends object
-    ? ToCamelCase<T[K]>
-    : T[K];
+  [K in keyof T as CamelCase<K & string>]: T[K] extends object ? ToCamelCase<T[K]> : T[K];
 };
 
 /**
@@ -121,11 +117,7 @@ export function toCamelCase<T extends Record<string, any>>(obj: T): ToCamelCase<
  * This is a compile-time check only - it doesn't perform runtime validation
  */
 export type EnsureSnakeCase<T> = {
-  [K in keyof T]: K extends string
-    ? K extends SnakeCase<K>
-      ? T[K]
-      : never
-    : T[K];
+  [K in keyof T]: K extends string ? (K extends SnakeCase<K> ? T[K] : never) : T[K];
 };
 
 /**
@@ -134,9 +126,5 @@ export type EnsureSnakeCase<T> = {
  * This is a compile-time check only - it doesn't perform runtime validation
  */
 export type EnsureCamelCase<T> = {
-  [K in keyof T]: K extends string
-    ? K extends CamelCase<K>
-      ? T[K]
-      : never
-    : T[K];
+  [K in keyof T]: K extends string ? (K extends CamelCase<K> ? T[K] : never) : T[K];
 };

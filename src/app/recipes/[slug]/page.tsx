@@ -1,27 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getRecipe, deleteRecipe } from '@/app/actions/recipes';
-import { parseRecipe } from '@/lib/utils/recipe-utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Clock, Users, ChefHat, Edit, Printer, Bot, Download, FileText, FileDown, Trash2, Lock, Copy } from 'lucide-react';
+import {
+  Bot,
+  ChefHat,
+  ChevronLeft,
+  Clock,
+  Copy,
+  Download,
+  Edit,
+  Eye,
+  FileDown,
+  FileText,
+  Lock,
+  Printer,
+  Trash2,
+  User,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
-import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
+import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
+import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
+import { getProfileByUserId } from '@/app/actions/user-profiles';
+import { FlagImageButton } from '@/components/admin/FlagImageButton';
+import { AddToCollectionButton } from '@/components/collections/AddToCollectionButton';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
-import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
-import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
 import { IngredientsList } from '@/components/recipe/IngredientsList';
+import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { isAdmin } from '@/lib/admin-client';
+import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
+import { parseRecipe } from '@/lib/utils/recipe-utils';
 
 // Conditionally import Clerk hook
 let useUser: any = null;
 try {
   const clerk = require('@clerk/nextjs');
   useUser = clerk.useUser;
-} catch (error) {
+} catch (_error) {
   // Clerk not available
   console.log('Clerk not available in recipe page');
 }
@@ -60,6 +82,9 @@ export default function RecipePage({ params }: RecipePageProps) {
   const [deleting, setDeleting] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [requiresAuth, setRequiresAuth] = useState(false);
+  const [viewCount, setViewCount] = useState<number>(0);
+  const [authorProfile, setAuthorProfile] = useState<any>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   const router = useRouter();
 
   // Safe Clerk usage - will return null values if Clerk is not configured
@@ -71,14 +96,14 @@ export default function RecipePage({ params }: RecipePageProps) {
       const clerkData = useUser();
       user = clerkData.user;
       isSignedIn = clerkData.isSignedIn || false;
-    } catch (error) {
+    } catch (_error) {
       // Clerk hook failed, use defaults
       console.log('Clerk hook failed, using development mode');
     }
   }
 
   useEffect(() => {
-    params.then(p => setSlugOrId(p.slug));
+    params.then((p) => setSlugOrId(p.slug));
   }, [params]);
 
   useEffect(() => {
@@ -101,6 +126,27 @@ export default function RecipePage({ params }: RecipePageProps) {
       const parsedRecipe = parseRecipe(result.data);
       setRecipe(parsedRecipe);
 
+      // Track view asynchronously (don't await to avoid blocking UI)
+      trackRecipeView(result.data.id).catch((err) => console.error('Failed to track view:', err));
+
+      // Fetch view count
+      getRecipeViewCount(result.data.id)
+        .then((count) => {
+          setViewCount(count);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch view count:', err);
+        });
+
+      // Fetch author profile
+      getProfileByUserId(result.data.user_id)
+        .then((profile) => {
+          setAuthorProfile(profile);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch author profile:', err);
+        });
+
       // Check if we accessed via UUID but recipe has a slug - redirect to slug URL
       if (isUUID(slugOrId) && result.data.slug) {
         // Use replace to redirect with 301-like behavior (replaces history entry)
@@ -120,6 +166,11 @@ export default function RecipePage({ params }: RecipePageProps) {
         } else if (isSignedIn && user?.id === result.data.user_id) {
           setIsOwner(true);
         }
+      }
+
+      // Check if user is admin
+      if (isSignedIn && user?.id) {
+        setIsUserAdmin(isAdmin(user.id));
       }
 
       setLoading(false);
@@ -254,9 +305,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
               <Lock className="w-6 h-6 text-muted-foreground" />
             </div>
             <CardTitle>Private Recipe</CardTitle>
-            <CardDescription>
-              This recipe is private. Please sign in to view it.
-            </CardDescription>
+            <CardDescription>This recipe is private. Please sign in to view it.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Link href="/sign-in">
@@ -275,9 +324,21 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   // Categorize tags using the ontology system
-  const categorizedTags = recipe.tags && recipe.tags.length > 0
-    ? categorizeTags(recipe.tags)
-    : {};
+  const categorizedTags =
+    recipe.tags && recipe.tags.length > 0
+      ? categorizeTags(recipe.tags)
+      : {
+          Cuisine: [],
+          'Meal Type': [],
+          Dietary: [],
+          'Cooking Method': [],
+          'Main Ingredient': [],
+          Course: [],
+          Season: [],
+          Difficulty: [],
+          Time: [],
+          Other: [],
+        };
   const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
 
   // Use slug for edit link if available, otherwise fall back to ID
@@ -301,8 +362,44 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
             {recipe.description && (
               <p className="text-lg text-muted-foreground">{recipe.description}</p>
             )}
+
+            {/* Author and View Count */}
+            <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+              {authorProfile && (
+                <Link
+                  href={`/profile/${authorProfile.username}`}
+                  className="flex items-center gap-1 hover:text-primary transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>by {authorProfile.display_name}</span>
+                </Link>
+              )}
+              {viewCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <Eye className="w-4 h-4" />
+                  <span>
+                    {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {/* Favorite Button */}
+            {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
+
+            {/* Add to Collection Button */}
+            {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+
+            {/* Admin Image Flagging */}
+            {isUserAdmin && (
+              <FlagImageButton
+                recipeId={recipe.id}
+                recipeName={recipe.name}
+                isFlagged={recipe.image_flagged_for_regeneration || false}
+              />
+            )}
+
             <Button
               variant="outline"
               onClick={handleCopyRecipe}
@@ -330,10 +427,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
               </>
             )}
             <div className="relative group">
-              <Button
-                variant="outline"
-                disabled={exporting}
-              >
+              <Button variant="outline" disabled={exporting}>
                 <Download className="w-4 h-4 mr-2" />
                 {exporting ? 'Exporting...' : 'Export'}
               </Button>
@@ -356,10 +450,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
                 </button>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => window.print()}
-            >
+            <Button variant="outline" onClick={() => window.print()}>
               <Printer className="w-4 h-4 mr-2" />
               Print
             </Button>
@@ -394,9 +485,11 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
             <Badge
               variant="outline"
               className={
-                recipe.difficulty === 'easy' ? 'text-green-600' :
-                recipe.difficulty === 'medium' ? 'text-yellow-600' :
-                'text-red-600'
+                recipe.difficulty === 'easy'
+                  ? 'text-green-600'
+                  : recipe.difficulty === 'medium'
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
               }
             >
               {recipe.difficulty}
@@ -411,32 +504,108 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
           {recipe.is_system_recipe && (
             <Badge variant="default" className="bg-jk-tomato">
               <Lock className="w-3 h-3 mr-1" />
-              System Recipe
+              Shared
             </Badge>
           )}
         </div>
 
-        {/* Categorized Tags */}
+        {/* Categorized Tags in 3 rows */}
         {categoryEntries.length > 0 && (
-          <div className="mt-4 space-y-3">
-            {categoryEntries.map(([category, categoryTags]) => (
-              <div key={category} className="space-y-1">
-                <span className="text-sm font-semibold text-muted-foreground">
-                  {category}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {categoryTags.map((tag, index) => (
+          <div className="mt-4 space-y-2">
+            {/* Row 1: Difficulty + Meal Type */}
+            {(categorizedTags.Difficulty?.length > 0 ||
+              categorizedTags['Meal Type']?.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {categorizedTags.Difficulty?.map((tag, index) => (
+                  <Badge
+                    key={`diff-${index}`}
+                    className={getCategoryColor('Difficulty')}
+                    variant="outline"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {categorizedTags['Meal Type']?.map((tag, index) => (
+                  <Badge
+                    key={`meal-${index}`}
+                    className={getCategoryColor('Meal Type')}
+                    variant="outline"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Row 2: Main Ingredient + Dietary */}
+            {(categorizedTags['Main Ingredient']?.length > 0 ||
+              categorizedTags.Dietary?.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {categorizedTags['Main Ingredient']?.slice(0, 3).map((tag, index) => (
+                  <Badge
+                    key={`ing-${index}`}
+                    className={getCategoryColor('Main Ingredient')}
+                    variant="outline"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {(categorizedTags['Main Ingredient']?.length || 0) > 3 && (
+                  <Badge className={getCategoryColor('Main Ingredient')} variant="outline">
+                    +{(categorizedTags['Main Ingredient']?.length || 0) - 3}
+                  </Badge>
+                )}
+                {categorizedTags.Dietary?.slice(0, 2).map((tag, index) => (
+                  <Badge
+                    key={`diet-${index}`}
+                    className={getCategoryColor('Dietary')}
+                    variant="outline"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {(categorizedTags.Dietary?.length || 0) > 2 && (
+                  <Badge className={getCategoryColor('Dietary')} variant="outline">
+                    +{(categorizedTags.Dietary?.length || 0) - 2}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Row 3: Season + Other (Expandable) */}
+            {(categorizedTags.Season?.length > 0 || categorizedTags.Other?.length > 0) && (
+              <details className="group/tags">
+                <summary className="text-sm text-muted-foreground cursor-pointer hover:text-primary flex items-center gap-1 list-none">
+                  <span className="group-open/tags:rotate-90 transition-transform inline-block">
+                    ▸
+                  </span>
+                  <span>
+                    More tags (
+                    {(categorizedTags.Season?.length || 0) + (categorizedTags.Other?.length || 0)})
+                  </span>
+                </summary>
+                <div className="flex flex-wrap gap-2 mt-2 pt-1">
+                  {categorizedTags.Season?.map((tag, index) => (
                     <Badge
-                      key={index}
-                      className={getCategoryColor(category)}
+                      key={`season-${index}`}
+                      className={getCategoryColor('Season')}
+                      variant="outline"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {categorizedTags.Other?.map((tag, index) => (
+                    <Badge
+                      key={`other-${index}`}
+                      className={getCategoryColor('Other')}
                       variant="outline"
                     >
                       {tag}
                     </Badge>
                   ))}
                 </div>
-              </div>
-            ))}
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -445,8 +614,13 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
       {(recipe.images?.length > 0 || recipe.image_url) && (
         <div className="mb-8">
           <ImageCarousel
-            images={recipe.images?.length > 0 ? recipe.images : recipe.image_url ? [recipe.image_url] : []}
+            images={
+              recipe.images?.length > 0 ? recipe.images : recipe.image_url ? [recipe.image_url] : []
+            }
             title={recipe.name}
+            recipeId={recipe.id}
+            isFlagged={recipe.image_flagged_for_regeneration}
+            isAdmin={isUserAdmin}
           />
         </div>
       )}

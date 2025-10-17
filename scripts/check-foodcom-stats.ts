@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
-import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
+import { db } from '../src/lib/db';
 
 async function checkStats() {
   console.log('\n🔍 Checking Food.com ingestion statistics...\n');
@@ -66,14 +66,13 @@ async function checkStats() {
       console.log('='.repeat(60));
       ratingDist.rows.forEach((row: any) => {
         const rating = parseFloat(row.system_rating);
-        const count = parseInt(row.count);
+        const count = parseInt(row.count, 10);
         const bar = '█'.repeat(Math.ceil(count / 5));
         console.log(`${rating.toFixed(1)}/5.0: ${bar} ${count} recipes`);
       });
     }
 
-    console.log('\n' + '='.repeat(60));
-
+    console.log(`\n${'='.repeat(60)}`);
   } catch (error: any) {
     console.error('❌ Error checking stats:', error.message);
     throw error;
@@ -82,7 +81,7 @@ async function checkStats() {
 
 checkStats()
   .then(() => process.exit(0))
-  .catch(error => {
+  .catch((error) => {
     console.error(error);
     process.exit(1);
   });

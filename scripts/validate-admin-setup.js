@@ -7,7 +7,7 @@
  * Run this while signed in to check your admin setup.
  */
 
-const https = require('https');
+const _https = require('node:https');
 
 const PORT = process.env.PORT || 3001;
 const BASE_URL = `http://localhost:${PORT}`;
@@ -18,7 +18,7 @@ console.log('Make sure you are signed in to the application before running this.
 
 // Test the debug session endpoint
 async function testDebugEndpoint() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const url = `${BASE_URL}/api/debug-session`;
     console.log(`Testing debug endpoint: ${url}`);
 
@@ -35,7 +35,7 @@ async function testDebugEndpoint() {
 
     resolve({
       success: true,
-      message: 'Visit the URL above in your browser while signed in'
+      message: 'Visit the URL above in your browser while signed in',
     });
   });
 }

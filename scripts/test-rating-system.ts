@@ -8,10 +8,10 @@
  * 4. Database operations
  */
 
-import { db } from '../src/lib/db';
-import { recipes, recipeRatings } from '../src/lib/db/schema';
-import { evaluateRecipeQuality } from '../src/lib/ai/recipe-quality-evaluator';
 import { eq, sql } from 'drizzle-orm';
+import { evaluateRecipeQuality } from '../src/lib/ai/recipe-quality-evaluator';
+import { db } from '../src/lib/db';
+import { recipeRatings, recipes } from '../src/lib/db/schema';
 
 // Test recipe data
 const testRecipe = {
@@ -217,11 +217,7 @@ async function testRetrieveRatings(recipeId: string) {
   console.log('\n=== TEST 5: Retrieve Recipe with Ratings ===');
 
   try {
-    const recipe = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const recipe = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (recipe.length === 0) {
       console.error('✗ Recipe not found');
@@ -244,9 +240,7 @@ async function testRetrieveRatings(recipeId: string) {
 
     console.log('\n--- Individual User Ratings ---');
     for (const rating of userRatingsData) {
-      console.log(
-        `${rating.userId}: ${rating.rating}/5 - ${rating.review || 'No review'}`
-      );
+      console.log(`${rating.userId}: ${rating.rating}/5 - ${rating.review || 'No review'}`);
     }
 
     return true;

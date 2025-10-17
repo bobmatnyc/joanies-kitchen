@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+
 dotenv.config({ path: '.env.local' });
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -30,7 +31,6 @@ async function checkSchema() {
 
     console.log('\nAll columns in recipes table:');
     allColumns.forEach((col: any) => console.log(`  - ${col.column_name}`));
-
   } catch (error) {
     console.error('Error:', error);
   }

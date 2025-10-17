@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/app/actions/slideshow';
+import { Button } from '@/components/ui/button';
 import type { SlideshowPhoto } from '@/lib/db/schema';
 
 const DESKTOP_PHOTOS_PER_PAGE = 9; // 3x3 grid
@@ -100,7 +100,10 @@ export default function PhotoGalleryPage() {
         <div className="bg-jk-olive text-jk-linen py-12 px-4">
           <div className="max-w-6xl mx-auto">
             <Link href="/about">
-              <Button variant="ghost" className="mb-4 text-jk-linen hover:text-white hover:bg-jk-olive/80">
+              <Button
+                variant="ghost"
+                className="mb-4 text-jk-linen hover:text-white hover:bg-jk-olive/80"
+              >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Back to About
               </Button>
@@ -158,9 +161,7 @@ export default function PhotoGalleryPage() {
                 key={index}
                 onClick={() => setCurrentPage(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === currentPage
-                    ? 'bg-jk-tomato w-8'
-                    : 'bg-jk-sage hover:bg-jk-clay'
+                  index === currentPage ? 'bg-jk-tomato w-8' : 'bg-jk-sage hover:bg-jk-clay'
                 }`}
                 aria-label={`Go to page ${index + 1}`}
               />

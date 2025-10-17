@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 // Get recipe ID and new image URL from command line
 const recipeId = process.argv[2];
@@ -10,7 +10,9 @@ if (!recipeId || !newImageUrl) {
   console.error('❌ Usage: npx tsx scripts/update-recipe-image-simple.ts <recipe-id> <image-url>');
   console.error('');
   console.error('Example:');
-  console.error('  npx tsx scripts/update-recipe-image-simple.ts abc123 "https://images.unsplash.com/..."');
+  console.error(
+    '  npx tsx scripts/update-recipe-image-simple.ts abc123 "https://images.unsplash.com/..."'
+  );
   process.exit(1);
 }
 
@@ -19,11 +21,7 @@ async function updateRecipeImage() {
     console.log(`🔍 Fetching recipe: ${recipeId}`);
 
     // Fetch the recipe
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (!recipe) {
       console.error(`❌ Recipe not found: ${recipeId}`);
@@ -37,7 +35,7 @@ async function updateRecipeImage() {
     if (recipe.images) {
       try {
         currentImages = JSON.parse(recipe.images);
-      } catch (e) {
+      } catch (_e) {
         console.warn('⚠️ Could not parse existing images JSON');
       }
     }

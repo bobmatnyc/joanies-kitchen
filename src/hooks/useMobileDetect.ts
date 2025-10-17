@@ -139,9 +139,9 @@ export function useTouchDevice(): boolean {
   useEffect(() => {
     setHasTouch(
       'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0 ||
-      // @ts-expect-error - legacy property
-      navigator.msMaxTouchPoints > 0
+        navigator.maxTouchPoints > 0 ||
+        // @ts-expect-error - legacy property
+        navigator.msMaxTouchPoints > 0
     );
   }, []);
 

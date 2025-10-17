@@ -1,10 +1,11 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { type Recipe } from '@/lib/db/schema';
-import { Badge } from '@/components/ui/badge';
 import { ChefHat } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+import type { Recipe } from '@/lib/db/schema';
+import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface SharedRecipeCarouselProps {
   recipes: Recipe[];
@@ -19,12 +20,23 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed[0];
         }
-      } catch (e) {
+      } catch (_e) {
         // Continue to fallback
       }
     }
-    // Fallback to imageUrl or placeholder
-    return recipe.image_url || '/placeholder-recipe.jpg';
+
+    // Parse tags for themed placeholder
+    let tags: string[] = [];
+    if (recipe.tags) {
+      try {
+        tags = JSON.parse(recipe.tags as string);
+      } catch (_e) {
+        // Ignore parse errors
+      }
+    }
+
+    // Fallback to imageUrl or themed placeholder
+    return recipe.image_url || getPlaceholderImage(tags);
   };
 
   if (recipes.length === 0) {
@@ -37,7 +49,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
         {recipes.map((recipe) => {
           const heroImage = getHeroImage(recipe);
           const images = recipe.images ? JSON.parse(recipe.images as string) : [];
-          const imageCount = images.length > 0 ? images.length : (recipe.image_url ? 1 : 0);
+          const imageCount = images.length > 0 ? images.length : recipe.image_url ? 1 : 0;
 
           return (
             <Link
@@ -82,8 +94,8 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
                           recipe.difficulty === 'easy'
                             ? 'bg-green-500/90 text-white'
                             : recipe.difficulty === 'medium'
-                            ? 'bg-yellow-500/90 text-white'
-                            : 'bg-red-500/90 text-white'
+                              ? 'bg-yellow-500/90 text-white'
+                              : 'bg-red-500/90 text-white'
                         }`}
                       >
                         {recipe.difficulty}
@@ -99,9 +111,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
 
                 {/* AI Generated badge in top right */}
                 {recipe.is_ai_generated && (
-                  <Badge
-                    className="absolute top-2 right-2 text-xs bg-purple-500/90 text-white"
-                  >
+                  <Badge className="absolute top-2 right-2 text-xs bg-purple-500/90 text-white">
                     AI Generated
                   </Badge>
                 )}

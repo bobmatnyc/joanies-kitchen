@@ -1,6 +1,5 @@
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
 
 interface DuplicateGroup {
   name: string;
@@ -58,24 +57,36 @@ async function checkDuplicates() {
     let totalDuplicateRecipes = 0;
 
     for (const row of duplicatesByName.rows as any[]) {
-      const count = parseInt(row.count);
+      const count = parseInt(row.count, 10);
       totalDuplicateRecipes += count - 1; // -1 because one is the original
 
       // Parse arrays if they're strings
       const ids = Array.isArray(row.ids) ? row.ids : JSON.parse(row.ids || '[]');
       const ratings = Array.isArray(row.ratings) ? row.ratings : JSON.parse(row.ratings || '[]');
       const sources = Array.isArray(row.sources) ? row.sources : JSON.parse(row.sources || '[]');
-      const names = Array.isArray(row.original_names) ? row.original_names : JSON.parse(row.original_names || '[]');
+      const names = Array.isArray(row.original_names)
+        ? row.original_names
+        : JSON.parse(row.original_names || '[]');
 
       console.log(`📝 "${names[0]}" (${count} copies)`);
       console.log(`   IDs: ${ids.slice(0, 3).join(', ')}${ids.length > 3 ? '...' : ''}`);
 
       if (ratings && ratings.length > 0) {
-        console.log(`   Ratings: ${ratings.slice(0, 5).map((r: any) => r ? parseFloat(r).toFixed(1) : 'N/A').join(', ')}${ratings.length > 5 ? '...' : ''}`);
+        console.log(
+          `   Ratings: ${ratings
+            .slice(0, 5)
+            .map((r: any) => (r ? parseFloat(r).toFixed(1) : 'N/A'))
+            .join(', ')}${ratings.length > 5 ? '...' : ''}`
+        );
       }
 
       if (sources && sources.length > 0) {
-        console.log(`   Sources: ${sources.slice(0, 2).map((s: any) => s ? s.substring(0, 50) : 'None').join(' | ')}${sources.length > 2 ? '...' : ''}`);
+        console.log(
+          `   Sources: ${sources
+            .slice(0, 2)
+            .map((s: any) => (s ? s.substring(0, 50) : 'None'))
+            .join(' | ')}${sources.length > 2 ? '...' : ''}`
+        );
       }
       console.log('');
     }
@@ -92,7 +103,7 @@ async function checkDuplicates() {
     let totalDuplicateSources = 0;
 
     for (const row of duplicatesBySource.rows as any[]) {
-      const count = parseInt(row.count);
+      const count = parseInt(row.count, 10);
       totalDuplicateSources += count - 1;
 
       // Parse arrays if they're strings
@@ -105,7 +116,12 @@ async function checkDuplicates() {
       console.log(`   IDs: ${ids.slice(0, 3).join(', ')}${ids.length > 3 ? '...' : ''}`);
 
       if (ratings && ratings.length > 0) {
-        console.log(`   Ratings: ${ratings.slice(0, 3).map((r: any) => r ? parseFloat(r).toFixed(1) : 'N/A').join(', ')}`);
+        console.log(
+          `   Ratings: ${ratings
+            .slice(0, 3)
+            .map((r: any) => (r ? parseFloat(r).toFixed(1) : 'N/A'))
+            .join(', ')}`
+        );
       }
       console.log('');
     }
@@ -124,8 +140,11 @@ async function checkDuplicates() {
   console.log(`Duplicate groups (by source): ${duplicatesBySource.rows.length}`);
 
   const estimatedDuplicates = Math.max(
-    duplicatesByName.rows.reduce((sum: number, row: any) => sum + (parseInt(row.count) - 1), 0),
-    duplicatesBySource.rows.reduce((sum: number, row: any) => sum + (parseInt(row.count) - 1), 0)
+    duplicatesByName.rows.reduce((sum: number, row: any) => sum + (parseInt(row.count, 10) - 1), 0),
+    duplicatesBySource.rows.reduce(
+      (sum: number, row: any) => sum + (parseInt(row.count, 10) - 1),
+      0
+    )
   );
 
   console.log(`Estimated duplicate recipes: ~${estimatedDuplicates}`);

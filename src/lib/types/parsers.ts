@@ -179,7 +179,7 @@ export function getImageCount(images: string | null | undefined): number {
 export function parseDecimal(value: string | null | undefined): number {
   if (!value) return 0;
   const parsed = parseFloat(value);
-  return isNaN(parsed) ? 0 : parsed;
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**

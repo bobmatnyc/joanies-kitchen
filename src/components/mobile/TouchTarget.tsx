@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TouchTargetProps extends ButtonHTMLAttributes<HTMLButtonElement> {

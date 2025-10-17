@@ -1,10 +1,10 @@
 'use client';
 
+import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
+import { FolderHeart, Heart, LogIn, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogIn, Shield } from 'lucide-react';
-import { useUser, UserButton, SignInButton } from '@clerk/nextjs';
 
 // Check if Clerk is properly configured
 const isClerkConfigured =
@@ -60,15 +60,30 @@ function ClerkAuthButtons() {
           userProfileUrl="/user-profile"
           afterSignOutUrl="/"
         >
-          {isAdmin && (
-            <UserButton.MenuItems>
+          <UserButton.MenuItems>
+            <UserButton.Action
+              label="My Profile"
+              labelIcon={<User className="h-4 w-4" />}
+              onClick={() => router.push('/profile/edit')}
+            />
+            <UserButton.Action
+              label="Favorites"
+              labelIcon={<Heart className="h-4 w-4" />}
+              onClick={() => router.push('/favorites')}
+            />
+            <UserButton.Action
+              label="Collections"
+              labelIcon={<FolderHeart className="h-4 w-4" />}
+              onClick={() => router.push('/collections')}
+            />
+            {isAdmin && (
               <UserButton.Action
                 label="Admin Dashboard"
                 labelIcon={<Shield className="h-4 w-4" />}
                 onClick={() => router.push('/admin')}
               />
-            </UserButton.MenuItems>
-          )}
+            )}
+          </UserButton.MenuItems>
         </UserButton>
       </div>
     );

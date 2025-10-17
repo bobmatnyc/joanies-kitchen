@@ -1,8 +1,8 @@
+import { resolve } from 'node:path';
+import FirecrawlApp from '@mendable/firecrawl-js';
 import { config } from 'dotenv';
-import { resolve } from 'path';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import FirecrawlApp from '@mendable/firecrawl-js';
 
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
@@ -15,7 +15,7 @@ const RECIPE_URLS = [
   'https://www.seriouseats.com/dry-aged-ribeye-steak-recipe',
   'https://www.seriouseats.com/perfect-pan-seared-steak-recipe',
   'https://www.seriouseats.com/easy-pressure-cooker-pork-chile-verde-recipe',
-  'https://www.seriouseats.com/basic-sous-vide-chicken-breast-recipe'
+  'https://www.seriouseats.com/basic-sous-vide-chicken-breast-recipe',
 ];
 
 // OpenRouter configuration
@@ -46,15 +46,17 @@ interface ParsedRecipe {
 
 async function scrapeRecipePage(url: string, firecrawl: FirecrawlApp) {
   try {
-    const result = await firecrawl.scrape(url, {
+    const result = (await firecrawl.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
       waitFor: 2000,
-    }) as any;
+    })) as any;
 
     return result;
   } catch (error) {
-    throw new Error(`Failed to scrape: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to scrape: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -117,7 +119,7 @@ IMPORTANT:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003',
       },
       body: JSON.stringify({
@@ -158,7 +160,9 @@ IMPORTANT:
     return parsed;
   } catch (error) {
     console.error('Error parsing recipe with AI:', error);
-    throw new Error(`Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -198,34 +202,39 @@ async function importKenjiRecipes() {
         markdown: scraped.markdown,
         html: scraped.html,
         images: scraped.metadata?.ogImage
-          ? (Array.isArray(scraped.metadata.ogImage) ? scraped.metadata.ogImage : [scraped.metadata.ogImage])
+          ? Array.isArray(scraped.metadata.ogImage)
+            ? scraped.metadata.ogImage
+            : [scraped.metadata.ogImage]
           : undefined,
       });
 
       // Create recipe in database
       console.log('  → Saving to database...');
-      const recipe = await db.insert(recipes).values({
-        user_id: 'system',
-        chef_id: KENJI_CHEF_ID,
-        name: parsed.name,
-        description: parsed.description || '',
-        ingredients: JSON.stringify(parsed.ingredients),
-        instructions: JSON.stringify(parsed.instructions),
-        prep_time: parsed.prepTime || null,
-        cook_time: parsed.cookTime || null,
-        servings: parsed.servings || null,
-        difficulty: parsed.difficulty || null,
-        cuisine: parsed.cuisine || null,
-        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-        images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-        image_url: parsed.imageUrl || null,
-        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-        is_system_recipe: true,
-        is_public: true,
-        is_ai_generated: true,
-        model_used: MODEL,
-        source: url,
-      }).returning();
+      const _recipe = await db
+        .insert(recipes)
+        .values({
+          user_id: 'system',
+          chef_id: KENJI_CHEF_ID,
+          name: parsed.name,
+          description: parsed.description || '',
+          ingredients: JSON.stringify(parsed.ingredients),
+          instructions: JSON.stringify(parsed.instructions),
+          prep_time: parsed.prepTime || null,
+          cook_time: parsed.cookTime || null,
+          servings: parsed.servings || null,
+          difficulty: parsed.difficulty || null,
+          cuisine: parsed.cuisine || null,
+          tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+          images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
+          image_url: parsed.imageUrl || null,
+          nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+          is_system_recipe: true,
+          is_public: true,
+          is_ai_generated: true,
+          model_used: MODEL,
+          source: url,
+        })
+        .returning();
 
       console.log(`  ✓ Success: ${parsed.name}`);
       success++;
@@ -233,9 +242,8 @@ async function importKenjiRecipes() {
       // Rate limiting: 2 seconds between requests
       if (i < RECIPE_URLS.length - 1) {
         console.log(`  ⏳ Waiting 2 seconds...\n`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-
     } catch (error) {
       console.error(`  ✗ Error: ${error instanceof Error ? error.message : String(error)}`);
       failed++;
@@ -250,7 +258,7 @@ async function importKenjiRecipes() {
 
 importKenjiRecipes()
   .then(() => process.exit(0))
-  .catch(error => {
+  .catch((error) => {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
   });
