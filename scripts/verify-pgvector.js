@@ -7,7 +7,7 @@
  */
 
 const { Client } = require('pg');
-const path = require('path');
+const path = require('node:path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 // Color codes for terminal output
@@ -26,7 +26,7 @@ function log(message, color = 'reset') {
 
 async function verifyPgvector() {
   log('\n🔍 pgvector Verification Test Suite', 'blue');
-  log('=' .repeat(60), 'blue');
+  log('='.repeat(60), 'blue');
 
   // Validate environment
   const databaseUrl = process.env.DATABASE_URL;
@@ -80,7 +80,7 @@ async function verifyPgvector() {
     }
 
     log('✓ recipe_embeddings table exists with columns:', 'green');
-    tableResult.rows.forEach(col => {
+    tableResult.rows.forEach((col) => {
       const nullable = col.is_nullable === 'YES' ? 'NULL' : 'NOT NULL';
       const maxLength = col.character_maximum_length ? `(${col.character_maximum_length})` : '';
       log(`  - ${col.column_name}: ${col.data_type}${maxLength} ${nullable}`, 'cyan');
@@ -101,7 +101,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No indexes found on recipe_embeddings', 'yellow');
     } else {
       log(`✓ Found ${indexResult.rows.length} index(es):`, 'green');
-      indexResult.rows.forEach(idx => {
+      indexResult.rows.forEach((idx) => {
         log(`  - ${idx.indexname}`, 'cyan');
         if (idx.indexdef.includes('hnsw')) {
           log('    ✓ HNSW index for fast vector search', 'green');
@@ -119,7 +119,8 @@ async function verifyPgvector() {
     log('  Creating test vectors (384 dimensions)...', 'cyan');
 
     // Test vector creation and similarity
-    const similarityResult = await client.query(`
+    const similarityResult = await client.query(
+      `
       SELECT
         1 - ($1::vector <=> $2::vector) as cosine_similarity,
         $1::vector <-> $2::vector as l2_distance,
@@ -129,9 +130,15 @@ async function verifyPgvector() {
     );
 
     log('✓ Vector operations successful:', 'green');
-    log(`  - Cosine similarity: ${parseFloat(similarityResult.rows[0].cosine_similarity).toFixed(6)}`, 'cyan');
+    log(
+      `  - Cosine similarity: ${parseFloat(similarityResult.rows[0].cosine_similarity).toFixed(6)}`,
+      'cyan'
+    );
     log(`  - L2 distance: ${parseFloat(similarityResult.rows[0].l2_distance).toFixed(6)}`, 'cyan');
-    log(`  - Inner product: ${parseFloat(similarityResult.rows[0].inner_product).toFixed(6)}`, 'cyan');
+    log(
+      `  - Inner product: ${parseFloat(similarityResult.rows[0].inner_product).toFixed(6)}`,
+      'cyan'
+    );
 
     // Test recipes table new columns
     log('\n📝 Test 6: Recipe Table Enhancements', 'cyan');
@@ -147,7 +154,7 @@ async function verifyPgvector() {
       log(`⚠️  WARNING: Only ${recipeColumns.rows.length}/5 new columns found`, 'yellow');
     } else {
       log('✓ All 5 provenance tracking columns added:', 'green');
-      recipeColumns.rows.forEach(col => {
+      recipeColumns.rows.forEach((col) => {
         log(`  - ${col.column_name} (${col.data_type})`, 'cyan');
       });
     }
@@ -174,7 +181,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No foreign key constraints found', 'yellow');
     } else {
       log('✓ Foreign key constraints:', 'green');
-      fkResult.rows.forEach(fk => {
+      fkResult.rows.forEach((fk) => {
         log(`  - ${fk.column_name} → ${fk.foreign_table_name}.${fk.foreign_column_name}`, 'cyan');
       });
     }
@@ -191,7 +198,7 @@ async function verifyPgvector() {
       log('⚠️  WARNING: No triggers found', 'yellow');
     } else {
       log('✓ Triggers configured:', 'green');
-      triggerResult.rows.forEach(trigger => {
+      triggerResult.rows.forEach((trigger) => {
         log(`  - ${trigger.trigger_name} (${trigger.event_manipulation})`, 'cyan');
       });
     }
@@ -209,7 +216,7 @@ async function verifyPgvector() {
     log(`✓ Query execution time: ${perfEnd - perfStart}ms`, 'green');
 
     // Summary
-    log('\n' + '='.repeat(60), 'blue');
+    log(`\n${'='.repeat(60)}`, 'blue');
     log('✅ All tests passed successfully!', 'green');
     log('🎉 pgvector is fully operational and ready for semantic search', 'green');
     log('\n📊 Configuration Summary:', 'cyan');
@@ -222,7 +229,6 @@ async function verifyPgvector() {
     log('  2. Implement embedding generation API endpoint', 'yellow');
     log('  3. Create semantic search API endpoint', 'yellow');
     log('  4. Test similarity search with real recipe data', 'yellow');
-
   } catch (error) {
     log('\n❌ Verification failed!', 'red');
     log(`Error: ${error.message}`, 'red');
@@ -238,7 +244,7 @@ async function verifyPgvector() {
 }
 
 // Run verification
-verifyPgvector().catch(error => {
+verifyPgvector().catch((error) => {
   log(`\n💥 Unexpected error: ${error.message}`, 'red');
   process.exit(1);
 });

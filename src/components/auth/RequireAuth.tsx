@@ -15,10 +15,10 @@
  * </RequireAuth>
  */
 
-import { useAuth, SignInButton } from '@clerk/nextjs';
+import { SignInButton, useAuth } from '@clerk/nextjs';
+import { Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Sparkles } from 'lucide-react';
 
 interface RequireAuthProps {
   /**
@@ -68,13 +68,9 @@ function CardSignInPrompt({
         <div className="flex justify-center mb-4">
           {icon || <Lock className="h-12 w-12 text-jk-clay" />}
         </div>
-        <CardTitle className="text-xl text-jk-olive">
-          {featureName}
-        </CardTitle>
+        <CardTitle className="text-xl text-jk-olive">{featureName}</CardTitle>
         {description && (
-          <CardDescription className="text-jk-charcoal/70">
-            {description}
-          </CardDescription>
+          <CardDescription className="text-jk-charcoal/70">{description}</CardDescription>
         )}
       </CardHeader>
       <CardContent className="text-center pb-6">
@@ -105,14 +101,8 @@ function InlineSignInPrompt({
   return (
     <div className="bg-jk-linen/50 border border-jk-sage rounded-lg p-6 text-center">
       <Lock className="h-8 w-8 text-jk-clay mx-auto mb-3" />
-      <h3 className="text-lg font-heading text-jk-olive mb-2">
-        {featureName}
-      </h3>
-      {description && (
-        <p className="text-sm text-jk-charcoal/70 mb-4">
-          {description}
-        </p>
-      )}
+      <h3 className="text-lg font-heading text-jk-olive mb-2">{featureName}</h3>
+      {description && <p className="text-sm text-jk-charcoal/70 mb-4">{description}</p>}
       <SignInButton mode="modal">
         <Button size="sm" className="bg-jk-tomato hover:bg-jk-tomato/90">
           <Lock className="h-3 w-3 mr-2" />
@@ -149,20 +139,9 @@ export function RequireAuth({
   // Show sign-in prompt if not authenticated
   if (!isSignedIn) {
     if (showAsCard) {
-      return (
-        <CardSignInPrompt
-          featureName={featureName}
-          description={description}
-          icon={icon}
-        />
-      );
+      return <CardSignInPrompt featureName={featureName} description={description} icon={icon} />;
     } else {
-      return (
-        <InlineSignInPrompt
-          featureName={featureName}
-          description={description}
-        />
-      );
+      return <InlineSignInPrompt featureName={featureName} description={description} />;
     }
   }
 

@@ -1,29 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  CheckCircle2,
+  ChefHat,
+  Clock,
+  Download,
+  ExternalLink,
+  Globe,
+  Link,
+  Loader2,
+  Package,
+  Search,
+  Users,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { searchWebRecipes, parseRecipeFromUrl, importWebRecipe, bulkImportRecipes, WebRecipe } from '@/app/actions/recipe-search';
+import { useState } from 'react';
+import {
+  bulkImportRecipes,
+  importWebRecipe,
+  parseRecipeFromUrl,
+  searchWebRecipes,
+  type WebRecipe,
+} from '@/app/actions/recipe-search';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/client-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/client-dialog';
 import { toast } from '@/lib/toast';
-import {
-  Search,
-  Globe,
-  Download,
-  Loader2,
-  Clock,
-  Users,
-  ChefHat,
-  ExternalLink,
-  CheckCircle2,
-  Link,
-  Package
-} from 'lucide-react';
 
 export function WebSearchPanel() {
   const router = useRouter();
@@ -49,7 +69,7 @@ export function WebSearchPanel() {
     'vegan chocolate cake',
     'Jamie Oliver pasta',
     'easy weeknight dinners',
-    'gluten-free breakfast ideas'
+    'gluten-free breakfast ideas',
   ];
 
   // Helper function to detect if input is a URL
@@ -100,9 +120,11 @@ export function WebSearchPanel() {
       const result = await searchWebRecipes({
         query: searchQuery,
         cuisine: cuisine || undefined,
-        ingredients: ingredients ? ingredients.split(',').map(i => i.trim()) : undefined,
-        dietaryRestrictions: dietaryRestrictions ? dietaryRestrictions.split(',').map(d => d.trim()) : undefined,
-        maxResults: 8
+        ingredients: ingredients ? ingredients.split(',').map((i) => i.trim()) : undefined,
+        dietaryRestrictions: dietaryRestrictions
+          ? dietaryRestrictions.split(',').map((d) => d.trim())
+          : undefined,
+        maxResults: 8,
       });
 
       if (result.success && result.data) {
@@ -172,7 +194,7 @@ export function WebSearchPanel() {
       toast.error('Failed to import recipe');
       console.error('Import error:', error);
     } finally {
-      setImportingIds(prev => {
+      setImportingIds((prev) => {
         const next = new Set(prev);
         next.delete(index);
         return next;
@@ -186,7 +208,7 @@ export function WebSearchPanel() {
       return;
     }
 
-    const recipesToImport = Array.from(selectedRecipes).map(idx => searchResults[idx]);
+    const recipesToImport = Array.from(selectedRecipes).map((idx) => searchResults[idx]);
 
     setImportingIds(new Set(selectedRecipes));
 
@@ -250,10 +272,7 @@ export function WebSearchPanel() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="flex-1"
               />
-              <Button
-                onClick={handleSearch}
-                disabled={isSearching || isParsing}
-              >
+              <Button onClick={handleSearch} disabled={isSearching || isParsing}>
                 {isSearching || isParsing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
@@ -275,7 +294,7 @@ export function WebSearchPanel() {
                       onClick={async () => {
                         setSearchQuery(example);
                         // Wait for state update then search
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise((resolve) => setTimeout(resolve, 100));
                         if (!isSearching && !isParsing) {
                           setIsSearching(true);
                           setSearchResults([]);
@@ -285,9 +304,13 @@ export function WebSearchPanel() {
                             const result = await searchWebRecipes({
                               query: example,
                               cuisine: cuisine || undefined,
-                              ingredients: ingredients ? ingredients.split(',').map(i => i.trim()) : undefined,
-                              dietaryRestrictions: dietaryRestrictions ? dietaryRestrictions.split(',').map(d => d.trim()) : undefined,
-                              maxResults: 8
+                              ingredients: ingredients
+                                ? ingredients.split(',').map((i) => i.trim())
+                                : undefined,
+                              dietaryRestrictions: dietaryRestrictions
+                                ? dietaryRestrictions.split(',').map((d) => d.trim())
+                                : undefined,
+                              maxResults: 8,
                             });
 
                             if (result.success && result.data) {
@@ -365,11 +388,7 @@ export function WebSearchPanel() {
                 onKeyDown={(e) => e.key === 'Enter' && handleParseUrl()}
                 className="flex-1"
               />
-              <Button
-                onClick={handleParseUrl}
-                disabled={isParsing}
-                variant="outline"
-              >
+              <Button onClick={handleParseUrl} disabled={isParsing} variant="outline">
                 {isParsing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
@@ -421,9 +440,7 @@ export function WebSearchPanel() {
                       {recipe.sourceName && (
                         <div className="flex items-center gap-1 mt-1">
                           <Globe className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {recipe.sourceName}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{recipe.sourceName}</span>
                           {recipe.sourceUrl && (
                             <a
                               href={recipe.sourceUrl}
@@ -456,9 +473,7 @@ export function WebSearchPanel() {
                         {recipe.cuisine}
                       </Badge>
                     )}
-                    {recipe.difficulty && (
-                      <Badge variant="outline">{recipe.difficulty}</Badge>
-                    )}
+                    {recipe.difficulty && <Badge variant="outline">{recipe.difficulty}</Badge>}
                     {(recipe.prepTime || recipe.cookTime) && (
                       <Badge variant="outline">
                         <Clock className="w-3 h-3 mr-1" />
@@ -625,43 +640,54 @@ export function WebSearchPanel() {
                 </div>
               </div>
 
-              {previewRecipe.nutritionInfo && Object.keys(previewRecipe.nutritionInfo).length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Nutrition Information</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    {previewRecipe.nutritionInfo.calories && (
-                      <div className="text-center p-2 bg-secondary/50 rounded">
-                        <div className="text-sm font-medium">{previewRecipe.nutritionInfo.calories}</div>
-                        <div className="text-xs text-muted-foreground">Calories</div>
-                      </div>
-                    )}
-                    {previewRecipe.nutritionInfo.protein && (
-                      <div className="text-center p-2 bg-secondary/50 rounded">
-                        <div className="text-sm font-medium">{previewRecipe.nutritionInfo.protein}g</div>
-                        <div className="text-xs text-muted-foreground">Protein</div>
-                      </div>
-                    )}
-                    {previewRecipe.nutritionInfo.carbs && (
-                      <div className="text-center p-2 bg-secondary/50 rounded">
-                        <div className="text-sm font-medium">{previewRecipe.nutritionInfo.carbs}g</div>
-                        <div className="text-xs text-muted-foreground">Carbs</div>
-                      </div>
-                    )}
-                    {previewRecipe.nutritionInfo.fat && (
-                      <div className="text-center p-2 bg-secondary/50 rounded">
-                        <div className="text-sm font-medium">{previewRecipe.nutritionInfo.fat}g</div>
-                        <div className="text-xs text-muted-foreground">Fat</div>
-                      </div>
-                    )}
-                    {previewRecipe.nutritionInfo.fiber && (
-                      <div className="text-center p-2 bg-secondary/50 rounded">
-                        <div className="text-sm font-medium">{previewRecipe.nutritionInfo.fiber}g</div>
-                        <div className="text-xs text-muted-foreground">Fiber</div>
-                      </div>
-                    )}
+              {previewRecipe.nutritionInfo &&
+                Object.keys(previewRecipe.nutritionInfo).length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Nutrition Information</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      {previewRecipe.nutritionInfo.calories && (
+                        <div className="text-center p-2 bg-secondary/50 rounded">
+                          <div className="text-sm font-medium">
+                            {previewRecipe.nutritionInfo.calories}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Calories</div>
+                        </div>
+                      )}
+                      {previewRecipe.nutritionInfo.protein && (
+                        <div className="text-center p-2 bg-secondary/50 rounded">
+                          <div className="text-sm font-medium">
+                            {previewRecipe.nutritionInfo.protein}g
+                          </div>
+                          <div className="text-xs text-muted-foreground">Protein</div>
+                        </div>
+                      )}
+                      {previewRecipe.nutritionInfo.carbs && (
+                        <div className="text-center p-2 bg-secondary/50 rounded">
+                          <div className="text-sm font-medium">
+                            {previewRecipe.nutritionInfo.carbs}g
+                          </div>
+                          <div className="text-xs text-muted-foreground">Carbs</div>
+                        </div>
+                      )}
+                      {previewRecipe.nutritionInfo.fat && (
+                        <div className="text-center p-2 bg-secondary/50 rounded">
+                          <div className="text-sm font-medium">
+                            {previewRecipe.nutritionInfo.fat}g
+                          </div>
+                          <div className="text-xs text-muted-foreground">Fat</div>
+                        </div>
+                      )}
+                      {previewRecipe.nutritionInfo.fiber && (
+                        <div className="text-center p-2 bg-secondary/50 rounded">
+                          <div className="text-sm font-medium">
+                            {previewRecipe.nutritionInfo.fiber}g
+                          </div>
+                          <div className="text-xs text-muted-foreground">Fiber</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {previewRecipe.tags && previewRecipe.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -682,7 +708,7 @@ export function WebSearchPanel() {
             {previewRecipe && (
               <Button
                 onClick={() => {
-                  const index = searchResults.findIndex(r => r === previewRecipe);
+                  const index = searchResults.indexOf(previewRecipe);
                   if (index !== -1) {
                     handleImportSingle(previewRecipe, index);
                     setShowPreview(false);

@@ -49,7 +49,10 @@ recipe-manager/
 ├── drizzle/                   # Database migrations (Drizzle Kit)
 ├── public/                    # Static assets (Next.js)
 │   ├── images/                # Public images
-│   └── fonts/                 # Web fonts
+│   ├── fonts/                 # Web fonts
+│   ├── backgrounds/           # Hero background images
+│   └── chefs/                 # Chef-related assets
+│       └── avatars/           # Chef profile avatars
 ├── scripts/                   # Utility and setup scripts
 │   ├── *.ts                   # TypeScript scripts
 │   ├── *.js                   # JavaScript scripts

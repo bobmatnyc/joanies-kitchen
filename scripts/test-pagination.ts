@@ -7,10 +7,10 @@
  *   pnpm tsx scripts/test-pagination.ts
  */
 
-import { db } from '../src/lib/db';
-import { getRecipesPaginated } from '../src/app/actions/recipes';
-import { sql } from 'drizzle-orm';
 import chalk from 'chalk';
+import { sql } from 'drizzle-orm';
+import { getRecipesPaginated } from '../src/app/actions/recipes';
+import { db } from '../src/lib/db';
 
 interface TestResult {
   name: string;
@@ -32,10 +32,7 @@ function log(message: string, level: 'info' | 'success' | 'error' | 'warn' = 'in
   console.log(`${icons[level]} ${message}`);
 }
 
-async function runTest(
-  name: string,
-  testFn: () => Promise<void>
-): Promise<void> {
+async function runTest(name: string, testFn: () => Promise<void>): Promise<void> {
   const start = Date.now();
   try {
     await testFn();
@@ -76,7 +73,7 @@ async function testDatabaseIndexes() {
       'idx_recipes_user_public',
     ];
 
-    expectedIndexes.forEach(expected => {
+    expectedIndexes.forEach((expected) => {
       if (!indexes.includes(expected)) {
         throw new Error(`Missing index: ${expected}`);
       }
@@ -109,7 +106,10 @@ async function testBasicPagination() {
       throw new Error(`Expected page 1, got ${result.data.pagination.page}`);
     }
 
-    log(`  Returned ${result.data.recipes.length} recipes, total: ${result.data.pagination.total}`, 'info');
+    log(
+      `  Returned ${result.data.recipes.length} recipes, total: ${result.data.pagination.total}`,
+      'info'
+    );
   });
 }
 
@@ -137,7 +137,10 @@ async function testPaginationMetadata() {
       throw new Error(`hasMore mismatch: ${pagination.hasMore} !== ${expectedHasMore}`);
     }
 
-    log(`  Total: ${pagination.total}, Pages: ${pagination.totalPages}, Has more: ${pagination.hasMore}`, 'info');
+    log(
+      `  Total: ${pagination.total}, Pages: ${pagination.totalPages}, Has more: ${pagination.hasMore}`,
+      'info'
+    );
   });
 }
 
@@ -154,7 +157,7 @@ async function testSorting() {
     }
 
     // Check that ratings are descending (or null)
-    const ratings = result.data.recipes.map(r =>
+    const ratings = result.data.recipes.map((r) =>
       r.systemRating ? parseFloat(r.systemRating.toString()) : -1
     );
 
@@ -179,7 +182,7 @@ async function testSorting() {
     }
 
     // Check that dates are descending
-    const dates = result.data.recipes.map(r => new Date(r.createdAt).getTime());
+    const dates = result.data.recipes.map((r) => new Date(r.createdAt).getTime());
 
     for (let i = 0; i < dates.length - 1; i++) {
       if (dates[i] < dates[i + 1]) {
@@ -203,7 +206,7 @@ async function testFiltering() {
       throw new Error('Failed to get recipes');
     }
 
-    result.data.recipes.forEach(recipe => {
+    result.data.recipes.forEach((recipe) => {
       if (recipe.cuisine !== 'Italian') {
         throw new Error(`Expected Italian, got ${recipe.cuisine}`);
       }
@@ -223,7 +226,7 @@ async function testFiltering() {
       throw new Error('Failed to get recipes');
     }
 
-    result.data.recipes.forEach(recipe => {
+    result.data.recipes.forEach((recipe) => {
       if (recipe.difficulty !== 'easy') {
         throw new Error(`Expected easy, got ${recipe.difficulty}`);
       }
@@ -243,7 +246,7 @@ async function testFiltering() {
       throw new Error('Failed to get recipes');
     }
 
-    result.data.recipes.forEach(recipe => {
+    result.data.recipes.forEach((recipe) => {
       if (recipe.systemRating) {
         const rating = parseFloat(recipe.systemRating.toString());
         if (rating < 4.0) {
@@ -266,7 +269,7 @@ async function testFiltering() {
       throw new Error('Failed to get recipes');
     }
 
-    result.data.recipes.forEach(recipe => {
+    result.data.recipes.forEach((recipe) => {
       if (!recipe.isPublic) {
         throw new Error(`Expected public recipe, got private`);
       }
@@ -289,9 +292,10 @@ async function testSearchQuery() {
     }
 
     // At least one recipe should contain "chicken" in name or description
-    const hasMatch = result.data.recipes.some(recipe =>
-      recipe.name.toLowerCase().includes('chicken') ||
-      recipe.description?.toLowerCase().includes('chicken')
+    const hasMatch = result.data.recipes.some(
+      (recipe) =>
+        recipe.name.toLowerCase().includes('chicken') ||
+        recipe.description?.toLowerCase().includes('chicken')
     );
 
     if (result.data.recipes.length > 0 && !hasMatch) {
@@ -319,7 +323,7 @@ async function testCombinedFilters() {
       throw new Error('Failed to get recipes');
     }
 
-    result.data.recipes.forEach(recipe => {
+    result.data.recipes.forEach((recipe) => {
       if (recipe.difficulty !== 'easy') {
         throw new Error(`Expected easy difficulty`);
       }
@@ -346,10 +350,10 @@ async function testPaginationConsistency() {
     }
 
     // Check no duplicate IDs between pages
-    const ids1 = new Set(page1.data.recipes.map(r => r.id));
-    const ids2 = new Set(page2.data.recipes.map(r => r.id));
+    const ids1 = new Set(page1.data.recipes.map((r) => r.id));
+    const ids2 = new Set(page2.data.recipes.map((r) => r.id));
 
-    ids2.forEach(id => {
+    ids2.forEach((id) => {
       if (ids1.has(id)) {
         throw new Error(`Duplicate recipe ID across pages: ${id}`);
       }
@@ -357,8 +361,8 @@ async function testPaginationConsistency() {
 
     // Check alphabetical order
     const names = [
-      ...page1.data.recipes.map(r => r.name),
-      ...page2.data.recipes.map(r => r.name),
+      ...page1.data.recipes.map((r) => r.name),
+      ...page2.data.recipes.map((r) => r.name),
     ];
 
     for (let i = 0; i < names.length - 1; i++) {
@@ -476,8 +480,8 @@ async function main() {
   // Summary
   console.log(chalk.bold('\n📊 Test Summary\n'));
 
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
   const total = results.length;
 
   console.log(`Total tests: ${total}`);
@@ -492,8 +496,8 @@ async function main() {
   if (failed > 0) {
     console.log(chalk.bold.red('❌ Some tests failed:\n'));
     results
-      .filter(r => !r.passed)
-      .forEach(r => {
+      .filter((r) => !r.passed)
+      .forEach((r) => {
         console.log(chalk.red(`  - ${r.name}`));
         console.log(chalk.gray(`    ${r.error}\n`));
       });

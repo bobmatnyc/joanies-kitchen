@@ -20,12 +20,12 @@
  *   pnpm fix:amounts:batch:test         # Test on 10 recipes
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
-import * as fs from 'fs';
-import * as path from 'path';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 interface ProcessStats {
   total: number;
@@ -73,7 +73,7 @@ function loadProgress(): ProcessStats | null {
       const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
       return JSON.parse(data);
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn('Could not load progress file, starting fresh');
   }
   return null;
@@ -134,7 +134,7 @@ Return ONLY valid JSON:
 
   // Try each model in order
   for (const model of MODELS_TO_TRY) {
-    let lastError: Error | null = null;
+    let _lastError: Error | null = null;
 
     // Try each model with retries
     for (let attempt = 1; attempt <= 5; attempt++) {
@@ -144,12 +144,12 @@ Return ONLY valid JSON:
           messages: [
             {
               role: 'system',
-              content: 'You are a professional chef. Respond with valid JSON only.'
+              content: 'You are a professional chef. Respond with valid JSON only.',
             },
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           temperature: 0.3,
           max_tokens: 2000,
@@ -176,22 +176,25 @@ Return ONLY valid JSON:
         }
 
         if (result.ingredients.length !== ingredients.length) {
-          console.warn(`  ⚠️  Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`);
+          console.warn(
+            `  ⚠️  Expected ${ingredients.length} ingredients, got ${result.ingredients.length}`
+          );
         }
 
         console.log(`  ✓ Used model: ${model}`);
         return result.ingredients;
-
       } catch (error: any) {
-        lastError = error;
+        _lastError = error;
 
         // Rate limit - use exponential backoff
         if (error.status === 429) {
           if (attempt < 5) {
             // Exponential backoff: 30s, 60s, 120s, 300s (5 min)
-            const waitSeconds = Math.min(30 * Math.pow(2, attempt - 1), 300);
-            console.log(`  ⏳ Rate limit with ${model}, waiting ${waitSeconds}s (attempt ${attempt}/5)...`);
-            await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+            const waitSeconds = Math.min(30 * 2 ** (attempt - 1), 300);
+            console.log(
+              `  ⏳ Rate limit with ${model}, waiting ${waitSeconds}s (attempt ${attempt}/5)...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
             continue;
           }
           // If exhausted retries for this model, try next model
@@ -203,7 +206,7 @@ Return ONLY valid JSON:
         if (error.status >= 500 && error.status < 600 && attempt < 3) {
           const waitSeconds = 10;
           console.log(`  ⏳ Server error, retrying in ${waitSeconds}s...`);
-          await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+          await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
           continue;
         }
 
@@ -221,7 +224,9 @@ Return ONLY valid JSON:
 /**
  * Main function to fix all recipe amounts with batch processing
  */
-async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; resume?: boolean } = {}) {
+async function fixAllRecipeAmounts(
+  options: { dryRun?: boolean; limit?: number; resume?: boolean } = {}
+) {
   const { dryRun = false, limit, resume = true } = options;
 
   console.log('🔧 Recipe Ingredient Amounts Fixer (Batch Processing)\n');
@@ -265,7 +270,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
   }
 
   console.log('Starting in 3 seconds...\n');
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   try {
     // Fetch all recipes
@@ -279,7 +284,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
 
     // Filter out already processed recipes if resuming
     if (resume && stats.lastProcessedId) {
-      const lastIndex = allRecipes.findIndex(r => r.id === stats.lastProcessedId);
+      const lastIndex = allRecipes.findIndex((r) => r.id === stats.lastProcessedId);
       if (lastIndex >= 0) {
         allRecipes = allRecipes.slice(lastIndex + 1);
         console.log(`📂 Skipping ${lastIndex + 1} already processed recipes\n`);
@@ -287,7 +292,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
     }
 
     console.log(`📊 Found ${allRecipes.length} recipes to process\n`);
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
 
     for (const recipe of allRecipes) {
       stats.processed++;
@@ -304,7 +309,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
           if (!Array.isArray(ingredients)) {
             throw new Error('Ingredients is not an array');
           }
-        } catch (error) {
+        } catch (_error) {
           console.log(`  ✗ Invalid ingredients format, skipping\n`);
           stats.skipped++;
           stats.lastProcessedId = recipe.id;
@@ -313,7 +318,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
         }
 
         // Check if amounts already present
-        const ingredientsWithoutAmounts = ingredients.filter(ing => !hasAmount(ing));
+        const ingredientsWithoutAmounts = ingredients.filter((ing) => !hasAmount(ing));
 
         if (ingredientsWithoutAmounts.length === 0) {
           console.log(`  ✓ Already has amounts, skipping\n`);
@@ -323,7 +328,9 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
           continue;
         }
 
-        console.log(`  📝 Missing amounts: ${ingredientsWithoutAmounts.length}/${ingredients.length}`);
+        console.log(
+          `  📝 Missing amounts: ${ingredientsWithoutAmounts.length}/${ingredients.length}`
+        );
         console.log(`  🤖 Requesting LLM enhancement...`);
 
         // Add amounts using LLM
@@ -343,10 +350,11 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
 
         // Update database (unless dry run)
         if (!dryRun) {
-          await db.update(recipes)
+          await db
+            .update(recipes)
             .set({
               ingredients: JSON.stringify(withAmounts),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(recipes.id, recipe.id));
 
@@ -370,8 +378,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
         console.log();
 
         // Conservative rate limit - wait 3 seconds between requests
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`  ✗ Failed: ${errorMessage}\n`);
@@ -388,7 +395,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
         // If all models failed, wait longer before continuing
         if (errorMessage.includes('All models failed')) {
           console.log('  ⏸️  All models exhausted, waiting 5 minutes before continuing...\n');
-          await new Promise(resolve => setTimeout(resolve, 300000)); // 5 minutes
+          await new Promise((resolve) => setTimeout(resolve, 300000)); // 5 minutes
         }
       }
     }
@@ -399,7 +406,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
     const avgTimePerRecipe = totalTime / stats.processed;
     const avgSeconds = (avgTimePerRecipe / 1000).toFixed(1);
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
     console.log('✅ Processing complete!\n');
     console.log('📊 Final Statistics:');
     console.log(`  Total recipes: ${stats.total}`);
@@ -420,9 +427,8 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
       }
     }
 
-    const successRate = stats.total > 0
-      ? ((stats.updated + stats.skipped) / stats.total * 100).toFixed(1)
-      : 0;
+    const successRate =
+      stats.total > 0 ? (((stats.updated + stats.skipped) / stats.total) * 100).toFixed(1) : 0;
 
     console.log(`\n✨ Success rate: ${successRate}%`);
 
@@ -431,7 +437,6 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
       fs.unlinkSync(PROGRESS_FILE);
       console.log('🧹 Progress file cleaned up');
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     console.log('\n💾 Progress saved. Run again with resume=true to continue.');
@@ -444,7 +449,7 @@ async function fixAllRecipeAmounts(options: { dryRun?: boolean; limit?: number; 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const noResume = args.includes('--no-resume');
-const limitArg = args.find(arg => arg.startsWith('--limit='));
+const limitArg = args.find((arg) => arg.startsWith('--limit='));
 const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
 
 // Run the script

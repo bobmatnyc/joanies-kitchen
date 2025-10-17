@@ -5,9 +5,9 @@
  * in the PostgreSQL database with pgvector extension.
  */
 
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { recipeEmbeddings, recipes, RecipeEmbedding, NewRecipeEmbedding } from '@/lib/db/schema';
-import { eq, sql, desc } from 'drizzle-orm';
+import { type RecipeEmbedding, recipeEmbeddings, recipes } from '@/lib/db/schema';
 
 /**
  * Error class for embedding database operations
@@ -65,11 +65,7 @@ export async function saveRecipeEmbedding(
     });
 
     if (!recipe) {
-      throw new EmbeddingDatabaseError(
-        `Recipe not found: ${recipeId}`,
-        'save',
-        { recipeId }
-      );
+      throw new EmbeddingDatabaseError(`Recipe not found: ${recipeId}`, 'save', { recipeId });
     }
 
     // Check if embedding already exists
@@ -91,10 +87,7 @@ export async function saveRecipeEmbedding(
         .returning();
 
       // Update the recipe's embedding_model field as well
-      await db
-        .update(recipes)
-        .set({ embedding_model: modelName })
-        .where(eq(recipes.id, recipeId));
+      await db.update(recipes).set({ embedding_model: modelName }).where(eq(recipes.id, recipeId));
 
       return updated;
     }
@@ -111,23 +104,18 @@ export async function saveRecipeEmbedding(
       .returning();
 
     // Update the recipe's embedding_model field
-    await db
-      .update(recipes)
-      .set({ embedding_model: modelName })
-      .where(eq(recipes.id, recipeId));
+    await db.update(recipes).set({ embedding_model: modelName }).where(eq(recipes.id, recipeId));
 
     return created;
-
   } catch (error: any) {
     if (error instanceof EmbeddingDatabaseError) {
       throw error;
     }
 
-    throw new EmbeddingDatabaseError(
-      `Failed to save recipe embedding: ${error.message}`,
-      'save',
-      { recipeId, originalError: error }
-    );
+    throw new EmbeddingDatabaseError(`Failed to save recipe embedding: ${error.message}`, 'save', {
+      recipeId,
+      originalError: error,
+    });
   }
 }
 
@@ -143,22 +131,18 @@ export async function saveRecipeEmbedding(
  *   console.log(embedding.embedding.length); // 384
  * }
  */
-export async function getRecipeEmbedding(
-  recipeId: string
-): Promise<RecipeEmbedding | null> {
+export async function getRecipeEmbedding(recipeId: string): Promise<RecipeEmbedding | null> {
   try {
     const embedding = await db.query.recipeEmbeddings.findFirst({
       where: eq(recipeEmbeddings.recipe_id, recipeId),
     });
 
     return embedding || null;
-
   } catch (error: any) {
-    throw new EmbeddingDatabaseError(
-      `Failed to get recipe embedding: ${error.message}`,
-      'get',
-      { recipeId, originalError: error }
-    );
+    throw new EmbeddingDatabaseError(`Failed to get recipe embedding: ${error.message}`, 'get', {
+      recipeId,
+      originalError: error,
+    });
   }
 }
 
@@ -181,14 +165,10 @@ export async function deleteRecipeEmbedding(recipeId: string): Promise<boolean> 
 
     // Clear the recipe's embedding_model field
     if (result.length > 0) {
-      await db
-        .update(recipes)
-        .set({ embedding_model: null })
-        .where(eq(recipes.id, recipeId));
+      await db.update(recipes).set({ embedding_model: null }).where(eq(recipes.id, recipeId));
     }
 
     return result.length > 0;
-
   } catch (error: any) {
     throw new EmbeddingDatabaseError(
       `Failed to delete recipe embedding: ${error.message}`,
@@ -276,13 +256,10 @@ export async function findSimilarRecipes(
     `);
 
     return results.rows as any[];
-
   } catch (error: any) {
-    throw new EmbeddingDatabaseError(
-      `Failed to find similar recipes: ${error.message}`,
-      'search',
-      { originalError: error }
-    );
+    throw new EmbeddingDatabaseError(`Failed to find similar recipes: ${error.message}`, 'search', {
+      originalError: error,
+    });
   }
 }
 
@@ -318,7 +295,6 @@ export async function getAllRecipeEmbeddings(
     `);
 
     return results.rows as any[];
-
   } catch (error: any) {
     throw new EmbeddingDatabaseError(
       `Failed to get all recipe embeddings: ${error.message}`,
@@ -345,13 +321,10 @@ export async function countRecipeEmbeddings(): Promise<number> {
     `);
 
     return Number(result.rows[0]?.count || 0);
-
   } catch (error: any) {
-    throw new EmbeddingDatabaseError(
-      `Failed to count recipe embeddings: ${error.message}`,
-      'get',
-      { originalError: error }
-    );
+    throw new EmbeddingDatabaseError(`Failed to count recipe embeddings: ${error.message}`, 'get', {
+      originalError: error,
+    });
   }
 }
 
@@ -366,9 +339,7 @@ export async function countRecipeEmbeddings(): Promise<number> {
  * const needsEmbedding = await getRecipesNeedingEmbedding();
  * console.log(`${needsEmbedding.length} recipes need embeddings`);
  */
-export async function getRecipesNeedingEmbedding(
-  modelName?: string
-): Promise<any[]> {
+export async function getRecipesNeedingEmbedding(modelName?: string): Promise<any[]> {
   try {
     let query;
 
@@ -394,7 +365,6 @@ export async function getRecipesNeedingEmbedding(
 
     const results = await db.execute(query);
     return results.rows as any[];
-
   } catch (error: any) {
     throw new EmbeddingDatabaseError(
       `Failed to get recipes needing embedding: ${error.message}`,
@@ -447,7 +417,6 @@ export async function batchSaveRecipeEmbeddings(
     }
 
     return results;
-
   } catch (error: any) {
     throw new EmbeddingDatabaseError(
       `Failed to batch save recipe embeddings: ${error.message}`,

@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * Initialize J. Kenji López-Alt chef profile
@@ -28,22 +28,25 @@ async function initKenjiAlt() {
     }
 
     // Create chef profile
-    const chef = await db.insert(chefs).values({
-      name: 'J. Kenji López-Alt',
-      slug: 'kenji-lopez-alt',
-      displayName: 'J. Kenji López-Alt',
-      bio: `James Beard Award-winning author, chef, and food scientist. Managing Culinary Director at Serious Eats and author of "The Food Lab: Better Home Cooking Through Science." Known for his scientific approach to cooking, extensive recipe testing, and making complex techniques accessible to home cooks.`,
-      website: 'https://www.seriouseats.com',
-      socialLinks: {
-        instagram: '@kenjilopezalt',
-        youtube: '@JKenjiLopezAlt',
-        twitter: '@kenjilopezalt',
-      },
-      specialties: ['asian', 'science', 'technique', 'american', 'testing'],
-      isVerified: true,
-      isActive: true,
-      recipeCount: 0,
-    }).returning();
+    const chef = await db
+      .insert(chefs)
+      .values({
+        name: 'J. Kenji López-Alt',
+        slug: 'kenji-lopez-alt',
+        displayName: 'J. Kenji López-Alt',
+        bio: `James Beard Award-winning author, chef, and food scientist. Managing Culinary Director at Serious Eats and author of "The Food Lab: Better Home Cooking Through Science." Known for his scientific approach to cooking, extensive recipe testing, and making complex techniques accessible to home cooks.`,
+        website: 'https://www.seriouseats.com',
+        socialLinks: {
+          instagram: '@kenjilopezalt',
+          youtube: '@JKenjiLopezAlt',
+          twitter: '@kenjilopezalt',
+        },
+        specialties: ['asian', 'science', 'technique', 'american', 'testing'],
+        isVerified: true,
+        isActive: true,
+        recipeCount: 0,
+      })
+      .returning();
 
     console.log('✅ Chef profile created successfully!\n');
     console.log('Details:');

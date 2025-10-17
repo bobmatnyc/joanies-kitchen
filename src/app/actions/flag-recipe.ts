@@ -10,10 +10,10 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { recipes, recipeFlags } from '@/lib/db/schema';
-import { eq, and, count, desc } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { recipeFlags, recipes } from '@/lib/db/schema';
 
 export type FlagReason = 'inappropriate' | 'spam' | 'copyright' | 'quality' | 'other';
 export type FlagStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
@@ -94,7 +94,6 @@ export async function flagRecipe(
       success: true,
       flagId: newFlag.id,
     };
-
   } catch (error: any) {
     console.error('[Flag Recipe] Error:', error);
     return {
@@ -115,15 +114,9 @@ export async function getFlagCount(recipeId: string): Promise<number> {
     const result = await db
       .select({ count: count() })
       .from(recipeFlags)
-      .where(
-        and(
-          eq(recipeFlags.recipe_id, recipeId),
-          eq(recipeFlags.status, 'pending')
-        )
-      );
+      .where(and(eq(recipeFlags.recipe_id, recipeId), eq(recipeFlags.status, 'pending')));
 
     return result[0]?.count || 0;
-
   } catch (error: any) {
     console.error('[Get Flag Count] Error:', error);
     return 0;
@@ -157,7 +150,6 @@ export async function hasUserFlagged(recipeId: string): Promise<boolean> {
       .limit(1);
 
     return flags.length > 0;
-
   } catch (error: any) {
     console.error('[Has User Flagged] Error:', error);
     return false;
@@ -174,19 +166,21 @@ export async function hasUserFlagged(recipeId: string): Promise<boolean> {
 export async function getAllFlags(
   status?: FlagStatus,
   limit: number = 50
-): Promise<{
-  id: string;
-  recipe_id: string;
-  recipeName: string;
-  user_id: string;
-  reason: string;
-  description: string | null;
-  status: string;
-  reviewed_by: string | null;
-  reviewed_at: Date | null;
-  review_notes: string | null;
-  created_at: Date | null;
-}[]> {
+): Promise<
+  {
+    id: string;
+    recipe_id: string;
+    recipeName: string;
+    user_id: string;
+    reason: string;
+    description: string | null;
+    status: string;
+    reviewed_by: string | null;
+    reviewed_at: Date | null;
+    review_notes: string | null;
+    created_at: Date | null;
+  }[]
+> {
   try {
     const { userId, sessionClaims } = await auth();
 
@@ -221,11 +215,9 @@ export async function getAllFlags(
       .limit(limit);
 
     // Add status filter if provided
-    const flags = status
-      ? await query.where(eq(recipeFlags.status, status))
-      : await query;
+    const flags = status ? await query.where(eq(recipeFlags.status, status)) : await query;
 
-    return flags.map(flag => ({
+    return flags.map((flag) => ({
       id: flag.id,
       recipe_id: flag.recipe_id,
       recipeName: flag.recipeName || 'Unknown Recipe',
@@ -238,7 +230,6 @@ export async function getAllFlags(
       review_notes: flag.review_notes,
       created_at: flag.created_at,
     }));
-
   } catch (error: any) {
     console.error('[Get All Flags] Error:', error);
     throw error;
@@ -303,7 +294,6 @@ export async function reviewFlag(
     revalidatePath('/admin/flags');
 
     return { success: true };
-
   } catch (error: any) {
     console.error('[Review Flag] Error:', error);
     return {
@@ -319,16 +309,16 @@ export async function reviewFlag(
  * @param recipeId - Recipe ID
  * @returns Array of flags for this recipe
  */
-export async function getRecipeFlags(
-  recipeId: string
-): Promise<{
-  id: string;
-  user_id: string;
-  reason: string;
-  description: string | null;
-  status: string;
-  created_at: Date | null;
-}[]> {
+export async function getRecipeFlags(recipeId: string): Promise<
+  {
+    id: string;
+    user_id: string;
+    reason: string;
+    description: string | null;
+    status: string;
+    created_at: Date | null;
+  }[]
+> {
   try {
     const { userId, sessionClaims } = await auth();
 
@@ -355,7 +345,7 @@ export async function getRecipeFlags(
       .where(eq(recipeFlags.recipe_id, recipeId))
       .orderBy(desc(recipeFlags.created_at));
 
-    return flags.map(flag => ({
+    return flags.map((flag) => ({
       id: flag.id,
       user_id: flag.user_id,
       reason: flag.reason || 'other',
@@ -363,7 +353,6 @@ export async function getRecipeFlags(
       status: flag.status || 'pending',
       created_at: flag.created_at,
     }));
-
   } catch (error: any) {
     console.error('[Get Recipe Flags] Error:', error);
     throw error;

@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { MapPin, Globe, Calendar } from 'lucide-react';
-import type { UserProfile } from '@/lib/db/user-discovery-schema';
+import { Calendar, Globe, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import type { UserProfile } from '@/lib/db/user-discovery-schema';
 
 interface ProfileDisplayProps {
   profile: UserProfile;
@@ -16,11 +16,7 @@ interface ProfileDisplayProps {
   isOwnProfile?: boolean;
 }
 
-export function ProfileDisplay({
-  profile,
-  stats,
-  isOwnProfile = false,
-}: ProfileDisplayProps) {
+export function ProfileDisplay({ profile, stats, isOwnProfile = false }: ProfileDisplayProps) {
   const joinDate = new Date(profile.created_at).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
@@ -38,9 +34,7 @@ export function ProfileDisplay({
 
           {/* Profile Info */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {profile.display_name}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">{profile.display_name}</h1>
             <p className="text-gray-600">@{profile.username}</p>
 
             {/* Location & Website */}
@@ -88,9 +82,7 @@ export function ProfileDisplay({
       {/* Specialties */}
       {profile.specialties && profile.specialties.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">
-            Specialties
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">Specialties</h3>
           <div className="flex flex-wrap gap-2">
             {profile.specialties.map((specialty) => (
               <span
@@ -109,15 +101,11 @@ export function ProfileDisplay({
         <div className="border-t pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">
-                {stats.publicRecipes}
-              </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.publicRecipes}</div>
               <div className="text-sm text-gray-600">Recipes</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">
-                {stats.publicCollections}
-              </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.publicCollections}</div>
               <div className="text-sm text-gray-600">Collections</div>
             </div>
             <div className="text-center">

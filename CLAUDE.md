@@ -57,7 +57,7 @@ When in doubt about file placement, consult PROJECT_ORGANIZATION.md.
 - **UI Framework**: Tailwind CSS v4 + shadcn/ui components
 - **State Management**: React Hook Form + Zod validation
 - **Package Manager**: pnpm
-- **Dev Port**: 3004 (configured in package.json)
+- **Dev Port**: 3002 (configured in package.json)
 
 ### Project Structure
 ```
@@ -154,7 +154,7 @@ pnpm dev
 # OR (for Makefile users)
 make dev
 
-# Opens on: http://localhost:3004
+# Opens on: http://localhost:3002
 ```
 
 ### Database Operations
@@ -215,7 +215,7 @@ DATABASE_URL=postgresql://...              # Neon PostgreSQL connection
 
 # AI Integration
 OPENROUTER_API_KEY=sk-or-...              # OpenRouter API key
-NEXT_PUBLIC_APP_URL=http://localhost:3004 # Application URL
+NEXT_PUBLIC_APP_URL=http://localhost:3002 # Application URL
 
 # Clerk Authentication (Development Environment)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_... # Dev publishable key
@@ -687,7 +687,7 @@ pnpm build
 - Follow Next.js App Router conventions
 
 ### Current Technical Context
-- Development port: 3004
+- Development port: 3002
 - Package manager: pnpm
 - Authentication: Dual-env Clerk (dev + prod on localhost)
 - Database: Neon PostgreSQL serverless
@@ -700,7 +700,7 @@ pnpm build
 ### Essential Commands
 ```bash
 pnpm install           # Install dependencies
-pnpm dev               # Start development server (port 3004)
+pnpm dev               # Start development server (port 3002)
 pnpm build             # Build for production
 pnpm db:push           # Push database schema
 pnpm db:studio         # Open Drizzle Studio

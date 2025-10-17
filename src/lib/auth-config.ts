@@ -11,10 +11,12 @@ import { getClerkKeys, shouldUseProductionKeysOverride } from '@/config/clerk-de
  * Environment detection utilities
  */
 export function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production' ||
-         process.env.VERCEL_ENV === 'production' ||
-         process.env.NEXT_PUBLIC_APP_URL?.includes('recipes.help') ||
-         (typeof window !== 'undefined' && window.location.hostname === 'recipes.help');
+  return (
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.NEXT_PUBLIC_APP_URL?.includes('recipes.help') ||
+    (typeof window !== 'undefined' && window.location.hostname === 'recipes.help')
+  );
 }
 
 export function isDevelopment(): boolean {
@@ -22,11 +24,11 @@ export function isDevelopment(): boolean {
 }
 
 export function isLocalhost(): boolean {
-  return process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ||
-         (typeof window !== 'undefined' && (
-           window.location.hostname === 'localhost' ||
-           window.location.hostname === '127.0.0.1'
-         ));
+  return (
+    process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ||
+    (typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+  );
 }
 
 /**
@@ -49,7 +51,7 @@ function getEnvironmentSpecificKeys(): {
       publishableKey: keys.publishableKey,
       secretKey: keys.secretKey,
       environment: 'development',
-      usingProductionKeys: true
+      usingProductionKeys: true,
     };
   }
 
@@ -57,16 +59,16 @@ function getEnvironmentSpecificKeys(): {
     // Production environment - use live keys for recipes.help
     // Vercel deployments should use the non-suffixed variables (NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY)
     // which should be set to production keys (pk_live_, sk_live_) in Vercel dashboard
-    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
-                          process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    const secretKey = process.env.CLERK_SECRET_KEY_PROD ||
-                     process.env.CLERK_SECRET_KEY;
+    const publishableKey =
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD ||
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY_PROD || process.env.CLERK_SECRET_KEY;
 
     return {
       publishableKey,
       secretKey,
       environment: 'production',
-      usingProductionKeys: true
+      usingProductionKeys: true,
     };
   } else {
     // Development environment - use test keys for localhost
@@ -75,25 +77,28 @@ function getEnvironmentSpecificKeys(): {
     const secretKey = process.env.CLERK_SECRET_KEY;
 
     // Check if production keys are being used in development
-    const isUsingProdKeys = publishableKey?.startsWith('pk_live_') && secretKey?.startsWith('sk_live_');
+    const isUsingProdKeys =
+      publishableKey?.startsWith('pk_live_') && secretKey?.startsWith('sk_live_');
 
     if (isUsingProdKeys && process.env.ALLOW_PRODUCTION_KEYS_IN_DEV === 'true') {
       return {
         publishableKey,
         secretKey,
         environment: 'development',
-        usingProductionKeys: true
+        usingProductionKeys: true,
       };
     }
 
     // Default to test keys for development
     return {
-      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV ||
-                     (publishableKey?.startsWith('pk_test_') ? publishableKey : undefined),
-      secretKey: process.env.CLERK_SECRET_KEY_DEV ||
-                (secretKey?.startsWith('sk_test_') ? secretKey : undefined),
+      publishableKey:
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV ||
+        (publishableKey?.startsWith('pk_test_') ? publishableKey : undefined),
+      secretKey:
+        process.env.CLERK_SECRET_KEY_DEV ||
+        (secretKey?.startsWith('sk_test_') ? secretKey : undefined),
       environment: 'development',
-      usingProductionKeys: false
+      usingProductionKeys: false,
     };
   }
 }
@@ -118,7 +123,6 @@ export function isClerkConfigured(): boolean {
 
   return hasPublishableKey && hasSecretKey;
 }
-
 
 /**
  * Check if authentication should be enabled
@@ -168,7 +172,8 @@ export function getAppUrl(): string {
  * Enhanced to support production keys on localhost
  */
 export const authConfig = (() => {
-  const { publishableKey, secretKey, environment, usingProductionKeys } = getEnvironmentSpecificKeys();
+  const { publishableKey, secretKey, environment, usingProductionKeys } =
+    getEnvironmentSpecificKeys();
   const isProd = isProduction();
   const isConfigured = isClerkConfigured();
   const isEnabled = isAuthEnabled();
@@ -210,7 +215,7 @@ export const authConfig = (() => {
       mockAuth: isDevelopment() && !isConfigured,
       strictDomainCheck: isProd && !usingProductionKeys, // Disable strict domain check when using prod keys in dev
       productionKeysInDev: usingProductionKeys && !isProd,
-    }
+    },
   };
 })();
 
@@ -251,17 +256,23 @@ export function validateAuthConfig(): {
     const secKeyEnv = secretKey?.includes('sk_test') ? 'test' : 'live';
 
     if (pubKeyEnv !== secKeyEnv) {
-      errors.push(`Clerk key environment mismatch: publishable key is ${pubKeyEnv}, secret key is ${secKeyEnv}`);
+      errors.push(
+        `Clerk key environment mismatch: publishable key is ${pubKeyEnv}, secret key is ${secKeyEnv}`
+      );
     }
 
     // Validate production keys are used in production
     if (isProduction() && pubKeyEnv === 'test') {
-      errors.push('Production environment detected but using test keys. Use live keys for production.');
+      errors.push(
+        'Production environment detected but using test keys. Use live keys for production.'
+      );
     }
 
     // Validate development keys are used in development
     if (isDevelopment() && pubKeyEnv === 'live' && !process.env.ALLOW_LIVE_KEYS_IN_DEV) {
-      warnings.push('Development environment using live keys. Consider using test keys for development.');
+      warnings.push(
+        'Development environment using live keys. Consider using test keys for development.'
+      );
     }
   }
 
@@ -298,8 +309,11 @@ export function logAuthStatus(): void {
       isLocalhost: isLocalhost(),
       appUrl: getAppUrl(),
       enableDevAuth: process.env.ENABLE_DEV_AUTH === 'true',
-      keyType: publishableKey?.startsWith('pk_test_') ? 'test' :
-              publishableKey?.startsWith('pk_live_') ? 'live' : 'none',
+      keyType: publishableKey?.startsWith('pk_test_')
+        ? 'test'
+        : publishableKey?.startsWith('pk_live_')
+          ? 'live'
+          : 'none',
       usingProductionKeys,
       domainCheck: authConfig.features.strictDomainCheck,
       productionKeysInDev: authConfig.features.productionKeysInDev,

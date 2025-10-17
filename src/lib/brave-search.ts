@@ -120,9 +120,7 @@ export class BraveSearchServiceError extends BraveSearchAPIError {
  * }
  * ```
  */
-export async function braveSearch(
-  options: BraveSearchOptions
-): Promise<BraveSearchResponse> {
+export async function braveSearch(options: BraveSearchOptions): Promise<BraveSearchResponse> {
   const { query, count = 10 } = options;
 
   // Client-side validation
@@ -168,7 +166,6 @@ export async function braveSearch(
     // Parse and return success response
     const data: BraveSearchResponse = await response.json();
     return data;
-
   } catch (error) {
     // Re-throw our custom errors
     if (error instanceof BraveSearchAPIError) {
@@ -177,11 +174,7 @@ export async function braveSearch(
 
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new BraveSearchAPIError(
-        'Network error',
-        0,
-        'Failed to connect to search service'
-      );
+      throw new BraveSearchAPIError('Network error', 0, 'Failed to connect to search service');
     }
 
     // Handle unknown errors

@@ -5,15 +5,15 @@
  */
 
 import 'dotenv/config';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { chefRecipes } from '@/lib/db/chef-schema';
-import { eq, sql } from 'drizzle-orm';
 import { put } from '@vercel/blob';
+import { eq, sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { chefRecipes } from '@/lib/db/chef-schema';
+import { recipes } from '@/lib/db/schema';
 
 async function generateImageWithAI(recipeName: string, cuisine: string | null): Promise<string> {
   const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-  
+
   if (!openrouterApiKey) {
     throw new Error('OPENROUTER_API_KEY not found');
   }
@@ -29,7 +29,7 @@ async function generateImageWithAI(recipeName: string, cuisine: string | null): 
     const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openrouterApiKey}`,
+        Authorization: `Bearer ${openrouterApiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002',
         'X-Title': 'Recipe Manager - AI Image Generation',
@@ -48,17 +48,16 @@ async function generateImageWithAI(recipeName: string, cuisine: string | null): 
     }
 
     const data = await response.json();
-    
+
     // Extract image URL from response
     const imageUrl = data.data?.[0]?.url;
-    
+
     if (!imageUrl) {
       throw new Error('No image URL in response');
     }
 
     console.log(`      ✅ AI image generated successfully`);
     return imageUrl;
-
   } catch (error) {
     console.error(`      ❌ AI generation failed:`, error);
     throw error;
@@ -68,7 +67,7 @@ async function generateImageWithAI(recipeName: string, cuisine: string | null): 
 async function downloadAndUploadToBlob(imageUrl: string, recipeName: string): Promise<string> {
   try {
     console.log(`      ⬇️  Downloading AI-generated image...`);
-    
+
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error(`Failed to download: ${response.statusText}`);
@@ -94,7 +93,6 @@ async function downloadAndUploadToBlob(imageUrl: string, recipeName: string): Pr
 
     console.log(`      ✅ Uploaded: ${blob.url.substring(0, 60)}...`);
     return blob.url;
-
   } catch (error) {
     console.error(`      ❌ Upload failed:`, error);
     throw error;
@@ -122,9 +120,7 @@ async function generateAIRecipeImages() {
     })
     .from(recipes)
     .innerJoin(chefRecipes, eq(chefRecipes.recipe_id, recipes.id))
-    .where(
-      sql`${recipes.images}::text LIKE '%unsplash%'`
-    )
+    .where(sql`${recipes.images}::text LIKE '%unsplash%'`)
     .limit(25); // Limit for cost control
 
   console.log(`📊 Found ${recipesToRegenerate.length} recipes to generate AI images for\n`);
@@ -135,9 +131,11 @@ async function generateAIRecipeImages() {
 
   for (let i = 0; i < recipesToRegenerate.length; i++) {
     const { recipe } = recipesToRegenerate[i];
-    
+
     console.log(`\n[${i + 1}/${recipesToRegenerate.length}] ${recipe.name}`);
-    console.log(`   Cuisine: ${recipe.cuisine || 'N/A'} | Difficulty: ${recipe.difficulty || 'N/A'}`);
+    console.log(
+      `   Cuisine: ${recipe.cuisine || 'N/A'} | Difficulty: ${recipe.difficulty || 'N/A'}`
+    );
 
     try {
       // Step 1: Generate AI image
@@ -161,17 +159,13 @@ async function generateAIRecipeImages() {
       // Rate limiting: 3 seconds between requests to avoid hitting limits
       if (i < recipesToRegenerate.length - 1) {
         console.log(`   ⏳ Waiting 3s before next generation...`);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error(`   ❌ Failed: ${errorMsg}`);
       errorCount++;
       errors.push({ recipe: recipe.name, error: errorMsg });
-      
-      // Continue with next recipe
-      continue;
     }
   }
 
@@ -195,9 +189,11 @@ async function generateAIRecipeImages() {
 
   console.log('\n🎉 AI image generation complete!');
   console.log(`\n🌐 View chefs: http://localhost:3002/discover/chefs`);
-  
+
   if (successCount > 0) {
-    console.log(`\n💰 Estimated cost: ~$${(successCount * 0.04).toFixed(2)} (Flux Pro 1.1: $0.04/image)`);
+    console.log(
+      `\n💰 Estimated cost: ~$${(successCount * 0.04).toFixed(2)} (Flux Pro 1.1: $0.04/image)`
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Link Existing Recipes to All Famous Chefs
  *
@@ -6,81 +7,57 @@
  * based on known source URLs and patterns.
  */
 
+import { and, eq, like, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
-import { like, eq, and, sql, or } from 'drizzle-orm';
 
 // Chef-to-source mapping
 const CHEF_SOURCES = [
   {
     slug: 'kenji-lopez-alt',
     name: 'J. Kenji López-Alt',
-    sources: [
-      '%seriouseats.com%',
-      '%kenjilopezalt.com%',
-    ],
+    sources: ['%seriouseats.com%', '%kenjilopezalt.com%'],
   },
   {
     slug: 'gordon-ramsay',
     name: 'Gordon Ramsay',
-    sources: [
-      '%gordonramsay.com%',
-      '%gordonramsayrestaurants.com%',
-    ],
+    sources: ['%gordonramsay.com%', '%gordonramsayrestaurants.com%'],
   },
   {
     slug: 'ina-garten',
     name: 'Ina Garten',
-    sources: [
-      '%barefootcontessa.com%',
-      '%foodnetwork.com%ina%',
-    ],
+    sources: ['%barefootcontessa.com%', '%foodnetwork.com%ina%'],
   },
   {
     slug: 'jacques-pepin',
     name: 'Jacques Pépin',
-    sources: [
-      '%jacquespepin.net%',
-      '%kqed.org%jacques%',
-    ],
+    sources: ['%jacquespepin.net%', '%kqed.org%jacques%'],
   },
   {
     slug: 'yotam-ottolenghi',
     name: 'Yotam Ottolenghi',
-    sources: [
-      '%ottolenghi.co.uk%',
-      '%theguardian.com%yotam%',
-    ],
+    sources: ['%ottolenghi.co.uk%', '%theguardian.com%yotam%'],
   },
   {
     slug: 'nigella-lawson',
     name: 'Nigella Lawson',
-    sources: [
-      '%nigella.com%',
-    ],
+    sources: ['%nigella.com%'],
   },
   {
     slug: 'alton-brown',
     name: 'Alton Brown',
-    sources: [
-      '%altonbrown.com%',
-      '%foodnetwork.com%alton%',
-    ],
+    sources: ['%altonbrown.com%', '%foodnetwork.com%alton%'],
   },
   {
     slug: 'madhur-jaffrey',
     name: 'Madhur Jaffrey',
-    sources: [
-      '%madhurjaffrey.com%',
-    ],
+    sources: ['%madhurjaffrey.com%'],
   },
   {
     slug: 'samin-nosrat',
     name: 'Samin Nosrat',
-    sources: [
-      '%ciaosamin.com%',
-    ],
+    sources: ['%ciaosamin.com%'],
   },
 ];
 
@@ -106,11 +83,7 @@ async function linkRecipesToChefs() {
 
     try {
       // Get chef from database
-      const [chef] = await db
-        .select()
-        .from(chefs)
-        .where(eq(chefs.slug, chefSource.slug))
-        .limit(1);
+      const [chef] = await db.select().from(chefs).where(eq(chefs.slug, chefSource.slug)).limit(1);
 
       if (!chef) {
         console.log(`⚠️  Chef not found: ${chefSource.slug}`);
@@ -118,9 +91,7 @@ async function linkRecipesToChefs() {
       }
 
       // Build OR conditions for all source patterns
-      const sourceConditions = chefSource.sources.map(source =>
-        like(recipes.source, source)
-      );
+      const sourceConditions = chefSource.sources.map((source) => like(recipes.source, source));
 
       // Find recipes matching any of the source patterns
       const matchingRecipes = await db
@@ -130,12 +101,7 @@ async function linkRecipesToChefs() {
           source: recipes.source,
         })
         .from(recipes)
-        .where(
-          and(
-            or(...sourceConditions),
-            eq(recipes.is_system_recipe, true)
-          )
-        )
+        .where(and(or(...sourceConditions), eq(recipes.is_system_recipe, true)))
         .limit(20); // Limit to 20 recipes per chef
 
       console.log(`\n📊 Found ${matchingRecipes.length} matching recipes`);
@@ -150,12 +116,7 @@ async function linkRecipesToChefs() {
           const existing = await db
             .select()
             .from(chefRecipes)
-            .where(
-              and(
-                eq(chefRecipes.chef_id, chef.id),
-                eq(chefRecipes.recipe_id, recipe.id)
-              )
-            )
+            .where(and(eq(chefRecipes.chef_id, chef.id), eq(chefRecipes.recipe_id, recipe.id)))
             .limit(1);
 
           if (existing.length > 0) {
@@ -175,7 +136,6 @@ async function linkRecipesToChefs() {
           console.log(`  ✅ ${recipe.name.substring(0, 50)}...`);
           newlyLinked++;
           totalLinked++;
-
         } catch (error) {
           console.error(`  ❌ Error linking ${recipe.name}:`, error);
           errors++;
@@ -196,11 +156,7 @@ async function linkRecipesToChefs() {
         .where(eq(chefs.id, chef.id));
 
       // Get final count
-      const [updatedChef] = await db
-        .select()
-        .from(chefs)
-        .where(eq(chefs.id, chef.id))
-        .limit(1);
+      const [updatedChef] = await db.select().from(chefs).where(eq(chefs.id, chef.id)).limit(1);
 
       stats.push({
         chef: chefSource.name,
@@ -215,7 +171,6 @@ async function linkRecipesToChefs() {
       console.log(`   Already linked: ${alreadyLinked}`);
       console.log(`   Newly linked: ${newlyLinked}`);
       console.log(`   Total recipes for chef: ${updatedChef.recipe_count}`);
-
     } catch (error) {
       console.error(`\n❌ Error processing ${chefSource.name}:`, error);
     }
@@ -227,7 +182,7 @@ async function linkRecipesToChefs() {
   console.log('FINAL SUMMARY');
   console.log('═'.repeat(70));
 
-  stats.forEach(stat => {
+  stats.forEach((stat) => {
     console.log(`\n${stat.chef}:`);
     console.log(`  Recipes found: ${stat.recipesFound}`);
     console.log(`  Already linked: ${stat.alreadyLinked}`);

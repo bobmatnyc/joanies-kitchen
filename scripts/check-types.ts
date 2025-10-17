@@ -1,4 +1,5 @@
 #!/usr/bin/env ts-node
+
 /**
  * Type Validation Script
  *
@@ -7,24 +8,21 @@
  * match frontend expectations.
  */
 
-import type { Recipe } from '@/lib/db/schema';
 import type { Chef } from '@/lib/db/chef-schema';
-import type { Collection } from '@/lib/db/user-discovery-schema';
+import type { Recipe } from '@/lib/db/schema';
 import {
-  parseRecipe,
-  parseChef,
-  serializeRecipe,
-  serializeChef,
-  type ParsedRecipe,
   type ParsedChef,
+  type ParsedRecipe,
+  parseChef,
+  parseRecipe,
+  serializeRecipe,
 } from '@/lib/types';
 import {
-  parseRecipeTags,
+  parseNutritionInfo,
   parseRecipeImages,
   parseRecipeIngredients,
   parseRecipeInstructions,
-  parseNutritionInfo,
-  parseSocialLinks,
+  parseRecipeTags,
   serializeArray,
   serializeObject,
 } from '@/lib/types/parsers';
@@ -80,11 +78,11 @@ const dbRecipe: Recipe = {
 const parsedRecipe: ParsedRecipe = parseRecipe(dbRecipe);
 
 // Type assertions (compile-time checks)
-const tags: string[] = parsedRecipe.tags;
-const images: string[] = parsedRecipe.images;
-const ingredients: string[] = parsedRecipe.ingredients;
-const instructions: string[] = parsedRecipe.instructions;
-const nutritionInfo: { calories?: number; protein?: number } | null = parsedRecipe.nutrition_info;
+const _tags: string[] = parsedRecipe.tags;
+const _images: string[] = parsedRecipe.images;
+const _ingredients: string[] = parsedRecipe.ingredients;
+const _instructions: string[] = parsedRecipe.instructions;
+const _nutritionInfo: { calories?: number; protein?: number } | null = parsedRecipe.nutrition_info;
 
 console.log('  - Recipe parsing: ✓');
 console.log('  - Array types: ✓');
@@ -100,8 +98,8 @@ console.log('\n✅ Test 2: Round-trip serialization');
 const serialized = serializeRecipe(parsedRecipe);
 
 // Type checks
-const serializedTags: string | undefined = serialized.tags;
-const serializedImages: string | undefined = serialized.images;
+const _serializedTags: string | undefined = serialized.tags;
+const _serializedImages: string | undefined = serialized.images;
 
 console.log('  - Serialization: ✓');
 console.log('  - Type conversion: ✓');
@@ -135,8 +133,8 @@ const dbChef: Chef = {
 const parsedChef: ParsedChef = parseChef(dbChef);
 
 // Type assertions
-const specialties: string[] = parsedChef.specialties;
-const socialLinks: { instagram?: string; twitter?: string } = parsedChef.social_links;
+const _specialties: string[] = parsedChef.specialties;
+const _socialLinks: { instagram?: string; twitter?: string } = parsedChef.social_links;
 
 console.log('  - Chef parsing: ✓');
 console.log('  - Array types: ✓');
@@ -150,9 +148,9 @@ console.log('\n✅ Test 4: Individual field parsers');
 
 // Test safe parsing with null values
 const emptyTags: string[] = parseRecipeTags(null);
-const emptyImages: string[] = parseRecipeImages(undefined);
-const emptyIngredients: string[] = parseRecipeIngredients('');
-const emptyInstructions: string[] = parseRecipeInstructions(null);
+const _emptyImages: string[] = parseRecipeImages(undefined);
+const _emptyIngredients: string[] = parseRecipeIngredients('');
+const _emptyInstructions: string[] = parseRecipeInstructions(null);
 
 // Verify they return empty arrays, not null/undefined
 if (Array.isArray(emptyTags) && emptyTags.length === 0) {
@@ -205,7 +203,7 @@ if (nullSerialized === '[]' && undefinedSerialized === null) {
 // SUMMARY
 // ============================================================================
 
-console.log('\n' + '='.repeat(60));
+console.log(`\n${'='.repeat(60)}`);
 console.log('✅ All type validation checks passed!');
 console.log('='.repeat(60));
 console.log('\nType system is working correctly:');

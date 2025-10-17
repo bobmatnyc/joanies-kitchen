@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Link Serious Eats Top Recipes to Kenji López-Alt
  *
@@ -9,21 +10,17 @@
  *   npx tsx scripts/link-serious-eats-to-kenji.ts
  */
 
+import { and, eq, like, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
-import { like, eq, and, sql, desc } from 'drizzle-orm';
 
 async function linkSeriousEatsToKenji() {
   console.log('🔗 Linking Serious Eats recipes to Kenji López-Alt...\n');
 
   try {
     // Get Kenji's chef profile
-    const [kenji] = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.slug, 'kenji-lopez-alt'))
-      .limit(1);
+    const [kenji] = await db.select().from(chefs).where(eq(chefs.slug, 'kenji-lopez-alt')).limit(1);
 
     if (!kenji) {
       console.log('❌ Kenji López-Alt chef profile not found!');
@@ -42,12 +39,7 @@ async function linkSeriousEatsToKenji() {
         source: recipes.source,
       })
       .from(recipes)
-      .where(
-        and(
-          like(recipes.source, '%seriouseats.com%'),
-          eq(recipes.is_system_recipe, true)
-        )
-      )
+      .where(and(like(recipes.source, '%seriouseats.com%'), eq(recipes.is_system_recipe, true)))
       .limit(10); // Get 10 recipes
 
     console.log(`Found ${seriousEatsRecipes.length} Serious Eats recipes`);
@@ -69,12 +61,7 @@ async function linkSeriousEatsToKenji() {
         const existing = await db
           .select()
           .from(chefRecipes)
-          .where(
-            and(
-              eq(chefRecipes.chef_id, kenji.id),
-              eq(chefRecipes.recipe_id, recipe.id)
-            )
-          )
+          .where(and(eq(chefRecipes.chef_id, kenji.id), eq(chefRecipes.recipe_id, recipe.id)))
           .limit(1);
 
         if (existing.length > 0) {
@@ -93,7 +80,6 @@ async function linkSeriousEatsToKenji() {
 
         console.log(`  ✅ Linked: ${recipe.name}`);
         linked++;
-
       } catch (error) {
         console.error(`  ❌ Error linking ${recipe.name}:`, error);
       }
@@ -113,7 +99,7 @@ async function linkSeriousEatsToKenji() {
       .where(eq(chefs.id, kenji.id))
       .returning();
 
-    console.log('\n' + '='.repeat(70));
+    console.log(`\n${'='.repeat(70)}`);
     console.log('SUMMARY');
     console.log('='.repeat(70));
     console.log(`✅ Recipes linked: ${linked}`);
@@ -125,7 +111,6 @@ async function linkSeriousEatsToKenji() {
       console.log('\n🎉 Success!');
       console.log(`\n🌐 View Kenji's profile: http://localhost:3002/chef/kenji-lopez-alt`);
     }
-
   } catch (error) {
     console.error('\n❌ Script failed:', error);
     process.exit(1);

@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 import { findSimilarToRecipe, type RecipeWithSimilarity } from '@/app/actions/semantic-search';
-import { RecipeCard } from './RecipeCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RecipeCard } from './RecipeCard';
 
 export interface SimilarRecipesWidgetProps {
   recipeId: string;
@@ -27,13 +27,7 @@ export function SimilarRecipesWidget({
   const [error, setError] = useState<string | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  useEffect(() => {
-    if (autoLoad) {
-      loadSimilarRecipes();
-    }
-  }, [recipeId, autoLoad]);
-
-  const loadSimilarRecipes = async () => {
+  const loadSimilarRecipes = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -50,16 +44,23 @@ export function SimilarRecipesWidget({
     } finally {
       setLoading(false);
     }
-  };
+  }, [recipeId, limit]);
+
+  useEffect(() => {
+    if (autoLoad) {
+      loadSimilarRecipes();
+    }
+  }, [autoLoad, loadSimilarRecipes]);
 
   const scrollContainer = (direction: 'left' | 'right') => {
     const container = document.getElementById(`similar-recipes-${recipeId}`);
     if (!container) return;
 
     const scrollAmount = 320; // Approximate card width + gap
-    const newPosition = direction === 'left'
-      ? Math.max(0, scrollPosition - scrollAmount)
-      : scrollPosition + scrollAmount;
+    const newPosition =
+      direction === 'left'
+        ? Math.max(0, scrollPosition - scrollAmount)
+        : scrollPosition + scrollAmount;
 
     container.scrollTo({
       left: newPosition,
@@ -90,9 +91,7 @@ export function SimilarRecipesWidget({
             <Sparkles className="w-5 h-5 text-primary animate-pulse" />
             Recipes Like This
           </CardTitle>
-          <CardDescription>
-            Finding similar recipes using AI...
-          </CardDescription>
+          <CardDescription>Finding similar recipes using AI...</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 overflow-hidden">
@@ -113,12 +112,7 @@ export function SimilarRecipesWidget({
       <Card>
         <CardContent className="py-6">
           <p className="text-sm text-destructive">{error}</p>
-          <Button
-            onClick={loadSimilarRecipes}
-            variant="outline"
-            size="sm"
-            className="mt-3"
-          >
+          <Button onClick={loadSimilarRecipes} variant="outline" size="sm" className="mt-3">
             Try Again
           </Button>
         </CardContent>
@@ -155,11 +149,7 @@ export function SimilarRecipesWidget({
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => scrollContainer('right')}
-              >
+              <Button variant="outline" size="icon" onClick={() => scrollContainer('right')}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -175,10 +165,7 @@ export function SimilarRecipesWidget({
           {recipes.map((recipe) => {
             const recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
             return (
-              <div
-                key={recipe.id}
-                className="min-w-[280px] max-w-[280px] relative"
-              >
+              <div key={recipe.id} className="min-w-[280px] max-w-[280px] relative">
                 <Link href={recipeUrl} className="block">
                   <div className="relative">
                     <RecipeCard recipe={recipe} disableLink />
@@ -252,23 +239,23 @@ export function SimilarRecipesCompact({
               href={recipeUrl}
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
             >
-            {recipe.images && JSON.parse(recipe.images)[0] && (
-              <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
-                <img
-                  src={JSON.parse(recipe.images)[0]}
-                  alt={recipe.name}
-                  className="w-full h-full object-cover"
-                />
+              {recipe.images && JSON.parse(recipe.images)[0] && (
+                <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
+                  <img
+                    src={JSON.parse(recipe.images)[0]}
+                    alt={recipe.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{recipe.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(recipe.similarity * 100).toFixed(0)}% similar
+                </p>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{recipe.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {(recipe.similarity * 100).toFixed(0)}% similar
-              </p>
-            </div>
-          </Link>
-          )
+            </Link>
+          );
         })}
       </div>
       <Link href={`/recipes/${recipeId}/similar`} className="block">

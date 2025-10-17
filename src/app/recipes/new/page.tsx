@@ -1,17 +1,17 @@
-import { RecipeForm } from '@/components/recipe/RecipeForm';
-import { AIRecipeUploader } from '@/components/recipe/AIRecipeUploader';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { auth } from '@/lib/auth';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { AIRecipeUploader } from '@/components/recipe/AIRecipeUploader';
+import { RecipeForm } from '@/components/recipe/RecipeForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { auth } from '@/lib/auth';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Create Recipe | Joanie\'s Kitchen',
-  description: 'Create a new recipe with AI or detailed form'
+  title: "Create Recipe | Joanie's Kitchen",
+  description: 'Create a new recipe with AI or detailed form',
 };
 
 export default async function NewRecipePage() {
@@ -35,9 +35,7 @@ export default async function NewRecipePage() {
         Back to Recipes
       </Link>
 
-      <h1 className="text-4xl font-heading text-jk-olive mb-8">
-        Create New Recipe
-      </h1>
+      <h1 className="text-4xl font-heading text-jk-olive mb-8">Create New Recipe</h1>
 
       <Tabs defaultValue="ai" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">

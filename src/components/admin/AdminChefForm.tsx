@@ -1,15 +1,15 @@
 'use client';
 
+import { AlertCircle, CheckCircle2, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { createChef } from '@/app/actions/chefs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 export function AdminChefForm() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,8 +29,8 @@ export function AdminChefForm() {
     socialLinks: {
       instagram: '',
       twitter: '',
-      youtube: ''
-    }
+      youtube: '',
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +42,7 @@ export function AdminChefForm() {
     try {
       const specialtiesArray = formData.specialties
         .split(',')
-        .map(s => s.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
 
       const result = await createChef({
@@ -57,8 +57,8 @@ export function AdminChefForm() {
         social_links: {
           instagram: formData.socialLinks.instagram || undefined,
           twitter: formData.socialLinks.twitter || undefined,
-          youtube: formData.socialLinks.youtube || undefined
-        }
+          youtube: formData.socialLinks.youtube || undefined,
+        },
       });
 
       if (result.success) {
@@ -76,8 +76,8 @@ export function AdminChefForm() {
           socialLinks: {
             instagram: '',
             twitter: '',
-            youtube: ''
-          }
+            youtube: '',
+          },
         });
         setTimeout(() => {
           setSuccess(null);
@@ -184,9 +184,7 @@ export function AdminChefForm() {
               onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
               placeholder="Italian, French, Molecular Gastronomy"
             />
-            <p className="text-xs text-jk-olive/60 mt-1">
-              Comma-separated list of specialties
-            </p>
+            <p className="text-xs text-jk-olive/60 mt-1">Comma-separated list of specialties</p>
           </div>
 
           {/* Website */}
@@ -208,10 +206,12 @@ export function AdminChefForm() {
               <Input
                 id="instagram"
                 value={formData.socialLinks.instagram}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  socialLinks: { ...formData.socialLinks, instagram: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    socialLinks: { ...formData.socialLinks, instagram: e.target.value },
+                  })
+                }
                 placeholder="username"
               />
             </div>
@@ -221,10 +221,12 @@ export function AdminChefForm() {
               <Input
                 id="twitter"
                 value={formData.socialLinks.twitter}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  socialLinks: { ...formData.socialLinks, twitter: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    socialLinks: { ...formData.socialLinks, twitter: e.target.value },
+                  })
+                }
                 placeholder="username"
               />
             </div>
@@ -235,10 +237,12 @@ export function AdminChefForm() {
                 id="youtube"
                 type="url"
                 value={formData.socialLinks.youtube}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  socialLinks: { ...formData.socialLinks, youtube: e.target.value }
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    socialLinks: { ...formData.socialLinks, youtube: e.target.value },
+                  })
+                }
                 placeholder="https://youtube.com/..."
               />
             </div>
@@ -258,9 +262,7 @@ export function AdminChefForm() {
           {success && (
             <Alert className="border-green-500 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                {success}
-              </AlertDescription>
+              <AlertDescription className="text-green-800">{success}</AlertDescription>
             </Alert>
           )}
 
@@ -268,9 +270,7 @@ export function AdminChefForm() {
           {error && (
             <Alert className="border-red-500 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                {error}
-              </AlertDescription>
+              <AlertDescription className="text-red-800">{error}</AlertDescription>
             </Alert>
           )}
 

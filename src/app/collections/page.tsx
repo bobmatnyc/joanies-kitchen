@@ -1,12 +1,12 @@
 import { auth } from '@clerk/nextjs/server';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { getPublicCollections, getUserCollections } from '@/app/actions/collections';
 import { CollectionCard } from '@/components/collections/CollectionCard';
 import { Button } from '@/components/ui/button';
-import { getPublicCollections, getUserCollections } from '@/app/actions/collections';
-import Link from 'next/link';
-import { Plus } from 'lucide-react';
 
 export const metadata = {
-  title: 'Collections - Joanie\'s Kitchen',
+  title: "Collections - Joanie's Kitchen",
   description: 'Browse recipe collections from the community',
 };
 
@@ -36,11 +36,7 @@ export default async function CollectionsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userCollections.map((collection) => (
-                <CollectionCard
-                  key={collection.id}
-                  collection={collection}
-                  showActions={true}
-                />
+                <CollectionCard key={collection.id} collection={collection} showActions={true} />
               ))}
             </div>
           </div>
@@ -59,9 +55,7 @@ export default async function CollectionsPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 No public collections yet
               </h2>
-              <p className="text-gray-600 mb-6">
-                Be the first to create and share a collection!
-              </p>
+              <p className="text-gray-600 mb-6">Be the first to create and share a collection!</p>
               {userId && (
                 <Link href="/profile/edit">
                   <Button>
@@ -74,11 +68,7 @@ export default async function CollectionsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {publicCollections.map((collection) => (
-                <CollectionCard
-                  key={collection.id}
-                  collection={collection}
-                  showAuthor={true}
-                />
+                <CollectionCard key={collection.id} collection={collection} showAuthor={true} />
               ))}
             </div>
           )}

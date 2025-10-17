@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
 import { config } from 'dotenv';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { sql } from 'drizzle-orm';
 
 // Load environment variables
 config({ path: '.env.local' });
@@ -49,8 +49,9 @@ async function applyMigration() {
     console.log('   - The markAsSystemRecipe server action');
     console.log('   - Direct database updates');
     console.log('\nExample SQL to mark a recipe as system recipe:');
-    console.log('UPDATE recipes SET is_system_recipe = true, is_public = true WHERE id = <recipe_id>;');
-
+    console.log(
+      'UPDATE recipes SET is_system_recipe = true, is_public = true WHERE id = <recipe_id>;'
+    );
   } catch (error) {
     console.error('❌ Migration failed:', error);
     process.exit(1);

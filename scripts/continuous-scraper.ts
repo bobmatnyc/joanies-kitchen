@@ -10,19 +10,19 @@
 import { crawlWeeklyRecipes } from '../src/app/actions/recipe-crawl';
 
 interface ScraperConfig {
-  weeksToScrape: number[];      // Which weeks to scrape (0-52)
-  maxRecipesPerWeek: number;    // Max recipes to get per week
-  intervalMinutes: number;       // How often to run (in minutes)
-  autoApprove: boolean;         // Auto-approve recipes
-  cuisines?: string[];          // Optional cuisine filters
+  weeksToScrape: number[]; // Which weeks to scrape (0-52)
+  maxRecipesPerWeek: number; // Max recipes to get per week
+  intervalMinutes: number; // How often to run (in minutes)
+  autoApprove: boolean; // Auto-approve recipes
+  cuisines?: string[]; // Optional cuisine filters
 }
 
 const DEFAULT_CONFIG: ScraperConfig = {
   weeksToScrape: [0, 1, 2, 3, 4], // Current week through 4 weeks ago
   maxRecipesPerWeek: 5,
-  intervalMinutes: 60,            // Run every hour
+  intervalMinutes: 60, // Run every hour
   autoApprove: true,
-  cuisines: undefined,            // No filter, get all cuisines
+  cuisines: undefined, // No filter, get all cuisines
 };
 
 let isRunning = false;
@@ -39,20 +39,24 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
   isRunning = true;
   const startTime = Date.now();
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('[Scraper] Starting recipe scraping cycle');
   console.log('[Scraper] Time:', new Date().toLocaleString());
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   try {
     for (const weeksAgo of config.weeksToScrape) {
-      console.log(`\n[Scraper] Processing week ${weeksAgo} (${weeksAgo === 0 ? 'current week' : weeksAgo + ' weeks ago'})...`);
+      console.log(
+        `\n[Scraper] Processing week ${weeksAgo} (${weeksAgo === 0 ? 'current week' : `${weeksAgo} weeks ago`})...`
+      );
 
       try {
         const result = await crawlWeeklyRecipes(weeksAgo, {
           maxResults: config.maxRecipesPerWeek,
           autoApprove: config.autoApprove,
-          cuisine: config.cuisines ? config.cuisines[Math.floor(Math.random() * config.cuisines.length)] : undefined,
+          cuisine: config.cuisines
+            ? config.cuisines[Math.floor(Math.random() * config.cuisines.length)]
+            : undefined,
         });
 
         totalScraped += result.stats.searched;
@@ -67,8 +71,8 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
 
         // Log stored recipes
         if (result.stats.stored > 0) {
-          const storedRecipes = result.recipes.filter(r => r.status === 'stored');
-          storedRecipes.forEach(recipe => {
+          const storedRecipes = result.recipes.filter((r) => r.status === 'stored');
+          storedRecipes.forEach((recipe) => {
             console.log(`  ✓ Stored: "${recipe.name}"`);
           });
         }
@@ -76,9 +80,8 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
         // Wait between weeks to avoid rate limiting
         if (weeksAgo !== config.weeksToScrape[config.weeksToScrape.length - 1]) {
           console.log('[Scraper] Waiting 10 seconds before next week...');
-          await new Promise(resolve => setTimeout(resolve, 10000));
+          await new Promise((resolve) => setTimeout(resolve, 10000));
         }
-
       } catch (error) {
         console.error(`[Scraper] Error processing week ${weeksAgo}:`, error);
         totalFailed++;
@@ -87,7 +90,7 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('[Scraper] Cycle complete!');
     console.log('[Scraper] Duration:', duration, 'seconds');
     console.log('[Scraper] Session totals:', {
@@ -95,9 +98,11 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
       totalStored,
       totalFailed,
     });
-    console.log('[Scraper] Success rate:', ((totalStored / Math.max(totalScraped, 1)) * 100).toFixed(1) + '%');
-    console.log('='.repeat(60) + '\n');
-
+    console.log(
+      '[Scraper] Success rate:',
+      `${((totalStored / Math.max(totalScraped, 1)) * 100).toFixed(1)}%`
+    );
+    console.log(`${'='.repeat(60)}\n`);
   } catch (error) {
     console.error('[Scraper] Fatal error:', error);
   } finally {
@@ -118,9 +123,12 @@ async function startContinuousScraping(config: ScraperConfig = DEFAULT_CONFIG) {
   await scrapeRecipes(config);
 
   // Then run on interval
-  setInterval(() => {
-    scrapeRecipes(config);
-  }, config.intervalMinutes * 60 * 1000);
+  setInterval(
+    () => {
+      scrapeRecipes(config);
+    },
+    config.intervalMinutes * 60 * 1000
+  );
 
   console.log(`[Scraper] Next scrape in ${config.intervalMinutes} minutes`);
 }

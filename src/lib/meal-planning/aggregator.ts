@@ -8,22 +8,22 @@
  * - Total time estimates
  */
 
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
-  recipes,
-  recipeIngredients,
-  recipeTools,
-  recipeTasks,
+  type Ingredient,
   ingredients,
-  tools,
   type Recipe,
   type RecipeIngredient,
-  type RecipeTool,
   type RecipeTask,
-  type Ingredient,
+  type RecipeTool,
+  recipeIngredients,
+  recipes,
+  recipeTasks,
+  recipeTools,
   type Tool,
+  tools,
 } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
 
 export interface MealRecipe {
   recipe: Recipe;
@@ -79,9 +79,7 @@ export interface MealPlan {
 /**
  * Aggregate multiple recipes into a complete meal plan
  */
-export async function aggregateMealPlan(
-  mealRecipes: MealRecipe[]
-): Promise<MealPlan> {
+export async function aggregateMealPlan(mealRecipes: MealRecipe[]): Promise<MealPlan> {
   // Fetch all related data
   const recipeIds = mealRecipes.map((mr) => mr.recipe.id);
 
@@ -95,10 +93,7 @@ export async function aggregateMealPlan(
   const totalServings = mealRecipes.reduce((sum, mr) => sum + mr.servings, 0);
 
   // Consolidate ingredients
-  const consolidatedIngredients = consolidateIngredients(
-    ingredientsData,
-    mealRecipes
-  );
+  const consolidatedIngredients = consolidateIngredients(ingredientsData, mealRecipes);
 
   // Consolidate tools and find conflicts
   const consolidatedTools = consolidateTools(toolsData, mealRecipes);
@@ -108,8 +103,7 @@ export async function aggregateMealPlan(
   const taskTimeline = buildTaskTimeline(tasksData, mealRecipes);
 
   // Calculate time estimates
-  const { totalTime, activeTime, passiveTime } =
-    calculateTimeEstimates(taskTimeline);
+  const { totalTime, activeTime, passiveTime } = calculateTimeEstimates(taskTimeline);
 
   // Estimate cost
   const estimatedCost = estimateMealCost(consolidatedIngredients);
@@ -221,18 +215,13 @@ function consolidateIngredients(
   }
 
   // Sort by category for organized shopping
-  return Array.from(ingredientMap.values()).sort((a, b) =>
-    a.category.localeCompare(b.category)
-  );
+  return Array.from(ingredientMap.values()).sort((a, b) => a.category.localeCompare(b.category));
 }
 
 /**
  * Consolidate tools across recipes
  */
-function consolidateTools(
-  toolsData: any[],
-  mealRecipes: MealRecipe[]
-): ConsolidatedTool[] {
+function consolidateTools(toolsData: any[], mealRecipes: MealRecipe[]): ConsolidatedTool[] {
   const toolMap = new Map<string, ConsolidatedTool>();
 
   for (const data of toolsData) {
@@ -265,10 +254,7 @@ function consolidateTools(
 /**
  * Find tool conflicts (same tool needed at overlapping times)
  */
-function findToolConflicts(
-  tasksData: any[],
-  mealRecipes: MealRecipe[]
-): ToolConflict[] {
+function findToolConflicts(tasksData: any[], mealRecipes: MealRecipe[]): ToolConflict[] {
   const conflicts: ToolConflict[] = [];
 
   // Group tasks by tool
@@ -303,8 +289,7 @@ function findToolConflicts(
         // Simple overlap check (can be enhanced with actual timeline)
         if (
           task1.task.task_type === task2.task.task_type &&
-          (task1.task.task_type === 'baking' ||
-            task1.task.task_type === 'roasting')
+          (task1.task.task_type === 'baking' || task1.task.task_type === 'roasting')
         ) {
           // Oven conflict likely
           conflicts.push({
@@ -327,10 +312,7 @@ function findToolConflicts(
 /**
  * Build chronological task timeline
  */
-function buildTaskTimeline(
-  tasksData: any[],
-  mealRecipes: MealRecipe[]
-): TaskTimeline[] {
+function buildTaskTimeline(tasksData: any[], mealRecipes: MealRecipe[]): TaskTimeline[] {
   const timeline: TaskTimeline[] = [];
 
   // Sort tasks by role priority and dependencies
@@ -353,9 +335,7 @@ function buildTaskTimeline(
       recipe,
       role: task.role,
       canBeParallel: task.can_be_parallel,
-      dependencies: task.depends_on_task_ids
-        ? JSON.parse(task.depends_on_task_ids)
-        : [],
+      dependencies: task.depends_on_task_ids ? JSON.parse(task.depends_on_task_ids) : [],
     });
   }
 
@@ -381,7 +361,7 @@ function calculateTimeEstimates(timeline: TaskTimeline[]) {
 
   for (const item of timeline) {
     activeTime += item.task.active_time;
-    passiveTime += item.task.passive_time;
+    passiveTime += item.task.passive_time ?? 0;
   }
 
   // Account for parallelization (rough estimate: 30% reduction)
@@ -397,17 +377,12 @@ function calculateTimeEstimates(timeline: TaskTimeline[]) {
 
 /**
  * Estimate meal cost based on ingredients
+ * NOTE: Currently disabled as average_price_usd field is not in ingredients schema
+ * TODO: Re-implement when pricing data is available
  */
 function estimateMealCost(consolidatedIngredients: ConsolidatedIngredient[]): number {
-  let totalCost = 0;
-
-  for (const item of consolidatedIngredients) {
-    if (item.ingredient.average_price_usd) {
-      totalCost += parseFloat(item.ingredient.average_price_usd);
-    }
-  }
-
-  return Math.round(totalCost * 100) / 100; // Round to 2 decimals
+  // Placeholder: return 0 until pricing data is added to ingredients schema
+  return 0;
 }
 
 /**

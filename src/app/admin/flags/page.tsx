@@ -8,12 +8,12 @@
  * - View flag details and history
  */
 
+import { AlertTriangle, CheckCircle, Flag, XCircle } from 'lucide-react';
 import { Suspense } from 'react';
 import { getAllFlags } from '@/app/actions/flag-recipe';
 import { FlagList } from '@/components/admin/FlagList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Flag, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 function LoadingSkeleton() {
   return (
@@ -49,9 +49,7 @@ async function FlagStats() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Pending
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Pending</CardTitle>
               <AlertTriangle className="w-4 h-4 text-orange-500" />
             </div>
           </CardHeader>
@@ -63,9 +61,7 @@ async function FlagStats() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Under Review
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Under Review</CardTitle>
               <Flag className="w-4 h-4 text-blue-500" />
             </div>
           </CardHeader>
@@ -77,9 +73,7 @@ async function FlagStats() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Resolved
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Resolved</CardTitle>
               <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
           </CardHeader>
@@ -91,9 +85,7 @@ async function FlagStats() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Dismissed
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Dismissed</CardTitle>
               <XCircle className="w-4 h-4 text-gray-500" />
             </div>
           </CardHeader>
@@ -109,7 +101,11 @@ async function FlagStats() {
   }
 }
 
-async function FlagsContent({ status }: { status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed' }) {
+async function FlagsContent({
+  status,
+}: {
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+}) {
   try {
     const flags = await getAllFlags(status, 100);
 
@@ -117,9 +113,7 @@ async function FlagsContent({ status }: { status?: 'pending' | 'reviewed' | 'res
       return (
         <div className="text-center py-12">
           <Flag className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">
-            {status ? `No ${status} flags found` : 'No flags found'}
-          </p>
+          <p className="text-gray-500">{status ? `No ${status} flags found` : 'No flags found'}</p>
         </div>
       );
     }
@@ -141,9 +135,7 @@ export default function AdminFlagsPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Content Moderation</h1>
-        <p className="text-gray-600 mt-2">
-          Review and manage flagged recipes
-        </p>
+        <p className="text-gray-600 mt-2">Review and manage flagged recipes</p>
       </div>
 
       {/* Stats Overview */}

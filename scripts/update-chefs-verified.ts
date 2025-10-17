@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { sql } from 'drizzle-orm';
 
 /**
  * Update all chef profiles to verified status
@@ -17,7 +17,7 @@ async function updateChefsVerified() {
       .update(chefs)
       .set({
         is_verified: true,
-        updated_at: sql`now()`
+        updated_at: sql`now()`,
       })
       .returning();
 

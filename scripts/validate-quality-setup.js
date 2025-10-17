@@ -4,9 +4,9 @@
  * Validates that Biome and Vitest are properly configured
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 console.log('🔍 Validating Code Quality Setup\n');
 
@@ -32,14 +32,14 @@ console.log('\n📋 Checking Vitest configuration...');
 try {
   const vitestConfig = path.join(process.cwd(), 'vitest.config.ts');
   const vitestSetup = path.join(process.cwd(), 'vitest.setup.ts');
-  
+
   if (!fs.existsSync(vitestConfig)) {
     console.log('❌ vitest.config.ts not found');
     allPassed = false;
   } else {
     console.log('✅ vitest.config.ts exists');
   }
-  
+
   if (!fs.existsSync(vitestSetup)) {
     console.log('❌ vitest.setup.ts not found');
     allPassed = false;
@@ -78,9 +78,9 @@ try {
     'test',
     'test:run',
     'test:ui',
-    'test:coverage'
+    'test:coverage',
   ];
-  
+
   let scriptsOk = true;
   for (const script of requiredScripts) {
     if (!packageJson.scripts[script]) {
@@ -89,7 +89,7 @@ try {
       allPassed = false;
     }
   }
-  
+
   if (scriptsOk) {
     console.log('✅ All required scripts present');
   }
@@ -107,9 +107,9 @@ try {
     'vitest',
     '@vitest/ui',
     '@testing-library/react',
-    '@testing-library/jest-dom'
+    '@testing-library/jest-dom',
   ];
-  
+
   let depsOk = true;
   for (const dep of requiredDeps) {
     if (!packageJson.devDependencies[dep]) {
@@ -118,7 +118,7 @@ try {
       allPassed = false;
     }
   }
-  
+
   if (depsOk) {
     console.log('✅ All required dependencies installed');
   }
@@ -147,7 +147,7 @@ console.log('\n📋 Testing Biome execution...');
 try {
   execSync('pnpm biome --version', { stdio: 'pipe' });
   console.log('✅ Biome executes successfully');
-} catch (error) {
+} catch (_error) {
   console.log('❌ Biome execution failed');
   allPassed = false;
 }
@@ -157,13 +157,13 @@ console.log('\n📋 Testing Vitest execution...');
 try {
   execSync('pnpm vitest --version', { stdio: 'pipe' });
   console.log('✅ Vitest executes successfully');
-} catch (error) {
+} catch (_error) {
   console.log('❌ Vitest execution failed');
   allPassed = false;
 }
 
 // Summary
-console.log('\n' + '='.repeat(50));
+console.log(`\n${'='.repeat(50)}`);
 if (allPassed) {
   console.log('✅ All checks passed! Code quality tools are properly configured.');
   console.log('\nYou can now use:');

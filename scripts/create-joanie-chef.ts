@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Create Joanie Chef Profile
  *
@@ -9,9 +10,9 @@
  *   pnpm tsx scripts/create-joanie-chef.ts
  */
 
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 async function createJoanieChef() {
   console.log('🍳 Creating Joanie chef profile...\n');
@@ -19,26 +20,22 @@ async function createJoanieChef() {
   const joanieData = {
     slug: 'joanie',
     name: 'Joanie',
-    display_name: 'Joanie from Joanie\'s Kitchen',
+    display_name: "Joanie from Joanie's Kitchen",
     bio: 'Trained chef, lifelong gardener, and volunteer firefighter. Former bond trader turned culinary professional. Known for transforming "nothing in the fridge" into extraordinary meals. Specializes in seasonal cooking from her terraced garden overlooking the Hudson River.',
     profile_image_url: '/joanie-portrait.png',
     website: null,
     social_links: {
-      instagram: 'https://www.instagram.com/terracesonward/'
+      instagram: 'https://www.instagram.com/terracesonward/',
     },
     specialties: ['seasonal', 'garden-to-table', 'improvisation'],
     is_verified: true,
     is_active: true,
-    recipe_count: 0
+    recipe_count: 0,
   };
 
   try {
     // Check if Joanie already exists
-    const existingJoanie = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.slug, 'joanie'))
-      .limit(1);
+    const existingJoanie = await db.select().from(chefs).where(eq(chefs.slug, 'joanie')).limit(1);
 
     if (existingJoanie.length > 0) {
       console.log('✅ Joanie chef profile already exists!');
@@ -52,10 +49,7 @@ async function createJoanieChef() {
     }
 
     // Create Joanie's profile
-    const [newJoanie] = await db
-      .insert(chefs)
-      .values(joanieData)
-      .returning();
+    const [newJoanie] = await db.insert(chefs).values(joanieData).returning();
 
     console.log('✅ Joanie chef profile created successfully!\n');
     console.log('Profile Details:');
@@ -74,7 +68,6 @@ async function createJoanieChef() {
 
     console.log('🌐 View profile at: http://localhost:3004/chef/joanie');
     console.log('📸 Profile image located at: /public/joanie-portrait.png\n');
-
   } catch (error) {
     console.error('❌ Error creating Joanie chef profile:', error);
     throw error;

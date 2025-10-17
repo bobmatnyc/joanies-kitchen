@@ -21,7 +21,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Types
@@ -102,7 +102,7 @@ function info(message: string) {
 function exec(command: string, options = {}): string {
   try {
     return execSync(command, { encoding: 'utf-8', ...options }).trim();
-  } catch (e) {
+  } catch (_e) {
     return '';
   }
 }
@@ -134,7 +134,7 @@ function readPackageJson() {
 }
 
 function writePackageJson(pkg: any) {
-  writeFileSync(PACKAGE_JSON_PATH, JSON.stringify(pkg, null, 2) + '\n');
+  writeFileSync(PACKAGE_JSON_PATH, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
 function parseVersion(version: string): [number, number, number] {
@@ -142,7 +142,7 @@ function parseVersion(version: string): [number, number, number] {
   if (!match) {
     throw new Error(`Invalid version format: ${version}`);
   }
-  return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+  return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
 }
 
 function formatVersion(major: number, minor: number, patch: number): string {
@@ -182,7 +182,7 @@ function readBuildNumber(): number {
     return 0;
   }
   const content = readFileSync(BUILD_NUMBER_PATH, 'utf-8').trim();
-  return parseInt(content) || 0;
+  return parseInt(content, 10) || 0;
 }
 
 function writeBuildNumber(buildNumber: number) {
@@ -206,10 +206,14 @@ function readBuildInfo(): BuildInfo | null {
 }
 
 function writeBuildInfo(buildInfo: BuildInfo) {
-  writeFileSync(BUILD_INFO_PATH, JSON.stringify(buildInfo, null, 2) + '\n');
+  writeFileSync(BUILD_INFO_PATH, `${JSON.stringify(buildInfo, null, 2)}\n`);
 }
 
-function createBuildInfo(version: string, buildNumber: number, environment = 'development'): BuildInfo {
+function createBuildInfo(
+  version: string,
+  buildNumber: number,
+  environment = 'development'
+): BuildInfo {
   return {
     version,
     build: buildNumber,
@@ -230,7 +234,7 @@ function readBuildHistory(): BuildHistoryEntry[] {
 }
 
 function writeBuildHistory(history: BuildHistoryEntry[]) {
-  writeFileSync(BUILD_HISTORY_PATH, JSON.stringify(history, null, 2) + '\n');
+  writeFileSync(BUILD_HISTORY_PATH, `${JSON.stringify(history, null, 2)}\n`);
 }
 
 function addToBuildHistory(buildInfo: BuildInfo) {
@@ -334,17 +338,17 @@ function detectBumpType(commits: ConventionalCommit[]): 'major' | 'minor' | 'pat
   }
 
   // Check for breaking changes
-  if (commits.some(c => c.breaking)) {
+  if (commits.some((c) => c.breaking)) {
     return 'major';
   }
 
   // Check for features
-  if (commits.some(c => c.type === 'feat')) {
+  if (commits.some((c) => c.type === 'feat')) {
     return 'minor';
   }
 
   // Check for fixes
-  if (commits.some(c => c.type === 'fix')) {
+  if (commits.some((c) => c.type === 'fix')) {
     return 'patch';
   }
 
@@ -385,7 +389,7 @@ function generateChangelogEntry(version: string, commits: ConventionalCommit[]):
   }
 
   // Breaking changes first
-  const breaking = commits.filter(c => c.breaking);
+  const breaking = commits.filter((c) => c.breaking);
   if (breaking.length > 0) {
     entry += '### ⚠️ BREAKING CHANGES\n\n';
     for (const commit of breaking) {
@@ -501,7 +505,7 @@ function showCurrentVersion() {
   const buildNumber = readBuildNumber();
   const buildInfo = readBuildInfo();
 
-  log('\n' + colors.bright + 'Current Version Information' + colors.reset);
+  log(`\n${colors.bright}Current Version Information${colors.reset}`);
   log('─'.repeat(50));
   log(`Version:        ${colors.cyan}${pkg.version}${colors.reset}`);
   log(`Build:          ${colors.cyan}${buildNumber}${colors.reset}`);
@@ -525,13 +529,15 @@ function showCurrentVersion() {
         if (suggestedBump) {
           const currentVersion = pkg.version;
           const suggestedVersion = bumpVersion(currentVersion, suggestedBump);
-          log(`Suggested bump: ${colors.yellow}${suggestedBump} → ${suggestedVersion}${colors.reset}`);
+          log(
+            `Suggested bump: ${colors.yellow}${suggestedBump} → ${suggestedVersion}${colors.reset}`
+          );
         }
       }
     }
   }
 
-  log('─'.repeat(50) + '\n');
+  log(`${'─'.repeat(50)}\n`);
 }
 
 function performVersionBump(type: 'major' | 'minor' | 'patch') {
@@ -544,14 +550,14 @@ function performVersionBump(type: 'major' | 'minor' | 'patch') {
     process.exit(1);
   }
 
-  log('\n' + colors.bright + 'Version Bump' + colors.reset);
+  log(`\n${colors.bright}Version Bump${colors.reset}`);
   log('─'.repeat(50));
   log(`Current:  ${colors.cyan}${currentVersion}${colors.reset}`);
   log(`New:      ${colors.green}${newVersion}${colors.reset}`);
   log(`Type:     ${colors.yellow}${type}${colors.reset}`);
 
   if (flags.dryRun) {
-    log('\n' + colors.yellow + '🏃 DRY RUN MODE - No changes will be made' + colors.reset);
+    log(`\n${colors.yellow}🏃 DRY RUN MODE - No changes will be made${colors.reset}`);
     return;
   }
 
@@ -561,7 +567,7 @@ function performVersionBump(type: 'major' | 'minor' | 'patch') {
     process.exit(1);
   }
 
-  log('\n' + colors.bright + 'Updating files...' + colors.reset);
+  log(`\n${colors.bright}Updating files...${colors.reset}`);
 
   // Update package.json
   pkg.version = newVersion;
@@ -612,8 +618,8 @@ function performVersionBump(type: 'major' | 'minor' | 'patch') {
     pushToRemote();
   }
 
-  log('\n' + colors.green + '✓ Version bump complete!' + colors.reset);
-  log('─'.repeat(50) + '\n');
+  log(`\n${colors.green}✓ Version bump complete!${colors.reset}`);
+  log(`${'─'.repeat(50)}\n`);
 }
 
 function performBuild() {
@@ -622,14 +628,14 @@ function performBuild() {
   const buildNumber = incrementBuildNumber();
   const environment = process.env.NODE_ENV || 'development';
 
-  log('\n' + colors.bright + 'Build Tracking' + colors.reset);
+  log(`\n${colors.bright}Build Tracking${colors.reset}`);
   log('─'.repeat(50));
   log(`Version:      ${colors.cyan}${version}${colors.reset}`);
   log(`Build:        ${colors.cyan}${buildNumber}${colors.reset}`);
   log(`Environment:  ${colors.cyan}${environment}${colors.reset}`);
 
   if (flags.dryRun) {
-    log('\n' + colors.yellow + '🏃 DRY RUN MODE - No changes will be made' + colors.reset);
+    log(`\n${colors.yellow}🏃 DRY RUN MODE - No changes will be made${colors.reset}`);
     return;
   }
 
@@ -663,11 +669,11 @@ function performAutoBump() {
     process.exit(1);
   }
 
-  log('\n' + colors.bright + 'Auto-detected Version Bump' + colors.reset);
+  log(`\n${colors.bright}Auto-detected Version Bump${colors.reset}`);
   log('─'.repeat(50));
   log(`Analyzed:   ${colors.cyan}${commits.length} commits${colors.reset}`);
   log(`Detected:   ${colors.yellow}${bumpType}${colors.reset}`);
-  log('─'.repeat(50) + '\n');
+  log(`${'─'.repeat(50)}\n`);
 
   performVersionBump(bumpType);
 }
@@ -675,7 +681,7 @@ function performAutoBump() {
 // Main Entry Point
 function main() {
   if (!command || command === 'help' || command === '--help' || command === '-h') {
-    log('\n' + colors.bright + 'Joanie\'s Kitchen Version Management' + colors.reset);
+    log(`\n${colors.bright}Joanie's Kitchen Version Management${colors.reset}`);
     log('─'.repeat(50));
     log('\nUsage:');
     log('  pnpm version:current           Show current version');

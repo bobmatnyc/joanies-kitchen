@@ -1,5 +1,5 @@
-import { getOpenRouterClient, MODELS, ModelName } from './openrouter-server';
 import { z } from 'zod';
+import { getOpenRouterClient, MODELS, type ModelName } from './openrouter-server';
 
 // Schema for generated recipe
 const GeneratedRecipeSchema = z.object({
@@ -14,13 +14,15 @@ const GeneratedRecipeSchema = z.object({
   cuisine: z.string().optional(),
   tags: z.array(z.string()).optional(),
   modelUsed: z.string().optional(),
-  nutritionInfo: z.object({
-    calories: z.number().optional(),
-    protein: z.number().optional(),
-    carbs: z.number().optional(),
-    fat: z.number().optional(),
-    fiber: z.number().optional(),
-  }).optional(),
+  nutritionInfo: z
+    .object({
+      calories: z.number().optional(),
+      protein: z.number().optional(),
+      carbs: z.number().optional(),
+      fat: z.number().optional(),
+      fiber: z.number().optional(),
+    })
+    .optional(),
   source: z.string().optional(),
 });
 
@@ -48,14 +50,14 @@ export async function generateRecipe(options: GenerateRecipeOptions): Promise<Ge
     difficulty,
     prompt,
     model = MODELS.LLAMA_3_8B,
-    useWebSearch = false
+    useWebSearch = false,
   } = options;
 
   // Check if model has web search capabilities
   const isWebSearchModel = model.includes('sonar');
 
   // Build the prompt with web search enhancements if applicable
-  let systemPrompt = isWebSearchModel
+  const systemPrompt = isWebSearchModel
     ? `You are a professional chef with access to current web information. Use your web search capabilities to find authentic, trending, or chef-verified recipes.
 Search for recipes from famous chefs, restaurants, or culinary websites when appropriate.
 Include nutritional information from reliable sources when possible.
@@ -131,7 +133,7 @@ Do NOT just list ingredient names without amounts or qualifiers.`;
       model: model,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       temperature: isWebSearchModel ? 0.5 : 0.7, // Lower temp for web search models
       max_tokens: 2000, // Increased for more detailed recipes
@@ -195,7 +197,7 @@ IMPORTANT: For seasonings without specific amounts, use qualifiers like "to tast
       model: MODELS.LLAMA_3_8B,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       temperature: 0.3, // Lower temperature for more accurate parsing
       max_tokens: 1500,

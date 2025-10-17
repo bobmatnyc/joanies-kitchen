@@ -1,9 +1,10 @@
 import { getRecipesPaginated, type RecipeFilters } from '@/app/actions/recipes';
-import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
 import { RecipeFilters as RecipeFiltersComponent } from '@/components/recipe/RecipeFilters';
+import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
+// ISR: Revalidate shared recipes page every 30 minutes
+// This is public content that changes when new recipes are shared
+export const revalidate = 1800; // 30 minutes
 
 interface PageProps {
   searchParams: Promise<{
@@ -63,21 +64,22 @@ export default async function SharedRecipesPage({ searchParams }: PageProps) {
   });
 
   const recipes = result.success && result.data ? result.data.recipes : [];
-  const pagination = result.success && result.data ? result.data.pagination : {
-    page: 1,
-    limit: 24,
-    total: 0,
-    totalPages: 0,
-    hasMore: false,
-  };
+  const pagination =
+    result.success && result.data
+      ? result.data.pagination
+      : {
+          page: 1,
+          limit: 24,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+        };
 
   return (
     <main className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-heading text-jk-olive mb-2">
-          Shared Recipes
-        </h1>
+        <h1 className="text-4xl font-heading text-jk-olive mb-2">Shared Recipes</h1>
         <p className="text-jk-charcoal/70 font-ui">
           Discover {pagination.total} recipe{pagination.total !== 1 ? 's' : ''} from the community
         </p>

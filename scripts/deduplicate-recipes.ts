@@ -1,6 +1,6 @@
+import { asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
 
 interface Recipe {
   id: string;
@@ -41,7 +41,7 @@ async function deduplicateRecipes(dryRun: boolean = true) {
     if (!nameGroups.has(normalizedName)) {
       nameGroups.set(normalizedName, []);
     }
-    nameGroups.get(normalizedName)!.push(recipe);
+    nameGroups.get(normalizedName)?.push(recipe);
   }
 
   // Find duplicates
@@ -59,7 +59,7 @@ async function deduplicateRecipes(dryRun: boolean = true) {
   let totalToDelete = 0;
   const idsToDelete: string[] = [];
 
-  for (const [normalizedName, dupes] of duplicateGroups) {
+  for (const [_normalizedName, dupes] of duplicateGroups) {
     console.log(`\n📝 "${dupes[0].name}" (${dupes.length} copies)`);
 
     // Sort to find best recipe to keep:
@@ -91,11 +91,15 @@ async function deduplicateRecipes(dryRun: boolean = true) {
     const toKeep = sorted[0];
     const toDelete = sorted.slice(1);
 
-    console.log(`   ✅ KEEP: ${toKeep.id.substring(0, 8)} | Rating: ${toKeep.systemRating || 'N/A'} | Created: ${toKeep.createdAt?.toISOString().split('T')[0] || 'N/A'}`);
+    console.log(
+      `   ✅ KEEP: ${toKeep.id.substring(0, 8)} | Rating: ${toKeep.systemRating || 'N/A'} | Created: ${toKeep.createdAt?.toISOString().split('T')[0] || 'N/A'}`
+    );
     console.log(`   🗑️  DELETE ${toDelete.length} copies:`);
 
     for (const recipe of toDelete) {
-      console.log(`      - ${recipe.id.substring(0, 8)} | Rating: ${recipe.systemRating || 'N/A'} | Created: ${recipe.createdAt?.toISOString().split('T')[0] || 'N/A'}`);
+      console.log(
+        `      - ${recipe.id.substring(0, 8)} | Rating: ${recipe.systemRating || 'N/A'} | Created: ${recipe.createdAt?.toISOString().split('T')[0] || 'N/A'}`
+      );
       idsToDelete.push(recipe.id);
     }
 

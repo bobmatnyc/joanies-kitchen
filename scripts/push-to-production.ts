@@ -5,9 +5,8 @@
  * Uses drizzle-kit push with production DATABASE_URL
  */
 
-import { execSync } from 'child_process';
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
 // Load production environment variables
 const result = dotenv.config({ path: path.join(process.cwd(), '.env.production') });

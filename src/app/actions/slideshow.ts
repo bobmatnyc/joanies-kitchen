@@ -1,9 +1,9 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { slideshowPhotos, type SlideshowPhoto, type NewSlideshowPhoto } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { type NewSlideshowPhoto, type SlideshowPhoto, slideshowPhotos } from '@/lib/db/schema';
 
 /**
  * Get all active slideshow photos ordered by display_order
@@ -34,7 +34,9 @@ export async function getPhoto(id: string): Promise<SlideshowPhoto | null> {
 /**
  * Create a new slideshow photo (admin only)
  */
-export async function createPhoto(data: Omit<NewSlideshowPhoto, 'id' | 'created_at' | 'updated_at'>): Promise<SlideshowPhoto> {
+export async function createPhoto(
+  data: Omit<NewSlideshowPhoto, 'id' | 'created_at' | 'updated_at'>
+): Promise<SlideshowPhoto> {
   const { userId } = await auth();
 
   if (!userId) {
@@ -99,9 +101,7 @@ export async function deletePhoto(id: string): Promise<void> {
 
   // TODO: Add admin check when admin system is implemented
 
-  await db
-    .delete(slideshowPhotos)
-    .where(eq(slideshowPhotos.id, id));
+  await db.delete(slideshowPhotos).where(eq(slideshowPhotos.id, id));
 }
 
 /**
@@ -116,10 +116,7 @@ export async function getAllPhotosAdmin(): Promise<SlideshowPhoto[]> {
 
   // TODO: Add admin check when admin system is implemented
 
-  const photos = await db
-    .select()
-    .from(slideshowPhotos)
-    .orderBy(slideshowPhotos.display_order);
+  const photos = await db.select().from(slideshowPhotos).orderBy(slideshowPhotos.display_order);
 
   return photos;
 }

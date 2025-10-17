@@ -1,7 +1,7 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { db } from '../src/lib/db';
 import { slideshowPhotos } from '../src/lib/db/schema';
-import * as fs from 'fs';
-import * as path from 'path';
 
 /**
  * Seed slideshow photos from a log file or manual URLs
@@ -26,9 +26,9 @@ async function seedFromLogFile(logFilePath: string) {
   const logContent = fs.readFileSync(logFilePath, 'utf-8');
   const urls = logContent
     .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.startsWith('http'))
-    .filter(url => url.includes('/slideshow/'));
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith('http'))
+    .filter((url) => url.includes('/slideshow/'));
 
   console.log(`Found ${urls.length} slideshow photo URLs`);
 
@@ -42,7 +42,9 @@ async function seedFromLogFile(logFilePath: string) {
 
 async function seedFromManualUrls() {
   if (PHOTO_URLS.length === 0) {
-    console.error('No URLs provided. Please update PHOTO_URLS in this script or provide a log file.');
+    console.error(
+      'No URLs provided. Please update PHOTO_URLS in this script or provide a log file.'
+    );
     process.exit(1);
   }
 
@@ -107,7 +109,6 @@ async function main() {
     console.log('\nNext steps:');
     console.log('1. Visit /admin to manage photos and update captions');
     console.log('2. Visit /about/photos to see the slideshow');
-
   } catch (error) {
     console.error('Error seeding photos:', error);
     process.exit(1);

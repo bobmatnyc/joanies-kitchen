@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
+
 /**
  * Analyze recipe sources to find potential chef matches
  */
 
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
 
 async function analyzeRecipeSources() {
   console.log('📊 Analyzing recipe sources for chef matches...\n');
@@ -26,7 +27,9 @@ async function analyzeRecipeSources() {
   console.log('═'.repeat(70));
 
   sources.forEach((s, idx) => {
-    console.log(`${(idx + 1).toString().padStart(2)}. [${s.count.toString().padStart(4)}] ${s.source}`);
+    console.log(
+      `${(idx + 1).toString().padStart(2)}. [${s.count.toString().padStart(4)}] ${s.source}`
+    );
   });
 
   console.log('\n\nPotential Chef Matches:');
@@ -45,15 +48,13 @@ async function analyzeRecipeSources() {
   ];
 
   for (const chef of chefPatterns) {
-    const matches = sources.filter(s => 
-      chef.patterns.some(pattern => 
-        s.source?.toLowerCase().includes(pattern.toLowerCase())
-      )
+    const matches = sources.filter((s) =>
+      chef.patterns.some((pattern) => s.source?.toLowerCase().includes(pattern.toLowerCase()))
     );
 
     if (matches.length > 0) {
       console.log(`\n${chef.name}:`);
-      matches.forEach(m => {
+      matches.forEach((m) => {
         console.log(`  [${m.count.toString().padStart(4)}] ${m.source}`);
       });
     }

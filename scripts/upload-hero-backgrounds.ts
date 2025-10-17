@@ -4,10 +4,10 @@
  */
 
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { put } from '@vercel/blob';
-import { readFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 
 async function uploadHeroBackgrounds() {
   console.log('🎨 Uploading hero background images to Vercel Blob...\n');
@@ -19,12 +19,20 @@ async function uploadHeroBackgrounds() {
 
   const images = [
     {
-      localPath: join(homedir(), 'Downloads', 'A_textured_digital_illustration_depicts_an_ascendi.png'),
+      localPath: join(
+        homedir(),
+        'Downloads',
+        'A_textured_digital_illustration_depicts_an_ascendi.png'
+      ),
       blobPath: 'hero/background-textured.png',
       name: 'Textured illustration',
     },
     {
-      localPath: join(homedir(), 'Downloads', 'A_traditional_watercolor-style_illustration_on_tex.png'),
+      localPath: join(
+        homedir(),
+        'Downloads',
+        'A_traditional_watercolor-style_illustration_on_tex.png'
+      ),
       blobPath: 'hero/background-watercolor.png',
       name: 'Watercolor illustration',
     },
@@ -48,7 +56,6 @@ async function uploadHeroBackgrounds() {
 
       console.log(`   ✅ Uploaded: ${blob.url}\n`);
       results.push({ name: image.name, url: blob.url });
-
     } catch (error) {
       console.error(`   ❌ Failed to upload ${image.name}:`, error);
       throw error;

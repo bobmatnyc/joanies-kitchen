@@ -1,7 +1,7 @@
 'use client';
 
-import { ChefCard } from './ChefCard';
 import { ChefHat } from 'lucide-react';
+import { ChefCard } from './ChefCard';
 
 interface Chef {
   id: string;
@@ -23,18 +23,14 @@ interface ChefGridProps {
 export function ChefGrid({
   chefs,
   emptyMessage = 'No chefs found',
-  emptyDescription = 'Check back soon for featured chefs and their recipes!'
+  emptyDescription = 'Check back soon for featured chefs and their recipes!',
 }: ChefGridProps) {
   if (chefs.length === 0) {
     return (
       <div className="text-center py-12">
         <ChefHat className="w-16 h-16 mx-auto text-jk-olive/20 mb-4" />
-        <h3 className="text-2xl font-heading text-jk-olive mb-2">
-          {emptyMessage}
-        </h3>
-        <p className="text-jk-olive/60">
-          {emptyDescription}
-        </p>
+        <h3 className="text-2xl font-heading text-jk-olive mb-2">{emptyMessage}</h3>
+        <p className="text-jk-olive/60">{emptyDescription}</p>
       </div>
     );
   }

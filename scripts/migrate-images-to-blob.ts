@@ -23,15 +23,15 @@
 // Load environment variables
 import 'dotenv/config';
 
+import { put } from '@vercel/blob';
+import { and, eq, isNotNull, not } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, sql, isNotNull, and, not } from 'drizzle-orm';
-import { put } from '@vercel/blob';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const limitArg = args.find(arg => arg.startsWith('--limit='));
-const limit = limitArg ? parseInt(limitArg.split('=')[1]) : undefined;
+const limitArg = args.find((arg) => arg.startsWith('--limit='));
+const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
 const dryRun = args.includes('--dry-run');
 
 interface MigrationStats {
@@ -86,7 +86,11 @@ async function downloadImage(url: string): Promise<Buffer> {
 /**
  * Upload image to Vercel Blob
  */
-async function uploadToBlob(imageBuffer: Buffer, filename: string, contentType: string): Promise<string> {
+async function uploadToBlob(
+  imageBuffer: Buffer,
+  filename: string,
+  contentType: string
+): Promise<string> {
   const blob = await put(filename, imageBuffer, {
     access: 'public',
     contentType,
@@ -107,7 +111,7 @@ async function migrateRecipeImages(recipe: any, stats: MigrationStats): Promise<
     let images: string[] = [];
     try {
       images = recipe.images ? JSON.parse(recipe.images) : [];
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ⚠️  Invalid images JSON for ${recipeName}`);
       stats.skipped++;
       return;
@@ -153,11 +157,15 @@ async function migrateRecipeImages(recipe: any, stats: MigrationStats): Promise<
         const imageBuffer = await downloadImage(imageUrl);
 
         // Determine content type
-        const contentType = imageUrl.match(/\.webp$/i) ? 'image/webp' :
-                          imageUrl.match(/\.avif$/i) ? 'image/avif' :
-                          imageUrl.match(/\.png$/i) ? 'image/png' :
-                          imageUrl.match(/\.gif$/i) ? 'image/gif' :
-                          'image/jpeg';
+        const contentType = imageUrl.match(/\.webp$/i)
+          ? 'image/webp'
+          : imageUrl.match(/\.avif$/i)
+            ? 'image/avif'
+            : imageUrl.match(/\.png$/i)
+              ? 'image/png'
+              : imageUrl.match(/\.gif$/i)
+                ? 'image/gif'
+                : 'image/jpeg';
 
         console.log(`      ⬆️  Uploading to Blob...`);
         const filename = generateFilename(imageUrl, recipeId, i);
@@ -166,7 +174,6 @@ async function migrateRecipeImages(recipe: any, stats: MigrationStats): Promise<
         console.log(`      ✅ Uploaded: ${blobUrl.substring(0, 60)}...`);
         newImages.push(blobUrl);
         migratedCount++;
-
       } catch (error) {
         console.log(`      ❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         // Keep original URL on failure
@@ -196,7 +203,6 @@ async function migrateRecipeImages(recipe: any, stats: MigrationStats): Promise<
     }
 
     stats.processed++;
-
   } catch (error) {
     console.error(`   ❌ Error processing recipe:`, error);
     stats.failed++;
@@ -253,11 +259,7 @@ async function migrateImages() {
       })
       .from(recipes)
       .where(
-        and(
-          isNotNull(recipes.images),
-          not(eq(recipes.images, '[]')),
-          not(eq(recipes.images, ''))
-        )
+        and(isNotNull(recipes.images), not(eq(recipes.images, '[]')), not(eq(recipes.images, '')))
       );
 
     if (limit) {
@@ -303,7 +305,6 @@ async function migrateImages() {
     } else if (dryRun) {
       console.log('\n🔍 Dry run complete. Run without --dry-run to perform migration.');
     }
-
   } catch (error) {
     console.error('\n❌ Migration failed:', error);
     process.exit(1);

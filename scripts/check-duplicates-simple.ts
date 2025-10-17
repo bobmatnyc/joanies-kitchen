@@ -1,6 +1,6 @@
+import { asc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { sql, desc, asc } from 'drizzle-orm';
 
 async function checkDuplicates() {
   console.log('🔍 Checking for duplicate recipes...\n');
@@ -27,7 +27,7 @@ async function checkDuplicates() {
     if (!nameGroups.has(normalizedName)) {
       nameGroups.set(normalizedName, []);
     }
-    nameGroups.get(normalizedName)!.push(recipe);
+    nameGroups.get(normalizedName)?.push(recipe);
   }
 
   // Find duplicates
@@ -40,20 +40,35 @@ async function checkDuplicates() {
 
     let totalDuplicates = 0;
 
-    for (const [normalizedName, dupes] of duplicateGroups.slice(0, 20)) {
+    for (const [_normalizedName, dupes] of duplicateGroups.slice(0, 20)) {
       totalDuplicates += dupes.length - 1;
 
       console.log(`📝 "${dupes[0].name}" (${dupes.length} copies)`);
-      console.log(`   IDs: ${dupes.slice(0, 3).map(r => r.id.substring(0, 8)).join(', ')}${dupes.length > 3 ? '...' : ''}`);
+      console.log(
+        `   IDs: ${dupes
+          .slice(0, 3)
+          .map((r) => r.id.substring(0, 8))
+          .join(', ')}${dupes.length > 3 ? '...' : ''}`
+      );
 
-      const ratings = dupes.map(r => r.systemRating).filter(r => r !== null);
+      const ratings = dupes.map((r) => r.systemRating).filter((r) => r !== null);
       if (ratings.length > 0) {
-        console.log(`   Ratings: ${ratings.slice(0, 5).map(r => parseFloat(r!).toFixed(1)).join(', ')}${ratings.length > 5 ? '...' : ''}`);
+        console.log(
+          `   Ratings: ${ratings
+            .slice(0, 5)
+            .map((r) => parseFloat(r!).toFixed(1))
+            .join(', ')}${ratings.length > 5 ? '...' : ''}`
+        );
       }
 
-      const sources = dupes.map(r => r.source).filter(s => s && s !== '');
+      const sources = dupes.map((r) => r.source).filter((s) => s && s !== '');
       if (sources.length > 0) {
-        console.log(`   Sources: ${sources.slice(0, 2).map(s => s!.substring(0, 60)).join(' | ')}${sources.length > 2 ? '...' : ''}`);
+        console.log(
+          `   Sources: ${sources
+            .slice(0, 2)
+            .map((s) => s?.substring(0, 60))
+            .join(' | ')}${sources.length > 2 ? '...' : ''}`
+        );
       }
 
       console.log('');
@@ -76,7 +91,7 @@ async function checkDuplicates() {
       if (!sourceGroups.has(recipe.source)) {
         sourceGroups.set(recipe.source, []);
       }
-      sourceGroups.get(recipe.source)!.push(recipe);
+      sourceGroups.get(recipe.source)?.push(recipe);
     }
   }
 
@@ -93,8 +108,18 @@ async function checkDuplicates() {
       totalSourceDuplicates += dupes.length - 1;
 
       console.log(`🔗 ${source.substring(0, 80)}... (${dupes.length} copies)`);
-      console.log(`   Names: ${dupes.slice(0, 2).map(r => r.name).join(', ')}${dupes.length > 2 ? '...' : ''}`);
-      console.log(`   IDs: ${dupes.slice(0, 3).map(r => r.id.substring(0, 8)).join(', ')}${dupes.length > 3 ? '...' : ''}`);
+      console.log(
+        `   Names: ${dupes
+          .slice(0, 2)
+          .map((r) => r.name)
+          .join(', ')}${dupes.length > 2 ? '...' : ''}`
+      );
+      console.log(
+        `   IDs: ${dupes
+          .slice(0, 3)
+          .map((r) => r.id.substring(0, 8))
+          .join(', ')}${dupes.length > 3 ? '...' : ''}`
+      );
       console.log('');
     }
 
@@ -122,8 +147,12 @@ async function checkDuplicates() {
 
   const uniqueRecipes = allRecipes.length - estimatedDuplicates;
 
-  console.log(`Estimated duplicate recipes: ~${estimatedDuplicates} (${((estimatedDuplicates / allRecipes.length) * 100).toFixed(1)}%)`);
-  console.log(`Estimated unique recipes: ~${uniqueRecipes} (${((uniqueRecipes / allRecipes.length) * 100).toFixed(1)}%)`);
+  console.log(
+    `Estimated duplicate recipes: ~${estimatedDuplicates} (${((estimatedDuplicates / allRecipes.length) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `Estimated unique recipes: ~${uniqueRecipes} (${((uniqueRecipes / allRecipes.length) * 100).toFixed(1)}%)`
+  );
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   if (duplicateGroups.length > 0) {

@@ -1,10 +1,10 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { eq, desc, like, or, and, sql, count } from 'drizzle-orm';
+import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 /**
  * Admin Server Actions
@@ -118,9 +118,7 @@ export async function getAllRecipesForAdmin(filters?: AdminRecipeFilters) {
     let query = db.select().from(recipes);
 
     if (conditions.length > 0) {
-      query = query.where(
-        conditions.length === 1 ? conditions[0] : and(...conditions)
-      ) as any;
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions)) as any;
     }
 
     // Apply ordering
@@ -216,10 +214,7 @@ export async function adminDeleteRecipe(id: string) {
   try {
     await requireAdmin();
 
-    const result = await db
-      .delete(recipes)
-      .where(eq(recipes.id, id))
-      .returning();
+    const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
 
     if (result.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -248,7 +243,7 @@ export async function adminBulkTogglePublic(ids: string[], isPublic: boolean) {
     }
 
     // Update all recipes in the list
-    const conditions = ids.map(id => eq(recipes.id, id));
+    const conditions = ids.map((id) => eq(recipes.id, id));
     const result = await db
       .update(recipes)
       .set({
@@ -287,7 +282,7 @@ export async function adminBulkDeleteRecipes(ids: string[]) {
     }
 
     // Delete all recipes in the list
-    const conditions = ids.map(id => eq(recipes.id, id));
+    const conditions = ids.map((id) => eq(recipes.id, id));
     const result = await db
       .delete(recipes)
       .where(or(...conditions))
@@ -339,7 +334,7 @@ export async function getUsersWithRecipes() {
       .groupBy(recipes.user_id)
       .orderBy(desc(sql`count(*)`));
 
-    const result: UserWithRecipes[] = users.map(user => ({
+    const result: UserWithRecipes[] = users.map((user) => ({
       userId: user.userId,
       recipeCount: Number(user.recipeCount) || 0,
       publicRecipeCount: Number(user.publicRecipeCount) || 0,

@@ -59,13 +59,21 @@ export default defineConfig({
 
   // Configure projects for different browsers and viewports
   projects: [
+    // Setup project - runs before all tests
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+
     // Desktop browsers
     {
       name: 'chromium-desktop',
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },
+        storageState: 'tests/e2e/.auth/user.json',
       },
+      dependencies: ['setup'],
     },
 
     {

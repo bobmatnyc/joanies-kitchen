@@ -12,7 +12,7 @@
  * - Comprehensive error handling
  */
 
-import { Recipe } from '@/lib/db/schema';
+import type { Recipe } from '@/lib/db/schema';
 
 // Constants
 // Using BAAI/bge-small-en-v1.5 which is properly configured for feature-extraction
@@ -59,11 +59,9 @@ export class EmbeddingError extends Error {
  */
 function validateEmbedding(embedding: number[]): void {
   if (!Array.isArray(embedding)) {
-    throw new EmbeddingError(
-      'Invalid embedding: not an array',
-      'VALIDATION_ERROR',
-      { received: typeof embedding }
-    );
+    throw new EmbeddingError('Invalid embedding: not an array', 'VALIDATION_ERROR', {
+      received: typeof embedding,
+    });
   }
 
   if (embedding.length !== EMBEDDING_DIMENSION) {
@@ -75,7 +73,7 @@ function validateEmbedding(embedding: number[]): void {
   }
 
   // Check for NaN or invalid values
-  if (embedding.some(val => typeof val !== 'number' || isNaN(val))) {
+  if (embedding.some((val) => typeof val !== 'number' || Number.isNaN(val))) {
     throw new EmbeddingError(
       'Invalid embedding: contains non-numeric or NaN values',
       'VALIDATION_ERROR'
@@ -87,7 +85,7 @@ function validateEmbedding(embedding: number[]): void {
  * Sleep utility for retry delays
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -107,11 +105,7 @@ export async function generateEmbedding(
   text: string,
   options: EmbeddingGenerationOptions = {}
 ): Promise<number[]> {
-  const {
-    retries = DEFAULT_RETRIES,
-    timeout = DEFAULT_TIMEOUT,
-    waitForModel = true,
-  } = options;
+  const { retries = DEFAULT_RETRIES, timeout = DEFAULT_TIMEOUT, waitForModel = true } = options;
 
   // Validate API key
   const apiKey = process.env.HUGGINGFACE_API_KEY;
@@ -125,10 +119,7 @@ export async function generateEmbedding(
 
   // Validate input
   if (!text || text.trim().length === 0) {
-    throw new EmbeddingError(
-      'Text cannot be empty',
-      'VALIDATION_ERROR'
-    );
+    throw new EmbeddingError('Text cannot be empty', 'VALIDATION_ERROR');
   }
 
   let lastError: Error | null = null;
@@ -143,7 +134,7 @@ export async function generateEmbedding(
         const response = await fetch(HF_API_URL, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -171,13 +162,15 @@ export async function generateEmbedding(
 
             if (attempt < retries) {
               const delay = Math.min(
-                INITIAL_RETRY_DELAY * Math.pow(2, attempt),
+                INITIAL_RETRY_DELAY * 2 ** attempt,
                 Math.max(estimatedTime * 1000, 5000) // At least 5 seconds for model loading
               );
               console.log(
                 `[HuggingFace] Model loading or rate limited (HTTP ${response.status}), retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
               );
-              console.log(`[HuggingFace] API response: ${JSON.stringify(errorData).substring(0, 200)}`);
+              console.log(
+                `[HuggingFace] API response: ${JSON.stringify(errorData).substring(0, 200)}`
+              );
               await sleep(delay);
               continue;
             }
@@ -206,25 +199,27 @@ export async function generateEmbedding(
         validateEmbedding(flatEmbedding);
 
         return flatEmbedding;
-
       } finally {
         clearTimeout(timeoutId);
       }
-
     } catch (error: any) {
       lastError = error;
 
       // Don't retry on validation or config errors
-      if (error instanceof EmbeddingError &&
-          (error.code === 'VALIDATION_ERROR' || error.code === 'CONFIG_ERROR')) {
+      if (
+        error instanceof EmbeddingError &&
+        (error.code === 'VALIDATION_ERROR' || error.code === 'CONFIG_ERROR')
+      ) {
         throw error;
       }
 
       // Handle timeout
       if (error.name === 'AbortError') {
         if (attempt < retries) {
-          const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
-          console.log(`[HuggingFace] Request timeout, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`);
+          const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
+          console.log(
+            `[HuggingFace] Request timeout, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
+          );
           await sleep(delay);
           continue;
         }
@@ -237,10 +232,11 @@ export async function generateEmbedding(
 
       // Retry on network errors
       if (attempt < retries) {
-        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`[HuggingFace] Network error, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1}): ${error.message}`);
+        const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
+        console.log(
+          `[HuggingFace] Network error, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1}): ${error.message}`
+        );
         await sleep(delay);
-        continue;
       }
     }
   }
@@ -252,7 +248,7 @@ export async function generateEmbedding(
     {
       lastError: lastError?.message,
       attempts: retries + 1,
-      hint: 'HuggingFace model may be cold starting. Consider retrying in a few minutes.'
+      hint: 'HuggingFace model may be cold starting. Consider retrying in a few minutes.',
     }
   );
 }
@@ -285,9 +281,7 @@ export function buildRecipeEmbeddingText(recipe: Recipe): string {
   // Add tags
   if (recipe.tags) {
     try {
-      const tags = typeof recipe.tags === 'string'
-        ? JSON.parse(recipe.tags)
-        : recipe.tags;
+      const tags = typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags;
       if (Array.isArray(tags) && tags.length > 0) {
         parts.push(`Tags: ${tags.join(', ')}`);
       }
@@ -299,9 +293,10 @@ export function buildRecipeEmbeddingText(recipe: Recipe): string {
   // Add ingredients
   if (recipe.ingredients) {
     try {
-      const ingredients = typeof recipe.ingredients === 'string'
-        ? JSON.parse(recipe.ingredients)
-        : recipe.ingredients;
+      const ingredients =
+        typeof recipe.ingredients === 'string'
+          ? JSON.parse(recipe.ingredients)
+          : recipe.ingredients;
       if (Array.isArray(ingredients) && ingredients.length > 0) {
         parts.push(`Ingredients: ${ingredients.join(', ')}`);
       }
@@ -372,11 +367,7 @@ export async function generateEmbeddingsBatch(
   texts: string[],
   options: BatchEmbeddingOptions = {}
 ): Promise<number[][]> {
-  const {
-    batchSize = 10,
-    delayMs = 1000,
-    onProgress,
-  } = options;
+  const { batchSize = 10, delayMs = 1000, onProgress } = options;
 
   if (texts.length === 0) {
     return [];
@@ -443,11 +434,10 @@ export async function generateEmbeddingsBatch(
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
-    throw new EmbeddingError(
-      'Vectors must have the same length',
-      'VALIDATION_ERROR',
-      { aLength: a.length, bLength: b.length }
-    );
+    throw new EmbeddingError('Vectors must have the same length', 'VALIDATION_ERROR', {
+      aLength: a.length,
+      bLength: b.length,
+    });
   }
 
   let dotProduct = 0;
@@ -483,12 +473,10 @@ export function findSimilar<T extends { embedding: number[] }>(
   candidates: T[],
   topK: number = 5
 ): Array<T & { similarity: number }> {
-  const withSimilarity = candidates.map(candidate => ({
+  const withSimilarity = candidates.map((candidate) => ({
     ...candidate,
     similarity: cosineSimilarity(queryEmbedding, candidate.embedding),
   }));
 
-  return withSimilarity
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, topK);
+  return withSimilarity.sort((a, b) => b.similarity - a.similarity).slice(0, topK);
 }

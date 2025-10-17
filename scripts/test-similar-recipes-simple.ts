@@ -1,13 +1,14 @@
 #!/usr/bin/env tsx
+
 /**
  * Simple test for similar recipes feature
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
-import { getRecipeEmbedding, findSimilarRecipes } from '../src/lib/db/embeddings';
+import { db } from '../src/lib/db';
+import { findSimilarRecipes, getRecipeEmbedding } from '../src/lib/db/embeddings';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 

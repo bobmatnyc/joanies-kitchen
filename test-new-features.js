@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
-const fs = require('fs');
-const path = require('path');
+const _fs = require('node:fs');
+const _path = require('node:path');
 
 async function testRecipeManagerFeatures() {
   console.log('🚀 Starting Recipe Manager Feature Testing...\n');
@@ -8,7 +8,7 @@ async function testRecipeManagerFeatures() {
   // Launch browser with console monitoring
   const browser = await chromium.launch({
     headless: false, // Show browser for visual verification
-    slowMo: 1000 // Slow down for better observation
+    slowMo: 1000, // Slow down for better observation
   });
 
   const context = await browser.newContext();
@@ -18,13 +18,13 @@ async function testRecipeManagerFeatures() {
   const consoleMessages = [];
   const errors = [];
 
-  page.on('console', msg => {
+  page.on('console', (msg) => {
     const entry = `[${msg.type().toUpperCase()}] ${msg.text()}`;
     consoleMessages.push(entry);
     console.log(`📝 Console: ${entry}`);
   });
 
-  page.on('pageerror', error => {
+  page.on('pageerror', (error) => {
     const errorMsg = `JavaScript Error: ${error.message}`;
     errors.push(errorMsg);
     console.error(`❌ ${errorMsg}`);
@@ -50,7 +50,7 @@ async function testRecipeManagerFeatures() {
     const generateTab = await page.locator('button[role="tab"]:has-text("Generate Recipe")');
     const searchTab = await page.locator('button[role="tab"]:has-text("Search Web")');
 
-    if (await generateTab.isVisible() && await searchTab.isVisible()) {
+    if ((await generateTab.isVisible()) && (await searchTab.isVisible())) {
       console.log('✅ Tabbed interface found with Generate Recipe and Search Web tabs');
 
       // Test web search tab
@@ -63,7 +63,7 @@ async function testRecipeManagerFeatures() {
       const searchInput = await page.locator('input[placeholder*="search"]').first();
       const urlInput = await page.locator('input[placeholder*="URL"]').first();
 
-      if (await searchInput.isVisible() || await urlInput.isVisible()) {
+      if ((await searchInput.isVisible()) || (await urlInput.isVisible())) {
         console.log('✅ Web search form elements found');
       } else {
         console.log('⚠️  Web search form elements not clearly visible');
@@ -94,7 +94,10 @@ async function testRecipeManagerFeatures() {
 
     // Look for import-related elements
     const pageContent = await page.content();
-    const hasImportFeatures = pageContent.includes('import') || pageContent.includes('upload') || pageContent.includes('drag');
+    const hasImportFeatures =
+      pageContent.includes('import') ||
+      pageContent.includes('upload') ||
+      pageContent.includes('drag');
     const hasExportFeatures = pageContent.includes('export') || pageContent.includes('download');
 
     if (hasImportFeatures) {
@@ -142,7 +145,6 @@ async function testRecipeManagerFeatures() {
     } else {
       console.log('⚠️  Page load could be optimized');
     }
-
   } catch (error) {
     console.error(`❌ Test failed: ${error.message}`);
     errors.push(error.message);
@@ -155,7 +157,7 @@ async function testRecipeManagerFeatures() {
 
     if (errors.length > 0) {
       console.log('\n❌ Errors found:');
-      errors.forEach(error => console.log(`  - ${error}`));
+      errors.forEach((error) => console.log(`  - ${error}`));
     } else {
       console.log('\n✅ No JavaScript errors detected');
     }

@@ -28,7 +28,10 @@ let totalStored = 0;
 let totalFailed = 0;
 let isRunning = false;
 
-async function callScrapeAPI(weeksAgo: number, options: { maxResults: number; autoApprove: boolean }): Promise<any> {
+async function callScrapeAPI(
+  weeksAgo: number,
+  options: { maxResults: number; autoApprove: boolean }
+): Promise<any> {
   const url = `${DEFAULT_CONFIG.apiUrl}/api/recipes/scrape`;
 
   const response = await fetch(url, {
@@ -59,14 +62,16 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
   isRunning = true;
   const startTime = Date.now();
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('[Scraper] Starting recipe scraping cycle');
   console.log('[Scraper] Time:', new Date().toLocaleString());
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   try {
     for (const weeksAgo of config.weeksToScrape) {
-      console.log(`\n[Scraper] Processing week ${weeksAgo} (${weeksAgo === 0 ? 'current week' : weeksAgo + ' weeks ago'})...`);
+      console.log(
+        `\n[Scraper] Processing week ${weeksAgo} (${weeksAgo === 0 ? 'current week' : `${weeksAgo} weeks ago`})...`
+      );
 
       try {
         const result = await callScrapeAPI(weeksAgo, {
@@ -95,9 +100,8 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
         // Wait between weeks to avoid rate limiting
         if (weeksAgo !== config.weeksToScrape[config.weeksToScrape.length - 1]) {
           console.log('[Scraper] Waiting 10 seconds before next week...');
-          await new Promise(resolve => setTimeout(resolve, 10000));
+          await new Promise((resolve) => setTimeout(resolve, 10000));
         }
-
       } catch (error) {
         console.error(`[Scraper] Error processing week ${weeksAgo}:`, error);
         totalFailed++;
@@ -106,7 +110,7 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('[Scraper] Cycle complete!');
     console.log('[Scraper] Duration:', duration, 'seconds');
     console.log('[Scraper] Session totals:', {
@@ -114,9 +118,11 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
       totalStored,
       totalFailed,
     });
-    console.log('[Scraper] Success rate:', ((totalStored / Math.max(totalScraped, 1)) * 100).toFixed(1) + '%');
-    console.log('='.repeat(60) + '\n');
-
+    console.log(
+      '[Scraper] Success rate:',
+      `${((totalStored / Math.max(totalScraped, 1)) * 100).toFixed(1)}%`
+    );
+    console.log(`${'='.repeat(60)}\n`);
   } catch (error) {
     console.error('[Scraper] Fatal error:', error);
   } finally {
@@ -138,9 +144,12 @@ async function startContinuousScraping(config: ScraperConfig = DEFAULT_CONFIG) {
   await scrapeRecipes(config);
 
   // Then run on interval
-  setInterval(() => {
-    scrapeRecipes(config);
-  }, config.intervalMinutes * 60 * 1000);
+  setInterval(
+    () => {
+      scrapeRecipes(config);
+    },
+    config.intervalMinutes * 60 * 1000
+  );
 
   console.log(`[Scraper] Next scrape in ${config.intervalMinutes} minutes`);
 }

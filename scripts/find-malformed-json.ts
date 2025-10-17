@@ -1,16 +1,16 @@
-import { db } from "../src/lib/db";
-import { recipes } from "../src/lib/db/schema";
+import { db } from '../src/lib/db';
+import { recipes } from '../src/lib/db/schema';
 
 interface MalformedRecord {
   recipeId: string;
   recipeName: string;
-  field: "tags" | "images";
+  field: 'tags' | 'images';
   value: string;
   error: string;
 }
 
 async function findMalformedJson() {
-  console.log("🔍 Scanning database for recipes with malformed JSON...\n");
+  console.log('🔍 Scanning database for recipes with malformed JSON...\n');
 
   try {
     // Fetch all recipes
@@ -34,7 +34,7 @@ async function findMalformedJson() {
           malformedRecords.push({
             recipeId: recipe.id,
             recipeName: recipe.name,
-            field: "tags",
+            field: 'tags',
             value: recipe.tags as string,
             error: errorMessage,
           });
@@ -53,7 +53,7 @@ async function findMalformedJson() {
           malformedRecords.push({
             recipeId: recipe.id,
             recipeName: recipe.name,
-            field: "images",
+            field: 'images',
             value: recipe.images as string,
             error: errorMessage,
           });
@@ -64,7 +64,7 @@ async function findMalformedJson() {
     }
 
     // Print summary statistics
-    console.log("📈 Summary Statistics:");
+    console.log('📈 Summary Statistics:');
     console.log(`   Valid tags: ${validTags}`);
     console.log(`   Valid images: ${validImages}`);
     console.log(`   Null tags: ${nullTags}`);
@@ -72,12 +72,12 @@ async function findMalformedJson() {
     console.log(`   Malformed records: ${malformedRecords.length}\n`);
 
     if (malformedRecords.length === 0) {
-      console.log("✅ No malformed JSON found! All records are valid.\n");
+      console.log('✅ No malformed JSON found! All records are valid.\n');
       return;
     }
 
     // Print malformed records (first 10)
-    console.log("❌ Malformed JSON Records:\n");
+    console.log('❌ Malformed JSON Records:\n');
     const recordsToShow = Math.min(10, malformedRecords.length);
 
     for (let i = 0; i < recordsToShow; i++) {
@@ -85,8 +85,10 @@ async function findMalformedJson() {
       console.log(`${i + 1}. Recipe: "${record.recipeName}" (ID: ${record.recipeId})`);
       console.log(`   Field: ${record.field}`);
       console.log(`   Error: ${record.error}`);
-      console.log(`   Value: ${record.value.substring(0, 200)}${record.value.length > 200 ? "..." : ""}`);
-      console.log("");
+      console.log(
+        `   Value: ${record.value.substring(0, 200)}${record.value.length > 200 ? '...' : ''}`
+      );
+      console.log('');
     }
 
     if (malformedRecords.length > recordsToShow) {
@@ -94,34 +96,33 @@ async function findMalformedJson() {
     }
 
     // Group by field
-    const malformedTags = malformedRecords.filter((r) => r.field === "tags");
-    const malformedImages = malformedRecords.filter((r) => r.field === "images");
+    const malformedTags = malformedRecords.filter((r) => r.field === 'tags');
+    const malformedImages = malformedRecords.filter((r) => r.field === 'images');
 
-    console.log("📊 Breakdown by field:");
+    console.log('📊 Breakdown by field:');
     console.log(`   Malformed tags: ${malformedTags.length}`);
     console.log(`   Malformed images: ${malformedImages.length}\n`);
 
     // Group by error type
     const errorTypes = new Map<string, number>();
     for (const record of malformedRecords) {
-      const errorKey = record.error.split(" at position")[0]; // Group similar errors
+      const errorKey = record.error.split(' at position')[0]; // Group similar errors
       errorTypes.set(errorKey, (errorTypes.get(errorKey) || 0) + 1);
     }
 
-    console.log("📊 Breakdown by error type:");
+    console.log('📊 Breakdown by error type:');
     for (const [errorType, count] of errorTypes.entries()) {
       console.log(`   ${errorType}: ${count}`);
     }
-    console.log("");
+    console.log('');
 
     // Export full list to file
-    const fs = await import("fs");
-    const reportPath = "/Users/masa/Projects/recipe-manager/tmp/malformed-json-report.json";
+    const fs = await import('node:fs');
+    const reportPath = '/Users/masa/Projects/recipe-manager/tmp/malformed-json-report.json';
     fs.writeFileSync(reportPath, JSON.stringify(malformedRecords, null, 2));
     console.log(`📄 Full report exported to: ${reportPath}\n`);
-
   } catch (error) {
-    console.error("❌ Error scanning database:", error);
+    console.error('❌ Error scanning database:', error);
     process.exit(1);
   }
 

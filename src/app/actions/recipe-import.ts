@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/auth-guard';
 import { db } from '@/lib/db';
-import { recipes, type Recipe } from '@/lib/db/schema';
+import { recipes } from '@/lib/db/schema';
 import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
 
 /**
@@ -44,7 +44,9 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
         ingredients: JSON.stringify(parsedRecipe.ingredients),
         instructions: JSON.stringify(parsedRecipe.instructions),
         tags: parsedRecipe.tags ? JSON.stringify(parsedRecipe.tags) : null,
-        nutrition_info: parsedRecipe.nutritionInfo ? JSON.stringify(parsedRecipe.nutritionInfo) : null,
+        nutrition_info: parsedRecipe.nutritionInfo
+          ? JSON.stringify(parsedRecipe.nutritionInfo)
+          : null,
         is_ai_generated: false,
       })
       .returning();
@@ -65,7 +67,9 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
 /**
  * Import multiple recipes from markdown files
  */
-export async function importRecipesFromMarkdown(markdownFiles: { name: string; content: string }[]) {
+export async function importRecipesFromMarkdown(
+  markdownFiles: { name: string; content: string }[]
+) {
   const { userId } = await requireAuth('batch recipe import from markdown');
 
   const results = [];

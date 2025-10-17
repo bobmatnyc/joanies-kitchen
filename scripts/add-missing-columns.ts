@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 
-const NEW_DB = 'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
+const NEW_DB =
+  'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
 
 async function addMissingColumns() {
   console.log('Connecting to ep-jolly-snow-addxski4...\n');
@@ -18,7 +19,7 @@ async function addMissingColumns() {
     { name: 'system_rating', type: 'numeric(2, 1)' },
     { name: 'system_rating_reason', type: 'text' },
     { name: 'avg_user_rating', type: 'numeric(2, 1)' },
-    { name: 'total_user_ratings', type: 'integer DEFAULT 0' }
+    { name: 'total_user_ratings', type: 'integer DEFAULT 0' },
   ];
 
   try {
@@ -54,10 +55,9 @@ async function addMissingColumns() {
     `;
 
     console.log(`Found ${result.length}/12 columns:`);
-    result.forEach(row => {
+    result.forEach((row) => {
       console.log(`  ✓ ${row.column_name}: ${row.data_type}`);
     });
-
   } catch (error) {
     console.error('\n❌ Failed:', error);
     throw error;
@@ -66,7 +66,9 @@ async function addMissingColumns() {
   }
 }
 
-addMissingColumns().then(() => process.exit(0)).catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+addMissingColumns()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });

@@ -26,7 +26,10 @@ export const MODELS = {
 export const MODEL_CATEGORIES = {
   'Web Search Enabled': [
     { value: MODELS.PERPLEXITY_SONAR, label: 'Perplexity Sonar (Fast, Web Search)' },
-    { value: MODELS.PERPLEXITY_SONAR_REASONING, label: 'Perplexity Sonar Reasoning (Web Search + Analysis)' },
+    {
+      value: MODELS.PERPLEXITY_SONAR_REASONING,
+      label: 'Perplexity Sonar Reasoning (Web Search + Analysis)',
+    },
     { value: MODELS.PERPLEXITY_SONAR_PRO, label: 'Perplexity Sonar Pro (Advanced Web Search)' },
   ],
   'Vision & Multimodal': [
@@ -45,4 +48,4 @@ export const MODEL_CATEGORIES = {
   ],
 } as const;
 
-export type ModelName = typeof MODELS[keyof typeof MODELS];
+export type ModelName = (typeof MODELS)[keyof typeof MODELS];

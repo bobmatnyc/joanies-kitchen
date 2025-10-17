@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { isClerkConfigured, isAuthEnabled, logAuthStatus, authConfig } from './lib/auth-config';
+import { NextResponse } from 'next/server';
+import { authConfig, isAuthEnabled, logAuthStatus } from './lib/auth-config';
 import { handleClerkProxy } from './lib/clerk-proxy';
 
 export async function middleware(request: NextRequest) {
@@ -31,10 +31,7 @@ export async function middleware(request: NextRequest) {
   if (!authConfig.clerk.publishableKey || !authConfig.clerk.secretKey) {
     console.error('[Middleware] Missing Clerk keys for environment:', authConfig.environment);
     if (authConfig.isProduction) {
-      return NextResponse.json(
-        { error: 'Authentication service unavailable' },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 503 });
     }
     return NextResponse.next();
   }
@@ -44,13 +41,13 @@ export async function middleware(request: NextRequest) {
 
   // Define public routes that don't require authentication
   // These routes are accessible to everyone
-  const isPublicRoute = createRouteMatcher([
-    '/',                      // Homepage
-    '/sign-in(.*)',          // Sign in pages
-    '/sign-up(.*)',          // Sign up pages
-    '/shared(.*)',           // Shared recipes browsing
-    '/discover(.*)',         // Discover/AI recipe generation (read-only browsing)
-    '/api/webhooks(.*)',     // Webhooks
+  const _isPublicRoute = createRouteMatcher([
+    '/', // Homepage
+    '/sign-in(.*)', // Sign in pages
+    '/sign-up(.*)', // Sign up pages
+    '/shared(.*)', // Shared recipes browsing
+    '/discover(.*)', // Discover/AI recipe generation (read-only browsing)
+    '/api/webhooks(.*)', // Webhooks
   ]);
 
   // Recipe view routes are handled with custom logic below
@@ -58,16 +55,16 @@ export async function middleware(request: NextRequest) {
 
   // Define strictly protected routes that always require authentication
   const isProtectedRoute = createRouteMatcher([
-    '/recipes/new(.*)',      // Creating new recipes
-    '/recipes/edit(.*)',     // Editing recipes (simplified pattern)
-    '/recipes$',             // My Recipes listing (personal collection)
-    '/meal-plans(.*)',       // Meal planning
-    '/shopping-lists(.*)',   // Shopping lists
+    '/recipes/new(.*)', // Creating new recipes
+    '/recipes/edit(.*)', // Editing recipes (simplified pattern)
+    '/recipes$', // My Recipes listing (personal collection)
+    '/meal-plans(.*)', // Meal planning
+    '/shopping-lists(.*)', // Shopping lists
   ]);
 
   // Define admin routes that require admin access
   const isAdminRoute = createRouteMatcher([
-    '/admin(.*)',            // Admin dashboard and all sub-routes
+    '/admin(.*)', // Admin dashboard and all sub-routes
   ]);
 
   // Define protected API routes
@@ -85,9 +82,8 @@ export async function middleware(request: NextRequest) {
     const path = req.nextUrl.pathname;
 
     // Check if this is a recipe view route (e.g., /recipes/123) but NOT /recipes/new or /recipes/*/edit
-    const isViewingRecipe = path.match(/^\/recipes\/[a-zA-Z0-9-]+$/) &&
-                           !path.endsWith('/new') &&
-                           !path.includes('/edit');
+    const isViewingRecipe =
+      path.match(/^\/recipes\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new') && !path.includes('/edit');
 
     // If it's a recipe view route, allow it (the page itself will check if the recipe is public)
     if (isViewingRecipe) {
@@ -120,10 +116,7 @@ export async function middleware(request: NextRequest) {
     if (!userId && (isProtectedRoute(req) || isProtectedApiRoute(req))) {
       // For API routes, return 401 instead of redirecting
       if (path.startsWith('/api/')) {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        );
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
 
       // For regular routes, redirect to sign-in with return URL
@@ -139,8 +132,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
-    "/(api|trpc)(.*)",
+    '/(api|trpc)(.*)',
   ],
 };

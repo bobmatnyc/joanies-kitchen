@@ -8,7 +8,8 @@
 
 import postgres from 'postgres';
 
-const NEW_DB = 'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
+const NEW_DB =
+  'postgresql://neondb_owner:npg_rH9ODE8FgstI@ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
 
 async function createTables() {
   console.log('🔧 Creating missing tables in ep-jolly-snow-addxski4...\n');
@@ -83,14 +84,26 @@ async function createTables() {
     console.log('5. Creating indexes...');
 
     // recipe_ratings indexes
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_ratings_recipe_id_idx" ON "recipe_ratings" USING btree ("recipe_id")');
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_ratings_user_id_idx" ON "recipe_ratings" USING btree ("user_id")');
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_ratings_recipe_id_idx" ON "recipe_ratings" USING btree ("recipe_id")'
+    );
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_ratings_user_id_idx" ON "recipe_ratings" USING btree ("user_id")'
+    );
 
     // recipe_flags indexes
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_flags_recipe_id_idx" ON "recipe_flags" USING btree ("recipe_id")');
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_flags_status_idx" ON "recipe_flags" USING btree ("status")');
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_flags_user_id_idx" ON "recipe_flags" USING btree ("user_id")');
-    await sql.unsafe('CREATE INDEX IF NOT EXISTS "recipe_flags_created_at_idx" ON "recipe_flags" USING btree ("created_at" DESC NULLS LAST)');
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_flags_recipe_id_idx" ON "recipe_flags" USING btree ("recipe_id")'
+    );
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_flags_status_idx" ON "recipe_flags" USING btree ("status")'
+    );
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_flags_user_id_idx" ON "recipe_flags" USING btree ("user_id")'
+    );
+    await sql.unsafe(
+      'CREATE INDEX IF NOT EXISTS "recipe_flags_created_at_idx" ON "recipe_flags" USING btree ("created_at" DESC NULLS LAST)'
+    );
 
     console.log('   ✓ Indexes created\n');
 
@@ -105,10 +118,9 @@ async function createTables() {
     `;
 
     console.log(`   Found ${tables.length}/3 tables:`);
-    tables.forEach(t => console.log(`   ✓ ${t.table_name}`));
+    tables.forEach((t) => console.log(`   ✓ ${t.table_name}`));
 
     console.log('\n✅ All tables created successfully!');
-
   } catch (error) {
     console.error('\n❌ Failed:', error);
     throw error;

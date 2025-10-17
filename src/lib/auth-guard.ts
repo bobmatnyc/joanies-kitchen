@@ -25,9 +25,7 @@ export async function requireAuth(featureName: string = 'this feature') {
   const { userId } = await auth();
 
   if (!userId) {
-    throw new Error(
-      `Authentication required. Please sign in to use ${featureName}.`
-    );
+    throw new Error(`Authentication required. Please sign in to use ${featureName}.`);
   }
 
   return { userId };
@@ -80,6 +78,8 @@ export class AuthenticationError extends Error {
  * }
  */
 export function isAuthError(error: unknown): error is AuthenticationError {
-  return error instanceof AuthenticationError ||
-         (error instanceof Error && error.message.includes('Authentication required'));
+  return (
+    error instanceof AuthenticationError ||
+    (error instanceof Error && error.message.includes('Authentication required'))
+  );
 }

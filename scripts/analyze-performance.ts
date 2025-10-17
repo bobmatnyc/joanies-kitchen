@@ -8,8 +8,8 @@
  *   tsx scripts/analyze-performance.ts [--full]
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface ImageAnalysis {
   path: string;
@@ -51,7 +51,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
 }
 
 function analyzeImage(filePath: string): ImageAnalysis {
@@ -204,7 +204,7 @@ function generateReport(images: ImageAnalysis[]): PerformanceReport {
 async function main() {
   const fullAnalysis = process.argv.includes('--full');
 
-  log('\n🔍 Performance Analysis for Joanie\'s Kitchen\n', 'bold');
+  log("\n🔍 Performance Analysis for Joanie's Kitchen\n", 'bold');
   log('═══════════════════════════════════════════════════\n', 'cyan');
 
   // Analyze images
@@ -273,7 +273,9 @@ async function main() {
   log('═══════════════════════════════════════════════════', 'cyan');
 
   const hasLargeImages = report.largeImages.length > 0;
-  const hasUnoptimizedPngs = images.some((img) => img.path.endsWith('.png') && img.size > 100 * 1024);
+  const hasUnoptimizedPngs = images.some(
+    (img) => img.path.endsWith('.png') && img.size > 100 * 1024
+  );
 
   if (hasLargeImages) {
     log('FCP: 2.5-3.5s (BAD) ❌', 'red');

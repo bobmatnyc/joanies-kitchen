@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { TEST_RECIPES } from '../fixtures/test-recipes';
 
 /**
@@ -152,8 +152,8 @@ test.describe('Recipe Page Functionality', () => {
     }
 
     // Verify no nested <a> tag errors
-    const nestedLinkErrors = consoleErrors.filter((err) =>
-      err.includes('cannot appear as a descendant') || err.includes('<a> cannot')
+    const nestedLinkErrors = consoleErrors.filter(
+      (err) => err.includes('cannot appear as a descendant') || err.includes('<a> cannot')
     );
     expect(nestedLinkErrors).toHaveLength(0);
   });
@@ -202,8 +202,8 @@ test.describe('Recipe Page Functionality', () => {
     // Verify images are responsive
     const image = page.locator('img').first();
     if (await image.isVisible()) {
-      const imageWidth = await image.evaluate((img: HTMLImageElement) =>
-        img.getBoundingClientRect().width
+      const imageWidth = await image.evaluate(
+        (img: HTMLImageElement) => img.getBoundingClientRect().width
       );
       expect(imageWidth).toBeLessThanOrEqual(375);
     }

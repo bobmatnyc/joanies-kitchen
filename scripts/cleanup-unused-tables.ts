@@ -1,8 +1,8 @@
+import path from 'node:path';
+import * as dotenv from 'dotenv';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as dotenv from 'dotenv';
-import path from 'path';
-import { sql } from 'drizzle-orm';
 
 // Load .env.local file with override to ensure we get the right DATABASE_URL
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
@@ -14,7 +14,9 @@ if (!databaseUrl) {
 
 // Validate it's a PostgreSQL URL
 if (!databaseUrl.startsWith('postgresql://')) {
-  throw new Error(`DATABASE_URL must be a PostgreSQL connection string. Got: ${databaseUrl.substring(0, 30)}...`);
+  throw new Error(
+    `DATABASE_URL must be a PostgreSQL connection string. Got: ${databaseUrl.substring(0, 30)}...`
+  );
 }
 
 // Type assertion to ensure TypeScript knows databaseUrl is defined
@@ -96,7 +98,6 @@ async function cleanupUnusedTables() {
     }
 
     console.log('\n🎉 Database cleanup completed successfully!');
-
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
     throw error;

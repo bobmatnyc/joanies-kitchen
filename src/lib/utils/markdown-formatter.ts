@@ -1,5 +1,5 @@
-import type { Recipe } from '@/lib/db/schema';
 import matter from 'gray-matter';
+import type { Recipe } from '@/lib/db/schema';
 import { normalizeIngredient } from './recipe-utils';
 
 /**
@@ -7,17 +7,23 @@ import { normalizeIngredient } from './recipe-utils';
  */
 export function recipeToMarkdown(recipe: Recipe): string {
   // Parse JSON fields
-  const ingredients = typeof recipe.ingredients === 'string'
-    ? JSON.parse(recipe.ingredients)
-    : recipe.ingredients || [];
-  const instructions = typeof recipe.instructions === 'string'
-    ? JSON.parse(recipe.instructions)
-    : recipe.instructions || [];
+  const ingredients =
+    typeof recipe.ingredients === 'string'
+      ? JSON.parse(recipe.ingredients)
+      : recipe.ingredients || [];
+  const instructions =
+    typeof recipe.instructions === 'string'
+      ? JSON.parse(recipe.instructions)
+      : recipe.instructions || [];
   const tags = recipe.tags
-    ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags)
+    ? typeof recipe.tags === 'string'
+      ? JSON.parse(recipe.tags)
+      : recipe.tags
     : [];
   const nutritionInfo = recipe.nutrition_info
-    ? (typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
+    ? typeof recipe.nutrition_info === 'string'
+      ? JSON.parse(recipe.nutrition_info)
+      : recipe.nutrition_info
     : {};
   // Prepare frontmatter data
   const frontmatter = {

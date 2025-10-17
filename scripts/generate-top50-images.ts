@@ -6,11 +6,11 @@
  */
 
 import 'dotenv/config';
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { sql, desc, and, or, isNull } from 'drizzle-orm';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const MODEL = 'google/gemini-2.5-flash-image-preview';
@@ -45,10 +45,10 @@ COMPOSITION: 3/4 angle view, show texture and freshness, complementary props (wo
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3003',
-      'X-Title': 'Joanie\'s Kitchen - Recipe Manager',
+      'X-Title': "Joanie's Kitchen - Recipe Manager",
     },
     body: JSON.stringify({
       model: MODEL,
@@ -80,7 +80,11 @@ COMPOSITION: 3/4 angle view, show texture and freshness, complementary props (wo
   throw new Error(`Unexpected image format: ${typeof imageData}`);
 }
 
-async function saveImage(base64DataUrl: string, recipeId: string, recipeName: string): Promise<string> {
+async function saveImage(
+  base64DataUrl: string,
+  recipeId: string,
+  recipeName: string
+): Promise<string> {
   const outputDir = path.join(process.cwd(), 'public', 'ai-recipe-images');
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -165,9 +169,8 @@ async function main() {
 
         // Rate limit: 2 seconds between requests
         if (index < topRecipes.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-
       } catch (error) {
         console.error(`❌ Failed: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -189,7 +192,6 @@ async function main() {
         console.log(`     ${result.imageUrl}\n`);
       });
     }
-
   } catch (error) {
     console.error('\n❌ Error:', error);
     throw error;

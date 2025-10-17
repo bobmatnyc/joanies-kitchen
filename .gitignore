@@ -16,6 +16,8 @@
 .vitest/
 /test-results/
 /playwright-report/
+tests/e2e/.auth/
+playwright/.auth/
 
 # linting/formatting
 .biome

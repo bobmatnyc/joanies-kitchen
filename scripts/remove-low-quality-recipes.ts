@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Remove Low-Quality Recipes
  *
@@ -17,11 +18,10 @@
  *   npx tsx scripts/remove-low-quality-recipes.ts --threshold=2.5  # Custom threshold
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
-import { sql, lt } from 'drizzle-orm';
-import fs from 'fs/promises';
-import path from 'path';
 
 interface RemovalOptions {
   dryRun: boolean;
@@ -58,7 +58,11 @@ async function saveBackup(recipesToRemove: any[], timestamp: string): Promise<st
 /**
  * Save removal log to file
  */
-async function saveLog(stats: RemovalStats, recipesRemoved: any[], timestamp: string): Promise<string> {
+async function saveLog(
+  stats: RemovalStats,
+  recipesRemoved: any[],
+  timestamp: string
+): Promise<string> {
   const tmpDir = path.join(process.cwd(), 'tmp');
   await fs.mkdir(tmpDir, { recursive: true });
 
@@ -66,7 +70,7 @@ async function saveLog(stats: RemovalStats, recipesRemoved: any[], timestamp: st
   const logData = {
     timestamp,
     stats,
-    recipesRemoved: recipesRemoved.map(r => ({
+    recipesRemoved: recipesRemoved.map((r) => ({
       id: r.id,
       name: r.name,
       rating: r.system_rating,
@@ -88,7 +92,9 @@ async function removeRecipes(options: RemovalOptions) {
 
   console.log('🗑️  Remove Low-Quality Recipes');
   console.log('================================\n');
-  console.log(`Mode: ${options.dryRun ? 'DRY RUN (use --execute to apply changes)' : 'EXECUTE (will delete from database)'}`);
+  console.log(
+    `Mode: ${options.dryRun ? 'DRY RUN (use --execute to apply changes)' : 'EXECUTE (will delete from database)'}`
+  );
   console.log(`Threshold: Removing recipes with rating < ${options.threshold}\n`);
 
   const stats: RemovalStats = {
@@ -146,13 +152,13 @@ async function removeRecipes(options: RemovalOptions) {
       console.log(`... and ${stats.total - sampleCount} more (see backup file for full list)\n`);
     }
 
-    console.log('━'.repeat(80) + '\n');
+    console.log(`${'━'.repeat(80)}\n`);
 
     if (!options.dryRun) {
       console.log('⚠️  LIVE MODE: Recipes will be permanently deleted!');
       console.log('⚠️  This will cascade delete embeddings, ratings, and flags.');
       console.log('\nStarting in 5 seconds... (Ctrl+C to cancel)\n');
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     // Remove recipes
@@ -168,10 +174,11 @@ async function removeRecipes(options: RemovalOptions) {
 
           stats.removed++;
           console.log(`✓ [${stats.removed}/${stats.total}] Removed: ${recipe.name}`);
-
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`✗ [${stats.removed}/${stats.total}] Failed: ${recipe.name} - ${errorMessage}`);
+          console.error(
+            `✗ [${stats.removed}/${stats.total}] Failed: ${recipe.name} - ${errorMessage}`
+          );
           stats.failed++;
           stats.errors.push({
             recipeId: recipe.id,
@@ -188,12 +195,14 @@ async function removeRecipes(options: RemovalOptions) {
     // Save log
     const logPath = await saveLog(stats, lowQualityRecipes.rows, timestamp);
 
-    console.log('\n' + '━'.repeat(80) + '\n');
+    console.log(`\n${'━'.repeat(80)}\n`);
     console.log('✅ Removal complete!\n');
     console.log('📊 Summary:');
     console.log('========');
     console.log(`  Total found: ${stats.total.toLocaleString()}`);
-    console.log(`  Removed: ${stats.removed.toLocaleString()} ${options.dryRun ? '(dry run)' : ''}`);
+    console.log(
+      `  Removed: ${stats.removed.toLocaleString()} ${options.dryRun ? '(dry run)' : ''}`
+    );
     console.log(`  Failed: ${stats.failed.toLocaleString()}`);
 
     if (stats.errors.length > 0) {
@@ -206,9 +215,7 @@ async function removeRecipes(options: RemovalOptions) {
       }
     }
 
-    const successRate = stats.total > 0
-      ? ((stats.removed / stats.total) * 100).toFixed(1)
-      : 0;
+    const successRate = stats.total > 0 ? ((stats.removed / stats.total) * 100).toFixed(1) : 0;
 
     console.log(`\n✨ Success rate: ${successRate}%`);
     console.log(`\n📁 Files created:`);
@@ -242,7 +249,6 @@ async function removeRecipes(options: RemovalOptions) {
       console.log(`   Average rating: ${Number(data.avg_rating).toFixed(2)}/5.0`);
       console.log(`   Minimum rating: ${Number(data.min_rating).toFixed(1)}/5.0`);
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
@@ -253,13 +259,13 @@ async function removeRecipes(options: RemovalOptions) {
 const args = process.argv.slice(2);
 const options: RemovalOptions = {
   dryRun: !args.includes('--execute'),
-  threshold: args.find(a => a.startsWith('--threshold='))?.split('=')[1]
-    ? parseFloat(args.find(a => a.startsWith('--threshold='))!.split('=')[1])
+  threshold: args.find((a) => a.startsWith('--threshold='))?.split('=')[1]
+    ? parseFloat(args.find((a) => a.startsWith('--threshold='))?.split('=')[1])
     : 2.0,
 };
 
 // Validate threshold
-if (isNaN(options.threshold) || options.threshold < 0 || options.threshold > 5) {
+if (Number.isNaN(options.threshold) || options.threshold < 0 || options.threshold > 5) {
   console.error('❌ Invalid threshold. Must be between 0.0 and 5.0');
   process.exit(1);
 }

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type Recipe } from '@/lib/db/schema';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  adminDeleteRecipe,
+  adminToggleRecipePublic,
+  adminToggleSystemRecipe,
+} from '@/app/actions/admin';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,13 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  adminToggleRecipePublic,
-  adminToggleSystemRecipe,
-  adminDeleteRecipe,
-} from '@/app/actions/admin';
-import { toast } from 'sonner';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import type { Recipe } from '@/lib/db/schema';
 
 interface RecipeRowProps {
   recipe: Recipe;
@@ -30,11 +30,7 @@ interface RecipeRowProps {
   onToggleSelect: (id: string) => void;
 }
 
-export function RecipeRow({
-  recipe,
-  isSelected,
-  onToggleSelect,
-}: RecipeRowProps) {
+export function RecipeRow({ recipe, isSelected, onToggleSelect }: RecipeRowProps) {
   const router = useRouter();
   const [isPublic, setIsPublic] = useState(recipe.is_public ?? false);
   const [isSystem, setIsSystem] = useState(recipe.is_system_recipe ?? false);
@@ -56,7 +52,7 @@ export function RecipeRow({
       } else {
         toast.error(result.error || 'Failed to update recipe');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update recipe visibility');
     } finally {
       setIsUpdating(false);
@@ -73,14 +69,12 @@ export function RecipeRow({
       if (result.success) {
         setIsSystem(newValue);
         setIsPublic(true); // System recipes are always public
-        toast.success(
-          `Recipe ${newValue ? 'marked as system' : 'unmarked as system'} recipe`
-        );
+        toast.success(`Recipe ${newValue ? 'marked as system' : 'unmarked as system'} recipe`);
         router.refresh(); // Refresh server component data
       } else {
         toast.error(result.error || 'Failed to update recipe');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update recipe status');
     } finally {
       setIsUpdating(false);
@@ -99,7 +93,7 @@ export function RecipeRow({
       } else {
         toast.error(result.error || 'Failed to delete recipe');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete recipe');
     } finally {
       setIsDeleting(false);
@@ -111,10 +105,7 @@ export function RecipeRow({
     <>
       <tr className="hover:bg-gray-50">
         <td className="px-6 py-4 whitespace-nowrap">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onToggleSelect(recipe.id)}
-          />
+          <Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(recipe.id)} />
         </td>
 
         <td className="px-6 py-4">
@@ -126,9 +117,7 @@ export function RecipeRow({
               {recipe.name}
             </Link>
             {recipe.description && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                {recipe.description}
-              </p>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{recipe.description}</p>
             )}
             <div className="flex gap-2 mt-1">
               {recipe.is_ai_generated && (
@@ -146,9 +135,7 @@ export function RecipeRow({
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900 font-mono">
-            {recipe.user_id.substring(0, 8)}...
-          </div>
+          <div className="text-sm text-gray-900 font-mono">{recipe.user_id.substring(0, 8)}...</div>
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -160,11 +147,7 @@ export function RecipeRow({
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-center">
-          <Switch
-            checked={isSystem}
-            onCheckedChange={handleToggleSystem}
-            disabled={isUpdating}
-          />
+          <Switch checked={isSystem} onCheckedChange={handleToggleSystem} disabled={isUpdating} />
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap">
@@ -178,11 +161,7 @@ export function RecipeRow({
 
         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
+            <Button variant="outline" size="sm" asChild>
               <Link href={`/recipes/${recipe.id}`}>View</Link>
             </Button>
             <Button
@@ -202,8 +181,7 @@ export function RecipeRow({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Recipe?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{recipe.name}"? This action cannot be
-              undone.
+              Are you sure you want to delete "{recipe.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

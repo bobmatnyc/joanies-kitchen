@@ -9,9 +9,9 @@
  * - apple-touch-icon.png (180x180 for iOS)
  */
 
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import sharp from 'sharp';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const SOURCE_LOGO = path.join(PUBLIC_DIR, 'ai-tomato-logo.png');
@@ -32,7 +32,7 @@ const FAVICON_SIZES: FaviconSize[] = [
 ];
 
 async function generateFavicons() {
-  console.log('🎨 Generating favicons from Joanie\'s Kitchen logo...\n');
+  console.log("🎨 Generating favicons from Joanie's Kitchen logo...\n");
 
   try {
     // Check if source logo exists
@@ -52,7 +52,7 @@ async function generateFavicons() {
       await sharp(SOURCE_LOGO)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparent background
+          background: { r: 255, g: 255, b: 255, alpha: 0 }, // Transparent background
         })
         .png()
         .toFile(outputPath);
@@ -78,7 +78,6 @@ async function generateFavicons() {
     await fs.unlink(path.join(PUBLIC_DIR, 'icon-16.png'));
     await fs.unlink(path.join(PUBLIC_DIR, 'icon-48.png'));
     console.log('✓ Cleanup complete\n');
-
   } catch (error) {
     console.error('❌ Error generating favicons:', error);
     process.exit(1);

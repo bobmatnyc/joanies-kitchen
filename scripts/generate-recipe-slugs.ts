@@ -21,17 +21,17 @@
  *   --verbose    Show detailed progress for each recipe
  */
 
+import { eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, isNull, sql } from 'drizzle-orm';
 import { generateUniqueSlug, validateSlug } from '@/lib/utils/slug';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
 const isVerbose = args.includes('--verbose');
-const batchSizeArg = args.find(arg => arg.startsWith('--batch='));
-const BATCH_SIZE = batchSizeArg ? parseInt(batchSizeArg.split('=')[1]) : 100;
+const batchSizeArg = args.find((arg) => arg.startsWith('--batch='));
+const BATCH_SIZE = batchSizeArg ? parseInt(batchSizeArg.split('=')[1], 10) : 100;
 
 // Statistics tracking
 interface Stats {
@@ -100,15 +100,17 @@ function displayProgress(stats: Stats) {
 
   process.stdout.write(
     `\r[${bar}] ${percentage}% | ${stats.processed}/${stats.total} | ` +
-    `✓ ${stats.success} | ✗ ${stats.errors} | ⊘ ${stats.skipped} | ` +
-    `Elapsed: ${elapsed} | ETA: ${eta}`
+      `✓ ${stats.success} | ✗ ${stats.errors} | ⊘ ${stats.skipped} | ` +
+      `Elapsed: ${elapsed} | ETA: ${eta}`
   );
 }
 
 /**
  * Process a single recipe to generate slug
  */
-async function processRecipe(recipe: any): Promise<{ success: boolean; slug?: string; error?: string }> {
+async function processRecipe(
+  recipe: any
+): Promise<{ success: boolean; slug?: string; error?: string }> {
   try {
     // Skip if already has a slug (unless in dry-run with verbose mode)
     if (recipe.slug && !isDryRun) {
@@ -163,10 +165,10 @@ async function processRecipe(recipe: any): Promise<{ success: boolean; slug?: st
  * Process a batch of recipes
  */
 async function processBatch(batch: any[]): Promise<void> {
-  const promises = batch.map(recipe => processRecipe(recipe));
+  const promises = batch.map((recipe) => processRecipe(recipe));
   const results = await Promise.all(promises);
 
-  results.forEach(result => {
+  results.forEach((result) => {
     stats.processed++;
     if (result.success) {
       stats.success++;
@@ -183,7 +185,7 @@ async function processBatch(batch: any[]): Promise<void> {
  */
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════════╗');
-  console.log('║       Recipe Slug Generation - Joanie\'s Kitchen                ║');
+  console.log("║       Recipe Slug Generation - Joanie's Kitchen                ║");
   console.log('╚════════════════════════════════════════════════════════════════╝\n');
 
   if (isDryRun) {
@@ -202,9 +204,10 @@ async function main() {
 
     if (stats.total === 0) {
       console.log('✓ All recipes already have slugs!\n');
-      console.log('Total recipes in database:', (
-        await db.select({ count: sql<number>`count(*)::int` }).from(recipes)
-      )[0]?.count || 0);
+      console.log(
+        'Total recipes in database:',
+        (await db.select({ count: sql<number>`count(*)::int` }).from(recipes))[0]?.count || 0
+      );
       return;
     }
 
@@ -236,7 +239,7 @@ async function main() {
       offset += BATCH_SIZE;
 
       // Add small delay between batches to avoid overwhelming database
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     // Final progress update
@@ -250,12 +253,16 @@ async function main() {
     const duration = formatDuration(Date.now() - stats.startTime);
 
     console.log(`Total Recipes:              ${stats.total.toLocaleString()}`);
-    console.log(`Successfully Processed:     ${stats.success.toLocaleString()} (${Math.round((stats.success / stats.total) * 100)}%)`);
+    console.log(
+      `Successfully Processed:     ${stats.success.toLocaleString()} (${Math.round((stats.success / stats.total) * 100)}%)`
+    );
     console.log(`Errors:                     ${stats.errors.toLocaleString()}`);
     console.log(`Skipped (already had slug): ${stats.skipped.toLocaleString()}`);
     console.log(`Duplicates Resolved:        ${stats.duplicatesResolved.toLocaleString()}`);
     console.log(`Total Time:                 ${duration}`);
-    console.log(`Average Time per Recipe:    ${Math.round((Date.now() - stats.startTime) / stats.total)}ms\n`);
+    console.log(
+      `Average Time per Recipe:    ${Math.round((Date.now() - stats.startTime) / stats.total)}ms\n`
+    );
 
     if (isDryRun) {
       console.log('🔍 DRY RUN COMPLETE: No changes were made to the database');
@@ -272,7 +279,6 @@ async function main() {
       console.log('⚠️  Some recipes had errors. Review the output above for details.');
       console.log('   Run with --verbose flag to see detailed error messages.\n');
     }
-
   } catch (error: any) {
     console.error('\n❌ Fatal error:', error.message);
     console.error('Error details:', error);
@@ -283,7 +289,7 @@ async function main() {
 // Run the script
 main()
   .then(() => process.exit(0))
-  .catch(error => {
+  .catch((error) => {
     console.error('Unexpected error:', error);
     process.exit(1);
   });

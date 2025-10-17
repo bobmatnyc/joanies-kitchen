@@ -1,8 +1,8 @@
 'use client';
 
+import { ChefHat, Clock, Globe2, Leaf, Tag, Utensils, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, Tag, ChefHat, Utensils, Clock, Leaf, Globe2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TagFilterProps {
@@ -20,27 +20,77 @@ const getTagCategory = (tag: string): string => {
   const lowerTag = tag.toLowerCase();
 
   // Dietary restrictions
-  if (['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'keto', 'paleo', 'low-carb', 'sugar-free', 'nut-free'].some(diet => lowerTag.includes(diet))) {
+  if (
+    [
+      'vegetarian',
+      'vegan',
+      'gluten-free',
+      'dairy-free',
+      'keto',
+      'paleo',
+      'low-carb',
+      'sugar-free',
+      'nut-free',
+    ].some((diet) => lowerTag.includes(diet))
+  ) {
     return 'dietary';
   }
 
   // Meal types
-  if (['breakfast', 'lunch', 'dinner', 'brunch', 'dessert', 'appetizer', 'snack', 'beverage', 'cocktail'].some(meal => lowerTag.includes(meal))) {
+  if (
+    [
+      'breakfast',
+      'lunch',
+      'dinner',
+      'brunch',
+      'dessert',
+      'appetizer',
+      'snack',
+      'beverage',
+      'cocktail',
+    ].some((meal) => lowerTag.includes(meal))
+  ) {
     return 'meal';
   }
 
   // Cooking time
-  if (['quick', 'fast', 'slow', '15-minute', '30-minute', 'overnight', 'instant'].some(time => lowerTag.includes(time))) {
+  if (
+    ['quick', 'fast', 'slow', '15-minute', '30-minute', 'overnight', 'instant'].some((time) =>
+      lowerTag.includes(time)
+    )
+  ) {
     return 'time';
   }
 
   // Difficulty
-  if (['easy', 'simple', 'beginner', 'intermediate', 'advanced', 'expert'].some(diff => lowerTag.includes(diff))) {
+  if (
+    ['easy', 'simple', 'beginner', 'intermediate', 'advanced', 'expert'].some((diff) =>
+      lowerTag.includes(diff)
+    )
+  ) {
     return 'difficulty';
   }
 
   // Cuisines
-  if (['italian', 'mexican', 'chinese', 'japanese', 'thai', 'indian', 'french', 'greek', 'spanish', 'american', 'mediterranean', 'asian', 'european', 'african', 'middle-eastern'].some(cuisine => lowerTag.includes(cuisine))) {
+  if (
+    [
+      'italian',
+      'mexican',
+      'chinese',
+      'japanese',
+      'thai',
+      'indian',
+      'french',
+      'greek',
+      'spanish',
+      'american',
+      'mediterranean',
+      'asian',
+      'european',
+      'african',
+      'middle-eastern',
+    ].some((cuisine) => lowerTag.includes(cuisine))
+  ) {
     return 'cuisine';
   }
 
@@ -105,37 +155,35 @@ export function TagFilter({
   onClearAll,
   tagCounts,
   showCounts = true,
-  className
+  className,
 }: TagFilterProps) {
   // Group tags by category
-  const categorizedTags = availableTags.reduce((acc, tag) => {
-    const category = getTagCategory(tag);
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(tag);
-    return acc;
-  }, {} as Record<string, string[]>);
+  const categorizedTags = availableTags.reduce(
+    (acc, tag) => {
+      const category = getTagCategory(tag);
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(tag);
+      return acc;
+    },
+    {} as Record<string, string[]>
+  );
 
   // Define category order
   const categoryOrder = ['cuisine', 'meal', 'dietary', 'time', 'difficulty', 'other'];
-  const sortedCategories = categoryOrder.filter(cat => categorizedTags[cat]?.length > 0);
+  const sortedCategories = categoryOrder.filter((cat) => categorizedTags[cat]?.length > 0);
 
-  const normalizedSelectedTags = selectedTags.map(t => t.toLowerCase());
+  const normalizedSelectedTags = selectedTags.map((t) => t.toLowerCase());
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn('space-y-4', className)}>
       {selectedTags.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {selectedTags.length} filter{selectedTags.length !== 1 ? 's' : ''} applied
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearAll}
-            className="h-8 px-2 text-xs"
-          >
+          <Button variant="ghost" size="sm" onClick={onClearAll} className="h-8 px-2 text-xs">
             <X className="w-3 h-3 mr-1" />
             Clear all
           </Button>
@@ -143,7 +191,7 @@ export function TagFilter({
       )}
 
       <div className="space-y-3">
-        {sortedCategories.map(category => {
+        {sortedCategories.map((category) => {
           const categoryTags = categorizedTags[category];
           const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
 
@@ -154,7 +202,7 @@ export function TagFilter({
                 <span>{categoryLabel}</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {categoryTags.map(tag => {
+                {categoryTags.map((tag) => {
                   const isSelected = normalizedSelectedTags.includes(tag.toLowerCase());
                   const count = tagCounts?.[tag.toLowerCase()] || 0;
 
@@ -163,24 +211,21 @@ export function TagFilter({
                       key={tag}
                       variant="outline"
                       className={cn(
-                        "cursor-pointer transition-all duration-200 border",
+                        'cursor-pointer transition-all duration-200 border',
                         getCategoryColor(category, isSelected),
-                        "hover:shadow-sm"
+                        'hover:shadow-sm'
                       )}
                       onClick={() => onTagToggle(tag)}
                     >
                       <span className="capitalize">{tag}</span>
                       {showCounts && count > 0 && (
-                        <span className={cn(
-                          "ml-1.5 text-xs",
-                          isSelected ? "opacity-90" : "opacity-60"
-                        )}>
+                        <span
+                          className={cn('ml-1.5 text-xs', isSelected ? 'opacity-90' : 'opacity-60')}
+                        >
                           ({count})
                         </span>
                       )}
-                      {isSelected && (
-                        <X className="w-3 h-3 ml-1.5 -mr-0.5" />
-                      )}
+                      {isSelected && <X className="w-3 h-3 ml-1.5 -mr-0.5" />}
                     </Badge>
                   );
                 })}

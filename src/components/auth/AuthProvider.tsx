@@ -1,8 +1,8 @@
 'use client';
 
-import { ReactNode } from 'react';
 import { ClerkProvider, GoogleOneTap } from '@clerk/nextjs';
-import { getClerkDevOptions, getClerkApiConfig } from '@/config/clerk-dev';
+import type { ReactNode } from 'react';
+import { getClerkApiConfig, getClerkDevOptions } from '@/config/clerk-dev';
 import { authConfig } from '@/lib/auth-config';
 
 // Check if Clerk is properly configured with valid keys
@@ -44,26 +44,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       elements: {
         formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-white',
         card: 'shadow-lg',
-      }
+      },
     },
     // Add development options when using production keys on localhost
-    ...(usingProdKeysInDev ? {
-      ...devOptions,
-      ...apiConfig,
-      // Satellite mode configuration for production keys on localhost
-      isSatellite: true,
-      domain: 'recipes.help',
-      // Override the Clerk frontend API URL
-      clerkJSUrl: process.env.CLERK_JS_URL,
-      // Allow cookies to be set for the production domain
-      allowedRedirectOrigins: ['http://localhost:3004', 'https://recipes.help'],
-    } : {}),
+    ...(usingProdKeysInDev
+      ? {
+          ...devOptions,
+          ...apiConfig,
+          // Satellite mode configuration for production keys on localhost
+          isSatellite: true,
+          domain: 'recipes.help',
+          // Override the Clerk frontend API URL
+          clerkJSUrl: process.env.CLERK_JS_URL,
+          // Allow cookies to be set for the production domain
+          allowedRedirectOrigins: ['http://localhost:3004', 'https://recipes.help'],
+        }
+      : {}),
   };
 
   // Log configuration in development
   if (process.env.NODE_ENV === 'development') {
     console.log('[AuthProvider] Configuration:', {
-      publishableKey: authConfig.clerk.publishableKey?.substring(0, 20) + '...',
+      publishableKey: `${authConfig.clerk.publishableKey?.substring(0, 20)}...`,
       isClerkConfigured,
       usingProdKeysInDev,
       isSatellite: clerkOptions?.isSatellite || false,
@@ -75,9 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // This ensures all Clerk hooks work correctly
   return (
     <ClerkProvider {...clerkOptions}>
-      {!usingProdKeysInDev && (
-        <GoogleOneTap cancelOnTapOutside={true} />
-      )}
+      {!usingProdKeysInDev && <GoogleOneTap cancelOnTapOutside={true} />}
       {children}
     </ClerkProvider>
   );

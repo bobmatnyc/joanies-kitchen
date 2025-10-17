@@ -1,13 +1,13 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { scrapingJobs, type NewScrapingJob } from '@/lib/db/chef-schema';
-import { recipes } from '@/lib/db/schema';
-import { requireAdmin } from '@/lib/admin';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
+import { requireAdmin } from '@/lib/admin';
 import { parseRecipeWithAI } from '@/lib/ai/recipe-parser';
+import { db } from '@/lib/db';
+import { scrapingJobs } from '@/lib/db/chef-schema';
+import { recipes } from '@/lib/db/schema';
+import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
 import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
 
 /**
@@ -26,18 +26,21 @@ export async function startChefScraping(params: {
 
   try {
     // Create scraping job
-    const job = await db.insert(scrapingJobs).values({
-      chef_id: params.chefId,
-      source_url: params.sourceUrl,
-      status: 'pending',
-      total_pages: params.limit || 100,
-    }).returning();
+    const job = await db
+      .insert(scrapingJobs)
+      .values({
+        chef_id: params.chefId,
+        source_url: params.sourceUrl,
+        status: 'pending',
+        total_pages: params.limit || 100,
+      })
+      .returning();
 
     const jobId = job[0].id;
 
     // Start scraping in background (don't await)
     // Note: In production, this should be moved to a queue system like BullMQ or Inngest
-    scrapeAndParseRecipes(jobId, params).catch(error => {
+    scrapeAndParseRecipes(jobId, params).catch((error) => {
       console.error(`Background scraping job ${jobId} failed:`, error);
     });
 
@@ -46,7 +49,10 @@ export async function startChefScraping(params: {
     return { success: true, job: job[0] };
   } catch (error) {
     console.error('Error starting scraping job:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to start scraping' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to start scraping',
+    };
   }
 }
 
@@ -67,7 +73,8 @@ async function scrapeAndParseRecipes(
 ) {
   try {
     // Update job status to running
-    await db.update(scrapingJobs)
+    await db
+      .update(scrapingJobs)
       .set({
         status: 'running',
         started_at: new Date(),
@@ -93,7 +100,8 @@ async function scrapeAndParseRecipes(
     const totalPages = crawlResult.data.length;
 
     // Update total pages
-    await db.update(scrapingJobs)
+    await db
+      .update(scrapingJobs)
       .set({ total_pages: totalPages, updated_at: new Date() })
       .where(eq(scrapingJobs.id, jobId));
 
@@ -103,7 +111,8 @@ async function scrapeAndParseRecipes(
 
       try {
         // Update current page
-        await db.update(scrapingJobs)
+        await db
+          .update(scrapingJobs)
           .set({ current_page: i + 1, updated_at: new Date() })
           .where(eq(scrapingJobs.id, jobId));
 
@@ -115,28 +124,31 @@ async function scrapeAndParseRecipes(
         });
 
         // Create recipe in database
-        const recipe = await db.insert(recipes).values({
-          user_id: 'system', // System user for scraped recipes
-          chef_id: params.chefId,
-          name: parsed.name,
-          description: parsed.description || '',
-          ingredients: JSON.stringify(parsed.ingredients),
-          instructions: JSON.stringify(parsed.instructions),
-          prep_time: parsed.prepTime || null,
-          cook_time: parsed.cookTime || null,
-          servings: parsed.servings || null,
-          difficulty: parsed.difficulty || null,
-          cuisine: parsed.cuisine || null,
-          tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-          images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-          image_url: parsed.imageUrl || null,
-          nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-          is_system_recipe: true,
-          is_public: true,
-          is_ai_generated: true,
-          model_used: 'anthropic/claude-sonnet-4.5',
-          source: page.url || params.sourceUrl,
-        }).returning();
+        const recipe = await db
+          .insert(recipes)
+          .values({
+            user_id: 'system', // System user for scraped recipes
+            chef_id: params.chefId,
+            name: parsed.name,
+            description: parsed.description || '',
+            ingredients: JSON.stringify(parsed.ingredients),
+            instructions: JSON.stringify(parsed.instructions),
+            prep_time: parsed.prepTime || null,
+            cook_time: parsed.cookTime || null,
+            servings: parsed.servings || null,
+            difficulty: parsed.difficulty || null,
+            cuisine: parsed.cuisine || null,
+            tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+            images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
+            image_url: parsed.imageUrl || null,
+            nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+            is_system_recipe: true,
+            is_public: true,
+            is_ai_generated: true,
+            model_used: 'anthropic/claude-sonnet-4.5',
+            source: page.url || params.sourceUrl,
+          })
+          .returning();
 
         // Link recipe to chef
         await linkRecipeToChef({
@@ -148,7 +160,8 @@ async function scrapeAndParseRecipes(
         recipesScraped++;
 
         // Update job progress
-        await db.update(scrapingJobs)
+        await db
+          .update(scrapingJobs)
           .set({
             recipes_scraped: recipesScraped,
             recipes_failed: recipesFailed,
@@ -157,13 +170,13 @@ async function scrapeAndParseRecipes(
           .where(eq(scrapingJobs.id, jobId));
 
         // Small delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`Failed to parse recipe from ${page.url}:`, error);
         recipesFailed++;
 
-        await db.update(scrapingJobs)
+        await db
+          .update(scrapingJobs)
           .set({
             recipes_scraped: recipesScraped,
             recipes_failed: recipesFailed,
@@ -174,7 +187,8 @@ async function scrapeAndParseRecipes(
     }
 
     // Mark job as completed
-    await db.update(scrapingJobs)
+    await db
+      .update(scrapingJobs)
       .set({
         status: 'completed',
         completed_at: new Date(),
@@ -188,11 +202,11 @@ async function scrapeAndParseRecipes(
     await updateChefRecipeCount(params.chefId);
 
     revalidatePath('/admin/scraping');
-
   } catch (error) {
     console.error(`Scraping job ${jobId} failed:`, error);
 
-    await db.update(scrapingJobs)
+    await db
+      .update(scrapingJobs)
       .set({
         status: 'failed',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -209,10 +223,7 @@ async function scrapeAndParseRecipes(
  * Scrape a single recipe URL
  * Admin only
  */
-export async function scrapeSingleRecipe(params: {
-  chefId: string;
-  url: string;
-}) {
+export async function scrapeSingleRecipe(params: { chefId: string; url: string }) {
   await requireAdmin();
 
   try {
@@ -228,33 +239,38 @@ export async function scrapeSingleRecipe(params: {
       markdown: scraped.markdown,
       html: scraped.html,
       images: scraped.metadata?.ogImage
-        ? (Array.isArray(scraped.metadata.ogImage) ? scraped.metadata.ogImage : [scraped.metadata.ogImage])
+        ? Array.isArray(scraped.metadata.ogImage)
+          ? scraped.metadata.ogImage
+          : [scraped.metadata.ogImage]
         : undefined,
     });
 
     // Create recipe
-    const recipe = await db.insert(recipes).values({
-      user_id: 'system',
-      chef_id: params.chefId,
-      name: parsed.name,
-      description: parsed.description || '',
-      ingredients: JSON.stringify(parsed.ingredients),
-      instructions: JSON.stringify(parsed.instructions),
-      prep_time: parsed.prepTime || null,
-      cook_time: parsed.cookTime || null,
-      servings: parsed.servings || null,
-      difficulty: parsed.difficulty || null,
-      cuisine: parsed.cuisine || null,
-      tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-      images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-      image_url: parsed.imageUrl || null,
-      nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-      is_system_recipe: true,
-      is_public: true,
-      is_ai_generated: true,
-      model_used: 'anthropic/claude-sonnet-4.5',
-      source: params.url,
-    }).returning();
+    const recipe = await db
+      .insert(recipes)
+      .values({
+        user_id: 'system',
+        chef_id: params.chefId,
+        name: parsed.name,
+        description: parsed.description || '',
+        ingredients: JSON.stringify(parsed.ingredients),
+        instructions: JSON.stringify(parsed.instructions),
+        prep_time: parsed.prepTime || null,
+        cook_time: parsed.cookTime || null,
+        servings: parsed.servings || null,
+        difficulty: parsed.difficulty || null,
+        cuisine: parsed.cuisine || null,
+        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+        images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
+        image_url: parsed.imageUrl || null,
+        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+        is_system_recipe: true,
+        is_public: true,
+        is_ai_generated: true,
+        model_used: 'anthropic/claude-sonnet-4.5',
+        source: params.url,
+      })
+      .returning();
 
     // Link to chef
     await linkRecipeToChef({
@@ -266,7 +282,10 @@ export async function scrapeSingleRecipe(params: {
     return { success: true, recipe: recipe[0] };
   } catch (error) {
     console.error('Error scraping single recipe:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to scrape recipe' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to scrape recipe',
+    };
   }
 }
 
@@ -317,7 +336,8 @@ export async function cancelScrapingJob(jobId: string) {
   await requireAdmin();
 
   try {
-    const job = await db.update(scrapingJobs)
+    const job = await db
+      .update(scrapingJobs)
       .set({
         status: 'cancelled',
         completed_at: new Date(),
@@ -374,10 +394,13 @@ export async function scrapeChefRecipes(params: {
     return {
       success: true,
       recipesScraped: 0, // Will be updated by background job
-      job: result.job
+      job: result.job,
     };
   } catch (error) {
     console.error('Error scraping chef recipes:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to scrape recipes' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to scrape recipes',
+    };
   }
 }

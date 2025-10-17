@@ -18,19 +18,11 @@ export function VersionDisplay({ variant = 'short', className = '' }: VersionDis
   const info = getVersionInfo();
 
   if (variant === 'minimal') {
-    return (
-      <span className={className}>
-        v{info.version}
-      </span>
-    );
+    return <span className={className}>v{info.version}</span>;
   }
 
   if (variant === 'short') {
-    return (
-      <span className={className}>
-        {getVersionString()}
-      </span>
-    );
+    return <span className={className}>{getVersionString()}</span>;
   }
 
   // Full variant

@@ -1,16 +1,24 @@
 'use client';
 
+import { ChefHat, Clock, Copy, ExternalLink, Loader2, Star, Users } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { type Recipe } from '@/lib/db/schema';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { copyRecipeToCollection } from '@/app/actions/recipes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Users, ChefHat, ExternalLink, Copy, Star, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { copyRecipeToCollection } from '@/app/actions/recipes';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
-import { useRouter } from 'next/navigation';
+import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface SharedRecipeCardProps {
   recipe: Recipe;
@@ -23,6 +31,9 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
   const tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
+  // Use themed placeholder if no image available
+  const displayImage = recipe.image_url || getPlaceholderImage(tags);
+
   const handleCopy = async () => {
     setIsCopying(true);
     try {
@@ -33,7 +44,7 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
       } else {
         toast.error(result.error || 'Failed to copy recipe');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('An error occurred while copying the recipe');
     } finally {
       setIsCopying(false);
@@ -53,24 +64,22 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
         </Badge>
       )}
 
-      {recipe.image_url && (
-        <div className="aspect-video relative overflow-hidden rounded-t-lg">
-          <Image
-            src={recipe.image_url}
-            alt={recipe.name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover"
-            loading="lazy"
-            quality={75}
-          />
-          {recipe.is_ai_generated && (
-            <Badge className="absolute bottom-2 left-2" variant="secondary">
-              AI Generated
-            </Badge>
-          )}
-        </div>
-      )}
+      <div className="aspect-video relative overflow-hidden rounded-t-lg">
+        <Image
+          src={displayImage}
+          alt={recipe.name}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover"
+          loading="lazy"
+          quality={75}
+        />
+        {recipe.is_ai_generated && (
+          <Badge className="absolute bottom-2 left-2" variant="secondary">
+            AI Generated
+          </Badge>
+        )}
+      </div>
       <CardHeader>
         <CardTitle className="line-clamp-2">{recipe.name}</CardTitle>
         {recipe.description && (
@@ -86,11 +95,16 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
             </Badge>
           )}
           {recipe.difficulty && (
-            <Badge variant="outline" className={
-              recipe.difficulty === 'easy' ? 'text-green-600' :
-              recipe.difficulty === 'medium' ? 'text-yellow-600' :
-              'text-red-600'
-            }>
+            <Badge
+              variant="outline"
+              className={
+                recipe.difficulty === 'easy'
+                  ? 'text-green-600'
+                  : recipe.difficulty === 'medium'
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
+              }
+            >
               {recipe.difficulty}
             </Badge>
           )}
@@ -131,11 +145,7 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
             View
           </Button>
         </Link>
-        <Button
-          onClick={handleCopy}
-          disabled={isCopying}
-          className="flex-1"
-        >
+        <Button onClick={handleCopy} disabled={isCopying} className="flex-1">
           {isCopying ? (
             <>
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { db } from '@/lib/db';
-import { chefs, chefRecipes, scrapingJobs } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs, scrapingJobs } from '@/lib/db/chef-schema';
 
 /**
  * Verify Chef System Implementation
@@ -17,7 +17,7 @@ async function verifyChefSystem() {
 
     if (allChefs.length > 0) {
       console.log('\nChefs:');
-      allChefs.forEach(chef => {
+      allChefs.forEach((chef) => {
         console.log(`  - ${chef.name} (${chef.slug})`);
         console.log(`    Recipes: ${chef.recipeCount}`);
         console.log(`    Verified: ${chef.isVerified}`);
@@ -36,7 +36,7 @@ async function verifyChefSystem() {
 
     if (allJobs.length > 0) {
       console.log('\nRecent Jobs:');
-      allJobs.slice(0, 5).forEach(job => {
+      allJobs.slice(0, 5).forEach((job) => {
         console.log(`  - ${job.sourceUrl}`);
         console.log(`    Status: ${job.status}`);
         console.log(`    Scraped: ${job.recipesScraped}/${job.totalPages || '?'}`);
@@ -50,7 +50,6 @@ async function verifyChefSystem() {
     console.log(`  - Scraping Jobs: ${allJobs.length}`);
 
     console.log('\n🎉 Chef system is ready to use!');
-
   } catch (error) {
     console.error('❌ Error verifying chef system:', error);
     throw error;

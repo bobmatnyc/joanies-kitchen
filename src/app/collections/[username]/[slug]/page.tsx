@@ -1,10 +1,10 @@
-import { notFound } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
+import { Edit, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getCollectionBySlug } from '@/app/actions/collections';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
-import { getCollectionBySlug } from '@/app/actions/collections';
-import Link from 'next/link';
-import { Lock, Edit } from 'lucide-react';
 
 interface CollectionDetailPageProps {
   params: Promise<{
@@ -13,9 +13,7 @@ interface CollectionDetailPageProps {
   }>;
 }
 
-export default async function CollectionDetailPage({
-  params,
-}: CollectionDetailPageProps) {
+export default async function CollectionDetailPage({ params }: CollectionDetailPageProps) {
   const resolvedParams = await params;
   const { username, slug } = resolvedParams;
   const { userId } = await auth();
@@ -37,9 +35,7 @@ export default async function CollectionDetailPage({
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {collection.name}
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-900">{collection.name}</h1>
                 {!collection.is_public && (
                   <span className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded text-sm">
                     <Lock className="w-3 h-3" />
@@ -62,9 +58,7 @@ export default async function CollectionDetailPage({
                 <span>•</span>
                 <span>{collection.recipe_count} recipes</span>
                 <span>•</span>
-                <span>
-                  Updated {new Date(collection.updated_at).toLocaleDateString()}
-                </span>
+                <span>Updated {new Date(collection.updated_at).toLocaleDateString()}</span>
               </div>
             </div>
 
@@ -98,9 +92,7 @@ export default async function CollectionDetailPage({
               No recipes in this collection yet
             </h2>
             {isOwner && (
-              <p className="text-gray-600">
-                Browse recipes and add them to this collection
-              </p>
+              <p className="text-gray-600">Browse recipes and add them to this collection</p>
             )}
           </div>
         )}

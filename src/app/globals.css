@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap");
 
 @import "tailwindcss";
 
@@ -7,16 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-heading: 'Playfair Display', serif;
-  --font-body: 'Lora', serif;
-  --font-ui: 'Inter', sans-serif;
+  --font-heading: "Playfair Display", serif;
+  --font-body: "Lora", serif;
+  --font-ui: "Inter", sans-serif;
 
   /* Joanie's Kitchen Brand Colors */
-  --color-jk-olive: #5B6049;
-  --color-jk-sage: #A7BEA4;
-  --color-jk-linen: #FAF5EE;
-  --color-jk-tomato: #E65F45;
-  --color-jk-clay: #B46945;
+  --color-jk-olive: #5b6049;
+  --color-jk-sage: #a7bea4;
+  --color-jk-linen: #faf5ee;
+  --color-jk-tomato: #e65f45;
+  --color-jk-clay: #b46945;
   --color-jk-charcoal: #333333;
 
   /* Mapped to theme tokens */
@@ -60,18 +60,18 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
   /* Touch target sizes */
-  --touch-target-min: 44px;        /* iOS minimum */
-  --touch-target-material: 48px;   /* Material Design minimum */
+  --touch-target-min: 44px; /* iOS minimum */
+  --touch-target-material: 48px; /* Material Design minimum */
 }
 
 :root {
   /* Joanie's Kitchen Color Palette */
-  --jk-olive: #5B6049;      /* Primary/Header/Footer */
-  --jk-sage: #A7BEA4;       /* Accents/Dividers */
-  --jk-linen: #FAF5EE;      /* Background/Containers */
-  --jk-tomato: #E65F45;     /* CTAs/Buttons/Highlights */
-  --jk-clay: #B46945;       /* Icons/Links/Secondary Buttons */
-  --jk-charcoal: #333333;   /* Text */
+  --jk-olive: #5b6049; /* Primary/Header/Footer */
+  --jk-sage: #a7bea4; /* Accents/Dividers */
+  --jk-linen: #faf5ee; /* Background/Containers */
+  --jk-tomato: #e65f45; /* CTAs/Buttons/Highlights */
+  --jk-clay: #b46945; /* Icons/Links/Secondary Buttons */
+  --jk-charcoal: #333333; /* Text */
 
   /* Base theme variables */
   --radius: 8px;
@@ -126,7 +126,12 @@
     font-family: var(--font-body), serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading), serif;
     @apply text-jk-olive;
   }
@@ -306,7 +311,10 @@
   }
 
   /* Touch-friendly inputs - prevent iOS zoom */
-  input, select, textarea, button {
+  input,
+  select,
+  textarea,
+  button {
     font-size: 16px;
     line-height: 1.5;
   }
@@ -360,7 +368,9 @@
 }
 
 /* Touch-friendly button styling */
-.btn, button, a[role="button"] {
+.btn,
+button,
+a[role="button"] {
   min-height: 44px;
   min-width: 44px;
   display: inline-flex;
@@ -380,125 +390,4 @@
     transform: scale(0.98);
     transition: transform 0.1s ease-in-out;
   }
-}
-
-/* Hero Background Animations - Crossfade between images */
-@keyframes hero-crossfade-1 {
-  0% {
-    opacity: 0.15;
-  }
-  5% {
-    opacity: 0.15;
-  }
-  25% {
-    opacity: 0.15;
-  }
-  40% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 0;
-  }
-  60% {
-    opacity: 0;
-  }
-  75% {
-    opacity: 0.15;
-  }
-  95% {
-    opacity: 0.15;
-  }
-  100% {
-    opacity: 0.15;
-  }
-}
-
-@keyframes hero-crossfade-2 {
-  0% {
-    opacity: 0;
-  }
-  5% {
-    opacity: 0;
-  }
-  25% {
-    opacity: 0.15;
-  }
-  40% {
-    opacity: 0.15;
-  }
-  50% {
-    opacity: 0.15;
-  }
-  60% {
-    opacity: 0.15;
-  }
-  75% {
-    opacity: 0;
-  }
-  95% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
-  }
-  50% {
-    transform: translateY(-20px) translateX(10px);
-  }
-}
-
-@keyframes float-slower {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
-  }
-  50% {
-    transform: translateY(20px) translateX(-10px);
-  }
-}
-
-@keyframes rotate-slow {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes rotate-slower {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
-.animate-hero-crossfade-1 {
-  animation: hero-crossfade-1 20s ease-in-out infinite;
-}
-
-.animate-hero-crossfade-2 {
-  animation: hero-crossfade-2 20s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: float-slow 40s ease-in-out infinite;
-}
-
-.animate-float-slower {
-  animation: float-slower 50s ease-in-out infinite;
-}
-
-.animate-rotate-slow {
-  animation: rotate-slow 120s linear infinite;
-}
-
-.animate-rotate-slower {
-  animation: rotate-slower 150s linear infinite;
 }

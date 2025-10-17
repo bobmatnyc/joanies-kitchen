@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { RecipeCard } from '../RecipeCard';
+import { describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '@/lib/db/schema';
+import { RecipeCard } from '../RecipeCard';
 
 // Mock Next.js Link component
 vi.mock('next/link', () => ({
@@ -24,6 +24,7 @@ describe('RecipeCard', () => {
     user_id: 'test-user',
     chef_id: null,
     name: 'Chocolate Chip Cookies',
+    slug: 'chocolate-chip-cookies',
     description: 'Delicious homemade cookies',
     ingredients: JSON.stringify(['flour', 'sugar', 'chocolate chips']),
     instructions: JSON.stringify(['Mix ingredients', 'Bake at 350F']),
@@ -120,7 +121,7 @@ describe('RecipeCard', () => {
 
     render(<RecipeCard recipe={recipeWithImage} />);
     const images = screen.getAllByRole('img');
-    const recipeImage = images.find(img => img.getAttribute('alt') === 'Chocolate Chip Cookies');
+    const recipeImage = images.find((img) => img.getAttribute('alt') === 'Chocolate Chip Cookies');
     expect(recipeImage).toHaveAttribute('src', 'https://example.com/cookie.jpg');
   });
 

@@ -5,8 +5,8 @@
  * across the application, particularly for database types and JSON parsing.
  */
 
-import type { Recipe } from '@/lib/db/schema';
 import type { Chef } from '@/lib/db/chef-schema';
+import type { Recipe } from '@/lib/db/schema';
 import type { Collection } from '@/lib/db/user-discovery-schema';
 
 // ============================================================================
@@ -17,7 +17,10 @@ import type { Collection } from '@/lib/db/user-discovery-schema';
  * Recipe with parsed JSON fields
  * Use this type in frontend components where you need array/object types
  */
-export type ParsedRecipe = Omit<Recipe, 'tags' | 'images' | 'ingredients' | 'instructions' | 'nutrition_info'> & {
+export type ParsedRecipe = Omit<
+  Recipe,
+  'tags' | 'images' | 'ingredients' | 'instructions' | 'nutrition_info'
+> & {
   tags: string[];
   images: string[];
   ingredients: string[];
@@ -195,13 +198,13 @@ export function isParsedChef(chef: Chef | ParsedChef): chef is ParsedChef {
 // EXPORTS
 // ============================================================================
 
+export type { Chef } from '@/lib/db/chef-schema';
 // Re-export database types
 export type { Recipe } from '@/lib/db/schema';
-export type { Chef } from '@/lib/db/chef-schema';
 export type {
   Collection,
-  UserProfile,
   CollectionRecipe,
   Favorite,
   RecipeView,
+  UserProfile,
 } from '@/lib/db/user-discovery-schema';

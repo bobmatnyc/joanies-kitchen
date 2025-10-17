@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { TEST_RECIPES } from '../fixtures/test-recipes';
 
 /**
@@ -31,7 +31,7 @@ test.describe('Slug-Based Navigation', () => {
     await expect(page).toHaveTitle(/Tarragon Lobster/i);
 
     // Verify no hydration errors in console
-    const errors = [];
+    const errors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error' && msg.text().includes('Hydration')) {
         errors.push(msg.text());
@@ -134,7 +134,8 @@ test.describe('Slug-Based Navigation', () => {
     let slugUrlCount = 0;
     let uuidUrlCount = 0;
 
-    for (const link of recipeLinks.slice(0, 10)) { // Check first 10
+    for (const link of recipeLinks.slice(0, 10)) {
+      // Check first 10
       const href = await link.getAttribute('href');
       if (href) {
         if (href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)) {

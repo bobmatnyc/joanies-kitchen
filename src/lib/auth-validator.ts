@@ -4,7 +4,7 @@
  * This module provides runtime validation and diagnostics for authentication setup
  */
 
-import { validateAuthConfig, isClerkConfigured, isAuthEnabled } from './auth-config';
+import { isAuthEnabled, isClerkConfigured, validateAuthConfig } from './auth-config';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -31,9 +31,9 @@ function colorize(text: string, color: keyof typeof colors): string {
  * Display validation results in a formatted way
  */
 export function displayValidationResults(): void {
-  console.log('\n' + colorize('='.repeat(60), 'cyan'));
+  console.log(`\n${colorize('='.repeat(60), 'cyan')}`);
   console.log(colorize('   Authentication Configuration Validator', 'cyan'));
-  console.log(colorize('='.repeat(60), 'cyan') + '\n');
+  console.log(`${colorize('='.repeat(60), 'cyan')}\n`);
 
   // Check Clerk configuration
   const clerkConfigured = isClerkConfigured();
@@ -41,35 +41,41 @@ export function displayValidationResults(): void {
 
   // Basic status
   console.log(colorize('📋 Configuration Status:', 'blue'));
-  console.log(`   • Clerk Configured: ${clerkConfigured ? colorize('✓ Yes', 'green') : colorize('✗ No', 'yellow')}`);
-  console.log(`   • Auth Enabled: ${authEnabled ? colorize('✓ Yes', 'green') : colorize('✗ No', 'yellow')}`);
+  console.log(
+    `   • Clerk Configured: ${clerkConfigured ? colorize('✓ Yes', 'green') : colorize('✗ No', 'yellow')}`
+  );
+  console.log(
+    `   • Auth Enabled: ${authEnabled ? colorize('✓ Yes', 'green') : colorize('✗ No', 'yellow')}`
+  );
   console.log(`   • Environment: ${colorize(process.env.NODE_ENV || 'development', 'blue')}`);
-  console.log(`   • App URL: ${colorize(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004', 'blue')}`);
+  console.log(
+    `   • App URL: ${colorize(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004', 'blue')}`
+  );
 
   // Validate configuration
   const validation = validateAuthConfig();
 
   if (validation.errors.length > 0) {
-    console.log('\n' + colorize('❌ Configuration Errors:', 'red'));
-    validation.errors.forEach(error => {
+    console.log(`\n${colorize('❌ Configuration Errors:', 'red')}`);
+    validation.errors.forEach((error) => {
       console.log(`   • ${error}`);
     });
   }
 
   if (validation.warnings.length > 0) {
-    console.log('\n' + colorize('⚠️  Configuration Warnings:', 'yellow'));
-    validation.warnings.forEach(warning => {
+    console.log(`\n${colorize('⚠️  Configuration Warnings:', 'yellow')}`);
+    validation.warnings.forEach((warning) => {
       console.log(`   • ${warning}`);
     });
   }
 
   if (validation.isValid && validation.warnings.length === 0) {
-    console.log('\n' + colorize('✅ Configuration is valid!', 'green'));
+    console.log(`\n${colorize('✅ Configuration is valid!', 'green')}`);
   }
 
   // Detailed Clerk analysis if configured
   if (clerkConfigured) {
-    console.log('\n' + colorize('🔐 Clerk Details:', 'blue'));
+    console.log(`\n${colorize('🔐 Clerk Details:', 'blue')}`);
 
     const pubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
     const secretKey = process.env.CLERK_SECRET_KEY || '';
@@ -80,7 +86,9 @@ export function displayValidationResults(): void {
 
     // Detect environment
     const keyEnv = pubKey.includes('pk_test_') ? 'test' : 'live';
-    console.log(`   • Key Environment: ${colorize(keyEnv, keyEnv === 'test' ? 'yellow' : 'green')}`);
+    console.log(
+      `   • Key Environment: ${colorize(keyEnv, keyEnv === 'test' ? 'yellow' : 'green')}`
+    );
 
     // Key lengths for validation
     console.log(`   • Publishable Key Length: ${pubKey.length} characters`);
@@ -89,7 +97,7 @@ export function displayValidationResults(): void {
 
   // Development mode helpers
   if (process.env.NODE_ENV !== 'production') {
-    console.log('\n' + colorize('💡 Development Tips:', 'blue'));
+    console.log(`\n${colorize('💡 Development Tips:', 'blue')}`);
 
     if (!clerkConfigured) {
       console.log('   • To enable auth in development:');
@@ -106,14 +114,14 @@ export function displayValidationResults(): void {
     }
   }
 
-  console.log('\n' + colorize('='.repeat(60), 'cyan') + '\n');
+  console.log(`\n${colorize('='.repeat(60), 'cyan')}\n`);
 }
 
 /**
  * Check if authentication will work for specific scenarios
  */
 export function testAuthScenarios(): void {
-  console.log(colorize('🧪 Testing Authentication Scenarios:', 'blue') + '\n');
+  console.log(`${colorize('🧪 Testing Authentication Scenarios:', 'blue')}\n`);
 
   const scenarios = [
     {
@@ -136,13 +144,16 @@ export function testAuthScenarios(): void {
     },
     {
       name: 'Development with Config but no Flag',
-      condition: process.env.NODE_ENV !== 'production' && isClerkConfigured() && !process.env.ENABLE_DEV_AUTH,
+      condition:
+        process.env.NODE_ENV !== 'production' &&
+        isClerkConfigured() &&
+        !process.env.ENABLE_DEV_AUTH,
       expected: !isAuthEnabled(),
       description: 'Auth should be disabled in dev without ENABLE_DEV_AUTH flag',
     },
   ];
 
-  scenarios.forEach(scenario => {
+  scenarios.forEach((scenario) => {
     const passes = scenario.expected === scenario.condition;
     const icon = passes ? '✓' : '✗';
     const color = passes ? 'green' : 'red';
@@ -181,12 +192,12 @@ export function generateDiagnosticReport(): string {
 
   if (validation.errors.length > 0) {
     report.push('', '## Errors');
-    validation.errors.forEach(error => report.push(`- ${error}`));
+    validation.errors.forEach((error) => report.push(`- ${error}`));
   }
 
   if (validation.warnings.length > 0) {
     report.push('', '## Warnings');
-    validation.warnings.forEach(warning => report.push(`- ${warning}`));
+    validation.warnings.forEach((warning) => report.push(`- ${warning}`));
   }
 
   report.push('', '## Recommendations');
@@ -206,8 +217,4 @@ if (require.main === module) {
   testAuthScenarios();
 }
 
-export {
-  validateAuthConfig,
-  isClerkConfigured,
-  isAuthEnabled,
-};
+export { validateAuthConfig, isClerkConfigured, isAuthEnabled };

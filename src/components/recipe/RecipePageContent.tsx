@@ -1,29 +1,29 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { RecipeList } from '@/components/recipe/RecipeList';
-import { Button } from '@/components/ui/button';
-import { Plus, Upload, Download, Filter } from 'lucide-react';
+import { Download, Filter, Plus, Upload } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { exportAllRecipesAsZip } from '@/app/actions/recipe-export';
+import MarkdownImporter from '@/components/recipe/MarkdownImporter';
+import { RecipeList } from '@/components/recipe/RecipeList';
+import { TagFilter } from '@/components/recipe/TagFilter';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet';
-import MarkdownImporter from '@/components/recipe/MarkdownImporter';
-import { TagFilter } from '@/components/recipe/TagFilter';
-import { exportAllRecipesAsZip } from '@/app/actions/recipe-export';
-import { toast } from 'sonner';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 interface RecipePageContentProps {
   recipes: any[];
@@ -36,7 +36,7 @@ export default function RecipePageContent({
   recipes,
   availableTags = [],
   tagCounts = {},
-  initialSelectedTags = []
+  initialSelectedTags = [],
 }: RecipePageContentProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -60,10 +60,10 @@ export default function RecipePageContent({
 
   const handleTagToggle = useCallback((tag: string) => {
     const normalizedTag = tag.toLowerCase();
-    setSelectedTags(prev => {
-      const normalizedPrev = prev.map(t => t.toLowerCase());
+    setSelectedTags((prev) => {
+      const normalizedPrev = prev.map((t) => t.toLowerCase());
       if (normalizedPrev.includes(normalizedTag)) {
-        return prev.filter(t => t.toLowerCase() !== normalizedTag);
+        return prev.filter((t) => t.toLowerCase() !== normalizedTag);
       } else {
         return [...prev, tag];
       }
@@ -74,7 +74,7 @@ export default function RecipePageContent({
     setSelectedTags([]);
   }, []);
 
-  const handleImportComplete = (count: number) => {
+  const handleImportComplete = (_count: number) => {
     setShowImportDialog(false);
     router.refresh();
   };
@@ -127,11 +127,7 @@ export default function RecipePageContent({
         </div>
         <div className="flex flex-wrap gap-2">
           {availableTags.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => setShowFilterSheet(true)}
-              className="relative"
-            >
+            <Button variant="outline" onClick={() => setShowFilterSheet(true)} className="relative">
               <Filter className="w-4 h-4 mr-2" />
               Filter
               {selectedTags.length > 0 && (
@@ -141,19 +137,12 @@ export default function RecipePageContent({
               )}
             </Button>
           )}
-          <Button
-            variant="outline"
-            onClick={() => setShowImportDialog(true)}
-          >
+          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
           {recipes.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={handleExportAll}
-              disabled={exporting}
-            >
+            <Button variant="outline" onClick={handleExportAll} disabled={exporting}>
               <Download className="w-4 h-4 mr-2" />
               {exporting ? 'Exporting...' : 'Export All'}
             </Button>
@@ -202,7 +191,8 @@ export default function RecipePageContent({
           <SheetHeader>
             <SheetTitle>Filter Recipes</SheetTitle>
             <SheetDescription>
-              Select tags to filter your recipes. Choose multiple tags to find recipes that match all selections.
+              Select tags to filter your recipes. Choose multiple tags to find recipes that match
+              all selections.
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">

@@ -1,10 +1,10 @@
+import { ChefHat } from 'lucide-react';
 import { getAllChefs } from '@/app/actions/chefs';
 import { ChefGrid } from '@/components/chef/ChefGrid';
-import { ChefHat } from 'lucide-react';
 
 export const metadata = {
-  title: 'Discover Chefs | Joanie\'s Kitchen',
-  description: 'Browse recipes from world-renowned chefs and culinary experts'
+  title: "Discover Chefs | Joanie's Kitchen",
+  description: 'Browse recipes from world-renowned chefs and culinary experts',
 };
 
 export default async function DiscoverChefsPage() {
@@ -16,9 +16,7 @@ export default async function DiscoverChefsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-heading text-jk-olive mb-2">
-            Discover Chefs
-          </h1>
+          <h1 className="text-4xl font-heading text-jk-olive mb-2">Discover Chefs</h1>
           <p className="text-jk-olive/60">
             Explore recipes from culinary experts and food creators
           </p>
@@ -31,8 +29,9 @@ export default async function DiscoverChefsPage() {
       {chefs.length > 0 && (
         <div className="mb-8 p-4 bg-jk-linen rounded-lg border border-jk-olive/20">
           <p className="text-sm text-jk-olive">
-            Featuring <strong>{chefs.length}</strong> talented chef{chefs.length !== 1 ? 's' : ''} with{' '}
-            <strong>{chefs.reduce((sum, chef) => sum + (chef.recipeCount || 0), 0)}</strong> recipes
+            Featuring <strong>{chefs.length}</strong> talented chef{chefs.length !== 1 ? 's' : ''}{' '}
+            with <strong>{chefs.reduce((sum, chef) => sum + (chef.recipeCount || 0), 0)}</strong>{' '}
+            recipes
           </p>
         </div>
       )}

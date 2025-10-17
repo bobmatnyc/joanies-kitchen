@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * Initialize famous chef profiles
@@ -30,7 +30,7 @@ const FAMOUS_CHEFS: ChefProfile[] = [
     name: 'Gordon Ramsay',
     slug: 'gordon-ramsay',
     displayName: 'Gordon Ramsay',
-    bio: 'Multi-Michelin star chef, restaurateur, and television personality. Known for his fiery personality, technical precision, and elevating British cuisine to world-class standards. Author of numerous cookbooks and host of Hell\'s Kitchen, MasterChef, and Kitchen Nightmares.',
+    bio: "Multi-Michelin star chef, restaurateur, and television personality. Known for his fiery personality, technical precision, and elevating British cuisine to world-class standards. Author of numerous cookbooks and host of Hell's Kitchen, MasterChef, and Kitchen Nightmares.",
     website: 'https://www.gordonramsay.com',
     socialLinks: {
       instagram: '@gordongram',
@@ -162,18 +162,21 @@ async function initFamousChefs() {
       }
 
       // Create chef profile
-      const chef = await db.insert(chefs).values({
-        name: chefProfile.name,
-        slug: chefProfile.slug,
-        displayName: chefProfile.displayName || chefProfile.name,
-        bio: chefProfile.bio,
-        website: chefProfile.website,
-        socialLinks: chefProfile.socialLinks,
-        specialties: chefProfile.specialties,
-        isVerified: true,
-        isActive: true,
-        recipeCount: 0,
-      }).returning();
+      const chef = await db
+        .insert(chefs)
+        .values({
+          name: chefProfile.name,
+          slug: chefProfile.slug,
+          displayName: chefProfile.displayName || chefProfile.name,
+          bio: chefProfile.bio,
+          website: chefProfile.website,
+          socialLinks: chefProfile.socialLinks,
+          specialties: chefProfile.specialties,
+          isVerified: true,
+          isActive: true,
+          recipeCount: 0,
+        })
+        .returning();
 
       console.log(`   ✅ Created successfully (ID: ${chef[0].id})`);
       console.log(`   🔗 URL: /chef/${chefProfile.slug}`);
@@ -188,7 +191,7 @@ async function initFamousChefs() {
   }
 
   // Print summary
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('📊 SUMMARY');
   console.log('='.repeat(60));
   console.log(`✅ Created: ${results.created.length} chef(s)`);

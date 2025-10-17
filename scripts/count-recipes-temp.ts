@@ -1,6 +1,6 @@
+import { count } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { recipes } from '../src/lib/db/schema.js';
-import { count } from 'drizzle-orm';
 
 async function countRecipes() {
   const result = await db.select({ count: count() }).from(recipes);

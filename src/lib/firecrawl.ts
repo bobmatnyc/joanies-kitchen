@@ -43,16 +43,18 @@ export async function scrapeRecipePage(url: string): Promise<ScrapeResponse> {
   const client = getFirecrawlClient();
 
   try {
-    const result = await client.scrape(url, {
+    const result = (await client.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
       waitFor: 2000, // Wait 2 seconds for dynamic content
-    }) as any;
+    })) as any;
 
     return result;
   } catch (error) {
     console.error(`Error scraping recipe page ${url}:`, error);
-    throw new Error(`Failed to scrape recipe page: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to scrape recipe page: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -72,7 +74,7 @@ export async function crawlChefRecipes(params: {
 
   try {
     // Start async crawl using v4 API
-    const crawlJob = await client.crawl(baseUrl, {
+    const crawlJob = (await client.crawl(baseUrl, {
       limit,
       maxDiscoveryDepth: maxDepth,
       excludePaths,
@@ -82,13 +84,13 @@ export async function crawlChefRecipes(params: {
         onlyMainContent: true,
         waitFor: 2000,
       } as any,
-    }) as any;
+    })) as any;
 
     // Wait for crawl to complete
     let crawlStatus = await client.getCrawlStatus(crawlJob.id);
 
     while (crawlStatus.status === 'scraping') {
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
       crawlStatus = await client.getCrawlStatus(crawlJob.id);
     }
 
@@ -99,7 +101,9 @@ export async function crawlChefRecipes(params: {
     return crawlStatus as any;
   } catch (error) {
     console.error(`Error crawling chef recipes from ${baseUrl}:`, error);
-    throw new Error(`Failed to crawl chef recipes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to crawl chef recipes: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -107,14 +111,14 @@ export async function crawlChefRecipes(params: {
  * Scrape multiple recipe URLs in batch
  */
 export async function batchScrapeRecipes(urls: string[]): Promise<ScrapeResponse[]> {
-  const client = getFirecrawlClient();
+  const _client = getFirecrawlClient();
   const results: ScrapeResponse[] = [];
 
   // Process in batches of 5 to avoid rate limits
   const batchSize = 5;
   for (let i = 0; i < urls.length; i += batchSize) {
     const batch = urls.slice(i, i + batchSize);
-    const batchPromises = batch.map(url => scrapeRecipePage(url));
+    const batchPromises = batch.map((url) => scrapeRecipePage(url));
 
     try {
       const batchResults = await Promise.allSettled(batchPromises);
@@ -129,7 +133,7 @@ export async function batchScrapeRecipes(urls: string[]): Promise<ScrapeResponse
 
       // Wait 1 second between batches
       if (i + batchSize < urls.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
       console.error(`Error in batch scraping:`, error);

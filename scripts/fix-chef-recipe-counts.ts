@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
+
 /**
  * Fix chef recipe counts
  */
 
-import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
 import { eq, sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 
 async function fixChefRecipeCounts() {
   console.log('🔧 Fixing chef recipe counts...\n');
@@ -27,11 +28,7 @@ async function fixChefRecipeCounts() {
       .where(eq(chefs.id, chef.id));
 
     // Get updated count
-    const [updatedChef] = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.id, chef.id))
-      .limit(1);
+    const [updatedChef] = await db.select().from(chefs).where(eq(chefs.id, chef.id)).limit(1);
 
     console.log(`✅ ${chef.name.padEnd(25)}: ${updatedChef.recipe_count} recipes`);
   }

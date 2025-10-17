@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Check and Fix Similar Recipes Feature
  *
@@ -9,13 +10,13 @@
  * 4. Offers to generate missing embeddings
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { db } from '../src/lib/db';
-import { recipes, recipeEmbeddings } from '../src/lib/db/schema';
-import { sql, eq, count } from 'drizzle-orm';
+import { count, sql } from 'drizzle-orm';
 import { generateRecipeEmbedding } from '../src/lib/ai/embeddings';
+import { db } from '../src/lib/db';
 import { saveRecipeEmbedding } from '../src/lib/db/embeddings';
+import { recipeEmbeddings, recipes } from '../src/lib/db/schema';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -86,7 +87,10 @@ async function countRecipes() {
 
     log(`Total recipes: ${recipeCount}`, colors.blue);
     log(`Recipes with embeddings: ${embeddingCount}`, colors.blue);
-    log(`Missing embeddings: ${recipeCount - embeddingCount}`, recipeCount > embeddingCount ? colors.yellow : colors.green);
+    log(
+      `Missing embeddings: ${recipeCount - embeddingCount}`,
+      recipeCount > embeddingCount ? colors.yellow : colors.green
+    );
 
     return { recipeCount, embeddingCount, missing: recipeCount - embeddingCount };
   } catch (error: any) {
@@ -158,7 +162,7 @@ async function generateMissingEmbeddings(limit: number = 10) {
 
       // Rate limiting: wait 2 seconds between requests
       if (i < recipesToProcess.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     } catch (error: any) {
       log(`  ✗ Failed: ${error.message}`, colors.red);
@@ -214,7 +218,7 @@ async function testSimilarRecipes() {
 }
 
 async function main() {
-  log('\n' + '='.repeat(60), colors.bright);
+  log(`\n${'='.repeat(60)}`, colors.bright);
   log('SIMILAR RECIPES FEATURE DIAGNOSTIC', colors.bright);
   log('='.repeat(60), colors.bright);
 
@@ -258,9 +262,9 @@ async function main() {
     await testSimilarRecipes();
   }
 
-  log('\n' + '='.repeat(60), colors.bright);
+  log(`\n${'='.repeat(60)}`, colors.bright);
   log('DIAGNOSTIC COMPLETE', colors.bright);
-  log('='.repeat(60) + '\n', colors.bright);
+  log(`${'='.repeat(60)}\n`, colors.bright);
 
   if (counts.missing === 0 && counts.recipeCount > 0) {
     log('✓ All recipes have embeddings!', colors.green);

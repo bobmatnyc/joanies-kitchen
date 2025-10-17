@@ -1,0 +1,35 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="saladGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C8E6C9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#saladGrad)"/>
+
+  <!-- Bowl with salad icon -->
+  <g transform="translate(400, 320)">
+    <!-- Bowl -->
+    <ellipse cx="0" cy="0" rx="90" ry="20" fill="#4CAF50" opacity="0.2"/>
+    <path d="M -90 0 Q -90 50 -60 65 Q -30 75 0 75 Q 30 75 60 65 Q 90 50 90 0" fill="#4CAF50" opacity="0.2"/>
+    <ellipse cx="0" cy="0" rx="90" ry="20" fill="none" stroke="#4CAF50" stroke-width="3"/>
+    <path d="M -90 0 Q -90 50 -60 65 Q -30 75 0 75 Q 30 75 60 65 Q 90 50 90 0" fill="none" stroke="#4CAF50" stroke-width="3"/>
+
+    <!-- Lettuce leaves -->
+    <ellipse cx="-30" cy="-20" rx="25" ry="20" fill="#81C784" opacity="0.6"/>
+    <ellipse cx="20" cy="-25" rx="30" ry="25" fill="#66BB6A" opacity="0.6"/>
+    <ellipse cx="0" cy="-35" rx="28" ry="22" fill="#4CAF50" opacity="0.6"/>
+
+    <!-- Tomato slice -->
+    <circle cx="35" cy="-10" r="15" fill="#F44336" opacity="0.6"/>
+    <circle cx="35" cy="-10" r="10" fill="#FFCDD2" opacity="0.4"/>
+
+    <!-- Cucumber slice -->
+    <circle cx="-40" cy="-5" r="12" fill="#C8E6C9" opacity="0.8"/>
+    <circle cx="-40" cy="-5" r="8" fill="#E8F5E9" opacity="0.6"/>
+  </g>
+
+  <!-- Text -->
+  <text x="400" y="500" font-family="Arial, sans-serif" font-size="32" fill="#4CAF50" text-anchor="middle" opacity="0.6">Salad</text>
+</svg>

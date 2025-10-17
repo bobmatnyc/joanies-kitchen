@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { TEST_RECIPES, RECIPE_PATHS } from '../fixtures/test-recipes';
+import { expect, test } from '@playwright/test';
+import { RECIPE_PATHS, TEST_RECIPES } from '../fixtures/test-recipes';
 
 /**
  * UAT Test Suite: Navigation Flows
@@ -281,7 +281,7 @@ test.describe('Recipe Navigation Flows', () => {
 
     // If focused on a recipe link, press Enter
     const href = await focusedElement.getAttribute('href');
-    if (href && href.includes('/recipes/')) {
+    if (href?.includes('/recipes/')) {
       await page.keyboard.press('Enter');
       await page.waitForLoadState('networkidle');
 

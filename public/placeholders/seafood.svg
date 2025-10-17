@@ -1,0 +1,57 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="seafoodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E0F7FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B2EBF2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#seafoodGrad)"/>
+
+  <!-- Fish icon -->
+  <g transform="translate(400, 300)">
+    <!-- Fish body -->
+    <ellipse cx="0" cy="0" rx="70" ry="40" fill="#0097A7" opacity="0.3"/>
+    <ellipse cx="0" cy="0" rx="70" ry="40" fill="none" stroke="#00838F" stroke-width="3"/>
+
+    <!-- Fish tail -->
+    <path d="M 70 0 L 100 -30 L 95 0 L 100 30 Z" fill="#0097A7" opacity="0.3"/>
+    <path d="M 70 0 L 100 -30 L 95 0 L 100 30 Z" fill="none" stroke="#00838F" stroke-width="3"/>
+
+    <!-- Fish fins -->
+    <path d="M -10 -40 L -20 -60 L 0 -35" fill="#00BCD4" opacity="0.4"/>
+    <path d="M -10 40 L -20 60 L 0 35" fill="#00BCD4" opacity="0.4"/>
+
+    <!-- Eye -->
+    <circle cx="-35" cy="-8" r="8" fill="white"/>
+    <circle cx="-35" cy="-8" r="4" fill="#00838F"/>
+
+    <!-- Scales pattern -->
+    <circle cx="-20" cy="0" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="-5" cy="-12" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="-5" cy="12" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="10" cy="0" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="25" cy="-12" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="25" cy="12" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+    <circle cx="40" cy="0" r="8" fill="none" stroke="#00838F" stroke-width="1" opacity="0.3"/>
+
+    <!-- Plate underneath -->
+    <ellipse cx="0" cy="60" rx="85" ry="20" fill="#00838F" opacity="0.15"/>
+    <ellipse cx="0" cy="60" rx="85" ry="20" fill="none" stroke="#00838F" stroke-width="2" opacity="0.3"/>
+
+    <!-- Lemon slice -->
+    <g transform="translate(60, 50)">
+      <circle cx="0" cy="0" r="15" fill="#FFF59D" opacity="0.7"/>
+      <circle cx="0" cy="0" r="15" fill="none" stroke="#F9A825" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="-15" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+      <line x1="0" y1="0" x2="13" y2="-7.5" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+      <line x1="0" y1="0" x2="13" y2="7.5" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+      <line x1="0" y1="0" x2="0" y2="15" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+      <line x1="0" y1="0" x2="-13" y2="7.5" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+      <line x1="0" y1="0" x2="-13" y2="-7.5" stroke="#F9A825" stroke-width="1" opacity="0.5"/>
+    </g>
+  </g>
+
+  <!-- Text -->
+  <text x="400" y="500" font-family="Arial, sans-serif" font-size="32" fill="#00838F" text-anchor="middle" opacity="0.6">Seafood</text>
+</svg>

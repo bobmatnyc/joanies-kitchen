@@ -1,9 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Edit, Eye, EyeOff, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import {
+  deletePhoto,
+  getAllPhotosAdmin,
+  reorderPhotos,
+  updatePhoto,
+} from '@/app/actions/slideshow';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -12,23 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-  getAllPhotosAdmin,
-  updatePhoto,
-  deletePhoto,
-  reorderPhotos,
-} from '@/app/actions/slideshow';
 import type { SlideshowPhoto } from '@/lib/db/schema';
-import { ChevronUp, ChevronDown, Eye, EyeOff, Trash2, Edit, Plus } from 'lucide-react';
 
 export function SlideshowManager() {
   const [photos, setPhotos] = useState<SlideshowPhoto[]>([]);
@@ -38,7 +38,7 @@ export function SlideshowManager() {
 
   useEffect(() => {
     loadPhotos();
-  }, []);
+  }, [loadPhotos]);
 
   async function loadPhotos() {
     try {
@@ -197,9 +197,7 @@ export function SlideshowManager() {
                   </TableCell>
                   <TableCell>
                     <div className="max-w-md">
-                      {photo.caption || (
-                        <span className="text-gray-400 italic">No caption</span>
-                      )}
+                      {photo.caption || <span className="text-gray-400 italic">No caption</span>}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -1,7 +1,7 @@
 'use server';
 
-import { getOpenRouterClient, MODELS, ModelName } from '@/lib/ai/openrouter-server';
 import { z } from 'zod';
+import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { createRecipe } from './recipes';
 
 // Schema for web search results
@@ -16,13 +16,15 @@ const WebRecipeSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   cuisine: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  nutritionInfo: z.object({
-    calories: z.number().optional(),
-    protein: z.number().optional(),
-    carbs: z.number().optional(),
-    fat: z.number().optional(),
-    fiber: z.number().optional(),
-  }).optional(),
+  nutritionInfo: z
+    .object({
+      calories: z.number().optional(),
+      protein: z.number().optional(),
+      carbs: z.number().optional(),
+      fat: z.number().optional(),
+      fiber: z.number().optional(),
+    })
+    .optional(),
   sourceUrl: z.string().optional(),
   sourceName: z.string().optional(),
   imageUrl: z.string().optional(),
@@ -39,19 +41,15 @@ interface WebSearchOptions {
 }
 
 // Search for recipes on the web using Perplexity's web search models
-export async function searchWebRecipes(options: WebSearchOptions): Promise<{ success: boolean; data?: WebRecipe[]; error?: string }> {
-  const {
-    query,
-    cuisine,
-    ingredients = [],
-    dietaryRestrictions = [],
-    maxResults = 5
-  } = options;
+export async function searchWebRecipes(
+  options: WebSearchOptions
+): Promise<{ success: boolean; data?: WebRecipe[]; error?: string }> {
+  const { query, cuisine, ingredients = [], dietaryRestrictions = [], maxResults = 5 } = options;
 
   if (!process.env.OPENROUTER_API_KEY) {
     return {
       success: false,
-      error: 'OpenRouter API key is not configured'
+      error: 'OpenRouter API key is not configured',
     };
   }
 
@@ -110,7 +108,7 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
       model: MODELS.PERPLEXITY_SONAR,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
       max_tokens: 4000,
@@ -126,34 +124,38 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
     const recipes = parsedResponse.recipes || [];
 
     // Validate each recipe
-    const validatedRecipes = recipes.map((recipe: any) => {
-      try {
-        return WebRecipeSchema.parse(recipe);
-      } catch (err) {
-        console.warn('Invalid recipe format:', err);
-        return null;
-      }
-    }).filter(Boolean);
+    const validatedRecipes = recipes
+      .map((recipe: any) => {
+        try {
+          return WebRecipeSchema.parse(recipe);
+        } catch (err) {
+          console.warn('Invalid recipe format:', err);
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     return {
       success: true,
-      data: validatedRecipes
+      data: validatedRecipes,
     };
   } catch (error: any) {
     console.error('Web search error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to search for recipes'
+      error: error.message || 'Failed to search for recipes',
     };
   }
 }
 
 // Parse a recipe from a specific URL
-export async function parseRecipeFromUrl(url: string): Promise<{ success: boolean; data?: WebRecipe; error?: string }> {
+export async function parseRecipeFromUrl(
+  url: string
+): Promise<{ success: boolean; data?: WebRecipe; error?: string }> {
   if (!process.env.OPENROUTER_API_KEY) {
     return {
       success: false,
-      error: 'OpenRouter API key is not configured'
+      error: 'OpenRouter API key is not configured',
     };
   }
 
@@ -193,7 +195,7 @@ Return the recipe in this exact JSON format:
       model: MODELS.PERPLEXITY_SONAR,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       temperature: 0.2,
       max_tokens: 2000,
@@ -209,13 +211,13 @@ Return the recipe in this exact JSON format:
 
     return {
       success: true,
-      data: validatedRecipe
+      data: validatedRecipe,
     };
   } catch (error: any) {
     console.error('URL parsing error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to parse recipe from URL'
+      error: error.message || 'Failed to parse recipe from URL',
     };
   }
 }
@@ -238,7 +240,9 @@ export async function importWebRecipe(recipe: WebRecipe) {
       image_url: recipe.imageUrl || null,
       is_ai_generated: true,
       nutrition_info: recipe.nutritionInfo ? JSON.stringify(recipe.nutritionInfo) : null,
-      source: recipe.sourceUrl ? `${recipe.sourceName || 'Web'} - ${recipe.sourceUrl}` : recipe.sourceName || null,
+      source: recipe.sourceUrl
+        ? `${recipe.sourceName || 'Web'} - ${recipe.sourceUrl}`
+        : recipe.sourceName || null,
     };
 
     return await createRecipe(recipeData);
@@ -246,24 +250,22 @@ export async function importWebRecipe(recipe: WebRecipe) {
     console.error('Import error:', error);
     return {
       success: false,
-      error: 'Failed to import recipe'
+      error: 'Failed to import recipe',
     };
   }
 }
 
 // Bulk import multiple recipes
 export async function bulkImportRecipes(recipes: WebRecipe[]) {
-  const results = await Promise.allSettled(
-    recipes.map(recipe => importWebRecipe(recipe))
-  );
+  const results = await Promise.allSettled(recipes.map((recipe) => importWebRecipe(recipe)));
 
-  const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+  const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   const failed = results.length - successful;
 
   return {
     success: failed === 0,
     imported: successful,
     failed: failed,
-    message: `Imported ${successful} recipes${failed > 0 ? `, ${failed} failed` : ''}`
+    message: `Imported ${successful} recipes${failed > 0 ? `, ${failed} failed` : ''}`,
   };
 }

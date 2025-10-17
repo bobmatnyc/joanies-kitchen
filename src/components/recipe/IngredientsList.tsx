@@ -18,50 +18,128 @@ export interface ParsedIngredient {
  */
 const UNITS = [
   // Volume
-  'cup', 'cups', 'c',
-  'tablespoon', 'tablespoons', 'tbsp', 'tbs', 'T',
-  'teaspoon', 'teaspoons', 'tsp', 't',
-  'fluid ounce', 'fluid ounces', 'fl oz', 'fl. oz.',
-  'milliliter', 'milliliters', 'ml', 'mL',
-  'liter', 'liters', 'l', 'L',
-  'pint', 'pints', 'pt',
-  'quart', 'quarts', 'qt',
-  'gallon', 'gallons', 'gal',
+  'cup',
+  'cups',
+  'c',
+  'tablespoon',
+  'tablespoons',
+  'tbsp',
+  'tbs',
+  'T',
+  'teaspoon',
+  'teaspoons',
+  'tsp',
+  't',
+  'fluid ounce',
+  'fluid ounces',
+  'fl oz',
+  'fl. oz.',
+  'milliliter',
+  'milliliters',
+  'ml',
+  'mL',
+  'liter',
+  'liters',
+  'l',
+  'L',
+  'pint',
+  'pints',
+  'pt',
+  'quart',
+  'quarts',
+  'qt',
+  'gallon',
+  'gallons',
+  'gal',
   // Weight
-  'pound', 'pounds', 'lb', 'lbs',
-  'ounce', 'ounces', 'oz',
-  'gram', 'grams', 'g',
-  'kilogram', 'kilograms', 'kg',
-  'milligram', 'milligrams', 'mg',
+  'pound',
+  'pounds',
+  'lb',
+  'lbs',
+  'ounce',
+  'ounces',
+  'oz',
+  'gram',
+  'grams',
+  'g',
+  'kilogram',
+  'kilograms',
+  'kg',
+  'milligram',
+  'milligrams',
+  'mg',
   // Other
-  'piece', 'pieces', 'pc',
-  'slice', 'slices',
-  'clove', 'cloves',
-  'stick', 'sticks',
-  'can', 'cans',
-  'jar', 'jars',
-  'package', 'packages', 'pkg',
-  'bunch', 'bunches',
-  'sprig', 'sprigs',
-  'pinch', 'pinches',
-  'dash', 'dashes',
-  'handful', 'handfuls',
+  'piece',
+  'pieces',
+  'pc',
+  'slice',
+  'slices',
+  'clove',
+  'cloves',
+  'stick',
+  'sticks',
+  'can',
+  'cans',
+  'jar',
+  'jars',
+  'package',
+  'packages',
+  'pkg',
+  'bunch',
+  'bunches',
+  'sprig',
+  'sprigs',
+  'pinch',
+  'pinches',
+  'dash',
+  'dashes',
+  'handful',
+  'handfuls',
 ];
 
 /**
  * Common preparation methods that typically appear at the end
  */
 const PREPARATIONS = [
-  'chopped', 'diced', 'minced', 'sliced', 'grated', 'shredded',
-  'crushed', 'mashed', 'pureed', 'ground', 'crumbled',
-  'melted', 'softened', 'beaten', 'whipped', 'whisked',
-  'sifted', 'divided', 'separated', 'peeled', 'seeded',
-  'halved', 'quartered', 'cubed', 'julienned',
-  'room temperature', 'at room temperature',
-  'finely chopped', 'coarsely chopped', 'roughly chopped',
-  'thinly sliced', 'thickly sliced',
-  'freshly ground', 'freshly grated',
-  'optional', 'to taste', 'as needed', 'for garnish', 'for serving',
+  'chopped',
+  'diced',
+  'minced',
+  'sliced',
+  'grated',
+  'shredded',
+  'crushed',
+  'mashed',
+  'pureed',
+  'ground',
+  'crumbled',
+  'melted',
+  'softened',
+  'beaten',
+  'whipped',
+  'whisked',
+  'sifted',
+  'divided',
+  'separated',
+  'peeled',
+  'seeded',
+  'halved',
+  'quartered',
+  'cubed',
+  'julienned',
+  'room temperature',
+  'at room temperature',
+  'finely chopped',
+  'coarsely chopped',
+  'roughly chopped',
+  'thinly sliced',
+  'thickly sliced',
+  'freshly ground',
+  'freshly grated',
+  'optional',
+  'to taste',
+  'as needed',
+  'for garnish',
+  'for serving',
 ];
 
 /**
@@ -80,7 +158,7 @@ export function parseIngredient(ingredientStr: string): ParsedIngredient {
 
   // Step 1: Extract amount (numbers, fractions, ranges at the start)
   // Matches: "2", "1/2", "1-2", "2.5", "½", "1 ½", etc.
-  const amountPattern = /^([\d½¼¾⅓⅔⅛⅜⅝⅞]+(?:\s*[-\/]\s*[\d½¼¾⅓⅔⅛⅜⅝⅞]+)?(?:\.\d+)?)\s*/;
+  const amountPattern = /^([\d½¼¾⅓⅔⅛⅜⅝⅞]+(?:\s*[-/]\s*[\d½¼¾⅓⅔⅛⅜⅝⅞]+)?(?:\.\d+)?)\s*/;
   const amountMatch = remaining.match(amountPattern);
 
   if (amountMatch) {
@@ -92,14 +170,15 @@ export function parseIngredient(ingredientStr: string): ParsedIngredient {
     const unitMatch = remaining.match(unitsPattern);
 
     if (unitMatch) {
-      amountText += ' ' + unitMatch[1];
+      amountText += ` ${unitMatch[1]}`;
       remaining = remaining.slice(unitMatch[0].length).trim();
     }
 
     amount = amountText;
   } else {
     // Check for text-based amounts: "a", "an", "one", "some", "few", etc.
-    const textAmountPattern = /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|some|few|several)\s+/i;
+    const textAmountPattern =
+      /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|some|few|several)\s+/i;
     const textAmountMatch = remaining.match(textAmountPattern);
 
     if (textAmountMatch) {
@@ -111,7 +190,7 @@ export function parseIngredient(ingredientStr: string): ParsedIngredient {
       const unitMatch = remaining.match(unitsPattern);
 
       if (unitMatch) {
-        amountText += ' ' + unitMatch[1];
+        amountText += ` ${unitMatch[1]}`;
         remaining = remaining.slice(unitMatch[0].length).trim();
 
         // Handle "of" after unit (e.g., "a handful of fresh basil")
@@ -126,15 +205,14 @@ export function parseIngredient(ingredientStr: string): ParsedIngredient {
 
   // Step 3: Extract preparation methods from the end
   // Split by comma or parentheses to check the last parts
-  const parts = remaining.split(/[,(]/).map(p => p.replace(/[)]/, '').trim());
+  const parts = remaining.split(/[,(]/).map((p) => p.replace(/[)]/, '').trim());
 
   if (parts.length > 1) {
     const lastPart = parts[parts.length - 1].toLowerCase();
 
     // Check if last part matches a preparation method
-    const matchedPrep = PREPARATIONS.find(prep =>
-      lastPart === prep.toLowerCase() ||
-      lastPart.endsWith(prep.toLowerCase())
+    const matchedPrep = PREPARATIONS.find(
+      (prep) => lastPart === prep.toLowerCase() || lastPart.endsWith(prep.toLowerCase())
     );
 
     if (matchedPrep) {
@@ -197,7 +275,7 @@ export function IngredientsList({
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
 
   const handleCheckChange = (index: number, checked: boolean) => {
-    setCheckedItems(prev => {
+    setCheckedItems((prev) => {
       const next = new Set(prev);
       if (checked) {
         next.add(index);
@@ -209,23 +287,17 @@ export function IngredientsList({
   };
 
   if (!ingredients || ingredients.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">No ingredients listed</p>
-    );
+    return <p className="text-sm text-muted-foreground">No ingredients listed</p>;
   }
 
   return (
-    <ul className={`space-y-2 ${className}`} role="list">
+    <ul className={`space-y-2 ${className}`}>
       {ingredients.map((ingredientStr, index) => {
         const parsed = parseIngredient(ingredientStr);
         const isChecked = checkedItems.has(index);
 
         return (
-          <li
-            key={index}
-            className="flex items-start gap-3 group"
-            role="listitem"
-          >
+          <li key={index} className="flex items-start gap-3 group">
             {showCheckboxes ? (
               <Checkbox
                 id={`ingredient-${index}`}
@@ -251,24 +323,19 @@ export function IngredientsList({
               {parsed.amount || parsed.preparation ? (
                 <span className="inline">
                   {parsed.amount && (
-                    <span className="font-semibold text-foreground">
-                      {parsed.amount}{' '}
-                    </span>
+                    <span className="font-semibold text-foreground">{parsed.amount} </span>
                   )}
-                  <span className="text-foreground">
-                    {parsed.ingredient}
-                  </span>
+                  <span className="text-foreground">{parsed.ingredient}</span>
                   {parsed.preparation && (
                     <span className="text-muted-foreground italic">
-                      {', '}{parsed.preparation}
+                      {', '}
+                      {parsed.preparation}
                     </span>
                   )}
                 </span>
               ) : (
                 // Fallback: show original string
-                <span className="text-foreground">
-                  {parsed.original}
-                </span>
+                <span className="text-foreground">{parsed.original}</span>
               )}
             </label>
           </li>

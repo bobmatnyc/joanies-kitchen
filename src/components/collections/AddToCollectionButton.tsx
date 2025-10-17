@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Check, Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  addRecipeToCollection,
+  getUserCollections,
+  removeRecipeFromCollection,
+} from '@/app/actions/collections';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,14 +16,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Check } from 'lucide-react';
-import {
-  getUserCollections,
-  addRecipeToCollection,
-  removeRecipeFromCollection,
-} from '@/app/actions/collections';
-import { CollectionForm } from './CollectionForm';
 import type { Collection } from '@/lib/db/user-discovery-schema';
+import { CollectionForm } from './CollectionForm';
 
 interface AddToCollectionButtonProps {
   recipeId: string;
@@ -36,13 +36,7 @@ export function AddToCollectionButton({
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      loadCollections();
-    }
-  }, [open]);
-
-  const loadCollections = async () => {
+  const loadCollections = useCallback(async () => {
     setLoading(true);
     try {
       const userCollections = await getUserCollections();
@@ -56,7 +50,13 @@ export function AddToCollectionButton({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      loadCollections();
+    }
+  }, [open, loadCollections]);
 
   const handleToggleCollection = async (collectionId: string) => {
     const isInCollection = collectionIds.has(collectionId);
@@ -78,9 +78,7 @@ export function AddToCollectionButton({
           // Update recipe count
           setCollections((prev) =>
             prev.map((c) =>
-              c.id === collectionId
-                ? { ...c, recipe_count: c.recipe_count + 1 }
-                : c
+              c.id === collectionId ? { ...c, recipe_count: c.recipe_count + 1 } : c
             )
           );
         }
@@ -123,11 +121,7 @@ export function AddToCollectionButton({
         ) : (
           <div className="space-y-4">
             {/* Create New Collection Button */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setShowCreateForm(true)}
-            >
+            <Button variant="outline" className="w-full" onClick={() => setShowCreateForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create New Collection
             </Button>
@@ -156,16 +150,12 @@ export function AddToCollectionButton({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">
-                            {collection.name}
-                          </div>
+                          <div className="font-medium text-gray-900">{collection.name}</div>
                           <div className="text-sm text-gray-500">
                             {collection.recipe_count} recipes
                           </div>
                         </div>
-                        {isInCollection && (
-                          <Check className="w-5 h-5 text-orange-600" />
-                        )}
+                        {isInCollection && <Check className="w-5 h-5 text-orange-600" />}
                       </div>
                     </button>
                   );

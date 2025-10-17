@@ -12,16 +12,16 @@
 
 'use server';
 
-import { searchRecipesWithSerpAPI, filterRecipeSites, SerpAPIRecipeResult } from '@/lib/serpapi';
-import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
-import { getWeekInfo, formatWeekInfo, WeekInfo } from '@/lib/week-utils';
 import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
-import { saveRecipeEmbedding } from '@/lib/db/embeddings';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { auth } from '@/lib/auth';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { saveRecipeEmbedding } from '@/lib/db/embeddings';
+import { recipes } from '@/lib/db/schema';
+import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
+import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
+import { formatWeekInfo, getWeekInfo, type WeekInfo } from '@/lib/week-utils';
 
 // Types
 export interface RecipeSearchResult {
@@ -117,7 +117,7 @@ export async function searchRecipesOnline(
       console.log(`[Search] Filtered ${beforeCount} results to ${results.length} recipe sites`);
     }
 
-    const mappedResults: RecipeSearchResult[] = results.map(r => ({
+    const mappedResults: RecipeSearchResult[] = results.map((r) => ({
       title: r.title,
       url: r.link,
       snippet: r.snippet,
@@ -131,7 +131,6 @@ export async function searchRecipesOnline(
       success: true,
       results: mappedResults,
     };
-
   } catch (error: any) {
     console.error('[Search] Error:', error.message);
     return {
@@ -181,9 +180,10 @@ export async function convertUrlToRecipe(url: string): Promise<{
 
     const completion = await openrouter.chat.completions.create({
       model: 'anthropic/claude-3-haiku',
-      messages: [{
-        role: 'user',
-        content: `Extract the recipe from this HTML. Return ONLY valid JSON with no markdown formatting, code blocks, or extra text.
+      messages: [
+        {
+          role: 'user',
+          content: `Extract the recipe from this HTML. Return ONLY valid JSON with no markdown formatting, code blocks, or extra text.
 
 HTML Content:
 ${limitedHtml}
@@ -210,8 +210,9 @@ Important:
 - Set isValid to true if you found a complete recipe
 - Set isValid to false if the page doesn't contain a recipe
 - Include as many images as you can find (max 6)
-- confidenceScore should be 0-1 (how confident you are this is a valid recipe)`
-      }],
+- confidenceScore should be 0-1 (how confident you are this is a valid recipe)`,
+        },
+      ],
       temperature: 0.1,
     });
 
@@ -239,7 +240,6 @@ Important:
       success: true,
       recipe: extracted,
     };
-
   } catch (error: any) {
     console.error(`[Convert] Error extracting from ${url}:`, error.message);
     return {
@@ -299,7 +299,9 @@ export async function validateRecipe(recipe: ExtractedRecipe): Promise<Validatio
   // Approved if score >= 60
   const approved = score >= 60;
 
-  console.log(`[Validate] Recipe "${recipe.name}": ${approved ? 'APPROVED' : 'REJECTED'} (score: ${score})`);
+  console.log(
+    `[Validate] Recipe "${recipe.name}": ${approved ? 'APPROVED' : 'REJECTED'} (score: ${score})`
+  );
   if (issues.length > 0) {
     console.log(`[Validate] Issues: ${issues.join(', ')}`);
   }
@@ -330,7 +332,7 @@ async function downloadAndStoreImages(imageUrls: string[]): Promise<string[]> {
   // 3. Return the new URLs
 
   const validUrls = imageUrls
-    .filter(url => {
+    .filter((url) => {
       try {
         new URL(url);
         return true;
@@ -424,45 +426,59 @@ export async function storeRecipe(
         avg_user_rating: null,
         total_user_ratings: null,
         slug: null,
+        is_meal_prep_friendly: false,
+        image_flagged_for_regeneration: false,
+        image_regeneration_requested_at: null,
+        image_regeneration_requested_by: null,
       });
-      console.log(`[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`);
+      console.log(
+        `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
+      );
     } catch (error: any) {
       console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, error.message);
-      console.error(`[Store] Error details:`, JSON.stringify(error.details || {}).substring(0, 300));
-      console.warn(`[Store] Continuing without embedding - recipe will be saved but won't be searchable`);
+      console.error(
+        `[Store] Error details:`,
+        JSON.stringify(error.details || {}).substring(0, 300)
+      );
+      console.warn(
+        `[Store] Continuing without embedding - recipe will be saved but won't be searchable`
+      );
       embeddingResult = null;
     }
 
     // Save recipe to database
-    const [savedRecipe] = await db.insert(recipes).values({
-      user_id: userId || 'system',
-      chef_id: null,
-      name: recipe.name,
-      description: recipe.description || '',
-      ingredients: JSON.stringify(recipe.ingredients),
-      instructions: JSON.stringify(recipe.instructions),
-      prep_time: parseTimeToMinutes(recipe.prepTime),
-      cook_time: parseTimeToMinutes(recipe.cookTime),
-      servings: recipe.servings || null,
-      cuisine: recipe.cuisine || null,
-      tags: JSON.stringify(recipe.tags || []),
-      difficulty: recipe.difficulty || null,
-      images: JSON.stringify(storedImages),
-      source: metadata.sourceUrl,
-      search_query: metadata.searchQuery,
-      discovery_date: new Date(),
-      confidence_score: recipe.confidenceScore.toString(),
-      validation_model: 'anthropic/claude-3-haiku',
-      embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
-      is_ai_generated: false,
-      is_public: true,
-      is_system_recipe: !userId,
-      // Quality rating fields
-      system_rating: qualityEval.rating.toFixed(1),
-      system_rating_reason: qualityEval.reasoning,
-      avg_user_rating: null,
-      total_user_ratings: 0,
-    }).returning();
+    const [savedRecipe] = await db
+      .insert(recipes)
+      .values({
+        user_id: userId || 'system',
+        chef_id: null,
+        name: recipe.name,
+        description: recipe.description || '',
+        ingredients: JSON.stringify(recipe.ingredients),
+        instructions: JSON.stringify(recipe.instructions),
+        prep_time: parseTimeToMinutes(recipe.prepTime),
+        cook_time: parseTimeToMinutes(recipe.cookTime),
+        servings: recipe.servings || null,
+        cuisine: recipe.cuisine || null,
+        tags: JSON.stringify(recipe.tags || []),
+        difficulty: recipe.difficulty || null,
+        images: JSON.stringify(storedImages),
+        source: metadata.sourceUrl,
+        search_query: metadata.searchQuery,
+        discovery_date: new Date(),
+        confidence_score: recipe.confidenceScore.toString(),
+        validation_model: 'anthropic/claude-3-haiku',
+        embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+        is_ai_generated: false,
+        is_public: true,
+        is_system_recipe: !userId,
+        // Quality rating fields
+        system_rating: qualityEval.rating.toFixed(1),
+        system_rating_reason: qualityEval.reasoning,
+        avg_user_rating: null,
+        total_user_ratings: 0,
+      })
+      .returning();
 
     // Save embedding if generation succeeded
     if (embeddingResult) {
@@ -479,7 +495,9 @@ export async function storeRecipe(
         console.warn(`[Store] Recipe saved but embedding not stored - can be regenerated later`);
       }
     } else {
-      console.warn(`[Store] Recipe saved WITHOUT embedding - will need manual embedding generation`);
+      console.warn(
+        `[Store] Recipe saved WITHOUT embedding - will need manual embedding generation`
+      );
     }
 
     console.log(`[Store] Successfully stored recipe with ID: ${savedRecipe.id}`);
@@ -488,7 +506,6 @@ export async function storeRecipe(
       success: true,
       recipeId: savedRecipe.id,
     };
-
   } catch (error: any) {
     console.error(`[Store] Error storing recipe:`, error.message);
     return {
@@ -508,7 +525,7 @@ function parseTimeToMinutes(timeStr?: string): number | null {
   const match = timeStr.match(/(\d+)/);
   if (!match) return null;
 
-  const value = parseInt(match[1]);
+  const value = parseInt(match[1], 10);
 
   // Check for hours
   if (timeStr.toLowerCase().includes('hour')) {
@@ -530,9 +547,11 @@ function validateAndParseDate(dateString: string | undefined | null): Date | nul
   if (!dateString) return null;
 
   // Reject known invalid values
-  if (dateString.toLowerCase() === 'approximate' ||
-      dateString.toLowerCase() === 'unknown' ||
-      dateString.toLowerCase() === 'n/a') {
+  if (
+    dateString.toLowerCase() === 'approximate' ||
+    dateString.toLowerCase() === 'unknown' ||
+    dateString.toLowerCase() === 'n/a'
+  ) {
     console.warn(`[Store] Invalid date string: "${dateString}" - using null`);
     return null;
   }
@@ -541,7 +560,7 @@ function validateAndParseDate(dateString: string | undefined | null): Date | nul
     const date = new Date(dateString);
 
     // Check if date is valid
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       console.warn(`[Store] Invalid date string: "${dateString}" - parsed to Invalid Date`);
       return null;
     }
@@ -629,19 +648,32 @@ async function storeRecipeWithWeek(
         avg_user_rating: null,
         total_user_ratings: null,
         slug: null,
+        is_meal_prep_friendly: false,
+        image_flagged_for_regeneration: false,
+        image_regeneration_requested_at: null,
+        image_regeneration_requested_by: null,
       });
-      console.log(`[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`);
+      console.log(
+        `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
+      );
     } catch (error: any) {
       console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, error.message);
-      console.error(`[Store] Error details:`, JSON.stringify(error.details || {}).substring(0, 300));
-      console.warn(`[Store] Continuing without embedding - recipe will be saved but won't be searchable`);
+      console.error(
+        `[Store] Error details:`,
+        JSON.stringify(error.details || {}).substring(0, 300)
+      );
+      console.warn(
+        `[Store] Continuing without embedding - recipe will be saved but won't be searchable`
+      );
       embeddingResult = null;
     }
 
     // Parse published date with validation
     const publishedDate = validateAndParseDate(metadata.publishedDate);
 
-    console.log(`[Store] Week: ${metadata.weekInfo.week}, Year: ${metadata.weekInfo.year}, Published: ${publishedDate ? publishedDate.toISOString() : 'null'}`);
+    console.log(
+      `[Store] Week: ${metadata.weekInfo.week}, Year: ${metadata.weekInfo.year}, Published: ${publishedDate ? publishedDate.toISOString() : 'null'}`
+    );
 
     // Evaluate recipe quality with AI
     console.log(`[Store] Evaluating recipe quality for "${recipe.name}"`);
@@ -657,37 +689,40 @@ async function storeRecipeWithWeek(
     console.log(`[Store] Quality rating: ${qualityEval.rating}/5 - ${qualityEval.reasoning}`);
 
     // Save recipe to database with week tracking
-    const [savedRecipe] = await db.insert(recipes).values({
-      user_id: userId || 'system',
-      chef_id: null,
-      name: recipe.name,
-      description: recipe.description || '',
-      ingredients: JSON.stringify(recipe.ingredients),
-      instructions: JSON.stringify(recipe.instructions),
-      prep_time: parseTimeToMinutes(recipe.prepTime),
-      cook_time: parseTimeToMinutes(recipe.cookTime),
-      servings: recipe.servings || null,
-      cuisine: recipe.cuisine || null,
-      tags: JSON.stringify(recipe.tags || []),
-      difficulty: recipe.difficulty || null,
-      images: JSON.stringify(storedImages),
-      source: metadata.sourceUrl,
-      discovery_date: new Date(),
-      discovery_week: metadata.weekInfo.week,
-      discovery_year: metadata.weekInfo.year,
-      published_date: publishedDate,
-      confidence_score: recipe.confidenceScore.toString(),
-      validation_model: 'anthropic/claude-3-haiku',
-      embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
-      is_ai_generated: false,
-      is_public: true,
-      is_system_recipe: !userId,
-      // Quality rating fields
-      system_rating: qualityEval.rating.toFixed(1),
-      system_rating_reason: qualityEval.reasoning,
-      avg_user_rating: null,
-      total_user_ratings: 0,
-    }).returning();
+    const [savedRecipe] = await db
+      .insert(recipes)
+      .values({
+        user_id: userId || 'system',
+        chef_id: null,
+        name: recipe.name,
+        description: recipe.description || '',
+        ingredients: JSON.stringify(recipe.ingredients),
+        instructions: JSON.stringify(recipe.instructions),
+        prep_time: parseTimeToMinutes(recipe.prepTime),
+        cook_time: parseTimeToMinutes(recipe.cookTime),
+        servings: recipe.servings || null,
+        cuisine: recipe.cuisine || null,
+        tags: JSON.stringify(recipe.tags || []),
+        difficulty: recipe.difficulty || null,
+        images: JSON.stringify(storedImages),
+        source: metadata.sourceUrl,
+        discovery_date: new Date(),
+        discovery_week: metadata.weekInfo.week,
+        discovery_year: metadata.weekInfo.year,
+        published_date: publishedDate,
+        confidence_score: recipe.confidenceScore.toString(),
+        validation_model: 'anthropic/claude-3-haiku',
+        embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+        is_ai_generated: false,
+        is_public: true,
+        is_system_recipe: !userId,
+        // Quality rating fields
+        system_rating: qualityEval.rating.toFixed(1),
+        system_rating_reason: qualityEval.reasoning,
+        avg_user_rating: null,
+        total_user_ratings: 0,
+      })
+      .returning();
 
     // Save embedding if generation succeeded
     if (embeddingResult) {
@@ -704,16 +739,19 @@ async function storeRecipeWithWeek(
         console.warn(`[Store] Recipe saved but embedding not stored - can be regenerated later`);
       }
     } else {
-      console.warn(`[Store] Recipe saved WITHOUT embedding - will need manual embedding generation`);
+      console.warn(
+        `[Store] Recipe saved WITHOUT embedding - will need manual embedding generation`
+      );
     }
 
-    console.log(`[Store] Successfully stored recipe with ID: ${savedRecipe.id} (Week ${metadata.weekInfo.week}, ${metadata.weekInfo.year})`);
+    console.log(
+      `[Store] Successfully stored recipe with ID: ${savedRecipe.id} (Week ${metadata.weekInfo.week}, ${metadata.weekInfo.year})`
+    );
 
     return {
       success: true,
       recipeId: savedRecipe.id,
     };
-
   } catch (error: any) {
     console.error(`[Store] Error storing recipe:`, error.message);
     console.error(`[Store] Error details:`, {
@@ -852,8 +890,7 @@ export async function crawlWeeklyRecipes(
         }
 
         // Rate limiting: wait 2 seconds between requests
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (error: any) {
         console.error(`[Weekly Pipeline] Error processing ${result.url}:`, error.message);
         recipeResults.push({
@@ -874,7 +911,6 @@ export async function crawlWeeklyRecipes(
       stats,
       recipes: recipeResults,
     };
-
   } catch (error: any) {
     console.error(`[Weekly Pipeline] Fatal error:`, error.message);
     return {
@@ -1003,8 +1039,7 @@ export async function crawlAndStoreRecipes(
         }
 
         // Rate limiting: wait 2 seconds between requests
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (error: any) {
         console.error(`[Pipeline] Error processing ${result.url}:`, error.message);
         recipeResults.push({
@@ -1024,7 +1059,6 @@ export async function crawlAndStoreRecipes(
       stats,
       recipes: recipeResults,
     };
-
   } catch (error: any) {
     console.error(`[Pipeline] Fatal error:`, error.message);
     return {

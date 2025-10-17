@@ -1,6 +1,6 @@
+import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { desc, eq, or, and, sql } from 'drizzle-orm';
 
 async function testQuery() {
   console.log('Testing getTopRatedRecipes query...\n');
@@ -12,10 +12,7 @@ async function testQuery() {
       .where(
         and(
           eq(recipes.isPublic, true),
-          or(
-            sql`${recipes.systemRating} IS NOT NULL`,
-            sql`${recipes.avgUserRating} IS NOT NULL`
-          )
+          or(sql`${recipes.systemRating} IS NOT NULL`, sql`${recipes.avgUserRating} IS NOT NULL`)
         )
       )
       .orderBy(
@@ -37,12 +34,18 @@ async function testQuery() {
     console.log(`✅ Query successful! Found ${topRecipes.length} top-rated recipes`);
     console.log('\nSample recipe:');
     if (topRecipes[0]) {
-      console.log(JSON.stringify({
-        id: topRecipes[0].id,
-        name: topRecipes[0].name,
-        systemRating: topRecipes[0].systemRating,
-        avgUserRating: topRecipes[0].avgUserRating,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            id: topRecipes[0].id,
+            name: topRecipes[0].name,
+            systemRating: topRecipes[0].systemRating,
+            avgUserRating: topRecipes[0].avgUserRating,
+          },
+          null,
+          2
+        )
+      );
     }
   } catch (error) {
     console.error('❌ Query failed:', error);

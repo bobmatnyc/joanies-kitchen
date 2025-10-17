@@ -12,14 +12,13 @@
  * 6. Return Results → Display validated recipes to user
  */
 
-import { searchRecipes as braveSearchRecipes } from '@/lib/brave-search';
-import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
-import { saveRecipeEmbedding } from '@/lib/db/embeddings';
+import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
+import { checkAuth, requireAuth } from '@/lib/auth-guard';
+import { searchRecipes as braveSearchRecipes } from '@/lib/brave-search';
 import { db } from '@/lib/db';
-import { recipes, Recipe } from '@/lib/db/schema';
-import { auth } from '@clerk/nextjs/server';
-import { requireAuth, checkAuth } from '@/lib/auth-guard';
+import { saveRecipeEmbedding } from '@/lib/db/embeddings';
+import { type Recipe, recipes } from '@/lib/db/schema';
 
 // ============================================================================
 // Type Definitions
@@ -81,12 +80,7 @@ async function discoverRecipeUrls(
   query: string,
   options: RecipeDiscoveryOptions
 ): Promise<Array<{ url: string; title: string; description: string }>> {
-  const {
-    cuisine,
-    ingredients = [],
-    dietaryRestrictions = [],
-    maxResults = 10,
-  } = options;
+  const { cuisine, ingredients = [], dietaryRestrictions = [], maxResults = 10 } = options;
 
   // Build recipe-specific search query
   let searchQuery = `${query} recipe`;
@@ -104,12 +98,13 @@ async function discoverRecipeUrls(
   }
 
   // Add site filters for quality sources
-  searchQuery += ' (site:allrecipes.com OR site:foodnetwork.com OR site:seriouseats.com OR site:bonappetit.com OR site:epicurious.com OR site:tasty.co)';
+  searchQuery +=
+    ' (site:allrecipes.com OR site:foodnetwork.com OR site:seriouseats.com OR site:bonappetit.com OR site:epicurious.com OR site:tasty.co)';
 
   try {
     const results = await braveSearchRecipes(searchQuery, maxResults);
 
-    return results.map(result => ({
+    return results.map((result) => ({
       url: result.url,
       title: result.title,
       description: result.description,
@@ -244,7 +239,7 @@ Set confidenceScore (0.0-1.0) based on:
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
       const jsonStr = jsonMatch ? jsonMatch[1] : content;
       extracted = JSON.parse(jsonStr);
-    } catch (parseError) {
+    } catch (_parseError) {
       return {
         success: false,
         error: 'Failed to parse LLM response as JSON',
@@ -252,7 +247,12 @@ Set confidenceScore (0.0-1.0) based on:
     }
 
     // Validate extracted data
-    if (!extracted.isValid || !extracted.name || !extracted.ingredients?.length || !extracted.instructions?.length) {
+    if (
+      !extracted.isValid ||
+      !extracted.name ||
+      !extracted.ingredients?.length ||
+      !extracted.instructions?.length
+    ) {
       return {
         success: false,
         recipe: extracted,
@@ -379,13 +379,13 @@ async function saveDiscoveredRecipe(
   const parsePrepTime = (timeStr?: string): number | null => {
     if (!timeStr) return null;
     const match = timeStr.match(/(\d+)/);
-    return match ? parseInt(match[1]) : null;
+    return match ? parseInt(match[1], 10) : null;
   };
 
   const parseCookTime = (timeStr?: string): number | null => {
     if (!timeStr) return null;
     const match = timeStr.match(/(\d+)/);
-    return match ? parseInt(match[1]) : null;
+    return match ? parseInt(match[1], 10) : null;
   };
 
   // Create recipe object for embedding generation
@@ -410,32 +410,35 @@ async function saveDiscoveredRecipe(
   }
 
   // Step 5: Save recipe with provenance
-  const [savedRecipe] = await db.insert(recipes).values({
-    user_id: userId!, // userId is guaranteed to exist due to auth check above
-    chef_id: null,
-    name: recipe.name,
-    description: recipe.description,
-    ingredients: JSON.stringify(recipe.ingredients),
-    instructions: JSON.stringify(recipe.instructions),
-    prep_time: parsePrepTime(recipe.prepTime),
-    cook_time: parseCookTime(recipe.cookTime),
-    servings: recipe.servings || null,
-    cuisine: metadata.cuisine,
-    tags: JSON.stringify(metadata.tags),
-    difficulty: metadata.difficulty,
-    source: source.url,
-    search_query: source.searchQuery,
-    discovery_date: new Date(),
-    confidence_score: source.confidenceScore.toFixed(2),
-    validation_model: 'anthropic/claude-3-haiku',
-    embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
-    is_ai_generated: false, // Discovered from web
-    is_public: userId ? false : true, // Anonymous discoveries are public
-    is_system_recipe: !userId, // Anonymous = system recipe
-    nutrition_info: null,
-    image_url: null,
-    images: null,
-  }).returning();
+  const [savedRecipe] = await db
+    .insert(recipes)
+    .values({
+      user_id: userId!, // userId is guaranteed to exist due to auth check above
+      chef_id: null,
+      name: recipe.name,
+      description: recipe.description,
+      ingredients: JSON.stringify(recipe.ingredients),
+      instructions: JSON.stringify(recipe.instructions),
+      prep_time: parsePrepTime(recipe.prepTime),
+      cook_time: parseCookTime(recipe.cookTime),
+      servings: recipe.servings || null,
+      cuisine: metadata.cuisine,
+      tags: JSON.stringify(metadata.tags),
+      difficulty: metadata.difficulty,
+      source: source.url,
+      search_query: source.searchQuery,
+      discovery_date: new Date(),
+      confidence_score: source.confidenceScore.toFixed(2),
+      validation_model: 'anthropic/claude-3-haiku',
+      embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+      is_ai_generated: false, // Discovered from web
+      is_public: !userId, // Anonymous discoveries are public
+      is_system_recipe: !userId, // Anonymous = system recipe
+      nutrition_info: null,
+      image_url: null,
+      images: null,
+    })
+    .returning();
 
   // Save embedding if generation succeeded
   if (embeddingResult && savedRecipe.id) {
@@ -470,10 +473,7 @@ export async function discoverRecipes(
   // Require authentication for recipe discovery pipeline
   await requireAuth('recipe discovery');
 
-  const {
-    minConfidence = 0.6,
-    maxResults = 5,
-  } = options;
+  const { minConfidence = 0.6, maxResults = 5 } = options;
 
   const errors: Array<{ url: string; step: string; error: string }> = [];
   let searched = 0;
@@ -538,16 +538,12 @@ export async function discoverRecipes(
 
         // Steps 4 & 5: Generate embedding & save
         console.log('Saving recipe with embedding...');
-        const recipeId = await saveDiscoveredRecipe(
-          extraction.recipe,
-          metadata,
-          {
-            url: result.url,
-            title: result.title,
-            searchQuery: query,
-            confidenceScore: extraction.confidenceScore || 0.7,
-          }
-        );
+        const recipeId = await saveDiscoveredRecipe(extraction.recipe, metadata, {
+          url: result.url,
+          title: result.title,
+          searchQuery: query,
+          confidenceScore: extraction.confidenceScore || 0.7,
+        });
 
         saved++;
 
@@ -564,9 +560,8 @@ export async function discoverRecipes(
 
         // Rate limiting: 2 second delay between requests
         if (i < searchResults.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-
       } catch (error) {
         failed++;
         errors.push({
@@ -590,7 +585,6 @@ export async function discoverRecipes(
       },
       errors: errors.length > 0 ? errors : undefined,
     };
-
   } catch (error) {
     console.error('Discovery pipeline error:', error);
     return {
@@ -644,16 +638,12 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
     const metadata = await generateRecipeMetadata(extraction.recipe);
 
     // Save recipe
-    const recipeId = await saveDiscoveredRecipe(
-      extraction.recipe,
-      metadata,
-      {
-        url,
-        title: 'Manual Import',
-        searchQuery: '',
-        confidenceScore: extraction.confidenceScore || 0.7,
-      }
-    );
+    const recipeId = await saveDiscoveredRecipe(extraction.recipe, metadata, {
+      url,
+      title: 'Manual Import',
+      searchQuery: '',
+      confidenceScore: extraction.confidenceScore || 0.7,
+    });
 
     // Fetch saved recipe
     const savedRecipe = await db.query.recipes.findFirst({

@@ -10,12 +10,15 @@ export async function GET() {
     clerk: {
       publishableKey: {
         configured: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-        value: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 20) + '...',
-        instance: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.split('.')[0]?.replace('pk_test_', ''),
+        value: `${process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 20)}...`,
+        instance: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.split('.')[0]?.replace(
+          'pk_test_',
+          ''
+        ),
       },
       secretKey: {
         configured: !!process.env.CLERK_SECRET_KEY,
-        prefix: process.env.CLERK_SECRET_KEY?.substring(0, 10) + '...',
+        prefix: `${process.env.CLERK_SECRET_KEY?.substring(0, 10)}...`,
       },
     },
     urls: {

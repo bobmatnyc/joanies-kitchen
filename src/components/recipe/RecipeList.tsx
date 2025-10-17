@@ -1,11 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { type Recipe } from '@/lib/db/schema';
-import { RecipeCard } from './RecipeCard';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Recipe } from '@/lib/db/schema';
+import { RecipeCard } from './RecipeCard';
 
 interface RecipeListProps {
   recipes: Recipe[];
@@ -21,7 +27,7 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
 
   // Extract unique cuisines from recipes
   const uniqueCuisines = Array.from(
-    new Set(recipes.filter(r => r.cuisine).map(r => r.cuisine))
+    new Set(recipes.filter((r) => r.cuisine).map((r) => r.cuisine))
   ).sort();
 
   useEffect(() => {
@@ -30,11 +36,15 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(recipe => {
+      filtered = filtered.filter((recipe) => {
         const name = recipe.name.toLowerCase();
         const description = (recipe.description || '').toLowerCase();
         const cuisine = (recipe.cuisine || '').toLowerCase();
-        const tags = recipe.tags ? JSON.parse(recipe.tags as string).join(' ').toLowerCase() : '';
+        const tags = recipe.tags
+          ? JSON.parse(recipe.tags as string)
+              .join(' ')
+              .toLowerCase()
+          : '';
 
         return (
           name.includes(query) ||
@@ -47,12 +57,12 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
 
     // Apply difficulty filter
     if (filterDifficulty !== 'all') {
-      filtered = filtered.filter(recipe => recipe.difficulty === filterDifficulty);
+      filtered = filtered.filter((recipe) => recipe.difficulty === filterDifficulty);
     }
 
     // Apply cuisine filter
     if (filterCuisine !== 'all') {
-      filtered = filtered.filter(recipe => recipe.cuisine === filterCuisine);
+      filtered = filtered.filter((recipe) => recipe.cuisine === filterCuisine);
     }
 
     // Apply sorting
@@ -158,12 +168,9 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
           )}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
           {filteredRecipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-            />
+            <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
       )}

@@ -8,7 +8,11 @@
  * 4. Filter functionality (cuisine, difficulty, dietary)
  */
 
-import { semanticSearchRecipes, hybridSearchRecipes, findSimilarToRecipe } from '../src/app/actions/semantic-search';
+import {
+  findSimilarToRecipe,
+  hybridSearchRecipes,
+  semanticSearchRecipes,
+} from '../src/app/actions/semantic-search';
 
 // ANSI colors for console output
 const colors = {
@@ -26,7 +30,7 @@ function log(message: string, color = colors.reset) {
 }
 
 function section(title: string) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   log(title, colors.bright + colors.cyan);
   console.log('='.repeat(80));
 }
@@ -58,8 +62,8 @@ async function testSemanticSearch() {
           const similarity = (recipe.similarity * 100).toFixed(1);
           console.log(
             `  ${index + 1}. ${recipe.name} ` +
-            `${colors.blue}(${similarity}% match)${colors.reset} ` +
-            `${recipe.cuisine ? `[${recipe.cuisine}]` : ''}`
+              `${colors.blue}(${similarity}% match)${colors.reset} ` +
+              `${recipe.cuisine ? `[${recipe.cuisine}]` : ''}`
           );
         });
       } else {
@@ -106,9 +110,9 @@ async function testFilteredSearch() {
           const similarity = (recipe.similarity * 100).toFixed(1);
           console.log(
             `  - ${recipe.name} ` +
-            `${colors.blue}(${similarity}% match)${colors.reset} ` +
-            `[${recipe.difficulty || 'N/A'}] ` +
-            `${recipe.cuisine ? `{${recipe.cuisine}}` : ''}`
+              `${colors.blue}(${similarity}% match)${colors.reset} ` +
+              `[${recipe.difficulty || 'N/A'}] ` +
+              `${recipe.cuisine ? `{${recipe.cuisine}}` : ''}`
           );
         });
       } else {
@@ -148,8 +152,8 @@ async function testSimilarRecipes() {
         const similarity = (recipe.similarity * 100).toFixed(1);
         console.log(
           `  ${index + 1}. ${recipe.name} ` +
-          `${colors.blue}(${similarity}% similar)${colors.reset} ` +
-          `${recipe.cuisine ? `[${recipe.cuisine}]` : ''}`
+            `${colors.blue}(${similarity}% similar)${colors.reset} ` +
+            `${recipe.cuisine ? `[${recipe.cuisine}]` : ''}`
         );
       });
     } else {
@@ -163,11 +167,7 @@ async function testSimilarRecipes() {
 async function testHybridSearch() {
   section('TEST 4: Hybrid Search (Semantic + Text)');
 
-  const testQueries = [
-    'spaghetti carbonara',
-    'chocolate cake',
-    'chicken soup',
-  ];
+  const testQueries = ['spaghetti carbonara', 'chocolate cake', 'chicken soup'];
 
   for (const query of testQueries) {
     log(`\nQuery: "${query}"`, colors.yellow);
@@ -179,13 +179,9 @@ async function testHybridSearch() {
         log(`✓ Found ${hybridResult.recipes.length} recipes (hybrid search)`, colors.green);
 
         hybridResult.recipes.slice(0, 3).forEach((recipe) => {
-          const similarity = recipe.similarity > 0
-            ? `${(recipe.similarity * 100).toFixed(1)}% match`
-            : 'text match';
-          console.log(
-            `  - ${recipe.name} ` +
-            `${colors.blue}(${similarity})${colors.reset}`
-          );
+          const similarity =
+            recipe.similarity > 0 ? `${(recipe.similarity * 100).toFixed(1)}% match` : 'text match';
+          console.log(`  - ${recipe.name} ` + `${colors.blue}(${similarity})${colors.reset}`);
         });
       } else {
         log(`✗ Hybrid search failed: ${hybridResult.error}`, colors.red);
@@ -229,9 +225,9 @@ async function testPerformance() {
 }
 
 async function runAllTests() {
-  log('\n' + '█'.repeat(80), colors.bright + colors.green);
+  log(`\n${'█'.repeat(80)}`, colors.bright + colors.green);
   log('SEMANTIC SEARCH TEST SUITE', colors.bright + colors.green);
-  log('█'.repeat(80) + '\n', colors.bright + colors.green);
+  log(`${'█'.repeat(80)}\n`, colors.bright + colors.green);
 
   try {
     await testSemanticSearch();

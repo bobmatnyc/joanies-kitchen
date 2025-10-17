@@ -107,7 +107,6 @@ Respond in JSON format (no markdown code blocks):
     console.log(`[Quality Evaluator] Result: ${result.rating}/5 - ${result.reasoning}`);
 
     return result;
-
   } catch (error: any) {
     console.error('[Quality Evaluator] Error:', error.message);
 
@@ -139,7 +138,7 @@ export async function evaluateRecipesBatch(
 
     // Rate limiting delay
     if (delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 

@@ -7,8 +7,8 @@
  */
 
 const { Client } = require('pg');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 // Color codes for terminal output
@@ -69,7 +69,10 @@ async function runMigration() {
     `);
 
     if (extCheck.rows.length > 0) {
-      log(`⚠️  pgvector extension already exists (version ${extCheck.rows[0].extversion})`, 'yellow');
+      log(
+        `⚠️  pgvector extension already exists (version ${extCheck.rows[0].extversion})`,
+        'yellow'
+      );
       log('   Migration will skip extension creation', 'yellow');
     } else {
       log('✓ pgvector extension not yet installed', 'green');
@@ -114,7 +117,7 @@ async function runMigration() {
       WHERE tablename = 'recipe_embeddings';
     `);
     log(`✓ Created ${indexResult.rows.length} index(es) on recipe_embeddings:`, 'green');
-    indexResult.rows.forEach(row => {
+    indexResult.rows.forEach((row) => {
       log(`  - ${row.indexname}`, 'cyan');
     });
 
@@ -126,13 +129,12 @@ async function runMigration() {
         AND column_name IN ('search_query', 'discovery_date', 'confidence_score', 'validation_model', 'embedding_model');
     `);
     log(`✓ Added ${columnResult.rows.length} new column(s) to recipes table:`, 'green');
-    columnResult.rows.forEach(row => {
+    columnResult.rows.forEach((row) => {
       log(`  - ${row.column_name} (${row.data_type})`, 'cyan');
     });
 
     log('\n✅ Migration completed successfully!', 'green');
     log('🎉 pgvector is now enabled for semantic recipe search', 'green');
-
   } catch (error) {
     log('\n❌ Migration failed!', 'red');
     log(`Error: ${error.message}`, 'red');
@@ -150,7 +152,7 @@ async function runMigration() {
 }
 
 // Run migration
-runMigration().catch(error => {
+runMigration().catch((error) => {
   log(`\n💥 Unexpected error: ${error.message}`, 'red');
   process.exit(1);
 });

@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Globe, Loader2, Lock, Plus, Save, Tag, TrendingUp, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type Recipe } from '@/lib/db/schema';
-import { createRecipe, updateRecipe, getAllTags } from '@/app/actions/recipes';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
+import { useEffect, useRef, useState } from 'react';
+import { createRecipe, getAllTags, updateRecipe } from '@/app/actions/recipes';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Command,
   CommandEmpty,
@@ -18,13 +14,19 @@ import {
   CommandInput,
   CommandItem,
 } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
-import { Plus, X, Save, Loader2, Globe, Lock, Tag, TrendingUp } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
 
 interface RecipeFormProps {
@@ -41,7 +43,9 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
 
   // Parse existing recipe data if editing
   const existingIngredients = recipe?.ingredients ? JSON.parse(recipe.ingredients as string) : [''];
-  const existingInstructions = recipe?.instructions ? JSON.parse(recipe.instructions as string) : [''];
+  const existingInstructions = recipe?.instructions
+    ? JSON.parse(recipe.instructions as string)
+    : [''];
   const existingTags = recipe?.tags ? JSON.parse(recipe.tags as string) : [];
   const existingImages = recipe?.images ? JSON.parse(recipe.images as string) : [];
 
@@ -72,24 +76,28 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     isPublic: recipe?.is_public || false,
   });
 
-  const handleArrayChange = (field: 'ingredients' | 'instructions' | 'tags', index: number, value: string) => {
-    setFormData(prev => ({
+  const handleArrayChange = (
+    field: 'ingredients' | 'instructions' | 'tags',
+    index: number,
+    value: string
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].map((item: string, i: number) => i === index ? value : item)
+      [field]: prev[field].map((item: string, i: number) => (i === index ? value : item)),
     }));
   };
 
   const addArrayItem = (field: 'ingredients' | 'instructions' | 'tags') => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: [...prev[field], '']
+      [field]: [...prev[field], ''],
     }));
   };
 
   const removeArrayItem = (field: 'ingredients' | 'instructions' | 'tags', index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].filter((_: string, i: number) => i !== index)
+      [field]: prev[field].filter((_: string, i: number) => i !== index),
     }));
   };
 
@@ -168,7 +176,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Chocolate Chip Cookies"
                 required
               />
@@ -178,7 +186,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="A brief description of the recipe"
               />
             </div>
@@ -186,7 +194,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
             <div className="col-span-2">
               <ImageUploader
                 images={formData.images}
-                onChange={(images) => setFormData(prev => ({ ...prev, images }))}
+                onChange={(images) => setFormData((prev) => ({ ...prev, images }))}
                 maxImages={6}
               />
             </div>
@@ -196,7 +204,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                 <Input
                   id="cuisine"
                   value={formData.cuisine}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cuisine: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cuisine: e.target.value }))}
                   placeholder="e.g., Italian, Mexican"
                 />
               </div>
@@ -204,7 +212,9 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                 <Label htmlFor="difficulty">Difficulty</Label>
                 <Select
                   value={formData.difficulty}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, difficulty: value as any }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, difficulty: value as any }))
+                  }
                 >
                   <SelectTrigger id="difficulty">
                     <SelectValue />
@@ -225,7 +235,12 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                   type="number"
                   min="0"
                   value={formData.prepTime || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, prepTime: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      prepTime: parseInt(e.target.value, 10) || 0,
+                    }))
+                  }
                 />
               </div>
               <div>
@@ -235,7 +250,12 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                   type="number"
                   min="0"
                   value={formData.cookTime || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cookTime: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      cookTime: parseInt(e.target.value, 10) || 0,
+                    }))
+                  }
                 />
               </div>
               <div>
@@ -245,7 +265,12 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                   type="number"
                   min="1"
                   value={formData.servings || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, servings: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      servings: parseInt(e.target.value, 10) || 0,
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -374,9 +399,9 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                           e.preventDefault();
                           const newTag = tagInput.trim().toLowerCase();
                           if (!formData.tags.includes(newTag)) {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              tags: [...prev.tags, newTag]
+                              tags: [...prev.tags, newTag],
                             }));
                           }
                           setTagInput('');
@@ -392,9 +417,9 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                         if (tagInput.trim()) {
                           const newTag = tagInput.trim().toLowerCase();
                           if (!formData.tags.includes(newTag)) {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              tags: [...prev.tags, newTag]
+                              tags: [...prev.tags, newTag],
                             }));
                           }
                           setTagInput('');
@@ -412,19 +437,20 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                     <CommandEmpty>Press enter to add "{tagInput}"</CommandEmpty>
                     <CommandGroup heading="Suggested Tags">
                       {availableTags
-                        .filter(tag =>
-                          tag.toLowerCase().includes(tagInput.toLowerCase()) &&
-                          !formData.tags.includes(tag)
+                        .filter(
+                          (tag) =>
+                            tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+                            !formData.tags.includes(tag)
                         )
                         .slice(0, 8)
-                        .map(tag => (
+                        .map((tag) => (
                           <CommandItem
                             key={tag}
                             onSelect={() => {
                               if (!formData.tags.includes(tag)) {
-                                setFormData(prev => ({
+                                setFormData((prev) => ({
                                   ...prev,
-                                  tags: [...prev.tags, tag]
+                                  tags: [...prev.tags, tag],
                                 }));
                               }
                               setTagInput('');
@@ -451,18 +477,18 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {availableTags
-                    .filter(tag => !formData.tags.includes(tag))
+                    .filter((tag) => !formData.tags.includes(tag))
                     .slice(0, 10)
-                    .map(tag => (
+                    .map((tag) => (
                       <Badge
                         key={tag}
                         variant="outline"
                         className="cursor-pointer hover:bg-secondary capitalize"
                         onClick={() => {
                           if (!formData.tags.includes(tag)) {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              tags: [...prev.tags, tag]
+                              tags: [...prev.tags, tag],
                             }));
                           }
                         }}
@@ -500,7 +526,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
                   id="public-toggle"
                   checked={formData.isPublic}
                   onCheckedChange={(checked) =>
-                    setFormData(prev => ({ ...prev, isPublic: checked }))
+                    setFormData((prev) => ({ ...prev, isPublic: checked }))
                   }
                 />
               </div>
@@ -515,11 +541,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
 
         {/* Submit Button */}
         <div className="flex gap-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting || !formData.name}
-            className="flex-1"
-          >
+          <Button type="submit" disabled={isSubmitting || !formData.name} className="flex-1">
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -532,11 +554,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
               </>
             )}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
         </div>

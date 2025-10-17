@@ -6,12 +6,14 @@ async function seedHeroBackgrounds() {
 
   const backgrounds = [
     {
-      image_url: 'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-textured.png',
+      image_url:
+        'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-textured.png',
       display_order: 1,
       is_active: true,
     },
     {
-      image_url: 'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-watercolor.png',
+      image_url:
+        'https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-watercolor.png',
       display_order: 2,
       is_active: true,
     },

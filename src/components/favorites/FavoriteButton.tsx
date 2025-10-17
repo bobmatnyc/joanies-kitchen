@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
-import { toggleFavorite, isFavorited } from '@/app/actions/favorites';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { isFavorited, toggleFavorite } from '@/app/actions/favorites';
+import { Button } from '@/components/ui/button';
 
 interface FavoriteButtonProps {
   recipeId: string;
@@ -81,9 +81,7 @@ export function FavoriteButton({
           favorited ? 'fill-current' : ''
         } ${isLoading ? 'animate-pulse' : ''}`}
       />
-      {showLabel && (
-        <span className="ml-2">{favorited ? 'Favorited' : 'Favorite'}</span>
-      )}
+      {showLabel && <span className="ml-2">{favorited ? 'Favorited' : 'Favorite'}</span>}
     </Button>
   );
 }

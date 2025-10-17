@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Export Low-Quality Recipes for Manual Review
  *
@@ -11,10 +12,10 @@
  *   npx tsx scripts/export-low-quality-recipes.ts --threshold=3.0  # Custom threshold
  */
 
-import { db } from '../src/lib/db';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { sql } from 'drizzle-orm';
-import fs from 'fs/promises';
-import path from 'path';
+import { db } from '../src/lib/db';
 
 interface ExportOptions {
   format: 'json' | 'csv';
@@ -51,7 +52,7 @@ async function exportToCSV(recipes: any[], filePath: string): Promise<void> {
     'Instructions Count',
   ];
 
-  const rows = recipes.map(r => [
+  const rows = recipes.map((r) => [
     r.id,
     `"${r.name.replace(/"/g, '""')}"`,
     Number(r.system_rating).toFixed(1),
@@ -63,10 +64,7 @@ async function exportToCSV(recipes: any[], filePath: string): Promise<void> {
     r.instruction_count || 0,
   ]);
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(',')),
-  ].join('\n');
+  const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
   await fs.writeFile(filePath, csvContent);
 }
@@ -182,11 +180,15 @@ async function exportRecipes(options: ExportOptions) {
     }, {});
 
     console.log('\n📈 Rating Distribution:');
-    Object.keys(ratingBreakdown).sort().forEach(rating => {
-      const count = ratingBreakdown[rating];
-      const percentage = ((count / total) * 100).toFixed(1);
-      console.log(`  ${Number(rating).toFixed(1)}: ${count.toString().padStart(4)} recipes (${percentage}%)`);
-    });
+    Object.keys(ratingBreakdown)
+      .sort()
+      .forEach((rating) => {
+        const count = ratingBreakdown[rating];
+        const percentage = ((count / total) * 100).toFixed(1);
+        console.log(
+          `  ${Number(rating).toFixed(1)}: ${count.toString().padStart(4)} recipes (${percentage}%)`
+        );
+      });
 
     // Show source breakdown
     const sourceBreakdown = exportData.reduce((acc: any, recipe: any) => {
@@ -201,7 +203,9 @@ async function exportRecipes(options: ExportOptions) {
       .slice(0, 10)
       .forEach(([source, count]) => {
         const percentage = ((Number(count) / total) * 100).toFixed(1);
-        console.log(`  ${String(source).substring(0, 40).padEnd(40)} ${String(count).padStart(4)} recipes (${percentage}%)`);
+        console.log(
+          `  ${String(source).substring(0, 40).padEnd(40)} ${String(count).padStart(4)} recipes (${percentage}%)`
+        );
       });
 
     console.log('\n💡 Next Steps:');
@@ -219,7 +223,6 @@ async function exportRecipes(options: ExportOptions) {
     console.log('- Missing critical information (times, temperatures)');
     console.log('- Poor formatting or structure');
     console.log('- Duplicate or near-duplicate recipes');
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     process.exit(1);
@@ -228,8 +231,8 @@ async function exportRecipes(options: ExportOptions) {
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
-const formatArg = args.find(a => a.startsWith('--format='))?.split('=')[1] || 'json';
-const thresholdArg = args.find(a => a.startsWith('--threshold='))?.split('=')[1];
+const formatArg = args.find((a) => a.startsWith('--format='))?.split('=')[1] || 'json';
+const thresholdArg = args.find((a) => a.startsWith('--threshold='))?.split('=')[1];
 
 const options: ExportOptions = {
   format: (formatArg === 'csv' ? 'csv' : 'json') as 'json' | 'csv',
@@ -237,7 +240,7 @@ const options: ExportOptions = {
 };
 
 // Validate threshold
-if (isNaN(options.threshold) || options.threshold < 2.0 || options.threshold > 5.0) {
+if (Number.isNaN(options.threshold) || options.threshold < 2.0 || options.threshold > 5.0) {
   console.error('❌ Invalid threshold. Must be between 2.0 and 5.0');
   process.exit(1);
 }

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { RecipeDataTable } from '@/components/admin/RecipeDataTable';
 import { getAllRecipesForAdmin } from '@/app/actions/admin';
+import { RecipeDataTable } from '@/components/admin/RecipeDataTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
@@ -11,9 +11,7 @@ function RecipeTableLoading() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Recipe Management</h1>
-        <p className="text-gray-600 mt-2">
-          Manage all recipes in the database
-        </p>
+        <p className="text-gray-600 mt-2">Manage all recipes in the database</p>
       </div>
 
       <Card>
@@ -39,9 +37,7 @@ async function RecipeManagementContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Recipe Management</h1>
-          <p className="text-gray-600 mt-2">
-            Manage all recipes in the database
-          </p>
+          <p className="text-gray-600 mt-2">Manage all recipes in the database</p>
         </div>
 
         <Card>

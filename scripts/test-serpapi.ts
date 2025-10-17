@@ -3,8 +3,8 @@
  * Tests the search functionality independently
  */
 
+import { resolve } from 'node:path';
 import dotenv from 'dotenv';
-import { resolve } from 'path';
 
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(__dirname, '../.env.local') });
@@ -56,7 +56,6 @@ async function testSerpAPI() {
     });
 
     console.log('✅ SerpAPI integration test PASSED\n');
-
   } catch (error: any) {
     console.error('\n❌ SerpAPI test FAILED:', error.message);
   }

@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { checkUsernameAvailability, createOrUpdateProfile } from '@/app/actions/user-profiles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  createOrUpdateProfile,
-  checkUsernameAvailability,
-} from '@/app/actions/user-profiles';
+import { Textarea } from '@/components/ui/textarea';
 import type { UserProfile } from '@/lib/db/user-discovery-schema';
 
 interface ProfileEditorProps {
@@ -31,9 +28,7 @@ export function ProfileEditor({ profile, onSuccess }: ProfileEditorProps) {
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState(profile?.location || '');
   const [website, setWebsite] = useState(profile?.website || '');
-  const [specialties, setSpecialties] = useState<string>(
-    profile?.specialties?.join(', ') || ''
-  );
+  const [specialties, setSpecialties] = useState<string>(profile?.specialties?.join(', ') || '');
   const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
 
   // Check username availability when it changes
@@ -125,10 +120,10 @@ export function ProfileEditor({ profile, onSuccess }: ProfileEditorProps) {
               username && !usernameValid
                 ? 'border-red-500'
                 : usernameAvailable === false
-                ? 'border-red-500'
-                : usernameAvailable === true
-                ? 'border-green-500'
-                : ''
+                  ? 'border-red-500'
+                  : usernameAvailable === true
+                    ? 'border-green-500'
+                    : ''
             }
           />
           {checkingUsername && (
@@ -179,9 +174,7 @@ export function ProfileEditor({ profile, onSuccess }: ProfileEditorProps) {
           maxLength={500}
           rows={4}
         />
-        <p className="text-sm text-gray-500 text-right">
-          {bio.length}/500 characters
-        </p>
+        <p className="text-sm text-gray-500 text-right">{bio.length}/500 characters</p>
       </div>
 
       <div className="space-y-2">
@@ -222,11 +215,7 @@ export function ProfileEditor({ profile, onSuccess }: ProfileEditorProps) {
       </div>
 
       <div className="flex items-center space-x-2">
-        <Switch
-          id="isPublic"
-          checked={isPublic}
-          onCheckedChange={setIsPublic}
-        />
+        <Switch id="isPublic" checked={isPublic} onCheckedChange={setIsPublic} />
         <Label htmlFor="isPublic" className="cursor-pointer">
           Public Profile
         </Label>
@@ -244,19 +233,10 @@ export function ProfileEditor({ profile, onSuccess }: ProfileEditorProps) {
       )}
 
       <div className="flex gap-4">
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className="flex-1"
-        >
+        <Button type="submit" disabled={!canSubmit} className="flex-1">
           {isLoading ? 'Saving...' : profile ? 'Update Profile' : 'Create Profile'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-          disabled={isLoading}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
           Cancel
         </Button>
       </div>

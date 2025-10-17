@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Quality levels for Next.js 16 compatibility
+    qualities: [75, 85, 90, 95, 100],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
@@ -194,6 +196,25 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'ljqhvy0frzhuigv1.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+      // Chef Recipe Sources
+      {
+        protocol: 'https',
+        hostname: 'www.foodandwine.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lidiasitaly.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.lidiasitaly.com',
         port: '',
         pathname: '/**',
       },

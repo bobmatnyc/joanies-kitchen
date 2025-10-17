@@ -12,22 +12,22 @@
  */
 
 import 'dotenv/config';
-import { db } from '../src/lib/db';
-import {
-  recipes,
-  ingredients,
-  recipeIngredients,
-  tools,
-  recipeTools,
-  recipeTasks,
-  type NewIngredient,
-  type NewRecipeIngredient,
-  type NewTool,
-  type NewRecipeTool,
-  type NewRecipeTask,
-} from '../src/lib/db/schema';
 import { eq, isNull, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { db } from '../src/lib/db';
+import {
+  ingredients,
+  type NewIngredient,
+  type NewRecipeIngredient,
+  type NewRecipeTask,
+  type NewRecipeTool,
+  type NewTool,
+  recipeIngredients,
+  recipes,
+  recipeTasks,
+  recipeTools,
+  tools,
+} from '../src/lib/db/schema';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -332,9 +332,9 @@ function determineUnitType(unit?: string): 'volume' | 'weight' | 'count' | 'subj
   const weightUnits = ['oz', 'lb', 'g', 'kg', 'mg'];
   const subjectiveUnits = ['taste', 'needed', 'desired', 'pinch', 'dash'];
 
-  if (volumeUnits.some(u => lower.includes(u))) return 'volume';
-  if (weightUnits.some(u => lower.includes(u))) return 'weight';
-  if (subjectiveUnits.some(u => lower.includes(u))) return 'subjective';
+  if (volumeUnits.some((u) => lower.includes(u))) return 'volume';
+  if (weightUnits.some((u) => lower.includes(u))) return 'weight';
+  if (subjectiveUnits.some((u) => lower.includes(u))) return 'subjective';
 
   return 'count';
 }
@@ -344,10 +344,20 @@ function determineUnitType(unit?: string): 'volume' | 'weight' | 'count' | 'subj
  */
 function isCommonIngredient(name: string): boolean {
   const common = [
-    'salt', 'pepper', 'olive oil', 'butter', 'garlic', 'onion',
-    'sugar', 'flour', 'egg', 'milk', 'water', 'oil'
+    'salt',
+    'pepper',
+    'olive oil',
+    'butter',
+    'garlic',
+    'onion',
+    'sugar',
+    'flour',
+    'egg',
+    'milk',
+    'water',
+    'oil',
   ];
-  return common.some(c => name.includes(c));
+  return common.some((c) => name.includes(c));
 }
 
 /**
@@ -355,10 +365,17 @@ function isCommonIngredient(name: string): boolean {
  */
 function isEssentialTool(name: string): boolean {
   const essential = [
-    'knife', 'cutting-board', 'pot', 'pan', 'bowl', 'spoon',
-    'measuring-cup', 'measuring-spoon', 'spatula'
+    'knife',
+    'cutting-board',
+    'pot',
+    'pan',
+    'bowl',
+    'spoon',
+    'measuring-cup',
+    'measuring-spoon',
+    'spatula',
   ];
-  return essential.some(e => name.includes(e));
+  return essential.some((e) => name.includes(e));
 }
 
 /**
@@ -369,11 +386,7 @@ async function processRecipe(recipe: any) {
 
   try {
     // Parse ingredients
-    const parsedIngredients = await parseIngredients(
-      recipe.id,
-      recipe.name,
-      recipe.ingredients
-    );
+    const parsedIngredients = await parseIngredients(recipe.id, recipe.name, recipe.ingredients);
 
     // Create ingredient mappings
     for (let i = 0; i < parsedIngredients.length; i++) {
@@ -398,11 +411,7 @@ async function processRecipe(recipe: any) {
     console.log(`  ✓ Mapped ${parsedIngredients.length} ingredients`);
 
     // Parse tools
-    const parsedTools = await parseTools(
-      recipe.id,
-      recipe.name,
-      recipe.instructions
-    );
+    const parsedTools = await parseTools(recipe.id, recipe.name, recipe.instructions);
 
     // Create tool mappings
     for (const parsed of parsedTools) {
@@ -456,40 +465,40 @@ async function processRecipe(recipe: any) {
 
     for (const parsed of parsedTasks) {
       const ingredientIds = parsed.ingredient_names
-        .map(name => ingredientNameToId.get(name))
+        .map((name) => ingredientNameToId.get(name))
         .filter(Boolean);
 
-      const toolIds = parsed.tool_names
-        .map(name => toolNameToId.get(name))
-        .filter(Boolean);
+      const toolIds = parsed.tool_names.map((name) => toolNameToId.get(name)).filter(Boolean);
 
       const dependsOnTaskIds = parsed.depends_on_indices
-        .map(idx => taskIdsByOrder.get(idx))
+        .map((idx) => taskIdsByOrder.get(idx))
         .filter(Boolean);
 
-      const [task] = await db.insert(recipeTasks).values({
-        recipe_id: recipe.id,
-        task_name: parsed.task_name,
-        task_order: parsed.task_order,
-        instruction_text: parsed.instruction_text,
-        task_type: parsed.task_type as any,
-        role: parsed.role as any,
-        active_time: parsed.active_time,
-        passive_time: parsed.passive_time,
-        can_be_parallel: parsed.can_be_parallel,
-        depends_on_task_ids: JSON.stringify(dependsOnTaskIds),
-        ingredient_ids: JSON.stringify(ingredientIds),
-        tool_ids: JSON.stringify(toolIds),
-        parsed_by_model: PARSING_MODEL,
-        confidence_score: '0.90',
-      }).returning();
+      const [task] = await db
+        .insert(recipeTasks)
+        .values({
+          recipe_id: recipe.id,
+          task_name: parsed.task_name,
+          task_order: parsed.task_order,
+          instruction_text: parsed.instruction_text,
+          task_type: parsed.task_type as any,
+          role: parsed.role as any,
+          active_time: parsed.active_time,
+          passive_time: parsed.passive_time,
+          can_be_parallel: parsed.can_be_parallel,
+          depends_on_task_ids: JSON.stringify(dependsOnTaskIds),
+          ingredient_ids: JSON.stringify(ingredientIds),
+          tool_ids: JSON.stringify(toolIds),
+          parsed_by_model: PARSING_MODEL,
+          confidence_score: '0.90',
+        })
+        .returning();
 
       taskIdsByOrder.set(parsed.task_order, task.id);
     }
 
     console.log(`  ✓ Created ${parsedTasks.length} tasks`);
     console.log(`✓ Completed: ${recipe.name}`);
-
   } catch (error) {
     console.error(`✗ Error processing recipe ${recipe.id}:`, error);
   }
@@ -518,7 +527,7 @@ async function main() {
 
     // Rate limiting
     if (i < recipesToProcess.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     }
   }
 

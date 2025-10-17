@@ -1,7 +1,7 @@
-import { type MetadataRoute } from 'next';
+import { and, eq, isNotNull } from 'drizzle-orm';
+import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq, isNotNull, and } from 'drizzle-orm';
 
 /**
  * Generate XML sitemap for SEO
@@ -25,15 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         is_system_recipe: recipes.is_system_recipe,
       })
       .from(recipes)
-      .where(
-        and(
-          eq(recipes.is_public, true),
-          isNotNull(recipes.slug)
-        )
-      );
+      .where(and(eq(recipes.is_public, true), isNotNull(recipes.slug)));
 
     // Map recipes to sitemap entries
-    const recipeEntries: MetadataRoute.Sitemap = publicRecipes.map(recipe => ({
+    const recipeEntries: MetadataRoute.Sitemap = publicRecipes.map((recipe) => ({
       url: `${baseUrl}/recipes/${recipe.slug}`,
       lastModified: recipe.updated_at || new Date(),
       changeFrequency: 'weekly' as const,

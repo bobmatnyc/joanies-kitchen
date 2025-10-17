@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getRecipesPaginated, type PaginationParams } from '@/app/actions/recipes';
 
 /**
@@ -24,7 +24,7 @@ import { getRecipesPaginated, type PaginationParams } from '@/app/actions/recipe
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as PaginationParams;
+    const body = (await request.json()) as PaginationParams;
 
     // Validate pagination parameters
     const page = Math.max(1, body.page || 1);
@@ -51,10 +51,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Pagination API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -68,8 +65,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
 
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(100, parseInt(searchParams.get('limit') || '24'));
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(100, parseInt(searchParams.get('limit') || '24', 10));
     const sort = (searchParams.get('sort') || 'rating') as 'rating' | 'recent' | 'name';
 
     // Build filters from query params
@@ -102,7 +99,7 @@ export async function GET(request: NextRequest) {
     // Tags can be comma-separated
     if (searchParams.has('tags')) {
       const tagsParam = searchParams.get('tags');
-      filters.tags = tagsParam ? tagsParam.split(',').map(t => t.trim()) : undefined;
+      filters.tags = tagsParam ? tagsParam.split(',').map((t) => t.trim()) : undefined;
     }
 
     const result = await getRecipesPaginated({
@@ -126,9 +123,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Pagination API GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

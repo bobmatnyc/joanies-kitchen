@@ -10,10 +10,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import { Flag } from 'lucide-react';
-import { flagRecipe, type FlagReason } from '@/app/actions/flag-recipe';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { type FlagReason, flagRecipe } from '@/app/actions/flag-recipe';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -23,9 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -33,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 interface FlagRecipeButtonProps {
   recipeId: string;
@@ -222,9 +222,7 @@ export function FlagRecipeButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">
-                  Additional Details (Optional)
-                </Label>
+                <Label htmlFor="description">Additional Details (Optional)</Label>
                 <Textarea
                   id="description"
                   value={description}

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
 
 export async function POST(request: NextRequest) {
@@ -6,7 +6,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { weeksAgo = 0, maxResults = 5, autoApprove = true } = body;
 
-    console.log(`[API] Scraping recipes for week ${weeksAgo} (max: ${maxResults}, autoApprove: ${autoApprove})`);
+    console.log(
+      `[API] Scraping recipes for week ${weeksAgo} (max: ${maxResults}, autoApprove: ${autoApprove})`
+    );
 
     const result = await crawlWeeklyRecipes(weeksAgo, {
       maxResults,

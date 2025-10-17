@@ -9,11 +9,11 @@
  * Usage: node scripts/verify-top50-feature.js
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { recipes } from '../src/lib/db/schema.js';
-import { eq, sql, or, desc } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -49,9 +49,7 @@ async function checkDatabaseState() {
 
   try {
     // Count total recipes
-    const totalRecipes = await db
-      .select({ count: sql`count(*)::int` })
-      .from(recipes);
+    const totalRecipes = await db.select({ count: sql`count(*)::int` }).from(recipes);
 
     const total = totalRecipes[0]?.count || 0;
     info(`Total recipes: ${total}`);
@@ -125,7 +123,6 @@ async function checkDatabaseState() {
       console.log(`${index + 1}. ${recipe.name}`);
       console.log(`   System: ${systemRating} | User: ${userRating}`);
     });
-
   } catch (err) {
     error(`Database check failed: ${err.message}`);
     return false;
@@ -217,10 +214,7 @@ function checkComponentImplementation() {
 function checkAPIRoute() {
   log('\n=== API Route Check ===\n', 'blue');
 
-  return checkFileExists(
-    'src/app/api/recipes/paginated/route.ts',
-    'Paginated recipes API route'
-  );
+  return checkFileExists('src/app/api/recipes/paginated/route.ts', 'Paginated recipes API route');
 }
 
 function checkDocumentation() {
@@ -279,7 +273,7 @@ async function runVerification() {
 
   const allPassed = Object.values(results).every((r) => r);
 
-  log('\n' + '='.repeat(45) + '\n', 'blue');
+  log(`\n${'='.repeat(45)}\n`, 'blue');
 
   if (allPassed) {
     log('🎉 All checks passed! Top 50 feature is ready.', 'green');

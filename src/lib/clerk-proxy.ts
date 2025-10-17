@@ -4,7 +4,7 @@
  * by intercepting and modifying requests to bypass domain restrictions
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 /**
  * Proxy configuration for Clerk API requests
@@ -23,20 +23,14 @@ export const clerkProxyConfig = {
   },
 
   // Paths that should be proxied
-  proxyPaths: [
-    '/v1/client',
-    '/v1/environment',
-    '/v1/sessions',
-    '/v1/users',
-    '/v1/organizations',
-  ],
+  proxyPaths: ['/v1/client', '/v1/environment', '/v1/sessions', '/v1/users', '/v1/organizations'],
 };
 
 /**
  * Check if a request should be proxied to Clerk
  */
 export function shouldProxyRequest(pathname: string): boolean {
-  return clerkProxyConfig.proxyPaths.some(path => pathname.includes(path));
+  return clerkProxyConfig.proxyPaths.some((path) => pathname.includes(path));
 }
 
 /**
@@ -126,10 +120,7 @@ export async function handleClerkProxy(request: NextRequest): Promise<NextRespon
     });
   } catch (error) {
     console.error('[Clerk Proxy] Failed to proxy request:', error);
-    return NextResponse.json(
-      { error: 'Proxy request failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Proxy request failed' }, { status: 500 });
   }
 }
 
