@@ -7,6 +7,7 @@ import { getSharedRecipes, getTopRatedRecipes } from "@/app/actions/recipes";
 import { SharedRecipeCarousel } from "@/components/recipe/SharedRecipeCarousel";
 import { RecipeCard } from "@/components/recipe/RecipeCard";
 import { MobileContainer, MobileSpacer } from "@/components/mobile";
+import { HeroSlideshow } from "@/components/HeroSlideshow";
 
 export default async function Home() {
   // Fetch recipes with error handling for production
@@ -31,30 +32,8 @@ export default async function Home() {
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
       <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
-        {/* Animated Background Images - Crossfade */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Textured illustration - left side, crossfading */}
-          <div className="absolute -left-20 top-0 w-1/2 h-full animate-hero-crossfade-1 animate-float-slow">
-            <Image
-              src="https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-textured.png"
-              alt=""
-              fill
-              className="object-cover object-left animate-rotate-slow"
-              priority
-            />
-          </div>
-
-          {/* Watercolor illustration - right side, crossfading */}
-          <div className="absolute -right-20 bottom-0 w-1/2 h-full animate-hero-crossfade-2 animate-float-slower">
-            <Image
-              src="https://ljqhvy0frzhuigv1.public.blob.vercel-storage.com/hero/background-watercolor.png"
-              alt=""
-              fill
-              className="object-cover object-right animate-rotate-slower"
-              priority
-            />
-          </div>
-        </div>
+        {/* Animated Background Slideshow - Full Coverage with Fading */}
+        <HeroSlideshow />
 
         <MobileContainer maxWidth="xl" className="relative z-10 text-center">
           <div className="flex justify-center mb-6">
