@@ -55,6 +55,7 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 - **[Code Quality](./docs/guides/CODE_QUALITY.md)** - Linting, formatting, and testing
 - **[Quality Standards](./docs/reference/quality.md)** - Code quality guidelines
 - **[Troubleshooting](./docs/troubleshooting/common-issues.md)** - Common problems and solutions
+- **[Dev Server Stability](./docs/troubleshooting/DEV_SERVER_STABILITY.md)** - Fix ENOENT errors and crashes
 
 ---
 
@@ -266,7 +267,9 @@ MIT
 ## 📞 Support
 
 - **Documentation**: [docs/README.md](./docs/README.md)
-- **Troubleshooting**: [Common Issues](./docs/troubleshooting/common-issues.md)
+- **Troubleshooting**:
+  - [Common Issues](./docs/troubleshooting/common-issues.md)
+  - [Dev Server Stability](./docs/troubleshooting/DEV_SERVER_STABILITY.md)
 - **Issues**: Open an issue on GitHub
 - **Discussions**: GitHub Discussions
 

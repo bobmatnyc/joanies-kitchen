@@ -13,8 +13,36 @@ help: ## Display this help message
 install: ## Install dependencies
 	pnpm install
 
-dev: ## Start development server (port 3004)
+dev: ## Start development server (port 3002)
 	pnpm dev
+
+dev-clean: ## Clean cache and restart dev server
+	@echo "Cleaning Next.js cache..."
+	@rm -rf .next
+	@rm -rf node_modules/.cache
+	@echo "Stopping existing dev servers on port 3002..."
+	@lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+	@sleep 2
+	@echo "Starting clean dev server..."
+	@pnpm dev
+
+dev-stable: ## Start dev server without Turbopack (more stable)
+	@echo "Starting development server with webpack (stable mode)..."
+	@rm -rf .next
+	@next dev -p 3002
+
+dev-monitor: ## Start dev server with auto-restart monitoring
+	@echo "Starting monitored dev server..."
+	@bash scripts/dev-server-monitor.sh
+
+dev-stop: ## Stop all Next.js dev servers on port 3002
+	@echo "Stopping dev servers on port 3002..."
+	@lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+	@pkill -f "next dev.*3002" 2>/dev/null || true
+	@echo "All dev servers stopped"
+
+dev-logs: ## Show dev server logs
+	@tail -f tmp/logs/dev-server.log 2>/dev/null || echo "No logs found. Run 'make dev-monitor' first."
 
 build: ## Build for production
 	pnpm build
@@ -25,6 +53,7 @@ start: ## Start production server
 clean: ## Clean build artifacts and caches
 	rm -rf .next
 	rm -rf node_modules/.cache
+	rm -rf tmp/logs
 	@echo "Cleaned build artifacts"
 
 ##@ Database
