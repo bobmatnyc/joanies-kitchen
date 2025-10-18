@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
     // optimizeCss: true,
     optimizePackageImports: ['lucide-react', 'react-icons', '@radix-ui/react-icons'],
   },
-  output: 'standalone',
+  // DO NOT add 'output: standalone' - it breaks public folder serving on Vercel
+  // See: docs/fixes/CHEF_AVATAR_FIX_2025-10-17.md
   images: {
     // Re-enable optimization for better FCP/LCP performance
     formats: ['image/webp', 'image/avif'],
