@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, ChefHat, ChevronRight, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Calendar, ChefHat, ChevronRight, PlusCircle, Sparkles, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getBackgroundImages } from '@/app/actions/background-images';
@@ -7,6 +7,7 @@ import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlidesh
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
+import { VectorSearchBar } from '@/components/search/VectorSearchBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -52,6 +53,71 @@ export default async function Home() {
   }
   return (
     <div className="min-h-screen">
+      {/* Vector Search Section */}
+      <section className="bg-gradient-to-b from-jk-sage/10 to-white py-8 md:py-12">
+        <MobileContainer maxWidth="2xl">
+          <VectorSearchBar />
+        </MobileContainer>
+      </section>
+
+      {/* CTA Buttons Section */}
+      <section className="bg-white py-6 md:py-8 border-b border-jk-sage/20">
+        <MobileContainer maxWidth="xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {/* Discover Recipes */}
+            <Link href="/discover" className="block">
+              <Card className="recipe-card h-full cursor-pointer border-2 border-jk-sage hover:border-jk-tomato hover:shadow-lg transition-all group">
+                <CardContent className="flex flex-col items-center justify-center text-center p-8 md:p-10">
+                  <div className="w-16 h-16 bg-jk-tomato/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-jk-tomato/20 transition-colors">
+                    <Sparkles className="h-8 w-8 text-jk-tomato" />
+                  </div>
+                  <h3 className="font-heading text-xl md:text-2xl text-jk-olive mb-2 group-hover:text-jk-tomato transition-colors">
+                    Discover Recipes
+                  </h3>
+                  <p className="text-sm text-jk-charcoal/70 font-ui">
+                    Explore curated recipes from famous chefs and the community
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Plan Meals */}
+            <Link href="/meals" className="block">
+              <Card className="recipe-card h-full cursor-pointer border-2 border-jk-sage hover:border-jk-clay hover:shadow-lg transition-all group">
+                <CardContent className="flex flex-col items-center justify-center text-center p-8 md:p-10">
+                  <div className="w-16 h-16 bg-jk-clay/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-jk-clay/20 transition-colors">
+                    <Calendar className="h-8 w-8 text-jk-clay" />
+                  </div>
+                  <h3 className="font-heading text-xl md:text-2xl text-jk-olive mb-2 group-hover:text-jk-clay transition-colors">
+                    Plan Meals
+                  </h3>
+                  <p className="text-sm text-jk-charcoal/70 font-ui">
+                    Create complete meals and generate shopping lists
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Add Your Recipe */}
+            <Link href="/recipes/new" className="block">
+              <Card className="recipe-card h-full cursor-pointer border-2 border-jk-sage hover:border-jk-olive hover:shadow-lg transition-all group">
+                <CardContent className="flex flex-col items-center justify-center text-center p-8 md:p-10">
+                  <div className="w-16 h-16 bg-jk-olive/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-jk-olive/20 transition-colors">
+                    <PlusCircle className="h-8 w-8 text-jk-olive" />
+                  </div>
+                  <h3 className="font-heading text-xl md:text-2xl text-jk-olive mb-2 group-hover:text-jk-olive transition-colors">
+                    Add Your Recipe
+                  </h3>
+                  <p className="text-sm text-jk-charcoal/70 font-ui">
+                    Share your family treasures and personal creations
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </MobileContainer>
+      </section>
+
       {/* Hero Section - Joanie's Kitchen */}
       <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
         {/* Background Images Slideshow - Auto-discovered from /public/backgrounds/ */}
@@ -200,8 +266,8 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              {topRecipes.map((recipe, index) => (
-                <RecipeCard key={recipe.id} recipe={recipe} showRank={index + 1} />
+              {topRecipes.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
               ))}
             </div>
 

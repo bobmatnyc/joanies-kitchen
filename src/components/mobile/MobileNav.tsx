@@ -1,13 +1,11 @@
 'use client';
 
 import {
-  BookOpen,
   Calendar,
   ChefHat,
   FolderHeart,
   Globe,
   Heart,
-  Info,
   Menu,
   Sparkles,
   Trophy,
@@ -51,20 +49,6 @@ export function MobileNav() {
 
         {/* Navigation Links - Stacked Vertically */}
         <nav className="flex flex-col gap-2 mt-8">
-          <NavLink
-            href="/about"
-            icon={Info}
-            label="About"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/recipes"
-            icon={BookOpen}
-            label="My Recipes"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
           <NavLink
             href="/recipes/top-50"
             icon={Trophy}

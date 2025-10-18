@@ -75,24 +75,8 @@ export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
 
 // Zod validation schemas
-export const insertUserProfileSchema = createInsertSchema(userProfiles, {
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be at most 30 characters')
-    .regex(
-      /^[a-z0-9_-]+$/,
-      'Username can only contain lowercase letters, numbers, hyphens, and underscores'
-    ),
-  display_name: z
-    .string()
-    .min(1, 'Display name is required')
-    .max(100, 'Display name must be at most 100 characters'),
-  bio: z.string().max(500, 'Bio must be at most 500 characters').optional(),
-  website: z.string().url('Invalid website URL').optional().or(z.literal('')),
-  location: z.string().max(100, 'Location must be at most 100 characters').optional(),
-  specialties: z.array(z.string()).max(10, 'Maximum 10 specialties allowed').optional(),
-});
+// Simplified for Zod v3 compatibility - using drizzle-zod's generated schema as-is
+export const insertUserProfileSchema = createInsertSchema(userProfiles);
 
 export const selectUserProfileSchema = createSelectSchema(userProfiles);
 
@@ -149,18 +133,8 @@ export type Collection = typeof collections.$inferSelect;
 export type NewCollection = typeof collections.$inferInsert;
 
 // Zod validation schemas
-export const insertCollectionSchema = createInsertSchema(collections, {
-  name: z
-    .string()
-    .min(3, 'Collection name must be at least 3 characters')
-    .max(100, 'Collection name must be at most 100 characters'),
-  slug: z
-    .string()
-    .min(3, 'Slug must be at least 3 characters')
-    .max(100, 'Slug must be at most 100 characters')
-    .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
-  description: z.string().max(500, 'Description must be at most 500 characters').optional(),
-});
+// Simplified for Zod v3 compatibility
+export const insertCollectionSchema = createInsertSchema(collections);
 
 export const selectCollectionSchema = createSelectSchema(collections);
 
@@ -209,10 +183,8 @@ export const collectionRecipes = pgTable(
 export type CollectionRecipe = typeof collectionRecipes.$inferSelect;
 export type NewCollectionRecipe = typeof collectionRecipes.$inferInsert;
 
-export const insertCollectionRecipeSchema = createInsertSchema(collectionRecipes, {
-  personal_note: z.string().max(500, 'Personal note must be at most 500 characters').optional(),
-  position: z.number().int().min(0).default(0),
-});
+// Simplified for Zod v3 compatibility
+export const insertCollectionRecipeSchema = createInsertSchema(collectionRecipes);
 
 export const selectCollectionRecipeSchema = createSelectSchema(collectionRecipes);
 

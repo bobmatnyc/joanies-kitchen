@@ -1,5 +1,6 @@
 import {
   boolean,
+  decimal,
   index,
   integer,
   jsonb,
@@ -8,6 +9,7 @@ import {
   timestamp,
   unique,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { recipes } from './schema';
@@ -34,6 +36,12 @@ export const chefs = pgTable(
     is_verified: boolean('is_verified').default(false),
     is_active: boolean('is_active').default(true),
     recipe_count: integer('recipe_count').default(0),
+    // Location data for map display
+    latitude: decimal('latitude', { precision: 10, scale: 7 }),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }),
+    location_city: varchar('location_city', { length: 100 }),
+    location_state: varchar('location_state', { length: 50 }),
+    location_country: varchar('location_country', { length: 50 }),
     created_at: timestamp('created_at').defaultNow(),
     updated_at: timestamp('updated_at').defaultNow(),
   },

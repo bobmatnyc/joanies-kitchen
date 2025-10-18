@@ -1,3 +1,6 @@
+// Force dynamic rendering for error pages to avoid static generation issues
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <div className="container mx-auto py-16 px-4 text-center">
