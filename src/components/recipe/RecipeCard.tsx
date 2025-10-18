@@ -15,6 +15,7 @@ interface RecipeCardProps {
   similarity?: number;
   showRank?: number;
   disableLink?: boolean;
+  fromChefSlug?: string; // Optional chef slug to include in recipe link for back navigation
 }
 
 export function RecipeCard({
@@ -23,6 +24,7 @@ export function RecipeCard({
   similarity = 0,
   showRank,
   disableLink = false,
+  fromChefSlug,
 }: RecipeCardProps) {
   // Safe JSON parsing with error handling
   let tags: string[] = [];
@@ -57,7 +59,11 @@ export function RecipeCard({
   const isTopRated = systemRating >= 4.5 || userRating >= 4.5;
 
   // Use slug for URL if available, otherwise fall back to ID
-  const recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
+  // Include chef slug in URL params if provided for back navigation
+  let recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
+  if (fromChefSlug) {
+    recipeUrl += `?from=chef/${fromChefSlug}`;
+  }
 
   const cardContent = (
     <Card className="recipe-card h-full flex flex-col hover:shadow-xl md:hover:-translate-y-1 transition-all duration-200 cursor-pointer border-jk-sage active:scale-[0.98] tap-feedback">

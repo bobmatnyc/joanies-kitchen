@@ -16,9 +16,10 @@ import { RecipeCard } from './RecipeCard';
 interface RecipeListProps {
   recipes: Recipe[];
   onRecipeDeleted?: () => void;
+  fromChefSlug?: string; // Optional chef slug to pass to recipe cards for back navigation
 }
 
-export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
+export function RecipeList({ recipes, onRecipeDeleted, fromChefSlug }: RecipeListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
   const [filterCuisine, setFilterCuisine] = useState<string>('all');
@@ -170,7 +171,7 @@ export function RecipeList({ recipes, onRecipeDeleted }: RecipeListProps) {
       ) : (
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
           {filteredRecipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.id} recipe={recipe} fromChefSlug={fromChefSlug} />
           ))}
         </div>
       )}

@@ -140,7 +140,7 @@ export default async function ChefProfilePage({ params }: { params: Promise<{ sl
         </div>
 
         {recipes.length > 0 ? (
-          <RecipeList recipes={recipes} />
+          <RecipeList recipes={recipes} fromChefSlug={slug} />
         ) : (
           <div className="text-center py-12 bg-jk-linen rounded-lg border border-jk-olive/20">
             <ChefHat className="w-12 h-12 mx-auto text-jk-olive/20 mb-3" />

@@ -1,5 +1,10 @@
 'use client';
 
+// Prevent static generation of error pages
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 /**
  * Global Error Handler
  *
