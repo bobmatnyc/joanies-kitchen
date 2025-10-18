@@ -33,6 +33,15 @@ Visit **http://localhost:3004** to see your application!
 
 For comprehensive documentation, see **[docs/](./docs/README.md)**
 
+### 👨‍💻 Developer Documentation
+
+**[Developer Hub](./docs/developer/README.md)** - Complete technical guide for developers including:
+- Architecture overview & tech stack
+- API documentation & server actions
+- Testing & quality assurance guides
+- Deployment & operations
+- Troubleshooting & debugging
+
 ### Essential Guides
 
 - **[Installation Guide](./docs/getting-started/installation.md)** - Detailed setup instructions
