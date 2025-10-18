@@ -1,10 +1,6 @@
-import type { Metadata } from 'next';
-import { SemanticSearchPanel } from '@/components/recipe/SemanticSearchPanel';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Semantic Recipe Search | Recipe Manager',
-  description: 'Search recipes using natural language and AI-powered semantic understanding',
-};
+import { SemanticSearchPanel } from '@/components/recipe/SemanticSearchPanel';
 
 export default function SemanticSearchPage() {
   return (

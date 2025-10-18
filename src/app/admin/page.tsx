@@ -1,3 +1,6 @@
+// Force dynamic rendering for admin pages (requires authentication headers)
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admin';

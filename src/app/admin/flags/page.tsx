@@ -8,6 +8,9 @@
  * - View flag details and history
  */
 
+// Force dynamic rendering for admin pages (requires authentication headers)
+export const dynamic = 'force-dynamic';
+
 import { AlertTriangle, CheckCircle, Flag, XCircle } from 'lucide-react';
 import { Suspense } from 'react';
 import { getAllFlags } from '@/app/actions/flag-recipe';
