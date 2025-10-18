@@ -241,5 +241,5 @@ WHERE table_name = 'meals' AND column_name = 'tags';
 
 - `docs/guides/MOBILE_PARITY_REQUIREMENTS.md` - Mobile responsiveness guidelines
 - `docs/guides/SEARCH_CACHE_GUIDE.md` - Semantic search caching
-- `RANKING_SYSTEM_SUMMARY.md` - Recipe ranking algorithm
+- `docs/developer/implementation/RANKING_SYSTEM_SUMMARY.md` - Recipe ranking algorithm
 - `src/lib/meals/type-guards.ts` - Meal type validations

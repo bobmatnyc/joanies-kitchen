@@ -226,7 +226,7 @@ pnpm test:unit             # Unit tests (Vitest)
 - **[Semantic Search Guide](../guides/SEMANTIC_SEARCH_GUIDE.md)** - Vector-based recipe search
 - **[Ingredient Search](../guides/INGREDIENT_EXTRACTION_GUIDE.md)** - Search by ingredients
 - **[Search Cache](../guides/SEARCH_CACHE_GUIDE.md)** - Performance optimization
-- **[Ranking System](../../RANKING_SYSTEM_SUMMARY.md)** - Recipe ranking algorithm
+- **[Ranking System](implementation/RANKING_SYSTEM_SUMMARY.md)** - Recipe ranking algorithm
 
 ### Admin Features
 
@@ -256,10 +256,16 @@ pnpm test:unit             # Unit tests (Vitest)
 
 ### Implementation Summaries
 
-- **[Synthetic User System](../../SYNTHETIC_USER_IMPLEMENTATION_SUMMARY.md)** - AI-generated test users
-- **[Embeddings Implementation](../../EMBEDDINGS_IMPLEMENTATION_CHECKLIST.md)** - Semantic search setup
-- **[Cache Implementation](../../CACHE_IMPLEMENTATION_SUMMARY.md)** - Search caching
-- **[Image Flagging](../../IMAGE_FLAGGING_IMPLEMENTATION_SUMMARY.md)** - Content moderation
+- **[Synthetic User System](implementation/SYNTHETIC_USER_IMPLEMENTATION_SUMMARY.md)** - AI-generated test users
+- **[Embeddings Implementation](implementation/EMBEDDINGS_IMPLEMENTATION_CHECKLIST.md)** - Semantic search setup
+- **[Cache Implementation](implementation/CACHE_IMPLEMENTATION_SUMMARY.md)** - Search caching
+- **[Image Flagging](implementation/IMAGE_FLAGGING_IMPLEMENTATION_SUMMARY.md)** - Content moderation
+- **[Chef Map Implementation](implementation/CHEF_MAP_IMPLEMENTATION_SUMMARY.md)** - Chef location mapping
+- **[Chef Instructions Formatting](implementation/CHEF_INSTRUCTIONS_FORMATTING_SUMMARY.md)** - Recipe formatting standards
+- **[Meal Chef Embeddings](implementation/MEAL_CHEF_EMBEDDINGS_SUMMARY.md)** - Meal planning with chef embeddings
+- **[Themed Placeholders](implementation/THEMED_PLACEHOLDERS_SUMMARY.md)** - Dynamic placeholder images
+- **[Chef System Summary](implementation/CHEF_SYSTEM_SUMMARY.md)** - Chef system overview
+- **[Epicurious Implementation](implementation/EPICURIOUS_IMPLEMENTATION_SUMMARY.md)** - Epicurious dataset integration
 - **[ISR Implementation](../reference/ISR_IMPLEMENTATION_SUMMARY.md)** - Incremental Static Regeneration
 - **[Pagination](../reference/PAGINATION_IMPLEMENTATION.md)** - Recipe list pagination
 
@@ -368,9 +374,14 @@ pnpm test:unit             # Unit tests (Vitest)
 
 ### Recent Deliverables
 
-- **[Chef Content Deliverables](../../DELIVERABLES.md)** - Chef system completion report
-- **[Synthetic User Seeding](../../SYNTHETIC_USER_SEEDING_DELIVERABLES.md)** - Test data generation
-- **[Mobile Parity Phase 1](../../docs/MOBILE_PARITY_PHASE1_COMPLETE.md)** - Mobile optimization
+- **[Chef Content Deliverables](reports/DELIVERABLES.md)** - Chef system completion report
+- **[Synthetic User Seeding](reports/SYNTHETIC_USER_SEEDING_DELIVERABLES.md)** - Test data generation
+- **[Lidia AI Image Generation](reports/LIDIA_AI_IMAGE_GENERATION_REPORT.md)** - AI image generation report
+- **[Lidia Audit Executive Summary](reports/LIDIA_AUDIT_EXECUTIVE_SUMMARY.md)** - Content audit summary
+- **[Lidia Content Audit](reports/LIDIA_CONTENT_AUDIT_DELIVERABLE.md)** - Detailed content audit
+- **[Lidia Image Generation Summary](reports/LIDIA_IMAGE_GENERATION_SUMMARY.md)** - Image generation process
+- **[Nancy Silverton Scraping](reports/NANCY_SILVERTON_SCRAPING_REPORT.md)** - Chef recipe scraping report
+- **[Mobile Parity Phase 1](reports/MOBILE_PARITY_PHASE1_COMPLETE.md)** - Mobile optimization
 
 ---
 
