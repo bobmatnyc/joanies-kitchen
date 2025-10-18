@@ -18,7 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
@@ -28,6 +28,7 @@ import { getProfileByUserId } from '@/app/actions/user-profiles';
 import { FlagImageButton } from '@/components/admin/FlagImageButton';
 import { AddToCollectionButton } from '@/components/collections/AddToCollectionButton';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
+import { BackToChef } from '@/components/recipe/BackToChef';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { IngredientsList } from '@/components/recipe/IngredientsList';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
@@ -86,6 +87,11 @@ export default function RecipePage({ params }: RecipePageProps) {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Extract chef slug from URL params for back navigation
+  const fromParam = searchParams.get('from');
+  const chefSlug = fromParam?.startsWith('chef/') ? fromParam.replace('chef/', '') : null;
 
   // Safe Clerk usage - will return null values if Clerk is not configured
   let user: any = null;
@@ -291,13 +297,17 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
   if (requiresAuth && !isSignedIn) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-4xl">
-        <Link
-          href="/recipes"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Recipes
-        </Link>
+        {chefSlug ? (
+          <BackToChef chefSlug={chefSlug} />
+        ) : (
+          <Link
+            href="/recipes"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 min-h-[44px] min-w-[44px] -ml-2 pl-2 pr-4 py-2 rounded-md hover:bg-accent transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back to Recipes
+          </Link>
+        )}
 
         <Card className="max-w-md mx-auto mt-8">
           <CardHeader className="text-center">
@@ -346,13 +356,18 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Link
-        href="/recipes"
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back to Recipes
-      </Link>
+      {/* Show back to chef if coming from a chef page, otherwise back to recipes */}
+      {chefSlug ? (
+        <BackToChef chefSlug={chefSlug} />
+      ) : (
+        <Link
+          href="/recipes"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 min-h-[44px] min-w-[44px] -ml-2 pl-2 pr-4 py-2 rounded-md hover:bg-accent transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back to Recipes
+        </Link>
+      )}
 
       {/* Header */}
       <div className="mb-8">
