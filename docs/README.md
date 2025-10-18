@@ -2,6 +2,12 @@
 
 Welcome to the Joanie's Kitchen documentation. This guide will help you understand, use, and contribute to the project.
 
+## 👨‍💻 Developer Hub
+
+**NEW**: Comprehensive technical documentation for developers
+
+- **[Developer Documentation Hub](./developer/README.md)** - Complete technical guide with architecture overview, API docs, testing guides, and troubleshooting
+
 ## 🚀 Getting Started
 
 New to Joanie's Kitchen? Start here:
