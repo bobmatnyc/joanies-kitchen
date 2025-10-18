@@ -27,6 +27,10 @@ import {
   updateShoppingListSchema,
   validateInput,
 } from '@/lib/meals/validation';
+import {
+  consolidateShoppingListItems,
+  parseIngredientString,
+} from '@/lib/utils/ingredient-consolidation';
 
 /**
  * Create a new meal
@@ -361,57 +365,45 @@ export async function generateShoppingList(data: unknown) {
 
     const meal = mealResult.data;
 
-    // Consolidate ingredients from all recipes
-    const consolidatedItems: Map<string, ShoppingListItem> = new Map();
+    // Collect all ingredients from recipes with serving multipliers
+    const rawItems: ShoppingListItem[] = [];
 
     for (const { mealRecipe, recipe } of meal.recipes) {
       const ingredients = JSON.parse(recipe.ingredients);
       const multiplier = parseFloat(mealRecipe.serving_multiplier || '1');
 
-      for (const ingredient of ingredients) {
-        // Parse ingredient string (format: "quantity unit name")
-        const match = ingredient.match(/^(\d+\.?\d*)\s*([a-zA-Z]*)\s+(.+)$/);
-        if (!match) {
-          // If no quantity, just add as-is
-          const key = ingredient.toLowerCase();
-          if (consolidatedItems.has(key)) {
-            const item = consolidatedItems.get(key)!;
-            item.from_recipes.push(recipe.id);
-          } else {
-            consolidatedItems.set(key, {
-              name: ingredient,
-              quantity: 0,
-              unit: '',
-              category: 'other',
-              checked: false,
-              from_recipes: [recipe.id],
-            });
-          }
-          continue;
-        }
+      for (const ingredientStr of ingredients) {
+        // Parse ingredient using advanced parser
+        const parsed = parseIngredientString(ingredientStr);
 
-        const [, qty, unit, name] = match;
-        const quantity = parseFloat(qty) * multiplier;
-        const key = `${name.toLowerCase()}-${unit.toLowerCase()}`;
+        if (parsed) {
+          // Apply serving multiplier
+          const adjustedQuantity = parsed.quantity * multiplier;
 
-        if (consolidatedItems.has(key)) {
-          const item = consolidatedItems.get(key)!;
-          item.quantity += quantity;
-          if (!item.from_recipes.includes(recipe.id)) {
-            item.from_recipes.push(recipe.id);
-          }
+          rawItems.push({
+            name: parsed.name,
+            quantity: adjustedQuantity,
+            unit: parsed.unit,
+            category: categorizeIngredient(parsed.name),
+            checked: false,
+            from_recipes: [recipe.id],
+          });
         } else {
-          consolidatedItems.set(key, {
-            name,
-            quantity,
-            unit,
-            category: categorizeIngredient(name),
+          // Fallback for unparseable ingredients
+          rawItems.push({
+            name: ingredientStr,
+            quantity: 0,
+            unit: '',
+            category: 'other',
             checked: false,
             from_recipes: [recipe.id],
           });
         }
       }
     }
+
+    // Advanced consolidation with unit conversion and fuzzy matching
+    const consolidatedItems = consolidateShoppingListItems(rawItems);
 
     // Create shopping list
     const [newShoppingList] = await db
@@ -420,7 +412,7 @@ export async function generateShoppingList(data: unknown) {
         user_id: userId,
         meal_id: mealId,
         name: `${meal.name} - Shopping List`,
-        items: JSON.stringify(Array.from(consolidatedItems.values())),
+        items: JSON.stringify(consolidatedItems),
         status: 'draft',
       })
       .returning();

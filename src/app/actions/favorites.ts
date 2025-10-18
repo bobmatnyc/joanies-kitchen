@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -53,6 +53,14 @@ export async function addFavorite(recipeId: string) {
       })
       .returning();
 
+    // Increment recipe like_count
+    await db
+      .update(recipes)
+      .set({
+        like_count: sql`${recipes.like_count} + 1`,
+      })
+      .where(eq(recipes.id, recipeId));
+
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);
 
@@ -83,6 +91,14 @@ export async function removeFavorite(recipeId: string) {
     await db
       .delete(favorites)
       .where(and(eq(favorites.user_id, userId), eq(favorites.recipe_id, recipeId)));
+
+    // Decrement recipe like_count (don't go below 0)
+    await db
+      .update(recipes)
+      .set({
+        like_count: sql`GREATEST(${recipes.like_count} - 1, 0)`,
+      })
+      .where(eq(recipes.id, recipeId));
 
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);

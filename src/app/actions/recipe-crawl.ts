@@ -430,6 +430,9 @@ export async function storeRecipe(
         image_flagged_for_regeneration: false,
         image_regeneration_requested_at: null,
         image_regeneration_requested_by: null,
+        like_count: 0,
+        fork_count: 0,
+        collection_count: 0,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -652,6 +655,9 @@ async function storeRecipeWithWeek(
         image_flagged_for_regeneration: false,
         image_regeneration_requested_at: null,
         image_regeneration_requested_by: null,
+        like_count: 0,
+        fork_count: 0,
+        collection_count: 0,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
