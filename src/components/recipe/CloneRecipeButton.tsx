@@ -25,6 +25,7 @@ interface CloneRecipeButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showIcon?: boolean;
+  className?: string;
 }
 
 export function CloneRecipeButton({
@@ -35,6 +36,7 @@ export function CloneRecipeButton({
   variant = 'outline',
   size = 'default',
   showIcon = true,
+  className,
 }: CloneRecipeButtonProps) {
   const router = useRouter();
   const [isCloning, setIsCloning] = useState(false);
@@ -44,19 +46,23 @@ export function CloneRecipeButton({
     return null;
   }
 
+  const iconOnly = size === 'icon';
+
   // Require sign-in
   if (!currentUserId) {
     return (
       <Button
         variant={variant}
         size={size}
+        className={className}
         onClick={() => {
           toast.error('Please sign in to clone recipes');
           router.push('/sign-in');
         }}
+        title={iconOnly ? 'Fork Recipe' : undefined}
       >
-        {showIcon && <span className="mr-2">🍴</span>}
-        Fork Recipe
+        {showIcon && <span className={iconOnly ? '' : 'mr-2'}>🍴</span>}
+        {!iconOnly && 'Fork Recipe'}
       </Button>
     );
   }
@@ -85,9 +91,15 @@ export function CloneRecipeButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant={variant} size={size} disabled={isCloning}>
-          {showIcon && <span className="mr-2">🍴</span>}
-          {isCloning ? 'Cloning...' : 'Fork Recipe'}
+        <Button
+          variant={variant}
+          size={size}
+          className={className}
+          disabled={isCloning}
+          title={iconOnly ? 'Fork Recipe' : undefined}
+        >
+          {showIcon && <span className={iconOnly ? '' : 'mr-2'}>🍴</span>}
+          {!iconOnly && (isCloning ? 'Cloning...' : 'Fork Recipe')}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

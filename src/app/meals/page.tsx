@@ -1,11 +1,8 @@
-import { Plus, Utensils } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
 import { getUserMeals } from '@/app/actions/meals';
-import { MealCard } from '@/components/meals/MealCard';
+import { MealsList } from '@/components/meals/MealsList';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -19,69 +16,19 @@ interface PageProps {
   searchParams: Promise<{ type?: string }>;
 }
 
-async function MealsList({ mealType }: { mealType?: string }) {
-  const result = await getUserMeals(mealType ? { mealType: mealType as any } : undefined);
-
-  if (!result.success || !result.data) {
-    return (
-      <Card className="border-dashed border-jk-sage/50">
-        <CardContent className="text-center py-12">
-          <p className="text-jk-charcoal/60 font-body">Failed to load meals</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const meals = result.data;
-
-  if (meals.length === 0) {
-    return (
-      <Card className="border-dashed border-jk-sage/50">
-        <CardContent className="text-center py-12">
-          <Utensils className="w-16 h-16 mx-auto mb-4 text-jk-sage" />
-          <h3 className="text-xl font-heading text-jk-olive mb-2">No meals yet</h3>
-          <p className="text-jk-charcoal/60 font-body mb-6">
-            Create your first meal to start planning!
-          </p>
-          <Link href="/meals/new">
-            <Button className="bg-jk-tomato hover:bg-jk-tomato/90 text-white min-h-[44px] font-ui">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Meal
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {meals.map((meal) => (
-        <MealCard key={meal.id} meal={meal} />
-      ))}
-    </div>
-  );
-}
-
-function MealsListSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[...Array(6)].map((_, i) => (
-        <Card key={i} className="h-64 animate-pulse bg-jk-sage/5 border-jk-sage/30" />
-      ))}
-    </div>
-  );
-}
-
 export default async function MealsPage({ searchParams }: PageProps) {
   const { userId } = await auth();
-
-  if (!userId) {
-    redirect('/sign-in');
-  }
-
   const params = await searchParams;
   const mealType = params.type || 'all';
+
+  // For authenticated users, fetch meals from database
+  let initialMeals: any[] = [];
+  if (userId) {
+    const result = await getUserMeals(mealType !== 'all' ? { mealType: mealType as any } : undefined);
+    if (result.success && result.data) {
+      initialMeals = result.data;
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -130,9 +77,7 @@ export default async function MealsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Meals list */}
-      <Suspense fallback={<MealsListSkeleton />}>
-        <MealsList mealType={mealType === 'all' ? undefined : mealType} />
-      </Suspense>
+      <MealsList initialMeals={initialMeals} mealType={mealType} />
     </div>
   );
 }

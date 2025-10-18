@@ -389,10 +389,199 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
         </Link>
       )}
 
-      {/* Header */}
+      {/* Header - Full-width hero section with overlaid controls */}
       <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
+        <div className="relative bg-gradient-to-br from-background via-background to-muted/20 dark:from-background dark:via-background dark:to-muted/10 rounded-lg p-6 sm:p-8">
+          {/* Overlaid controls - top right */}
+          <div className="absolute top-4 right-4 z-10 flex flex-wrap gap-2 justify-end max-w-[calc(100%-2rem)]">
+            {/* Mobile: Icon-only buttons */}
+            <div className="flex flex-wrap gap-2 sm:hidden">
+              {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
+              {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+              {!isOwner && (
+                <CloneRecipeButton
+                  recipeId={recipe.id}
+                  recipeName={recipe.name}
+                  currentUserId={user?.id}
+                  recipeOwnerId={recipe.user_id}
+                  variant="outline"
+                  size="icon"
+                  showIcon={true}
+                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                />
+              )}
+              {isUserAdmin && (
+                <FlagImageButton
+                  recipeId={recipe.id}
+                  recipeName={recipe.name}
+                  isFlagged={recipe.image_flagged_for_regeneration || false}
+                />
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyRecipe}
+                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                title="Copy Recipe"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              {isOwner && (
+                <>
+                  <Link href={editUrl}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={deleting}
+                    className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+              <div className="relative group">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={exporting}
+                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                  title="Export"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
+                  <button
+                    onClick={handleExportMarkdown}
+                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
+                    disabled={exporting}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export as Markdown
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
+                    disabled={exporting}
+                  >
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export as PDF
+                  </button>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => window.print()}
+                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                title="Print"
+              >
+                <Printer className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Desktop: Full buttons with labels */}
+            <div className="hidden sm:flex flex-wrap gap-2">
+              {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
+              {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+              {!isOwner && (
+                <CloneRecipeButton
+                  recipeId={recipe.id}
+                  recipeName={recipe.name}
+                  currentUserId={user?.id}
+                  recipeOwnerId={recipe.user_id}
+                  variant="outline"
+                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                />
+              )}
+              {isUserAdmin && (
+                <FlagImageButton
+                  recipeId={recipe.id}
+                  recipeName={recipe.name}
+                  isFlagged={recipe.image_flagged_for_regeneration || false}
+                />
+              )}
+              <Button
+                variant="outline"
+                onClick={handleCopyRecipe}
+                className="flex items-center gap-2 backdrop-blur-sm bg-background/80 hover:bg-background/90"
+              >
+                <Copy className="h-4 w-4" />
+                Copy Recipe
+              </Button>
+              {isOwner && (
+                <>
+                  <Link href={editUrl}>
+                    <Button
+                      variant="outline"
+                      className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={deleting}
+                    className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </>
+              )}
+              <div className="relative group">
+                <Button
+                  variant="outline"
+                  disabled={exporting}
+                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {exporting ? 'Exporting...' : 'Export'}
+                </Button>
+                <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
+                  <button
+                    onClick={handleExportMarkdown}
+                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
+                    disabled={exporting}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export as Markdown
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
+                    disabled={exporting}
+                  >
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export as PDF
+                  </button>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => window.print()}
+                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Button>
+            </div>
+          </div>
+
+          {/* Full-width title and description */}
+          <div className="pr-24 sm:pr-0 sm:max-w-[calc(100%-200px)]">
             <h1 className="text-4xl font-bold mb-2">{recipe.name}</h1>
             {recipe.description && (
               <p className="text-lg text-muted-foreground">{recipe.description}</p>
@@ -418,88 +607,6 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Favorite Button */}
-            {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-
-            {/* Add to Collection Button */}
-            {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
-
-            {/* Clone Recipe Button (only for other people's recipes) */}
-            {!isOwner && (
-              <CloneRecipeButton
-                recipeId={recipe.id}
-                recipeName={recipe.name}
-                currentUserId={user?.id}
-                recipeOwnerId={recipe.user_id}
-                variant="outline"
-              />
-            )}
-
-            {/* Admin Image Flagging */}
-            {isUserAdmin && (
-              <FlagImageButton
-                recipeId={recipe.id}
-                recipeName={recipe.name}
-                isFlagged={recipe.image_flagged_for_regeneration || false}
-              />
-            )}
-
-            <Button
-              variant="outline"
-              onClick={handleCopyRecipe}
-              className="flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Recipe
-            </Button>
-            {isOwner && (
-              <>
-                <Link href={editUrl}>
-                  <Button variant="outline">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteDialog(true)}
-                  disabled={deleting}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-              </>
-            )}
-            <div className="relative group">
-              <Button variant="outline" disabled={exporting}>
-                <Download className="w-4 h-4 mr-2" />
-                {exporting ? 'Exporting...' : 'Export'}
-              </Button>
-              <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                <button
-                  onClick={handleExportMarkdown}
-                  className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                  disabled={exporting}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export as Markdown
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                  disabled={exporting}
-                >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  Export as PDF
-                </button>
-              </div>
-            </div>
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer className="w-4 h-4 mr-2" />
-              Print
-            </Button>
           </div>
         </div>
 

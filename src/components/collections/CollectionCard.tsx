@@ -9,6 +9,11 @@ interface CollectionCardProps {
   collection: Collection & {
     ownerUsername?: string;
     ownerDisplayName?: string;
+    recipes?: Array<{
+      images?: string | null;
+      image_url?: string | null;
+      name?: string;
+    }>;
   };
   showAuthor?: boolean;
   showActions?: boolean;
@@ -27,17 +32,58 @@ export function CollectionCard({
     ? `/collections/${collection.ownerUsername}/${collection.slug}`
     : `/collections/${collection.id}`;
 
+  // Generate cover image from first 4 recipes
+  const recipeImages: string[] = [];
+  if (collection.recipes && collection.recipes.length > 0) {
+    for (let i = 0; i < Math.min(4, collection.recipes.length); i++) {
+      const recipe = collection.recipes[i];
+      try {
+        const images = recipe.images ? JSON.parse(recipe.images as string) : [];
+        const imageUrl = images[0] || recipe.image_url;
+        if (imageUrl) {
+          recipeImages.push(imageUrl);
+        }
+      } catch (e) {
+        console.warn('Failed to parse recipe images:', e);
+      }
+    }
+  }
+
+  const hasCoverImages = recipeImages.length > 0;
+  const showCoverImage = collection.cover_image_url || hasCoverImages;
+
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       {/* Cover Image or Placeholder */}
       <Link href={collectionUrl}>
-        <div className="relative h-48 bg-gradient-to-br from-orange-200 via-pink-200 to-purple-200 flex items-center justify-center">
+        <div className="relative h-48 bg-gradient-to-br from-orange-200 via-pink-200 to-purple-200 flex items-center justify-center overflow-hidden">
           {collection.cover_image_url ? (
             <img
               src={collection.cover_image_url}
               alt={collection.name}
               className="w-full h-full object-cover"
             />
+          ) : hasCoverImages ? (
+            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-gray-200">
+              {recipeImages.map((imageUrl, index) => (
+                <div key={index} className="relative bg-gray-100">
+                  <img
+                    src={imageUrl}
+                    alt={`Recipe ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+              {/* Fill remaining spots with placeholder */}
+              {Array.from({ length: 4 - recipeImages.length }).map((_, index) => (
+                <div
+                  key={`placeholder-${index}`}
+                  className="bg-gradient-to-br from-jk-sage/20 to-jk-clay/20 flex items-center justify-center"
+                >
+                  <BookOpen className="w-8 h-8 text-gray-400" />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="text-center">
               <BookOpen className="w-16 h-16 text-white/80 mx-auto mb-2" />
