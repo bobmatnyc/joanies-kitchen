@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -9,17 +10,25 @@ import { getRecipes } from '@/app/actions/recipes';
 import { Button } from '@/components/ui/button';
 import type { Recipe } from '@/lib/db/schema';
 import { isValidCourseCategory, isValidMealType } from '@/lib/meals/type-guards';
+import {
+  addRecipeToGuestMeal,
+  createGuestMeal,
+  type GuestMealRecipe,
+} from '@/lib/utils/guest-meals';
 import { AiRecipeSuggestions } from './AiRecipeSuggestions';
 import { MealFormFields } from './MealFormFields';
 import { RecipeSearchDialog } from './RecipeSearchDialog';
+import { SignInToSaveDialog } from './SignInToSaveDialog';
 import { type MealRecipeWithDetails, SelectedRecipesList } from './SelectedRecipesList';
 
 export function MealBuilder() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true);
   const [open, setOpen] = useState(false);
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -153,16 +162,63 @@ export function MealBuilder() {
         return;
       }
 
+      // Validate meal type
+      if (!isValidMealType(mealType)) {
+        toast.error(`Invalid meal type: ${mealType}`);
+        return;
+      }
+
+      // Guest mode: store locally and show sign-in dialog
+      if (!userId) {
+        try {
+          const guestMeal = createGuestMeal({
+            name: name.trim(),
+            description: description.trim() || null,
+            meal_type: mealType,
+            serves,
+            occasion: occasion.trim() || null,
+            tags: tags.length > 0 ? JSON.stringify(tags) : null,
+            is_template: false,
+            is_public: false,
+            total_prep_time: null,
+            total_cook_time: null,
+            estimated_total_cost: null,
+            estimated_cost_per_serving: null,
+            price_estimation_date: null,
+            price_estimation_confidence: null,
+          });
+
+          // Add recipes to guest meal
+          for (const mealRecipe of selectedRecipes) {
+            const guestMealRecipe: Omit<GuestMealRecipe, 'id' | 'created_at'> = {
+              meal_id: guestMeal.id,
+              recipe_id: mealRecipe.recipe_id,
+              course_category: mealRecipe.course_category || 'main',
+              display_order: mealRecipe.display_order || 0,
+              serving_multiplier: mealRecipe.serving_multiplier || '1.00',
+              preparation_notes: null,
+            };
+            addRecipeToGuestMeal(guestMealRecipe);
+          }
+
+          toast.success('Meal saved in browser!');
+          setShowSignInDialog(true);
+
+          // Wait a moment then redirect
+          setTimeout(() => {
+            router.push(`/meals/${guestMeal.id}`);
+          }, 500);
+        } catch (error) {
+          console.error('Error creating guest meal:', error);
+          toast.error('Failed to create meal');
+        }
+        return;
+      }
+
+      // Authenticated mode: save to database
       setIsLoading(true);
 
       try {
-        // Validate meal type
-        if (!isValidMealType(mealType)) {
-          toast.error(`Invalid meal type: ${mealType}`);
-          setIsLoading(false);
-          return;
-        }
-
         // Create the meal
         const mealResult = await createMeal({
           name: name.trim(),
@@ -202,13 +258,19 @@ export function MealBuilder() {
         setIsLoading(false);
       }
     },
-    [name, description, mealType, serves, occasion, tags, selectedRecipes, router]
+    [name, description, mealType, serves, occasion, tags, selectedRecipes, router, userId]
   );
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-      {/* Meal Details Section */}
-      <MealFormFields
+    <>
+      <SignInToSaveDialog
+        open={showSignInDialog}
+        onOpenChange={setShowSignInDialog}
+        returnUrl="/meals"
+      />
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Meal Details Section */}
+        <MealFormFields
         name={name}
         description={description}
         mealType={mealType}
@@ -271,5 +333,6 @@ export function MealBuilder() {
         </Button>
       </div>
     </form>
+    </>
   );
 }

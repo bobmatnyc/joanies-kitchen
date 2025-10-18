@@ -1,5 +1,4 @@
 import { ChefHat, LayoutTemplate, Loader2 } from 'lucide-react';
-import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { MealBuilder } from '@/components/meals/MealBuilder';
 import { MealTemplateSelector } from '@/components/meals/MealTemplateSelector';
@@ -15,12 +14,6 @@ function LoadingSkeleton() {
 }
 
 export default async function NewMealPage() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect('/sign-in');
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}

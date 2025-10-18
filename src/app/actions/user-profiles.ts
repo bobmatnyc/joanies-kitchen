@@ -246,9 +246,8 @@ export async function updateProfileSettings(settings: { isPublic?: boolean }) {
 // ============================================================================
 
 /**
- * Get basic profile statistics
- * This is a simplified version for Phase 1
- * Full statistics table will be added in Phase 3
+ * Get profile statistics with real counts
+ * Computes statistics from recipes and collections tables
  */
 export async function getProfileStats(username: string) {
   try {
@@ -258,19 +257,39 @@ export async function getProfileStats(username: string) {
       return null;
     }
 
-    // For Phase 1, we'll just return basic computed stats
-    // Phase 3 will add a dedicated profile_statistics table
+    // Import tables and functions
+    const { recipes } = await import('@/lib/db/schema');
+    const { collections } = await import('@/lib/db/user-discovery-schema');
+    const { and, eq, sql } = await import('drizzle-orm');
+
+    // Get recipe counts (total and public)
+    const [recipeCounts] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        public: sql<number>`count(*) FILTER (WHERE ${recipes.is_public} = true)::int`,
+      })
+      .from(recipes)
+      .where(eq(recipes.user_id, profile.user_id));
+
+    // Get collection counts (total and public)
+    const [collectionCounts] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        public: sql<number>`count(*) FILTER (WHERE ${collections.is_public} = true)::int`,
+      })
+      .from(collections)
+      .where(eq(collections.user_id, profile.user_id));
+
     const stats = {
       username: profile.username,
       displayName: profile.display_name,
       joinedDate: profile.created_at,
       isPublic: profile.is_public,
       specialties: profile.specialties || [],
-      // These will be computed from other tables once we have recipes linked to profiles
-      recipesCreated: 0,
-      publicRecipes: 0,
-      collectionsCreated: 0,
-      publicCollections: 0,
+      recipesCreated: recipeCounts?.total || 0,
+      publicRecipes: recipeCounts?.public || 0,
+      collectionsCreated: collectionCounts?.total || 0,
+      publicCollections: collectionCounts?.public || 0,
     };
 
     return stats;

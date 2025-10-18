@@ -433,6 +433,10 @@ export async function storeRecipe(
         like_count: 0,
         fork_count: 0,
         collection_count: 0,
+        instruction_metadata: null,
+        instruction_metadata_version: null,
+        instruction_metadata_generated_at: null,
+        instruction_metadata_model: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -658,6 +662,10 @@ async function storeRecipeWithWeek(
         like_count: 0,
         fork_count: 0,
         collection_count: 0,
+        instruction_metadata: null,
+        instruction_metadata_version: null,
+        instruction_metadata_generated_at: null,
+        instruction_metadata_model: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`

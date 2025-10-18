@@ -1,8 +1,9 @@
 'use client';
 
-import { ChefHat, Clock, Star, Users } from 'lucide-react';
+import { ChefHat, Clock, GitFork, Heart, Star, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
@@ -85,6 +86,11 @@ export function RecipeCard({
             loading="lazy"
             quality={75}
           />
+          {/* Favorite Button - Top Left */}
+          <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
+            <FavoriteButton recipeId={recipe.id} variant="default" size="icon" />
+          </div>
+
           {images.length > 1 && (
             <Badge
               className="absolute bottom-2 left-2 bg-jk-clay/90 text-white"
@@ -254,11 +260,35 @@ export function RecipeCard({
           )}
         </div>
 
-        {/* Cuisine aligned to bottom */}
+        {/* Cuisine */}
         {recipe.cuisine && (
-          <div className="flex items-center gap-1 text-xs md:text-sm text-jk-charcoal/60 font-ui mt-auto pt-3">
+          <div className="flex items-center gap-1 text-xs md:text-sm text-jk-charcoal/60 font-ui mt-auto pt-2">
             <ChefHat className="w-3.5 h-3.5 md:w-4 md:h-4 text-jk-clay" />
             <span>{recipe.cuisine}</span>
+          </div>
+        )}
+
+        {/* Engagement Metrics */}
+        {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
+          <div className="flex items-center gap-3 text-xs text-jk-charcoal/50 font-ui mt-2 pt-2 border-t border-jk-sage/20">
+            {recipe.like_count > 0 && (
+              <div className="flex items-center gap-1" title={`${recipe.like_count} likes`}>
+                <Heart className="w-3 h-3 text-red-500 fill-current" />
+                <span>{recipe.like_count}</span>
+              </div>
+            )}
+            {recipe.fork_count > 0 && (
+              <div className="flex items-center gap-1" title={`${recipe.fork_count} forks`}>
+                <GitFork className="w-3 h-3 text-jk-clay" />
+                <span>{recipe.fork_count}</span>
+              </div>
+            )}
+            {recipe.collection_count > 0 && (
+              <div className="flex items-center gap-1" title={`In ${recipe.collection_count} collections`}>
+                <Star className="w-3 h-3 text-amber-500" />
+                <span>{recipe.collection_count}</span>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

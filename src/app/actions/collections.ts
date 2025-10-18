@@ -208,7 +208,7 @@ export async function deleteCollection(collectionId: string) {
 // ============================================================================
 
 /**
- * Get user's collections
+ * Get user's collections with recipe preview images
  */
 export async function getUserCollections(targetUserId?: string) {
   try {
@@ -233,7 +233,29 @@ export async function getUserCollections(targetUserId?: string) {
       )
       .orderBy(desc(collections.created_at));
 
-    return userCollections;
+    // For each collection, fetch first 4 recipes for cover image generation
+    const collectionsWithRecipes = await Promise.all(
+      userCollections.map(async (collection) => {
+        const previewRecipes = await db
+          .select({
+            images: recipes.images,
+            image_url: recipes.image_url,
+            name: recipes.name,
+          })
+          .from(collectionRecipes)
+          .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
+          .where(eq(collectionRecipes.collection_id, collection.id))
+          .orderBy(collectionRecipes.position)
+          .limit(4);
+
+        return {
+          ...collection,
+          recipes: previewRecipes,
+        };
+      })
+    );
+
+    return collectionsWithRecipes;
   } catch (error) {
     console.error('Error fetching user collections:', error);
     return [];
@@ -351,7 +373,7 @@ export async function getCollectionBySlug(username: string, slug: string) {
 }
 
 /**
- * Get public collections (browse/discover)
+ * Get public collections (browse/discover) with recipe preview images
  */
 export async function getPublicCollections(limit = 20, offset = 0) {
   try {
@@ -367,11 +389,31 @@ export async function getPublicCollections(limit = 20, offset = 0) {
       .limit(limit)
       .offset(offset);
 
-    return publicCollections.map((c) => ({
-      ...c.collection,
-      ownerUsername: c.profile.username,
-      ownerDisplayName: c.profile.display_name,
-    }));
+    // For each collection, fetch first 4 recipes for cover image generation
+    const collectionsWithRecipes = await Promise.all(
+      publicCollections.map(async (c) => {
+        const previewRecipes = await db
+          .select({
+            images: recipes.images,
+            image_url: recipes.image_url,
+            name: recipes.name,
+          })
+          .from(collectionRecipes)
+          .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
+          .where(eq(collectionRecipes.collection_id, c.collection.id))
+          .orderBy(collectionRecipes.position)
+          .limit(4);
+
+        return {
+          ...c.collection,
+          ownerUsername: c.profile.username,
+          ownerDisplayName: c.profile.display_name,
+          recipes: previewRecipes,
+        };
+      })
+    );
+
+    return collectionsWithRecipes;
   } catch (error) {
     console.error('Error fetching public collections:', error);
     return [];

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
 import { MobileNav } from '@/components/mobile/MobileNav';
 import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
@@ -140,6 +141,9 @@ export default function RootLayout({
 
           {/* Profile Completion Banner */}
           <ProfileCompletionBanner />
+
+          {/* Guest Data Migration Dialog */}
+          <GuestDataMigration />
 
           <main className="min-h-screen bg-jk-linen">{children}</main>
 

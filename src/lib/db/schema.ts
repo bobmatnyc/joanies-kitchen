@@ -94,6 +94,12 @@ export const recipes = pgTable(
     like_count: integer('like_count').default(0).notNull(), // Total likes from recipeLikes table
     fork_count: integer('fork_count').default(0).notNull(), // Times this recipe has been cloned
     collection_count: integer('collection_count').default(0).notNull(), // Times added to collections
+
+    // Instruction classification metadata (AI-powered step analysis)
+    instruction_metadata: text('instruction_metadata'), // JSONB array of InstructionMetadata
+    instruction_metadata_version: varchar('instruction_metadata_version', { length: 20 }), // Schema version (e.g., "1.0.0")
+    instruction_metadata_generated_at: timestamp('instruction_metadata_generated_at'), // When classification was done
+    instruction_metadata_model: varchar('instruction_metadata_model', { length: 100 }), // Model used (e.g., "google/gemini-2.0-flash-exp:free")
   },
   (table) => ({
     // Performance indexes for pagination and filtering
@@ -118,6 +124,9 @@ export const recipes = pgTable(
       table.fork_count.desc(),
       table.collection_count.desc()
     ), // Index for sorting by engagement
+    instructionMetadataIdx: index('idx_recipes_instruction_metadata').on(
+      table.instruction_metadata
+    ), // GIN index for JSONB queries (created via SQL)
   })
 );
 

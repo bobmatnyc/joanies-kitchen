@@ -27,10 +27,18 @@ export function ProfileDisplay({ profile, stats, isOwnProfile = false }: Profile
       {/* Header Section */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          {/* Avatar Placeholder */}
-          <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-pink-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-            {profile.display_name.charAt(0).toUpperCase()}
-          </div>
+          {/* Avatar */}
+          {profile.profile_image_url ? (
+            <img
+              src={profile.profile_image_url}
+              alt={profile.display_name}
+              className="w-24 h-24 rounded-full object-cover border-2 border-jk-sage/20"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-pink-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+              {profile.display_name.charAt(0).toUpperCase()}
+            </div>
+          )}
 
           {/* Profile Info */}
           <div>
@@ -64,11 +72,15 @@ export function ProfileDisplay({ profile, stats, isOwnProfile = false }: Profile
           </div>
         </div>
 
-        {/* Edit Button (only for own profile) */}
-        {isOwnProfile && (
+        {/* Actions */}
+        {isOwnProfile ? (
           <Link href="/profile/edit">
             <Button variant="outline">Edit Profile</Button>
           </Link>
+        ) : (
+          <Button variant="outline" disabled title="Follow feature coming soon!">
+            Follow
+          </Button>
         )}
       </div>
 
@@ -101,22 +113,32 @@ export function ProfileDisplay({ profile, stats, isOwnProfile = false }: Profile
         <div className="border-t pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.publicRecipes}</div>
-              <div className="text-sm text-gray-600">Recipes</div>
+              <div className="text-2xl font-bold text-jk-olive">{stats.publicRecipes}</div>
+              <div className="text-sm text-gray-600">
+                {stats.publicRecipes === 1 ? 'Recipe' : 'Recipes'}
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.publicCollections}</div>
-              <div className="text-sm text-gray-600">Collections</div>
+              <div className="text-2xl font-bold text-jk-olive">{stats.publicCollections}</div>
+              <div className="text-sm text-gray-600">
+                {stats.publicCollections === 1 ? 'Collection' : 'Collections'}
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">0</div>
-              <div className="text-sm text-gray-600">Followers</div>
+            <div className="text-center" title="Follow system coming soon!">
+              <div className="text-2xl font-bold text-gray-400">0</div>
+              <div className="text-sm text-gray-400">Followers</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">0</div>
-              <div className="text-sm text-gray-600">Following</div>
+            <div className="text-center" title="Follow system coming soon!">
+              <div className="text-2xl font-bold text-gray-400">0</div>
+              <div className="text-sm text-gray-400">Following</div>
             </div>
           </div>
+          {isOwnProfile && stats.recipesCreated !== stats.publicRecipes && (
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              You have {stats.recipesCreated - stats.publicRecipes} private{' '}
+              {stats.recipesCreated - stats.publicRecipes === 1 ? 'recipe' : 'recipes'}
+            </p>
+          )}
         </div>
       )}
     </div>
