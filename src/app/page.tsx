@@ -53,6 +53,61 @@ export default async function Home() {
   }
   return (
     <div className="min-h-screen">
+      {/* Hero Section - Joanie's Kitchen */}
+      <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
+        {/* Background Images Slideshow - Auto-discovered from /public/backgrounds/ */}
+        <HeroBackgroundSlideshow
+          images={backgroundImages}
+          displayDuration={6000}
+          fadeDuration={2000}
+        />
+
+        <MobileContainer maxWidth="xl" className="relative z-10 text-center">
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/ai-tomato-logo.png"
+              alt="Joanie's Kitchen - AI Tomato Logo"
+              width={120}
+              height={120}
+              priority
+              className="h-28 w-28 object-contain"
+            />
+          </div>
+          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 text-jk-linen">
+            Joanie's Kitchen
+          </h1>
+          <p className="font-body text-xl sm:text-2xl md:text-3xl text-jk-sage italic mb-3">
+            From Garden to Table — with Heart and Soil
+          </p>
+          <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
+            Celebrate cooking with the seasons. Your personal recipe collection and AI-powered
+            kitchen companion.
+          </p>
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target"
+              asChild
+            >
+              <Link href="/discover">
+                <Sparkles className="h-5 w-5" />
+                Discover Recipes
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target"
+              asChild
+            >
+              <Link href="/recipes">
+                <BookOpen className="h-5 w-5 mr-2" />
+                My Recipes
+              </Link>
+            </Button>
+          </div>
+        </MobileContainer>
+      </section>
+
       {/* Vector Search Section */}
       <section className="bg-gradient-to-b from-jk-sage/10 to-white py-8 md:py-12">
         <MobileContainer maxWidth="2xl">
@@ -118,61 +173,6 @@ export default async function Home() {
         </MobileContainer>
       </section>
 
-      {/* Hero Section - Joanie's Kitchen */}
-      <section className="relative overflow-hidden bg-jk-olive text-jk-linen py-12 md:py-20">
-        {/* Background Images Slideshow - Auto-discovered from /public/backgrounds/ */}
-        <HeroBackgroundSlideshow
-          images={backgroundImages}
-          displayDuration={6000}
-          fadeDuration={2000}
-        />
-
-        <MobileContainer maxWidth="xl" className="relative z-10 text-center">
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/ai-tomato-logo.png"
-              alt="Joanie's Kitchen - AI Tomato Logo"
-              width={120}
-              height={120}
-              priority
-              className="h-28 w-28 object-contain"
-            />
-          </div>
-          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 text-jk-linen">
-            Joanie's Kitchen
-          </h1>
-          <p className="font-body text-xl sm:text-2xl md:text-3xl text-jk-sage italic mb-3">
-            From Garden to Table — with Heart and Soil
-          </p>
-          <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
-            Celebrate cooking with the seasons. Your personal recipe collection and AI-powered
-            kitchen companion.
-          </p>
-          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target"
-              asChild
-            >
-              <Link href="/discover">
-                <Sparkles className="h-5 w-5" />
-                Discover Recipes
-              </Link>
-            </Button>
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target"
-              asChild
-            >
-              <Link href="/recipes">
-                <BookOpen className="h-5 w-5 mr-2" />
-                My Recipes
-              </Link>
-            </Button>
-          </div>
-        </MobileContainer>
-      </section>
-
       <MobileContainer className="py-12 md:py-16">
         {/* Welcome Message */}
         <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
@@ -187,69 +187,6 @@ export default async function Home() {
         </div>
 
         <MobileSpacer size="sm" />
-
-        {/* Features Grid with Parchment Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
-          <Link href="/discover" className="block h-full">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Sparkles className="h-8 w-8 text-jk-tomato mb-2" />
-                <CardTitle className="font-heading text-jk-olive">Seasonal Discovery</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="font-body text-jk-charcoal/70">
-                  Discover recipes that celebrate what's fresh and in season. Let our AI guide you
-                  to wholesome, flavorful meals.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/recipes" className="block h-full">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <BookOpen className="h-8 w-8 text-jk-clay mb-2" />
-                <CardTitle className="font-heading text-jk-olive">Your Recipe Garden</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="font-body text-jk-charcoal/70">
-                  Nurture your collection of cherished recipes. Browse, organize, and tend to your
-                  culinary favorites.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/meals" className="block h-full">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Calendar className="h-8 w-8 text-jk-clay mb-2" />
-                <CardTitle className="font-heading text-jk-olive">Plan Meals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="font-body text-jk-charcoal/70">
-                  Create complete meals, generate shopping lists, and organize your weekly menu with
-                  ease.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/recipes/new" className="block h-full">
-            <Card className="recipe-card h-full cursor-pointer border-jk-sage hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <ChefHat className="h-8 w-8 text-jk-olive mb-2" />
-                <CardTitle className="font-heading text-jk-olive">Plant a Recipe</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="font-body text-jk-charcoal/70">
-                  Add your family treasures and personal creations. Each recipe is a seed for
-                  delicious memories.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
 
         {/* Top Recipes Preview */}
         {topRecipes.length > 0 && (
