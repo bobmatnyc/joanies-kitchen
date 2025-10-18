@@ -22,3 +22,5 @@ export {
   DetailedSimilarityBadge,
   SimilarityBadge,
 } from './SimilarityBadge';
+// Vector Search Component (Homepage)
+export { VectorSearchBar } from './VectorSearchBar';

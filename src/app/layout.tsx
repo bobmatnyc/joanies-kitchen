@@ -12,10 +12,6 @@ import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionB
 import { Button } from '@/components/ui/button';
 import './globals.css';
 
-// Note: Removed root-level force-dynamic to allow per-page ISR optimization
-// Pages with user-specific data will set force-dynamic individually
-// Public/static pages can now benefit from Incremental Static Regeneration (ISR)
-
 // Joanie's Kitchen Typography
 const playfair = Playfair_Display({
   variable: '--font-heading',
@@ -88,14 +84,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      <html lang="en">
-        <head>
-          {/* Preconnect to external domains for faster resource loading */}
-          <link rel="preconnect" href="https://images.unsplash.com" />
-          <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        </head>
-        <body className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}>
+    <html lang="en">
+      <head>
+        {/* Preconnect to external domains for faster resource loading */}
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+      </head>
+      <body className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}>
+        <AuthProvider>
           {/* Navigation Header - Joanie's Kitchen */}
           <header className="bg-jk-olive border-b border-jk-sage shadow-sm">
             <div className="container mx-auto px-4">
@@ -161,8 +157,8 @@ export default function RootLayout({
 
           <Toaster position="bottom-right" richColors />
           <SpeedInsights />
-        </body>
-      </html>
-    </AuthProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

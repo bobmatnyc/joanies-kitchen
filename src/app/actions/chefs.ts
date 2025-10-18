@@ -188,6 +188,11 @@ export async function getAllChefs() {
       specialties: chef.specialties,
       isVerified: chef.is_verified,
       recipeCount: chef.recipe_count,
+      latitude: chef.latitude,
+      longitude: chef.longitude,
+      locationCity: chef.location_city,
+      locationState: chef.location_state,
+      locationCountry: chef.location_country,
     }));
 
     return { success: true, chefs: transformedChefs };

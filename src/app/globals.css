@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap");
 
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -390,4 +391,42 @@ a[role="button"] {
     transform: scale(0.98);
     transition: transform 0.1s ease-in-out;
   }
+}
+
+/* Leaflet Map Custom Styles - Match Joanie's Kitchen Theme */
+.leaflet-popup-content-wrapper {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(91, 96, 73, 0.2);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body), serif;
+  color: var(--jk-charcoal);
+}
+
+.leaflet-popup-tip {
+  background-color: white;
+  border: 1px solid rgba(91, 96, 73, 0.2);
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--jk-olive);
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--jk-tomato);
+}
+
+/* Custom marker cluster styles (if needed in future) */
+.marker-cluster {
+  background-color: rgba(167, 190, 164, 0.6);
+}
+
+.marker-cluster div {
+  background-color: rgba(91, 96, 73, 0.8);
+  color: white;
 }

@@ -92,64 +92,8 @@ export type Ingredient = typeof ingredients.$inferSelect;
 export type NewIngredient = typeof ingredients.$inferInsert;
 
 // Zod validation schemas
-export const insertIngredientSchema = createInsertSchema(ingredients, {
-  name: z
-    .string()
-    .min(2, 'Ingredient name must be at least 2 characters')
-    .max(100, 'Ingredient name must be at most 100 characters')
-    .transform((val) => val.toLowerCase().trim()), // Normalize to lowercase
-  display_name: z
-    .string()
-    .min(2, 'Display name must be at least 2 characters')
-    .max(100, 'Display name must be at most 100 characters')
-    .trim(),
-  category: z
-    .enum([
-      'vegetables',
-      'proteins',
-      'dairy',
-      'grains',
-      'spices',
-      'condiments',
-      'herbs',
-      'fruits',
-      'nuts',
-      'oils',
-      'sweeteners',
-      'baking',
-      'beverages',
-      'seafood',
-      'meat',
-      'poultry',
-      'legumes',
-      'pasta',
-      'other',
-    ])
-    .optional(),
-  common_units: z
-    .string()
-    .refine((val) => {
-      try {
-        const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string');
-      } catch {
-        return false;
-      }
-    }, 'common_units must be a JSON array of strings')
-    .optional(),
-  aliases: z
-    .string()
-    .refine((val) => {
-      try {
-        const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string');
-      } catch {
-        return false;
-      }
-    }, 'aliases must be a JSON array of strings')
-    .optional(),
-  typical_unit: z.string().max(20, 'Typical unit must be at most 20 characters').optional(),
-});
+// Simplified for Zod v3 compatibility - using drizzle-zod's generated schema as-is
+export const insertIngredientSchema = createInsertSchema(ingredients);
 
 export const selectIngredientSchema = createSelectSchema(ingredients);
 
@@ -218,16 +162,8 @@ export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
 export type NewRecipeIngredient = typeof recipeIngredients.$inferInsert;
 
 // Zod validation schemas
-export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients, {
-  amount: z.string().max(50, 'Amount must be at most 50 characters').optional(),
-  unit: z.string().max(50, 'Unit must be at most 50 characters').optional(),
-  preparation: z.string().max(200, 'Preparation must be at most 200 characters').optional(),
-  ingredient_group: z
-    .string()
-    .max(100, 'Ingredient group must be at most 100 characters')
-    .optional(),
-  position: z.number().int().min(0, 'Position must be non-negative').default(0),
-});
+// Simplified for Zod v3 compatibility
+export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients);
 
 export const selectRecipeIngredientSchema = createSelectSchema(recipeIngredients);
 

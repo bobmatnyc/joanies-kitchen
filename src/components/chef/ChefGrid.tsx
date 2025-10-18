@@ -12,6 +12,11 @@ interface Chef {
   profileImageUrl: string | null;
   specialties: string[] | null;
   isVerified: boolean | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  locationCity?: string | null;
+  locationState?: string | null;
+  locationCountry?: string | null;
 }
 
 interface ChefGridProps {

@@ -480,3 +480,185 @@ export function findSimilar<T extends { embedding: number[] }>(
 
   return withSimilarity.sort((a, b) => b.similarity - a.similarity).slice(0, topK);
 }
+
+/**
+ * Builds the text representation of a meal for embedding generation
+ * Combines name, description, tags, and recipe information
+ *
+ * @param meal - Meal object to build text from
+ * @param recipeNames - Names of recipes in the meal (optional)
+ * @returns Combined text string for embedding
+ */
+export function buildMealEmbeddingText(meal: any, recipeNames: string[] = []): string {
+  const parts: string[] = [];
+
+  // Add meal name (most important)
+  if (meal.name) {
+    parts.push(meal.name);
+  }
+
+  // Add description
+  if (meal.description) {
+    parts.push(meal.description);
+  }
+
+  // Add meal type
+  if (meal.meal_type) {
+    parts.push(`Type: ${meal.meal_type}`);
+  }
+
+  // Add occasion
+  if (meal.occasion) {
+    parts.push(`Occasion: ${meal.occasion}`);
+  }
+
+  // Add tags
+  if (meal.tags) {
+    try {
+      const tags = typeof meal.tags === 'string' ? JSON.parse(meal.tags) : meal.tags;
+      if (Array.isArray(tags) && tags.length > 0) {
+        parts.push(`Tags: ${tags.join(', ')}`);
+      }
+    } catch (error) {
+      console.warn('Failed to parse meal tags:', error);
+    }
+  }
+
+  // Add recipe names if provided
+  if (recipeNames.length > 0) {
+    parts.push(`Recipes: ${recipeNames.join(', ')}`);
+  }
+
+  // Add serving information
+  if (meal.serves) {
+    parts.push(`Serves: ${meal.serves}`);
+  }
+
+  return parts.filter(Boolean).join('. ').trim();
+}
+
+/**
+ * Generates an embedding specifically for a meal
+ * Combines meal metadata into optimal text representation
+ *
+ * @param meal - Meal object to generate embedding for
+ * @param recipeNames - Names of recipes in the meal
+ * @param options - Generation options
+ * @returns Embedding result with vector, text, and model name
+ *
+ * @example
+ * const result = await generateMealEmbedding(meal, ['Roast Chicken', 'Mashed Potatoes']);
+ * console.log(result.embedding.length); // 384
+ */
+export async function generateMealEmbedding(
+  meal: any,
+  recipeNames: string[] = [],
+  options?: EmbeddingGenerationOptions
+): Promise<RecipeEmbeddingResult> {
+  const embeddingText = buildMealEmbeddingText(meal, recipeNames);
+
+  if (!embeddingText) {
+    throw new EmbeddingError(
+      'Cannot generate embedding: meal has no content',
+      'VALIDATION_ERROR',
+      { mealId: meal.id }
+    );
+  }
+
+  const embedding = await generateEmbedding(embeddingText, options);
+
+  return {
+    embedding,
+    embeddingText,
+    modelName: MODEL_NAME,
+  };
+}
+
+/**
+ * Builds the text representation of a chef for embedding generation
+ * Combines name, bio, specialties, and cuisine information
+ *
+ * @param chef - Chef object to build text from
+ * @returns Combined text string for embedding
+ */
+export function buildChefEmbeddingText(chef: any): string {
+  const parts: string[] = [];
+
+  // Add chef name (most important)
+  if (chef.name) {
+    parts.push(chef.name);
+  }
+
+  // Add display name if different
+  if (chef.display_name && chef.display_name !== chef.name) {
+    parts.push(chef.display_name);
+  }
+
+  // Add bio
+  if (chef.bio) {
+    parts.push(chef.bio);
+  }
+
+  // Add specialties
+  if (chef.specialties) {
+    try {
+      const specialties = Array.isArray(chef.specialties)
+        ? chef.specialties
+        : typeof chef.specialties === 'string'
+          ? JSON.parse(chef.specialties)
+          : [];
+      if (specialties.length > 0) {
+        parts.push(`Specialties: ${specialties.join(', ')}`);
+      }
+    } catch (error) {
+      console.warn('Failed to parse chef specialties:', error);
+    }
+  }
+
+  // Add location information if available
+  if (chef.location_city || chef.location_state || chef.location_country) {
+    const location = [chef.location_city, chef.location_state, chef.location_country]
+      .filter(Boolean)
+      .join(', ');
+    if (location) {
+      parts.push(`Location: ${location}`);
+    }
+  }
+
+  return parts.filter(Boolean).join('. ').trim();
+}
+
+/**
+ * Generates an embedding specifically for a chef
+ * Combines chef metadata into optimal text representation
+ *
+ * @param chef - Chef object to generate embedding for
+ * @param options - Generation options
+ * @returns Embedding result with vector, text, and model name
+ *
+ * @example
+ * const result = await generateChefEmbedding(chef);
+ * console.log(result.embedding.length); // 384
+ */
+export async function generateChefEmbedding(
+  chef: any,
+  options?: EmbeddingGenerationOptions
+): Promise<RecipeEmbeddingResult> {
+  const embeddingText = buildChefEmbeddingText(chef);
+
+  if (!embeddingText) {
+    throw new EmbeddingError(
+      'Cannot generate embedding: chef has no content',
+      'VALIDATION_ERROR',
+      { chefId: chef.id }
+    );
+  }
+
+  const embedding = await generateEmbedding(embeddingText, options);
+
+  return {
+    embedding,
+    embeddingText,
+    modelName: MODEL_NAME,
+  };
+}

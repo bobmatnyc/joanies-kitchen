@@ -297,34 +297,7 @@
 - ⏳ Serving size selector (number of people: 2, 4, 6, 8, 10+)
 - ⏳ Meal preview/menu view
 
-**Database Schema:**
-```sql
-CREATE TABLE meals (
-  id UUID PRIMARY KEY,
-  user_id VARCHAR(255),  -- NULL for anonymous users
-  name VARCHAR(255) NOT NULL,
-  occasion VARCHAR(100) NOT NULL,
-  servings INTEGER NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE meal_recipes (
-  id UUID PRIMARY KEY,
-  meal_id UUID REFERENCES meals(id) ON DELETE CASCADE,
-  recipe_id UUID REFERENCES recipes(id) ON DELETE CASCADE,
-  course_type VARCHAR(50) NOT NULL,  -- appetizer, main, side, dessert
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE meal_occasions (
-  id UUID PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL,
-  tags TEXT[],  -- array of tags
-  is_holiday BOOLEAN DEFAULT FALSE,
-  season VARCHAR(20)  -- spring, summer, fall, winter
-);
-```
+**Database Schema:** Implemented in `src/lib/db/meals-schema.ts`
 
 ### AI Integration (GPT-4/Claude) - **1 week**
 
