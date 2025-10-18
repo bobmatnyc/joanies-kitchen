@@ -9,6 +9,23 @@ const nextConfig: NextConfig = {
     // Disable optimizeCss due to critters dependency issue
     // optimizeCss: true,
     optimizePackageImports: ['lucide-react', 'react-icons', '@radix-ui/react-icons'],
+    // Turbopack stability improvements
+    turbo: {
+      resolveAlias: {
+        // Ensure consistent module resolution
+        '@': './src',
+      },
+    },
+  },
+  // Enable webpack cache for better stability when not using Turbopack
+  webpack: (config, { isServer }) => {
+    // Improve file watching stability
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+      ignored: ['**/node_modules', '**/.next'],
+    };
+    return config;
   },
   skipMiddlewareUrlNormalize: true,
   skipTrailingSlashRedirect: true,

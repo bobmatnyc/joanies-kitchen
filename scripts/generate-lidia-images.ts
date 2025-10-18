@@ -27,7 +27,7 @@ import { join } from 'node:path';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
-import { chefs } from '@/lib/db/chef-schema';
+import { chefs, chefRecipes } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
 // Configuration
@@ -270,18 +270,24 @@ async function main() {
     console.log(`   Slug: ${lidia.slug}`);
     console.log(`   Recipe Count: ${lidia.recipe_count || 0}\n`);
 
-    // Step 2: Query recipes without images
+    // Step 2: Query recipes without images (via chef_recipes join table)
     console.log('🔍 Step 2: Finding recipes without images...\n');
 
-    const recipesWithoutImages = await db
-      .select()
-      .from(recipes)
+    const recipesResult = await db
+      .select({
+        recipe: recipes,
+      })
+      .from(chefRecipes)
+      .innerJoin(recipes, eq(chefRecipes.recipe_id, recipes.id))
       .where(
         and(
-          eq(recipes.chef_id, lidia.id),
+          eq(chefRecipes.chef_id, lidia.id),
           or(isNull(recipes.images), eq(recipes.images, '[]'), eq(recipes.images, ''))
         )
       );
+
+    // Extract recipes from join result
+    const recipesWithoutImages = recipesResult.map((r) => r.recipe);
 
     console.log(`📊 Found ${recipesWithoutImages.length} recipes without images\n`);
 

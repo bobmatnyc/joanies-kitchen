@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3002",
+    "dev:stable": "next dev -p 3002",
+    "dev:clean": "rm -rf .next && rm -rf node_modules/.cache && pnpm dev",
     "build": "next build",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
