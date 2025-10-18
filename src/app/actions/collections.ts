@@ -450,7 +450,16 @@ export async function addRecipeToCollection(
       })
       .where(eq(collections.id, collectionId));
 
+    // Increment recipe's collection_count
+    await db
+      .update(recipes)
+      .set({
+        collection_count: sql`${recipes.collection_count} + 1`,
+      })
+      .where(eq(recipes.id, recipeId));
+
     revalidatePath(`/collections/${collectionId}`);
+    revalidatePath(`/recipes/${recipeId}`);
 
     return { success: true, collectionRecipe: newCollectionRecipe };
   } catch (error) {
@@ -509,7 +518,16 @@ export async function removeRecipeFromCollection(collectionId: string, recipeId:
       })
       .where(eq(collections.id, collectionId));
 
+    // Decrement recipe's collection_count
+    await db
+      .update(recipes)
+      .set({
+        collection_count: sql`GREATEST(${recipes.collection_count} - 1, 0)`,
+      })
+      .where(eq(recipes.id, recipeId));
+
     revalidatePath(`/collections/${collectionId}`);
+    revalidatePath(`/recipes/${recipeId}`);
 
     return { success: true };
   } catch (error) {

@@ -89,6 +89,11 @@ export const recipes = pgTable(
     image_flagged_for_regeneration: boolean('image_flagged_for_regeneration').default(false),
     image_regeneration_requested_at: timestamp('image_regeneration_requested_at'),
     image_regeneration_requested_by: text('image_regeneration_requested_by'), // Admin user ID who flagged
+
+    // Social engagement metrics (denormalized for performance)
+    like_count: integer('like_count').default(0).notNull(), // Total likes from recipeLikes table
+    fork_count: integer('fork_count').default(0).notNull(), // Times this recipe has been cloned
+    collection_count: integer('collection_count').default(0).notNull(), // Times added to collections
   },
   (table) => ({
     // Performance indexes for pagination and filtering
@@ -108,6 +113,11 @@ export const recipes = pgTable(
     ),
     slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
     flaggedImageIdx: index('idx_recipes_flagged_images').on(table.image_flagged_for_regeneration),
+    engagementIdx: index('idx_recipes_engagement').on(
+      table.like_count.desc(),
+      table.fork_count.desc(),
+      table.collection_count.desc()
+    ), // Index for sorting by engagement
   })
 );
 

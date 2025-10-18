@@ -22,6 +22,7 @@ import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
+import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
 import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
@@ -29,8 +30,13 @@ import { FlagImageButton } from '@/components/admin/FlagImageButton';
 import { AddToCollectionButton } from '@/components/collections/AddToCollectionButton';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { BackToChef } from '@/components/recipe/BackToChef';
+import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { IngredientsList } from '@/components/recipe/IngredientsList';
+import {
+  RecipeEngagementStats,
+  RecipeForkAttribution,
+} from '@/components/recipe/RecipeEngagementStats';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,6 +92,7 @@ export default function RecipePage({ params }: RecipePageProps) {
   const [viewCount, setViewCount] = useState<number>(0);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [originalRecipe, setOriginalRecipe] = useState<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -152,6 +159,19 @@ export default function RecipePage({ params }: RecipePageProps) {
         .catch((err) => {
           console.error('Failed to fetch author profile:', err);
         });
+
+      // Fetch original recipe if this is a fork
+      if (result.data.source && result.data.source.includes('Forked from recipe ID:')) {
+        getOriginalRecipe(result.data.id)
+          .then((original) => {
+            if (original) {
+              setOriginalRecipe(parseRecipe(original));
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to fetch original recipe:', err);
+          });
+      }
 
       // Check if we accessed via UUID but recipe has a slug - redirect to slug URL
       if (isUUID(slugOrId) && result.data.slug) {
@@ -406,6 +426,17 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
             {/* Add to Collection Button */}
             {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
 
+            {/* Clone Recipe Button (only for other people's recipes) */}
+            {!isOwner && (
+              <CloneRecipeButton
+                recipeId={recipe.id}
+                recipeName={recipe.name}
+                currentUserId={user?.id}
+                recipeOwnerId={recipe.user_id}
+                variant="outline"
+              />
+            )}
+
             {/* Admin Image Flagging */}
             {isUserAdmin && (
               <FlagImageButton
@@ -624,6 +655,29 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
           </div>
         )}
       </div>
+
+      {/* Fork Attribution - show if this recipe was forked from another */}
+      {originalRecipe && (
+        <div className="mt-6">
+          <RecipeForkAttribution
+            originalRecipeName={originalRecipe.name}
+            originalRecipeId={originalRecipe.id}
+            originalRecipeSlug={originalRecipe.slug}
+          />
+        </div>
+      )}
+
+      {/* Engagement Stats */}
+      {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
+        <div className="mt-6">
+          <RecipeEngagementStats
+            likeCount={recipe.like_count || 0}
+            forkCount={recipe.fork_count || 0}
+            collectionCount={recipe.collection_count || 0}
+            recipeId={recipe.id}
+          />
+        </div>
+      )}
 
       {/* Images */}
       {(recipe.images?.length > 0 || recipe.image_url) && (
