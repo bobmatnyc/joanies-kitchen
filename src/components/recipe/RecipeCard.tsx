@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
+import { getTagLabel, normalizeTagToId } from '@/lib/tags';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface RecipeCardProps {
@@ -134,24 +135,32 @@ export function RecipeCard({
           {/* Row 1: Difficulty + Meal Type */}
           {(categorizedTags.Difficulty?.length > 0 || categorizedTags['Meal Type']?.length > 0) && (
             <div className="flex flex-wrap gap-1.5">
-              {categorizedTags.Difficulty?.map((tag, index) => (
-                <Badge
-                  key={`diff-${index}`}
-                  className={`text-xs font-ui ${getCategoryColor('Difficulty')}`}
-                  variant="outline"
-                >
-                  {tag}
-                </Badge>
-              ))}
-              {categorizedTags['Meal Type']?.map((tag, index) => (
-                <Badge
-                  key={`meal-${index}`}
-                  className={`text-xs font-ui ${getCategoryColor('Meal Type')}`}
-                  variant="outline"
-                >
-                  {tag}
-                </Badge>
-              ))}
+              {categorizedTags.Difficulty?.map((tag, index) => {
+                const tagId = normalizeTagToId(tag);
+                const label = getTagLabel(tagId);
+                return (
+                  <Badge
+                    key={`diff-${index}`}
+                    className={`text-xs font-ui ${getCategoryColor('Difficulty')}`}
+                    variant="outline"
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
+              {categorizedTags['Meal Type']?.map((tag, index) => {
+                const tagId = normalizeTagToId(tag);
+                const label = getTagLabel(tagId);
+                return (
+                  <Badge
+                    key={`meal-${index}`}
+                    className={`text-xs font-ui ${getCategoryColor('Meal Type')}`}
+                    variant="outline"
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
@@ -159,15 +168,19 @@ export function RecipeCard({
           {(categorizedTags['Main Ingredient']?.length > 0 ||
             categorizedTags.Dietary?.length > 0) && (
             <div className="flex flex-wrap gap-1.5">
-              {categorizedTags['Main Ingredient']?.slice(0, 3).map((tag, index) => (
-                <Badge
-                  key={`ing-${index}`}
-                  className={`text-xs font-ui ${getCategoryColor('Main Ingredient')}`}
-                  variant="outline"
-                >
-                  {tag}
-                </Badge>
-              ))}
+              {categorizedTags['Main Ingredient']?.slice(0, 3).map((tag, index) => {
+                const tagId = normalizeTagToId(tag);
+                const label = getTagLabel(tagId);
+                return (
+                  <Badge
+                    key={`ing-${index}`}
+                    className={`text-xs font-ui ${getCategoryColor('Main Ingredient')}`}
+                    variant="outline"
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
               {(categorizedTags['Main Ingredient']?.length || 0) > 3 && (
                 <Badge
                   className={`text-xs font-ui ${getCategoryColor('Main Ingredient')}`}
@@ -176,15 +189,19 @@ export function RecipeCard({
                   +{(categorizedTags['Main Ingredient']?.length || 0) - 3}
                 </Badge>
               )}
-              {categorizedTags.Dietary?.slice(0, 2).map((tag, index) => (
-                <Badge
-                  key={`diet-${index}`}
-                  className={`text-xs font-ui ${getCategoryColor('Dietary')}`}
-                  variant="outline"
-                >
-                  {tag}
-                </Badge>
-              ))}
+              {categorizedTags.Dietary?.slice(0, 2).map((tag, index) => {
+                const tagId = normalizeTagToId(tag);
+                const label = getTagLabel(tagId);
+                return (
+                  <Badge
+                    key={`diet-${index}`}
+                    className={`text-xs font-ui ${getCategoryColor('Dietary')}`}
+                    variant="outline"
+                  >
+                    {label}
+                  </Badge>
+                );
+              })}
               {(categorizedTags.Dietary?.length || 0) > 2 && (
                 <Badge
                   className={`text-xs font-ui ${getCategoryColor('Dietary')}`}
@@ -209,24 +226,32 @@ export function RecipeCard({
                 </span>
               </summary>
               <div className="flex flex-wrap gap-1.5 mt-2 pt-1">
-                {categorizedTags.Season?.map((tag, index) => (
-                  <Badge
-                    key={`season-${index}`}
-                    className={`text-xs font-ui ${getCategoryColor('Season')}`}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {categorizedTags.Other?.map((tag, index) => (
-                  <Badge
-                    key={`other-${index}`}
-                    className={`text-xs font-ui ${getCategoryColor('Other')}`}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+                {categorizedTags.Season?.map((tag, index) => {
+                  const tagId = normalizeTagToId(tag);
+                  const label = getTagLabel(tagId);
+                  return (
+                    <Badge
+                      key={`season-${index}`}
+                      className={`text-xs font-ui ${getCategoryColor('Season')}`}
+                      variant="outline"
+                    >
+                      {label}
+                    </Badge>
+                  );
+                })}
+                {categorizedTags.Other?.map((tag, index) => {
+                  const tagId = normalizeTagToId(tag);
+                  const label = getTagLabel(tagId);
+                  return (
+                    <Badge
+                      key={`other-${index}`}
+                      className={`text-xs font-ui ${getCategoryColor('Other')}`}
+                      variant="outline"
+                    >
+                      {label}
+                    </Badge>
+                  );
+                })}
               </div>
             </details>
           )}

@@ -90,6 +90,15 @@ export const recipes = pgTable(
     image_regeneration_requested_at: timestamp('image_regeneration_requested_at'),
     image_regeneration_requested_by: text('image_regeneration_requested_by'), // Admin user ID who flagged
 
+    // Admin content cleanup flags
+    content_flagged_for_cleanup: boolean('content_flagged_for_cleanup').default(false),
+    ingredients_need_cleanup: boolean('ingredients_need_cleanup').default(false),
+    instructions_need_cleanup: boolean('instructions_need_cleanup').default(false),
+
+    // Soft delete support
+    deleted_at: timestamp('deleted_at'), // When recipe was soft-deleted
+    deleted_by: text('deleted_by'), // Admin user ID who soft-deleted
+
     // Social engagement metrics (denormalized for performance)
     like_count: integer('like_count').default(0).notNull(), // Total likes from recipeLikes table
     fork_count: integer('fork_count').default(0).notNull(), // Times this recipe has been cloned
@@ -119,6 +128,8 @@ export const recipes = pgTable(
     ),
     slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
     flaggedImageIdx: index('idx_recipes_flagged_images').on(table.image_flagged_for_regeneration),
+    flaggedContentIdx: index('idx_recipes_flagged_content').on(table.content_flagged_for_cleanup),
+    deletedAtIdx: index('idx_recipes_deleted_at').on(table.deleted_at),
     engagementIdx: index('idx_recipes_engagement').on(
       table.like_count.desc(),
       table.fork_count.desc(),

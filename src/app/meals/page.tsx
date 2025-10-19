@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { getUserMeals } from '@/app/actions/meals';
+import { getPublicMeals } from '@/app/actions/meals';
 import { MealsList } from '@/components/meals/MealsList';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,24 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { auth } from '@/lib/auth';
 
 interface PageProps {
   searchParams: Promise<{ type?: string }>;
 }
 
 export default async function MealsPage({ searchParams }: PageProps) {
-  const { userId } = await auth();
   const params = await searchParams;
   const mealType = params.type || 'all';
 
-  // For authenticated users, fetch meals from database
+  // Fetch public meals (shared by users)
   let initialMeals: any[] = [];
-  if (userId) {
-    const result = await getUserMeals(mealType !== 'all' ? { mealType: mealType as any } : undefined);
-    if (result.success && result.data) {
-      initialMeals = result.data;
-    }
+  const result = await getPublicMeals(mealType !== 'all' ? { mealType: mealType as any } : undefined);
+  if (result.success && result.data) {
+    initialMeals = result.data;
   }
 
   return (
@@ -35,9 +31,9 @@ export default async function MealsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-heading text-jk-olive mb-2">My Meals</h1>
+          <h1 className="text-3xl md:text-4xl font-heading text-jk-olive mb-2">Browse Meals</h1>
           <p className="text-jk-charcoal/70 font-body">
-            Plan your meals and generate shopping lists
+            Discover complete meals shared by our community
           </p>
         </div>
         <Link href="/meals/new">
@@ -77,12 +73,12 @@ export default async function MealsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Meals list */}
-      <MealsList initialMeals={initialMeals} mealType={mealType} />
+      <MealsList initialMeals={initialMeals} mealType={mealType} isPublicView={true} />
     </div>
   );
 }
 
 export const metadata = {
-  title: "My Meals | Joanie's Kitchen",
-  description: 'Plan your meals and generate shopping lists',
+  title: "Browse Meals | Joanie's Kitchen",
+  description: 'Discover complete meals shared by our community',
 };

@@ -30,6 +30,8 @@
     "db:dedupe:execute": "tsx scripts/deduplicate-recipes.ts --execute",
     "db:migrate:ingredients": "tsx scripts/apply-ingredients-migration.ts",
     "db:verify:ingredients": "tsx scripts/verify-ingredients-schema.ts",
+    "db:migrate:tags": "tsx scripts/migrate-tags-to-ids.ts --apply",
+    "db:migrate:tags:dry-run": "tsx scripts/migrate-tags-to-ids.ts",
     "auth:validate": "node scripts/validate-auth.js",
     "auth:check": "node scripts/validate-auth.js",
     "chef:init": "tsx scripts/init-kenji-alt.ts",
@@ -202,6 +204,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",
+    "@next/bundle-analyzer": "^15.5.6",
     "@playwright/test": "^1.56.0",
     "@tailwindcss/postcss": "^4.1.14",
     "@testing-library/jest-dom": "^6.9.1",
