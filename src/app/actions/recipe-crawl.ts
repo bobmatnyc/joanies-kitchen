@@ -442,6 +442,15 @@ export async function storeRecipe(
         instructions_need_cleanup: false,
         deleted_at: null,
         deleted_by: null,
+        // Meal pairing metadata (v0.65.0)
+        weight_score: null,
+        richness_score: null,
+        acidity_score: null,
+        sweetness_level: null,
+        dominant_textures: null,
+        dominant_flavors: null,
+        serving_temperature: null,
+        pairing_rationale: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -676,6 +685,15 @@ async function storeRecipeWithWeek(
         instructions_need_cleanup: false,
         deleted_at: null,
         deleted_by: null,
+        // Meal pairing metadata (v0.65.0)
+        weight_score: null,
+        richness_score: null,
+        acidity_score: null,
+        sweetness_level: null,
+        dominant_textures: null,
+        dominant_flavors: null,
+        serving_temperature: null,
+        pairing_rationale: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
