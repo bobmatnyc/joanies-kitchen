@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 interface EditRecipePageProps {
   params: Promise<{
-    id: string;
+    slug: string;
   }>;
 }
 
@@ -20,14 +20,14 @@ export default async function EditRecipePage({ params }: EditRecipePageProps) {
   // Skip auth check for localhost development
   const isLocalhost = process.env.NODE_ENV === 'development';
 
-  const { id } = await params;
+  const { slug } = await params;
 
   if (!userId && !isLocalhost) {
     // Redirect to sign-in with return URL
-    redirect(`/sign-in?returnUrl=/recipes/${id}/edit`);
+    redirect(`/sign-in?returnUrl=/recipes/${slug}/edit`);
   }
 
-  const result = await getRecipe(id);
+  const result = await getRecipe(slug);
 
   if (!result.success || !result.data) {
     notFound();
@@ -38,10 +38,13 @@ export default async function EditRecipePage({ params }: EditRecipePageProps) {
     notFound();
   }
 
+  // Build back URL using slug if available, otherwise ID
+  const backUrl = result.data.slug ? `/recipes/${result.data.slug}` : `/recipes/${result.data.id}`;
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <Link
-        href={`/recipes/${id}`}
+        href={backUrl}
         className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />

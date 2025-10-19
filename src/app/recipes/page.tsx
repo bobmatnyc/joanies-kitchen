@@ -1,13 +1,8 @@
-import { ChefHat } from 'lucide-react';
-import Link from 'next/link';
 import { getRecipesPaginated, type RecipeFilters } from '@/app/actions/recipes';
 import { RecipeFilters as RecipeFiltersComponent } from '@/components/recipe/RecipeFilters';
 import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { auth } from '@/lib/auth';
 
-// Force dynamic rendering since we use authentication
+// Force dynamic rendering since we show public recipes
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
@@ -22,53 +17,12 @@ interface PageProps {
 }
 
 export default async function RecipesPage({ searchParams }: PageProps) {
-  // Check authentication
-  const { userId } = await auth();
-  const isLocalhost = process.env.NODE_ENV === 'development';
-  const isAuthenticated = userId || isLocalhost;
-
-  // If not authenticated, show sign-in prompt
-  if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Card className="max-w-md w-full">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <ChefHat className="w-8 h-8 text-primary" />
-              </div>
-              <CardTitle>Welcome to Recipe Manager</CardTitle>
-              <CardDescription>
-                Sign in to create, manage, and organize your personal recipe collection.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Link href="/sign-in" className="block">
-                <Button className="w-full" size="lg">
-                  Sign In to Manage Recipes
-                </Button>
-              </Link>
-              <div className="text-center">
-                <Link
-                  href="/discover"
-                  className="text-sm text-muted-foreground hover:text-primary underline"
-                >
-                  Browse public recipes instead
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   // Await searchParams as it's now a Promise in Next.js 15
   const params = await searchParams;
 
-  // Build filters from URL parameters
+  // Build filters from URL parameters - ONLY public recipes
   const filters: RecipeFilters = {
-    userId: userId || undefined,
+    isPublic: true, // Only show public recipes
   };
 
   if (params.tags) {
@@ -93,7 +47,7 @@ export default async function RecipesPage({ searchParams }: PageProps) {
 
   const sort = (params.sort || 'rating') as 'rating' | 'recent' | 'name';
 
-  // Fetch initial page of recipes
+  // Fetch initial page of public recipes
   const result = await getRecipesPaginated({
     page: 1,
     limit: 24,
@@ -117,9 +71,9 @@ export default async function RecipesPage({ searchParams }: PageProps) {
     <main className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-heading text-jk-olive mb-2">My Recipes</h1>
+        <h1 className="text-4xl font-heading text-jk-olive mb-2">Browse Recipes</h1>
         <p className="text-jk-charcoal/70 font-ui">
-          {pagination.total} recipe{pagination.total !== 1 ? 's' : ''} in your collection
+          {pagination.total} public recipe{pagination.total !== 1 ? 's' : ''} shared by our community
         </p>
       </div>
 
@@ -134,7 +88,7 @@ export default async function RecipesPage({ searchParams }: PageProps) {
         initialPagination={pagination}
         filters={filters}
         sort={sort}
-        emptyMessage="No recipes found in your collection"
+        emptyMessage="No public recipes found"
       />
     </main>
   );

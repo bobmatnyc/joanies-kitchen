@@ -67,14 +67,19 @@ function ClerkAuthButtons() {
               onClick={() => router.push('/profile/edit')}
             />
             <UserButton.Action
+              label="My Recipes"
+              labelIcon={<Heart className="h-4 w-4" />}
+              onClick={() => router.push('/profile/recipes')}
+            />
+            <UserButton.Action
+              label="My Collections"
+              labelIcon={<FolderHeart className="h-4 w-4" />}
+              onClick={() => router.push('/profile/collections')}
+            />
+            <UserButton.Action
               label="Favorites"
               labelIcon={<Heart className="h-4 w-4" />}
               onClick={() => router.push('/favorites')}
-            />
-            <UserButton.Action
-              label="Collections"
-              labelIcon={<FolderHeart className="h-4 w-4" />}
-              onClick={() => router.push('/collections')}
             />
             {isAdmin && (
               <UserButton.Action

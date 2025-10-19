@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BookOpen,
   Calendar,
   ChefHat,
   FolderHeart,
@@ -20,9 +21,10 @@ import { NavLink } from '@/components/navigation/NavLink';
 export function DesktopNav() {
   return (
     <div className="hidden xl:flex items-center gap-2">
-      <NavLink href="/recipes/top-50" icon={Trophy} label="Top 50" />
+      <NavLink href="/recipes" icon={BookOpen} label="Recipes" />
       <NavLink href="/collections" icon={FolderHeart} label="Collections" />
       <NavLink href="/meals" icon={Calendar} label="Meals" />
+      <NavLink href="/recipes/top-50" icon={Trophy} label="Top 50" />
       <NavLink href="/shared" icon={Globe} label="Shared" />
       <NavLink href="/discover" icon={Sparkles} label="Discover" />
       <NavLink href="/discover/chefs" icon={ChefHat} label="Chefs" />

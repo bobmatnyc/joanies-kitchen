@@ -13,9 +13,12 @@ import {
   FileText,
   Lock,
   Printer,
+  Sparkles,
   Trash2,
   User,
   Users,
+  Utensils,
+  Apple,
 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
@@ -283,7 +286,12 @@ export default function RecipePage({ params }: RecipePageProps) {
   const handleCopyRecipe = useCallback(async () => {
     if (!recipe) return;
     try {
-      // Format recipe as text
+      // Format recipe as text - use tag labels from ontology
+      const { getTagLabel, normalizeTagToId } = await import('@/lib/tags');
+      const tagLabels = recipe.tags && recipe.tags.length > 0
+        ? recipe.tags.map((tag: string) => getTagLabel(normalizeTagToId(tag))).join(', ')
+        : '';
+
       const recipeText = `
 ${recipe.name}
 ${recipe.description ? `\n${recipe.description}\n` : ''}
@@ -295,7 +303,7 @@ ${recipe.ingredients.map((ing: string) => `• ${ing}`).join('\n')}
 
 INSTRUCTIONS:
 ${recipe.instructions.map((inst: string, i: number) => `${i + 1}. ${inst}`).join('\n')}
-${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : ''}
+${tagLabels ? `\nTags: ${tagLabels}` : ''}
       `.trim();
 
       await navigator.clipboard.writeText(recipeText);
@@ -316,6 +324,15 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
     () => (recipe?.slug ? `/recipes/${recipe.slug}/edit` : recipe?.id ? `/recipes/${recipe.id}/edit` : ''),
     [recipe]
   );
+
+  // Extract categorized tags for metadata display
+  const categorizedTags = useMemo(() => {
+    if (!recipe?.tags) return null;
+
+    // Import categorizeTags dynamically to avoid circular dependencies
+    const { categorizeTags } = require('@/lib/tag-ontology');
+    return categorizeTags(recipe.tags);
+  }, [recipe]);
 
   if (loading) {
     return (
@@ -414,6 +431,20 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
         )}
 
         {/* Utility Actions */}
+        <Link
+          href={`/recipes/${recipe.id}/similar`}
+          className="contents"
+        >
+          <Button
+            variant="outline"
+            className="min-h-[44px] min-w-[44px]"
+            aria-label="View similar recipes"
+          >
+            <Sparkles className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Similar</span>
+          </Button>
+        </Link>
+
         <Button
           variant="outline"
           onClick={handleCopyRecipe}
@@ -555,6 +586,18 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
               <span>{recipe.cuisine}</span>
             </div>
           )}
+          {categorizedTags?.['Meal Type']?.[0] && (
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Meal type: ${require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}`}>
+              <Utensils className="w-4 h-4 flex-shrink-0" />
+              <span>{require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}</span>
+            </div>
+          )}
+          {categorizedTags?.['Main Ingredient']?.[0] && (
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Main ingredient: ${require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}`}>
+              <Apple className="w-4 h-4 flex-shrink-0" />
+              <span>{require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}</span>
+            </div>
+          )}
           {totalTime > 0 && (
             <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Total time: ${totalTime} minutes`}>
               <Clock className="w-4 h-4 flex-shrink-0" />
@@ -600,7 +643,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
           )}
         </div>
 
-        {/* Semantic Tags */}
+        {/* Semantic Tags - Exclude categories shown in metadata */}
         {recipe.tags && recipe.tags.length > 0 && (
           <div className="mt-4">
             <SemanticTagDisplay
@@ -608,6 +651,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
               layout="grouped"
               showCategoryLabels
               size="md"
+              excludeCategories={['Cuisine', 'Meal Type', 'Main Ingredient', 'Difficulty']}
             />
           </div>
         )}

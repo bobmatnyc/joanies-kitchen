@@ -5,10 +5,10 @@ model: sonnet
 type: engineer
 color: purple
 category: engineering
-version: "2.0.0"
+version: "2.1.0"
 author: "Claude MPM Team"
 created_at: 2025-09-20T00:00:00.000000Z
-updated_at: 2025-10-17T00:00:00.000000Z
+updated_at: 2025-10-18T00:00:00.000000Z
 tags: nextjs,nextjs-15,react,server-components,app-router,partial-prerendering,streaming,turbo,vercel,core-web-vitals,performance
 ---
 # BASE ENGINEER Agent Instructions
@@ -449,13 +449,165 @@ Direct database/API access in async Server Components, no client-side loading st
 ### Pattern 2: Server Actions with Validation
 Progressive enhancement, Zod schemas for validation, revalidation strategies, optimistic updates on client.
 
-### Pattern 3: Partial Prerendering (PPR)
-Static shell for instant load, dynamic content streams in, optimal for dashboards and personalized content.
+### Pattern 3: Partial Prerendering (PPR) - Complete Implementation
 
-### Pattern 4: Route Handlers with Streaming
+```typescript
+// Enable in next.config.js:
+const nextConfig = {
+  experimental: {
+    ppr: true  // Enable PPR (Next.js 15+)
+  }
+}
+
+// Implementation: Static shell with streaming dynamic content
+export default function Dashboard() {
+  return (
+    <div>
+      {/* STATIC SHELL - Pre-rendered at build time */}
+      <Header />           {/* No data fetching */}
+      <Navigation />       {/* Static UI */}
+      <PageLayout>         {/* Structure only */}
+      
+        {/* DYNAMIC CONTENT - Streams in at request time */}
+        <Suspense fallback={<UserSkeleton />}>
+          <UserProfile />  {/* async Server Component */}
+        </Suspense>
+        
+        <Suspense fallback={<StatsSkeleton />}>
+          <DashboardStats /> {/* async Server Component */}
+        </Suspense>
+        
+        <Suspense fallback={<ChartSkeleton />}>
+          <AnalyticsChart /> {/* async Server Component */}
+        </Suspense>
+        
+      </PageLayout>
+    </div>
+  )
+}
+
+// Key Principles:
+// - Static parts render immediately (TTFB)
+// - Dynamic parts stream in progressively
+// - Each Suspense boundary is independent
+// - User sees layout instantly, data loads progressively
+
+// async Server Component example
+async function UserProfile() {
+  const user = await fetchUser()  // This makes it dynamic
+  return <div>{user.name}</div>
+}
+```
+
+### Pattern 4: Streaming with Granular Suspense Boundaries
+
+```typescript
+// ❌ ANTI-PATTERN: Single boundary blocks everything
+export default function SlowDashboard() {
+  return (
+    <Suspense fallback={<FullPageSkeleton />}>
+      <QuickStats />      {/* 100ms - must wait for slowest */}
+      <MediumChart />     {/* 500ms */}
+      <SlowDataTable />   {/* 2000ms - blocks everything */}
+    </Suspense>
+  )
+}
+// User sees nothing for 2 seconds
+
+// ✅ BEST PRACTICE: Granular boundaries for progressive rendering
+export default function FastDashboard() {
+  return (
+    <div>
+      {/* Synchronous content - shows immediately */}
+      <Header />
+      <PageTitle />
+      
+      {/* Fast content - own boundary */}
+      <Suspense fallback={<StatsSkeleton />}>
+        <QuickStats />  {/* 100ms - shows first */}
+      </Suspense>
+      
+      {/* Medium content - independent boundary */}
+      <Suspense fallback={<ChartSkeleton />}>
+        <MediumChart />  {/* 500ms - doesn't wait for table */}
+      </Suspense>
+      
+      {/* Slow content - doesn't block anything */}
+      <Suspense fallback={<TableSkeleton />}>
+        <SlowDataTable />  {/* 2000ms - streams last */}
+      </Suspense>
+    </div>
+  )
+}
+// User sees: Instant header → Stats at 100ms → Chart at 500ms → Table at 2s
+
+// Key Principles:
+// - One Suspense boundary per async component or group
+// - Fast content in separate boundaries from slow content
+// - Each boundary is independent (parallel, not serial)
+// - Fallbacks should match content size/shape (avoid layout shift)
+```
+
+### Pattern 5: Route Handlers with Streaming
 API routes with TypeScript, streaming responses for large datasets, proper error handling.
 
-### Pattern 5: Image Optimization
+### Pattern 6: Parallel Data Fetching (Eliminate Request Waterfalls)
+
+```typescript
+// ❌ ANTI-PATTERN: Sequential awaits create waterfall
+async function BadDashboard() {
+  const user = await fetchUser()      // Wait 100ms
+  const posts = await fetchPosts()    // Then wait 200ms
+  const comments = await fetchComments() // Then wait 150ms
+  // Total: 450ms (sequential)
+  
+  return <Dashboard user={user} posts={posts} comments={comments} />
+}
+
+// ✅ BEST PRACTICE: Promise.all for parallel fetching
+async function GoodDashboard() {
+  const [user, posts, comments] = await Promise.all([
+    fetchUser(),      // All start simultaneously
+    fetchPosts(),
+    fetchComments()
+  ])
+  // Total: ~200ms (max of all)
+  
+  return <Dashboard user={user} posts={posts} comments={comments} />
+}
+
+// ✅ ADVANCED: Start early, await later with Suspense
+function OptimalDashboard({ id }: Props) {
+  // Start fetches immediately (don't await yet)
+  const userPromise = fetchUser(id)
+  const postsPromise = fetchPosts(id)
+  
+  return (
+    <div>
+      <Suspense fallback={<UserSkeleton />}>
+        <UserSection userPromise={userPromise} />
+      </Suspense>
+      <Suspense fallback={<PostsSkeleton />}>
+        <PostsSection postsPromise={postsPromise} />
+      </Suspense>
+    </div>
+  )
+}
+
+// Component unwraps promise
+async function UserSection({ userPromise }: { userPromise: Promise<User> }) {
+  const user = await userPromise  // Await in component
+  return <div>{user.name}</div>
+}
+
+// Key Rules:
+// - Use Promise.all when data is needed at same time
+// - Start fetches early if using Suspense
+// - Avoid sequential awaits unless data is dependent
+// - Type safety: const [a, b]: [TypeA, TypeB] = await Promise.all([...])
+```
+
+### Pattern 7: Image Optimization
 Automatic format selection (WebP/AVIF), lazy loading, proper sizing, placeholder blur.
 
 ## Anti-Patterns to Avoid

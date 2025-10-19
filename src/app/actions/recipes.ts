@@ -972,3 +972,18 @@ export async function getRecipesPaginated({
     return { success: false, error: 'Failed to fetch recipes' };
   }
 }
+
+// Get total count of all recipes (system + public)
+export async function getTotalRecipeCount() {
+  try {
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(recipes)
+      .where(isNull(recipes.deleted_at));
+
+    return countResult[0]?.count || 0;
+  } catch (error) {
+    console.error('Failed to get recipe count:', error);
+    return 0;
+  }
+}
