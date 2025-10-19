@@ -386,6 +386,250 @@ export function transformOpenRecipeDBRecipe(
 }
 
 /**
+ * Tasty API Recipe Types
+ */
+export interface TastyRecipe {
+  id: number;
+  name: string;
+  description: string;
+  thumbnail_url?: string;
+  thumbnail_alt_text?: string;
+  video_url?: string;
+  original_video_url?: string;
+  keywords?: string;
+  num_servings?: number;
+  prep_time_minutes?: number;
+  cook_time_minutes?: number;
+  total_time_minutes?: number;
+  credits?: Array<{
+    name?: string;
+    type?: string;
+  }>;
+  sections?: Array<{
+    components?: Array<{
+      raw_text?: string;
+      ingredient?: {
+        name?: string;
+        display_singular?: string;
+      };
+      measurements?: Array<{
+        quantity?: string;
+        unit?: {
+          name?: string;
+          display_singular?: string;
+        };
+      }>;
+    }>;
+  }>;
+  instructions?: Array<{
+    display_text?: string;
+    position?: number;
+    start_time?: number;
+    end_time?: number;
+  }>;
+  nutrition?: {
+    calories?: number;
+    fat?: number;
+    carbohydrates?: number;
+    protein?: number;
+    fiber?: number;
+    sugar?: number;
+  };
+  tags?: Array<{
+    name?: string;
+    display_name?: string;
+    type?: string;
+  }>;
+  topics?: Array<{
+    name?: string;
+    slug?: string;
+  }>;
+  yields?: string;
+  user_ratings?: {
+    count_positive?: number;
+    count_negative?: number;
+    score?: number;
+  };
+}
+
+/**
+ * Transform Tasty recipe to our schema
+ */
+export function transformTastyRecipe(recipe: TastyRecipe, systemUserId: string) {
+  // Extract ingredients from sections
+  const ingredients: Array<{ item: string; quantity: string }> = [];
+  if (recipe.sections) {
+    for (const section of recipe.sections) {
+      if (section.components) {
+        for (const component of section.components) {
+          if (component.raw_text) {
+            ingredients.push({
+              item: component.raw_text,
+              quantity: '',
+            });
+          } else {
+            // Build ingredient from structured data
+            const ingredientName =
+              component.ingredient?.name || component.ingredient?.display_singular || 'Unknown ingredient';
+            let quantity = '';
+
+            if (component.measurements && component.measurements.length > 0) {
+              const measurement = component.measurements[0];
+              quantity = `${measurement.quantity || ''} ${measurement.unit?.display_singular || measurement.unit?.name || ''}`.trim();
+            }
+
+            ingredients.push({
+              item: ingredientName,
+              quantity,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Extract instructions and sort by position
+  let instructions: string[] = [];
+  if (recipe.instructions) {
+    instructions = recipe.instructions
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .map((inst) => inst.display_text || '')
+      .filter((text) => text.length > 0);
+  }
+
+  // Build tags from Tasty tags and topics
+  const tags: string[] = [];
+
+  // Add source tag
+  tags.push('source.tasty');
+
+  // Process Tasty tags
+  if (recipe.tags) {
+    for (const tag of recipe.tags) {
+      const tagName = tag.name || tag.display_name;
+      if (!tagName) continue;
+
+      const lowerTag = tagName.toLowerCase();
+
+      // Map to our tag taxonomy
+      if (lowerTag.includes('vegetarian')) tags.push('dietary.vegetarian');
+      else if (lowerTag.includes('vegan')) tags.push('dietary.vegan');
+      else if (lowerTag.includes('gluten')) tags.push('dietary.gluten-free');
+      else if (lowerTag.includes('dairy')) tags.push('dietary.dairy-free');
+      else if (lowerTag.includes('keto')) tags.push('dietary.keto');
+      else if (lowerTag.includes('paleo')) tags.push('dietary.paleo');
+      else if (lowerTag.includes('breakfast')) tags.push('meal-type.breakfast');
+      else if (lowerTag.includes('lunch')) tags.push('meal-type.lunch');
+      else if (lowerTag.includes('dinner')) tags.push('meal-type.dinner');
+      else if (lowerTag.includes('dessert')) tags.push('meal-type.dessert');
+      else if (lowerTag.includes('appetizer') || lowerTag.includes('starter'))
+        tags.push('meal-type.appetizer');
+      else if (lowerTag.includes('snack')) tags.push('meal-type.snack');
+      else if (lowerTag.includes('under_30_minutes') || lowerTag.includes('quick'))
+        tags.push('time.quick');
+      else if (lowerTag.includes('easy')) tags.push('difficulty.easy');
+      else if (lowerTag.includes('comfort_food')) tags.push('other.comfort-food');
+      else if (lowerTag.includes('healthy')) tags.push('other.healthy');
+      else tags.push(`other.${slugify(tagName)}`);
+    }
+  }
+
+  // Process topics (cuisines and categories)
+  if (recipe.topics) {
+    for (const topic of recipe.topics) {
+      const topicName = topic.name || topic.slug;
+      if (!topicName) continue;
+
+      const lowerTopic = topicName.toLowerCase();
+
+      // Map to cuisine tags
+      if (
+        lowerTopic.includes('italian') ||
+        lowerTopic.includes('mexican') ||
+        lowerTopic.includes('chinese') ||
+        lowerTopic.includes('japanese') ||
+        lowerTopic.includes('thai') ||
+        lowerTopic.includes('indian') ||
+        lowerTopic.includes('french') ||
+        lowerTopic.includes('american')
+      ) {
+        tags.push(`cuisine.${slugify(topicName)}`);
+      } else {
+        tags.push(`other.${slugify(topicName)}`);
+      }
+    }
+  }
+
+  // Add video tag if video URL exists
+  if (recipe.video_url || recipe.original_video_url) {
+    tags.push('media.video');
+  }
+
+  // Calculate difficulty based on prep time and number of instructions
+  let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
+  const totalTime = recipe.total_time_minutes || 0;
+  const stepCount = instructions.length;
+
+  if (totalTime <= 30 && stepCount <= 5) {
+    difficulty = 'easy';
+  } else if (totalTime >= 90 || stepCount >= 12) {
+    difficulty = 'hard';
+  }
+
+  // Build nutrition info
+  let nutritionInfo = null;
+  if (recipe.nutrition) {
+    nutritionInfo = JSON.stringify({
+      calories: recipe.nutrition.calories || null,
+      fat: recipe.nutrition.fat || null,
+      carbohydrates: recipe.nutrition.carbohydrates || null,
+      protein: recipe.nutrition.protein || null,
+      fiber: recipe.nutrition.fiber || null,
+      sugar: recipe.nutrition.sugar || null,
+    });
+  }
+
+  // Get video URL (prefer video_url over original_video_url)
+  const videoUrl = recipe.video_url || recipe.original_video_url || null;
+
+  // Get image URL
+  const imageUrl = recipe.thumbnail_url || null;
+
+  // Generate description if not provided
+  const description =
+    recipe.description ||
+    (instructions.length > 0
+      ? instructions[0].substring(0, 200) + (instructions[0].length > 200 ? '...' : '')
+      : '');
+
+  return {
+    id: randomUUID(),
+    user_id: systemUserId,
+    name: recipe.name,
+    slug: slugify(recipe.name),
+    description,
+    ingredients: JSON.stringify(ingredients),
+    instructions: JSON.stringify(instructions),
+    prep_time: recipe.prep_time_minutes || null,
+    cook_time: recipe.cook_time_minutes || null,
+    servings: recipe.num_servings || null,
+    difficulty,
+    image_url: imageUrl,
+    images: imageUrl ? JSON.stringify([imageUrl]) : null,
+    video_url: videoUrl, // NEW: Tasty's unique video URL
+    tags: JSON.stringify(tags),
+    nutrition_info: nutritionInfo,
+    is_system_recipe: true,
+    is_public: true,
+    is_ai_generated: false,
+    license: 'FAIR_USE' as const, // Tasty content used under fair use
+    source: `Tasty (BuzzFeed) - ID: ${recipe.id}`,
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+}
+
+/**
  * Transform USDA recipe to our schema
  */
 export function transformUSDARecipe(
