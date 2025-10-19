@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Plus, Tag, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,8 +54,12 @@ export function SemanticTagInput({
   const [popularTags] = useState(() => getPopularTags(15));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Normalize all selected tags to ID format for consistency
-  const normalizedSelectedTags = selectedTags.map(tag => normalizeTagToId(tag));
+  // Memoize normalized selected tags to prevent infinite loop in useEffect
+  // This ensures a stable reference that only changes when selectedTags actually changes
+  const normalizedSelectedTags = useMemo(
+    () => selectedTags.map(tag => normalizeTagToId(tag)),
+    [selectedTags]
+  );
 
   // Update suggestions when input changes
   useEffect(() => {

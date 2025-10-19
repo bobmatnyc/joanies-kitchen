@@ -93,7 +93,9 @@ export function MealTemplateSelector() {
 
     if (result.success && result.data) {
       toast.success('Meal created from template!');
-      router.push(`/meals/${result.data.id}`);
+      // Use slug for navigation if available
+      const mealPath = result.data.slug || result.data.id;
+      router.push(`/meals/${mealPath}`);
     } else {
       toast.error(result.error || 'Failed to create meal');
       setIsCreating(false);

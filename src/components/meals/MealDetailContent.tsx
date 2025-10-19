@@ -59,13 +59,13 @@ const COURSE_LABELS: Record<string, string> = {
 };
 
 interface MealDetailContentProps {
-  mealId: string;
+  mealSlug: string;
   initialMeal?: MealWithRecipes | null;
   initialShoppingList?: ShoppingList | null;
 }
 
 export function MealDetailContent({
-  mealId,
+  mealSlug,
   initialMeal,
   initialShoppingList,
 }: MealDetailContentProps) {
@@ -79,17 +79,20 @@ export function MealDetailContent({
   const [recipes, setRecipes] = useState<Map<string, Recipe>>(new Map());
   const [isGeneratingList, setIsGeneratingList] = useState(false);
 
+  // Extract meal ID for guest mode (slug might be guest ID)
+  const mealId = meal?.id || mealSlug;
+
   // Load guest data if not authenticated
   useEffect(() => {
     async function loadGuestData() {
       if (!userId) {
-        const guestMeal = getGuestMealById(mealId);
+        const guestMeal = getGuestMealById(mealSlug);
         if (guestMeal) {
           setMeal(guestMeal);
 
           // Load shopping lists for this meal
           const guestLists = getGuestShoppingLists();
-          const mealList = guestLists.find((list) => list.meal_id === mealId);
+          const mealList = guestLists.find((list) => list.meal_id === mealSlug);
           if (mealList) {
             setShoppingList(mealList);
           }
@@ -115,7 +118,7 @@ export function MealDetailContent({
     }
 
     loadGuestData();
-  }, [userId, mealId]);
+  }, [userId, mealSlug]);
 
   if (!meal) {
     return (
@@ -241,8 +244,8 @@ export function MealDetailContent({
                 </div>
               )}
             </div>
-            {userId && (
-              <Link href={`/meals/${mealId}/edit`}>
+            {userId && meal.slug && (
+              <Link href={`/meals/${meal.slug}/edit`}>
                 <Button
                   variant="outline"
                   className="min-h-[44px] touch-manipulation border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui"

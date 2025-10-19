@@ -24,6 +24,8 @@
     "db:cleanup": "tsx scripts/cleanup-unused-tables.ts",
     "db:migrate:shared": "tsx scripts/apply-shared-recipes-migration.ts",
     "db:seed:system": "tsx scripts/populate-system-recipes.ts",
+    "db:seed:sources": "tsx scripts/seed-recipe-sources.ts",
+    "db:verify:sources": "tsx scripts/verify-recipe-sources.ts",
     "db:indexes": "tsx scripts/apply-performance-indexes.ts",
     "db:check-duplicates": "tsx scripts/check-duplicates-simple.ts",
     "db:dedupe": "tsx scripts/deduplicate-recipes.ts",

@@ -251,7 +251,9 @@ export function MealBuilder() {
         }
 
         toast.success('Meal created successfully!');
-        router.push(`/meals/${mealId}`);
+        // Use slug for navigation if available
+        const mealPath = mealResult.data.slug || mealId;
+        router.push(`/meals/${mealPath}`);
       } catch (error) {
         console.error('Error creating meal:', error);
         toast.error('Failed to create meal');

@@ -2,6 +2,7 @@
 export type {
   NewRecipe,
   Recipe,
+  RecipeLicense,
 } from '@/lib/db/schema';
 
 // UI-specific types

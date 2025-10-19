@@ -668,14 +668,15 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         </div>
       )}
 
-      {/* Engagement Stats */}
+      {/* Engagement Stats - Inline row display */}
       {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
-        <div className="mb-8">
+        <div className="mb-6">
           <RecipeEngagementStats
             likeCount={recipe.like_count || 0}
             forkCount={recipe.fork_count || 0}
             collectionCount={recipe.collection_count || 0}
             recipeId={recipe.id}
+            inline
           />
         </div>
       )}

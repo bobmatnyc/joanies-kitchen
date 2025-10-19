@@ -13,11 +13,12 @@ import { Button } from '@/components/ui/button';
  */
 export default async function Top50Page() {
   // Fetch all data server-side in parallel
-  const [allRecipes, mainsRecipes, sidesRecipes, dessertsRecipes, totalRecipes] = await Promise.all([
+  const [allRecipes, mainsRecipes, sidesRecipes, dessertsRecipes, appetizersRecipes, totalRecipes] = await Promise.all([
     getTopRatedRecipes({ limit: 50, category: 'all' }),
     getTopRatedRecipes({ limit: 50, category: 'mains' }),
     getTopRatedRecipes({ limit: 50, category: 'sides' }),
     getTopRatedRecipes({ limit: 50, category: 'desserts' }),
+    getTopRatedRecipes({ limit: 50, category: 'appetizers' }),
     getTotalRecipeCount(),
   ]);
 
@@ -60,13 +61,14 @@ export default async function Top50Page() {
         }, 0) / allRecipes.length;
 
   return (
-    <main className="relative min-h-screen bg-jk-linen">
-      {/* Animated Background - Client Component */}
-      <AnimatedRecipeBackground images={backgroundImages} />
+    <main className="page-main relative min-h-screen bg-jk-linen">
+      {/* Hero Section with Animated Background */}
+      <div className="top-50-hero relative bg-gradient-to-br from-jk-olive to-jk-clay py-20 overflow-hidden">
+        {/* Animated Background - Client Component */}
+        <AnimatedRecipeBackground images={backgroundImages} />
 
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-jk-olive to-jk-clay py-20">
-        <div className="container mx-auto px-4 text-center">
+        {/* Hero Content */}
+        <div className="hero-content relative z-10 container mx-auto px-4 text-center">
           <Trophy className="h-16 w-16 text-jk-linen mx-auto mb-6" />
           <h1 className="text-5xl font-heading text-jk-linen mb-4">Top 50 Recipes</h1>
           <p className="text-xl text-jk-sage max-w-2xl mx-auto font-body">
@@ -76,42 +78,43 @@ export default async function Top50Page() {
       </div>
 
       {/* Stats Bar */}
-      <div className="bg-white border-b border-jk-sage/20 py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-8 text-center">
-            <div>
-              <div className="text-3xl font-heading text-jk-olive">{allRecipes.length}</div>
-              <div className="text-sm text-jk-charcoal/60 font-ui">Top Recipes</div>
+      <div className="stats-bar bg-white border-b border-jk-sage/20 py-6">
+        <div className="stats-container container mx-auto px-4">
+          <div className="stats-grid flex flex-wrap justify-center gap-8 text-center">
+            <div className="stat-item">
+              <div className="stat-value text-3xl font-heading text-jk-olive">{allRecipes.length}</div>
+              <div className="stat-label text-sm text-jk-charcoal/60 font-ui">Top Recipes</div>
             </div>
-            <div>
-              <div className="text-3xl font-heading text-jk-olive">
+            <div className="stat-item">
+              <div className="stat-value text-3xl font-heading text-jk-olive">
                 {avgRating > 0 ? avgRating.toFixed(1) : '—'}
               </div>
-              <div className="text-sm text-jk-charcoal/60 font-ui">Average Rating</div>
+              <div className="stat-label text-sm text-jk-charcoal/60 font-ui">Average Rating</div>
             </div>
-            <div>
-              <div className="text-3xl font-heading text-jk-olive">
+            <div className="stat-item">
+              <div className="stat-value text-3xl font-heading text-jk-olive">
                 {totalRecipes.toLocaleString()}+
               </div>
-              <div className="text-sm text-jk-charcoal/60 font-ui">Total Recipes</div>
+              <div className="stat-label text-sm text-jk-charcoal/60 font-ui">Total Recipes</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Category Tabs - Client Component */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="tabs-section container mx-auto px-4 py-12">
         <Top50Tabs
           allRecipes={allRecipes}
           mainsRecipes={mainsRecipes}
           sidesRecipes={sidesRecipes}
           dessertsRecipes={dessertsRecipes}
+          appetizersRecipes={appetizersRecipes}
         />
       </div>
 
       {/* CTA Section */}
-      <div className="bg-jk-olive/5 border-t border-jk-sage/20 py-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="cta-section bg-jk-olive/5 border-t border-jk-sage/20 py-12">
+        <div className="cta-content container mx-auto px-4 text-center">
           <h2 className="text-3xl font-heading text-jk-olive mb-4">Don't see your favorite?</h2>
           <p className="text-jk-charcoal/70 mb-6 max-w-xl mx-auto font-body">
             We're constantly adding new recipes. Rate the ones you try to help them climb the

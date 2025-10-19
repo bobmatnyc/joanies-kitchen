@@ -1,7 +1,9 @@
 #!/usr/bin/env tsx
 /**
- * Generate AI image for Baked Ziti recipe
+ * Generate AI image for a specific recipe
  * Uses DALL-E 3 via OpenAI SDK
+ *
+ * Update RECIPE_ID constant below to target a different recipe
  */
 
 import 'dotenv/config';
@@ -11,7 +13,7 @@ import OpenAI from 'openai';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 
-const RECIPE_ID = '38142f14-3cda-4771-a826-f575f73a8f1b';
+const RECIPE_ID = '88dc01d6-1245-4b1d-b71c-c45e7fe2bf39';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -23,20 +25,20 @@ async function generateImageWithAI(): Promise<string> {
     throw new Error('OPENAI_API_KEY not found');
   }
 
-  // Detailed prompt for Baked Ziti - Italian-American classic
-  const prompt = `Professional food photography of Baked Ziti, Italian-American cuisine.
-Setting: rustic wooden table in a cozy Italian trattoria with checkered tablecloth, warm candlelight.
-Golden brown melted mozzarella cheese on top creating appetizing cheese pull,
-layered pasta tubes (ziti) with rich tomato marinara sauce,
-creamy ricotta cheese visible between layers, bubbling hot from the oven in a rustic ceramic baking dish,
-garnished with fresh basil leaves, steam rising,
+  // Detailed prompt for Barefoot Contessa's Chocolate Cake
+  const prompt = `Professional food photography of a decadent chocolate layer cake, Barefoot Contessa style.
+Setting: elegant yet cozy kitchen counter with marble surface, soft natural window light.
+Rich, moist chocolate cake with multiple layers, glossy chocolate ganache frosting,
+perfectly smooth finish with elegant drips down the sides,
+garnished with fresh berries or chocolate shavings,
 photographed from a flattering 45-degree angle with shallow depth of field,
-styled by a professional food stylist, vibrant natural colors,
+styled by a professional food stylist in Ina Garten's signature elegant-meets-approachable style,
+warm, inviting atmosphere, vibrant natural colors,
 appetizing, high-end editorial quality for a cookbook.
 NO text, NO watermarks, NO logos.
 Ultra-realistic, magazine-quality food photography.`;
 
-  console.log(`🎨 Generating AI image for Baked Ziti...`);
+  console.log(`🎨 Generating AI image for Barefoot Contessa's Chocolate Cake...`);
   console.log(`📝 Prompt: "${prompt.substring(0, 80)}..."`);
 
   try {
@@ -77,7 +79,7 @@ async function downloadAndUploadToBlob(imageUrl: string): Promise<string> {
 
     console.log(`☁️  Uploading to Vercel Blob...`);
 
-    const filename = `recipes/ai/baked-ziti-${Date.now()}.png`;
+    const filename = `recipes/ai/chocolate-cake-${Date.now()}.png`;
 
     const blob = await put(filename, buffer, {
       access: 'public',
@@ -92,15 +94,15 @@ async function downloadAndUploadToBlob(imageUrl: string): Promise<string> {
   }
 }
 
-async function generateBakedZitiImage() {
-  console.log('\n🍝 Baked Ziti Image Generation');
+async function generateChocolateCakeImage() {
+  console.log('\n🍰 Chocolate Cake Image Generation');
   console.log('═'.repeat(70));
   console.log(`Recipe ID: ${RECIPE_ID}`);
-  console.log(`Model: DALL-E 3 via OpenRouter`);
+  console.log(`Model: DALL-E 3 via OpenAI`);
   console.log(`Cost: ~$0.04 per image\n`);
 
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.error('❌ Error: OPENROUTER_API_KEY not found');
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('❌ Error: OPENAI_API_KEY not found');
     process.exit(1);
   }
 
@@ -156,7 +158,7 @@ async function generateBakedZitiImage() {
 
     console.log(`\n✅ Recipe updated successfully!`);
     console.log(`\n📸 New image: ${blobUrl}`);
-    console.log(`\n🌐 View recipe: http://localhost:3002/recipes/baked-ziti`);
+    console.log(`\n🌐 View recipe: http://localhost:3002/recipes/${RECIPE_ID}`);
     console.log(`\n💰 Estimated cost: $0.04\n`);
   } catch (error) {
     console.error('\n❌ Failed to generate image:', error);
@@ -165,7 +167,7 @@ async function generateBakedZitiImage() {
 }
 
 // Run the script
-generateBakedZitiImage()
+generateChocolateCakeImage()
   .then(() => {
     console.log('✅ Script completed successfully!\n');
     process.exit(0);

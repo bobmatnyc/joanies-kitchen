@@ -258,41 +258,261 @@
 
 ---
 
-## 🔄 Version 0.55.0 - Public Content & Social Features (NEXT - IN PROGRESS)
-*Started: October 18, 2025*
+## 🔄 Version 0.55.0 - Recipe Extraction & Content Expansion (NEXT - IN PROGRESS)
+*Started: October 18, 2025 | Timeline: 8-10 weeks*
 
-**Strategic Pivot**: Moving away from synthetic recipe generation to focus on sourcing high-quality real recipes and building social engagement features around 47 existing personas.
+**Strategic Pivot**: Scaling from 4,343 to 10,000+ recipes through systematic extraction from 60+ high-quality sources. Prioritizes legal certainty (public domain first), maintains attribution standards, and builds on existing Firecrawl integration.
 
-**Priority Order**: Phase 4 (parallel) → Phase 1 → Phase 2 → Phase 3
+**See**: `docs/scraping/recipe-extraction-technical-plan.md` for complete technical details
+**Progress Tracker**: `docs/scraping/PROGRESS.md`
 
-### Phase 4: Recipe Source Research - **IN PROGRESS** 🔄
-*Priority: CRITICAL (Parallel Task)* | *Effort: 1-2 weeks*
+**Priority Order**: Phase 1 (Public Domain) → Phase 2 (APIs) → Phase 3 (Prestige) → Phase 4 (Specialized Cuisine) → Phase 5 (QA) → Phase 6 (Deployment)
 
-**Objective**: Identify and evaluate high-quality recipe sources for importing real recipes instead of generating synthetic ones.
+### Phase 1: Public Domain Sources - **PLANNED** 📋
+*Timeline: Weeks 1-2 | Target: 3,500-4,000 recipes | Risk: LOW*
 
-- ⏳ **Source Research**
-  - Reputable recipe websites with APIs
-  - Open recipe databases
-  - Creative Commons recipe collections
-  - Public domain cookbooks
+**Objective**: Extract recipes with zero legal risk from government and educational sources.
 
-- ⏳ **Import Strategy**
-  - API integration patterns
-  - Web scraping considerations (with respect to robots.txt)
-  - Bulk import scripts
-  - Data normalization for existing schema
+- ⏳ **USDA Recipe Extraction** (2,300+ recipes)
+  - What's Cooking? USDA Mixing Bowl (~1,000 recipes)
+  - Institute of Child Nutrition Recipe Box (~800 recipes)
+  - Team Nutrition (~500 recipes)
+  - Firecrawl + Python fallback approach
+  - PUBLIC_DOMAIN license with full nutrition data
 
-- ⏳ **Legal & Licensing**
-  - Copyright review
-  - Attribution requirements
-  - Terms of service compliance
-  - Fair use considerations
+- ⏳ **University Extension Recipes** (1,000-1,500 recipes)
+  - Oregon State Extension, Cornell Cooperative Extension
+  - University of Maine, Penn State, NC State
+  - Public domain/CC-BY licensed educational recipes
+  - USDA NIFA funded content
 
-- ⏳ **Quality Standards**
-  - Recipe completeness (ingredients, instructions, images)
-  - Nutritional data availability
-  - User rating/review data
-  - Image quality and licensing
+- ⏳ **CulinaryDB Integration** (1,000+ recipes)
+  - IIIT-Delhi academic research database
+  - CSV download with 4-table structure
+  - International recipes with ingredient ontology
+  - License verification required for commercial use
+
+**Deliverables**:
+- Firecrawl extraction scripts
+- Python fallback scrapers
+- Data quality reports
+- Legal compliance documentation
+
+### Phase 2: Free API Integration - **PLANNED** 📋
+*Timeline: Weeks 2-3 | Target: 300-500 recipes | Risk: LOW*
+
+**Objective**: Add recipes via APIs with clear licensing + build nutrition enrichment infrastructure.
+
+- ⏳ **TheMealDB Integration** (~280 recipes)
+  - JSON API with Patreon supporter key ($5-20/month)
+  - Curated recipes with images and videos
+  - PATREON_SUPPORTER license
+  - Rate limiting: 1 second between requests
+
+- ⏳ **USDA FoodData Central API** (Nutrition Service)
+  - 350,000+ food items for nutrition calculation
+  - Free API (1,000 requests/hour)
+  - Enriches recipes lacking nutrition data
+  - Unit conversion system implementation
+
+- ⏳ **Nutritionix/FatSecret APIs** (Validation Service)
+  - Nutritionix: 1,000+ common dishes (5,000 req/day free)
+  - FatSecret: 17,000+ curated recipes (5,000 req/day free)
+  - Cross-reference nutrition accuracy
+  - Natural language ingredient parsing
+
+**Deliverables**:
+- API client implementations
+- Nutrition calculation service
+- Unit conversion system
+- Recipe validation infrastructure
+
+### Phase 3: Celebrity Chefs & Prestige Sources - **PLANNED** 📋
+*Timeline: Weeks 3-6 | Target: 1,000-2,000 recipes | Risk: MEDIUM*
+
+**Objective**: Extract prestige recipes with careful legal compliance and attribution.
+
+- ⏳ **Terms of Service Review Framework**
+  - Automated robots.txt checks for 60+ sources
+  - Manual ToS review documentation
+  - Schema.org detection (positive indicator)
+  - Legal decision matrix per source
+  - Partnership outreach for high-value sources
+
+- ⏳ **Recipe-Scrapers Python Library Integration**
+  - GitHub: hhursev/recipe-scrapers (supports 100+ sites)
+  - Schema.org automatic extraction
+  - Rate limiting (3 seconds minimum)
+  - Batch processing with error handling
+
+- ⏳ **High-Value Source Extraction** (ToS-approved only)
+  - James Beard Foundation: jamesbeard.org (1,000-1,500 recipes)
+  - Jacques Pépin: jacquespepin.com (300-500 recipes)
+  - Ina Garten: barefootcontessa.com (200-300 recipes)
+  - Food52: food52.com (500-800 curated/awarded)
+  - Serious Eats: seriouseats.com (300-500 tested recipes)
+  - CIA: ciafoodies.com (300-500 recipes)
+  - URL discovery → extraction → attribution → validation
+
+**Deliverables**:
+- Legal compliance framework
+- ToS review documentation
+- Python extraction environment
+- Per-source extraction scripts
+- Attribution verification reports
+
+### Phase 4: Specialized Cuisine Sources - **PLANNED** 📋
+*Timeline: Weeks 4-8 | Target: 1,500-2,000 recipes | Risk: MEDIUM*
+
+**Objective**: Fill diversity gaps with culturally authentic recipes from specialized sources.
+
+- ⏳ **Asian Cuisine** (300-400 recipes)
+  - EzyThaiCooking, Temple of Thai, Chef Lola's Kitchen (Asian section)
+  - Authentic Thai home cooking
+  - Traditional techniques and ingredients
+
+- ⏳ **African Cuisine** (200-300 recipes)
+  - Chef Lola's Kitchen (organized by country)
+  - Yummy Medley (West African focus)
+  - Regional metadata: West, East, North African
+
+- ⏳ **Latin American Cuisine** (300-400 recipes)
+  - LANIC Network directory (UT Austin)
+  - Jewish Food Society (diaspora fusion)
+  - University and cultural organization focus
+
+- ⏳ **Indigenous North American Cuisine** (150-200 recipes)
+  - First Nations Development Institute (PDF cookbooks)
+  - NATIFS, University of Kansas
+  - Food sovereignty and traditional ingredients
+
+- ⏳ **Middle Eastern Cuisine** (200-250 recipes)
+  - Feasting At Home (Lebanese, Israeli, Turkish, Persian)
+  - Fufu's Kitchen (Palestinian with cultural stories)
+
+- ⏳ **Nordic/Scandinavian Cuisine** (150-200 recipes)
+  - Nordic Food Living (5 countries)
+  - True North Kitchen
+  - New Nordic vs traditional, foraging techniques
+
+- ⏳ **Eastern European Cuisine** (200-250 recipes)
+  - Natasha's Kitchen (Russian, Ukrainian)
+  - Where Is My Spoon (Romanian, Polish, Croatian, Serbian)
+  - Regional variations and family stories
+
+**Deliverables**:
+- Cuisine-specific extraction scripts
+- Cultural metadata enrichment
+- Attribution tracking per source
+- Diversity metrics report
+
+### Phase 5: Data Processing & Quality Assurance - **ONGOING** 🔄
+*Timeline: Throughout all phases | Target: >95% validation rate*
+
+**Objective**: Validate, transform, and import all extracted recipes with quality controls.
+
+- ⏳ **Data Validation Pipeline**
+  - Zod schema for recipe structure
+  - Required fields: title, ingredients (min 2), instructions (min 2), sourceUrl, sourceName, license
+  - Optional fields: description, times, servings, nutrition, images
+  - Per-file and master validation reports
+  - Error categorization and tracking
+
+- ⏳ **Database Import Pipeline**
+  - Batch processing (50 recipes per batch)
+  - Duplicate detection by sourceUrl
+  - Chef/author record management
+  - Ingredient linkage system
+  - Nutrition data integration
+  - Import progress logging
+
+- ⏳ **Attribution Tracking System**
+  - Verify all recipes have sourceUrl + sourceName + license
+  - License breakdown reports
+  - Source-level statistics
+  - Weekly attribution audits
+  - Compliance dashboard
+
+- ⏳ **Quality Control Dashboard** (/admin/quality-control)
+  - Validation status metrics (target >95%)
+  - Attribution compliance (target 100%)
+  - Source breakdown table
+  - Recent imports view
+  - Data quality metrics (images >80%, nutrition >60%)
+  - Export capabilities
+
+**Deliverables**:
+- Validation schema and scripts
+- Import automation system
+- Attribution tracking database
+- Admin QC dashboard
+- Quality metrics reports
+
+### Phase 6: Integration Testing & Deployment - **PLANNED** 📋
+*Timeline: Week 10 | Target: Production-ready 10,000+ recipes*
+
+**Objective**: Verify complete pipeline and deploy to production.
+
+- ⏳ **End-to-End Testing**
+  - Unit tests (validation, import, attribution)
+  - Integration tests (scrape → validate → import → verify)
+  - Source-specific tests (USDA, TheMealDB, prestige, cuisine)
+  - Performance tests (<1 min validation per 1000, <5 min import per 1000)
+  - Automated test suite for CI/CD
+
+- ⏳ **Production Deployment Checklist**
+  - **Legal**: All ToS documented, attribution displayed, no prohibited sources
+  - **Quality**: >95% valid, 100% attribution, >80% images, >60% nutrition
+  - **Technical**: Database indexes, embeddings, CDN, rate limiting, monitoring
+  - **Content**: 10,000+ recipes, diversity goals met, chef profiles linked
+  - **Testing**: Search, attribution, mobile, load testing, SEO, accessibility
+  - **Monitoring**: Error tracking, performance alerts, backups, uptime
+  - Deployment runbook with rollback plan
+
+**Deliverables**:
+- Complete test suite with fixtures
+- CI/CD pipeline configuration
+- Pre-deployment checklist (completed)
+- Deployment runbook
+- Rollback procedure
+- Post-deployment monitoring
+
+### Success Metrics
+
+**Volume Metrics:**
+- ✅ Current: 4,343 recipes
+- 🎯 Target: 10,000+ recipes
+- Public domain: 3,500-4,000 (35%+)
+- API recipes: 300-500 (3-5%)
+- Prestige sources: 1,000-2,000 (15-20%)
+- Specialized cuisines: 1,500-2,000 (15-20%)
+
+**Quality Metrics:**
+- Validation pass rate: >95%
+- Complete attribution: 100%
+- Recipes with images: >80%
+- Recipes with nutrition: >60%
+- Search performance: <100ms average
+
+**Diversity Metrics:**
+- Cuisines represented: 20+ (currently 11)
+- Geographic diversity: All continents
+- Chef attribution: 1,000+ unique chefs
+- Cultural context documented: 30%+
+
+**Legal Metrics:**
+- Public domain recipes: 35%+
+- Licensed API recipes: 3-5%
+- Ethically scraped with attribution: 60%+
+- Zero prohibited sources: 100%
+- Attribution compliance: 100%
+
+---
+
+## 🔄 Version 0.6.0 - Public Content & Social Features (DEFERRED)
+*Original Target: December 2025 | Status: Deferred pending extraction completion*
+
+**Note**: Social features (Phase 1-3 from v0.55.0) moved to v0.6.0 after extraction completion. This ensures we have sufficient high-quality content before building social engagement layers.
 
 ### Phase 1: Navigation Structure - **PLANNED** 📋
 *Priority: HIGH* | *Effort: 2-3 days*
@@ -361,6 +581,7 @@
   - Time-based activity (not all at once)
   - Power law distribution (some users more active)
   - Persona consistency (behavior matches persona traits)
+
 
 ---
 
