@@ -18,7 +18,7 @@ This index provides quick access to all documentation for the AI-powered recipe 
 
 ### 🎯 Start Here
 
-1. **[INSTRUCTION_CLASSIFICATION_SUMMARY.md](../../INSTRUCTION_CLASSIFICATION_SUMMARY.md)**
+1. **[INSTRUCTION_CLASSIFICATION_SUMMARY.md](./INSTRUCTION_CLASSIFICATION_SUMMARY.md)**
    - Executive summary of entire system
    - Quick overview of all components
    - Success criteria and next steps
@@ -80,7 +80,7 @@ This index provides quick access to all documentation for the AI-powered recipe 
 ### For Product Managers
 
 **Essential Reading**:
-1. [INSTRUCTION_CLASSIFICATION_SUMMARY.md](../../INSTRUCTION_CLASSIFICATION_SUMMARY.md) - Full overview
+1. [INSTRUCTION_CLASSIFICATION_SUMMARY.md](./INSTRUCTION_CLASSIFICATION_SUMMARY.md) - Full overview
 2. [INSTRUCTION_CLASSIFICATION_COST_ANALYSIS.md](./INSTRUCTION_CLASSIFICATION_COST_ANALYSIS.md) - Budget and ROI
 
 **Key Sections**:
@@ -119,7 +119,7 @@ This index provides quick access to all documentation for the AI-powered recipe 
 ### For Designers / UX
 
 **Essential Reading**:
-1. [INSTRUCTION_CLASSIFICATION_SUMMARY.md](../../INSTRUCTION_CLASSIFICATION_SUMMARY.md) - System overview
+1. [INSTRUCTION_CLASSIFICATION_SUMMARY.md](./INSTRUCTION_CLASSIFICATION_SUMMARY.md) - System overview
 2. [INSTRUCTION_CLASSIFICATION_IMPLEMENTATION.md](../guides/INSTRUCTION_CLASSIFICATION_IMPLEMENTATION.md) - UI integration
 
 **Key Sections**:
@@ -341,4 +341,4 @@ A: Yes! Schema versioning supports evolution. See [Versioning Strategy](./INSTRU
 
 ---
 
-**Questions?** Review the [Summary Document](../../INSTRUCTION_CLASSIFICATION_SUMMARY.md) or [Implementation Guide](../guides/INSTRUCTION_CLASSIFICATION_IMPLEMENTATION.md).
+**Questions?** Review the [Summary Document](./INSTRUCTION_CLASSIFICATION_SUMMARY.md) or [Implementation Guide](../guides/INSTRUCTION_CLASSIFICATION_IMPLEMENTATION.md).

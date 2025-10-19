@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
 import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
@@ -27,34 +27,25 @@ import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views'
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
 import { FlagImageButton } from '@/components/admin/FlagImageButton';
+import { AdminContentActions } from '@/components/admin/AdminContentActions';
+import { AdminEditModeProvider } from '@/components/admin/AdminEditMode';
+import { RecipeContentWithEdit } from '@/components/admin/RecipeContentWithEdit';
 import { AddToCollectionButton } from '@/components/collections/AddToCollectionButton';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { BackToChef } from '@/components/recipe/BackToChef';
 import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
-import { IngredientsList } from '@/components/recipe/IngredientsList';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
 } from '@/components/recipe/RecipeEngagementStats';
+import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/admin-client';
-import { categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
-
-// Conditionally import Clerk hook
-let useUser: any = null;
-try {
-  const clerk = require('@clerk/nextjs');
-  useUser = clerk.useUser;
-} catch (_error) {
-  // Clerk not available
-  console.log('Clerk not available in recipe page');
-}
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +56,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+/**
+ * Safe Clerk user hook that handles the case where Clerk is not available
+ * This MUST be called unconditionally to satisfy React's Rules of Hooks
+ */
+function useSafeClerkUser() {
+  try {
+    const { useUser } = require('@clerk/nextjs');
+    return useUser();
+  } catch (_error) {
+    // Clerk not available - return default values
+    // This maintains consistent hook call order regardless of Clerk availability
+    return { user: null, isSignedIn: false, isLoaded: true };
+  }
+}
 
 interface RecipePageProps {
   params: Promise<{
@@ -100,20 +107,9 @@ export default function RecipePage({ params }: RecipePageProps) {
   const fromParam = searchParams.get('from');
   const chefSlug = fromParam?.startsWith('chef/') ? fromParam.replace('chef/', '') : null;
 
-  // Safe Clerk usage - will return null values if Clerk is not configured
-  let user: any = null;
-  let isSignedIn = false;
-
-  if (useUser) {
-    try {
-      const clerkData = useUser();
-      user = clerkData.user;
-      isSignedIn = clerkData.isSignedIn || false;
-    } catch (_error) {
-      // Clerk hook failed, use defaults
-      console.log('Clerk hook failed, using development mode');
-    }
-  }
+  // Safe Clerk usage - MUST be called unconditionally (React Rules of Hooks)
+  // Will return null values if Clerk is not configured
+  const { user, isSignedIn } = useSafeClerkUser();
 
   useEffect(() => {
     params.then((p) => setSlugOrId(p.slug));
@@ -204,10 +200,10 @@ export default function RecipePage({ params }: RecipePageProps) {
     fetchRecipe();
   }, [slugOrId, isSignedIn, user, router]);
 
-  const handleExportMarkdown = async () => {
+  const handleExportMarkdown = useCallback(async () => {
+    if (!recipe) return;
     try {
       setExporting(true);
-      // Use recipe ID for export (not slug)
       const result = await exportRecipeAsMarkdown(recipe.id);
 
       // Convert base64 to blob and download
@@ -228,12 +224,12 @@ export default function RecipePage({ params }: RecipePageProps) {
     } finally {
       setExporting(false);
     }
-  };
+  }, [recipe]);
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = useCallback(async () => {
+    if (!recipe) return;
     try {
       setExporting(true);
-      // Use recipe ID for export (not slug)
       const result = await exportRecipeAsPDF(recipe.id);
 
       // Convert base64 to blob and download
@@ -261,12 +257,12 @@ export default function RecipePage({ params }: RecipePageProps) {
     } finally {
       setExporting(false);
     }
-  };
+  }, [recipe]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
+    if (!recipe) return;
     try {
       setDeleting(true);
-      // Use recipe ID for deletion (not slug)
       const result = await deleteRecipe(recipe.id);
 
       if (result.success) {
@@ -282,9 +278,10 @@ export default function RecipePage({ params }: RecipePageProps) {
       setDeleting(false);
       setShowDeleteDialog(false);
     }
-  };
+  }, [recipe, router]);
 
-  const handleCopyRecipe = async () => {
+  const handleCopyRecipe = useCallback(async () => {
+    if (!recipe) return;
     try {
       // Format recipe as text
       const recipeText = `
@@ -307,10 +304,43 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
       console.error('Copy error:', error);
       toast.error('Failed to copy recipe');
     }
-  };
+  }, [recipe]);
+
+  // Memoized computed values - must be before early returns to maintain hook order
+  const totalTime = useMemo(
+    () => (recipe ? (recipe.prep_time || 0) + (recipe.cook_time || 0) : 0),
+    [recipe]
+  );
+
+  const editUrl = useMemo(
+    () => (recipe?.slug ? `/recipes/${recipe.slug}/edit` : recipe?.id ? `/recipes/${recipe.id}/edit` : ''),
+    [recipe]
+  );
 
   if (loading) {
-    return <div className="container mx-auto py-8 px-4">Loading...</div>;
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="animate-pulse space-y-8">
+          {/* Header Skeleton */}
+          <div className="h-8 bg-muted rounded-md w-3/4" />
+          <div className="h-4 bg-muted rounded-md w-full" />
+          <div className="h-4 bg-muted rounded-md w-5/6" />
+
+          {/* Buttons Skeleton */}
+          <div className="flex gap-2">
+            <div className="h-10 bg-muted rounded-md w-24" />
+            <div className="h-10 bg-muted rounded-md w-24" />
+            <div className="h-10 bg-muted rounded-md w-24" />
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="h-96 bg-muted rounded-lg" />
+            <div className="h-96 bg-muted rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Show auth required message for private recipes when not signed in
@@ -351,277 +381,184 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
     notFound();
     return null;
   }
-  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
-
-  // Categorize tags using the ontology system
-  const categorizedTags =
-    recipe.tags && recipe.tags.length > 0
-      ? categorizeTags(recipe.tags)
-      : {
-          Cuisine: [],
-          'Meal Type': [],
-          Dietary: [],
-          'Cooking Method': [],
-          'Main Ingredient': [],
-          Course: [],
-          Season: [],
-          Difficulty: [],
-          Time: [],
-          Other: [],
-        };
-  const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
-
-  // Use slug for edit link if available, otherwise fall back to ID
-  const editUrl = recipe.slug ? `/recipes/${recipe.slug}/edit` : `/recipes/${recipe.id}/edit`;
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      {/* Show back to chef if coming from a chef page, otherwise back to recipes */}
-      {chefSlug ? (
-        <BackToChef chefSlug={chefSlug} />
-      ) : (
-        <Link
-          href="/recipes"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 min-h-[44px] min-w-[44px] -ml-2 pl-2 pr-4 py-2 rounded-md hover:bg-accent transition-colors"
+    <AdminEditModeProvider>
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        {/* Show back to chef if coming from a chef page, otherwise back to recipes */}
+        {chefSlug ? (
+          <BackToChef chefSlug={chefSlug} />
+        ) : (
+          <Link
+            href="/recipes"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 min-h-[44px] min-w-[44px] -ml-2 pl-2 pr-4 py-2 rounded-md hover:bg-accent transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back to Recipes
+          </Link>
+        )}
+
+      {/* Tool Buttons Row */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {/* Engagement Actions */}
+        {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
+        {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+        {!isOwner && (
+          <CloneRecipeButton
+            recipeId={recipe.id}
+            recipeName={recipe.name}
+            currentUserId={user?.id}
+            recipeOwnerId={recipe.user_id}
+            variant="outline"
+          />
+        )}
+
+        {/* Utility Actions */}
+        <Button
+          variant="outline"
+          onClick={handleCopyRecipe}
+          className="min-h-[44px] min-w-[44px]"
+          aria-label="Copy recipe to clipboard"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Recipes
-        </Link>
-      )}
+          <Copy className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Copy</span>
+        </Button>
 
-      {/* Header - Full-width hero section with overlaid controls */}
+        {/* Export Dropdown - Touch-friendly Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              disabled={exporting}
+              className="min-h-[44px] min-w-[44px]"
+              aria-label="Export recipe"
+            >
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="flex flex-col gap-1">
+              <Button
+                variant="ghost"
+                onClick={handleExportMarkdown}
+                disabled={exporting}
+                className="justify-start min-h-[44px] w-full"
+                aria-label="Export as Markdown"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Export as Markdown
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="justify-start min-h-[44px] w-full"
+                aria-label="Export as PDF"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Export as PDF
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Button
+          variant="outline"
+          onClick={() => window.print()}
+          className="min-h-[44px] min-w-[44px]"
+          aria-label="Print recipe"
+        >
+          <Printer className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Print</span>
+        </Button>
+
+        {/* Admin Actions */}
+        {isUserAdmin && (
+          <>
+            <FlagImageButton
+              recipeId={recipe.id}
+              recipeName={recipe.name}
+              isFlagged={recipe.image_flagged_for_regeneration || false}
+            />
+            <AdminContentActions
+              recipeId={recipe.id}
+              recipeName={recipe.name}
+            />
+          </>
+        )}
+
+        {/* Owner Actions - Visually separated */}
+        {isOwner && (
+          <>
+            <div className="w-full sm:w-auto sm:ml-auto" />
+            <Link href={editUrl} className="contents">
+              <Button
+                variant="outline"
+                className="min-h-[44px] min-w-[44px]"
+                aria-label="Edit recipe"
+              >
+                <Edit className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={deleting}
+              className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive"
+              aria-label="Delete recipe"
+            >
+              <Trash2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Recipe Header */}
       <div className="mb-8">
-        <div className="relative bg-gradient-to-br from-background via-background to-muted/20 dark:from-background dark:via-background dark:to-muted/10 rounded-lg p-6 sm:p-8">
-          {/* Overlaid controls - top right */}
-          <div className="absolute top-4 right-4 z-10 flex flex-wrap gap-2 justify-end max-w-[calc(100%-2rem)]">
-            {/* Mobile: Icon-only buttons */}
-            <div className="flex flex-wrap gap-2 sm:hidden">
-              {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-              {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
-              {!isOwner && (
-                <CloneRecipeButton
-                  recipeId={recipe.id}
-                  recipeName={recipe.name}
-                  currentUserId={user?.id}
-                  recipeOwnerId={recipe.user_id}
-                  variant="outline"
-                  size="icon"
-                  showIcon={true}
-                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                />
-              )}
-              {isUserAdmin && (
-                <FlagImageButton
-                  recipeId={recipe.id}
-                  recipeName={recipe.name}
-                  isFlagged={recipe.image_flagged_for_regeneration || false}
-                />
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyRecipe}
-                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                title="Copy Recipe"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              {isOwner && (
-                <>
-                  <Link href={editUrl}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowDeleteDialog(true)}
-                    disabled={deleting}
-                    className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
-              <div className="relative group">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  disabled={exporting}
-                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                  title="Export"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-                <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
-                  <button
-                    onClick={handleExportMarkdown}
-                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                    disabled={exporting}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export as Markdown
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                    disabled={exporting}
-                  >
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export as PDF
-                  </button>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => window.print()}
-                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                title="Print"
-              >
-                <Printer className="w-4 h-4" />
-              </Button>
+        {/* Title */}
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">{recipe.name}</h1>
+
+        {/* Description */}
+        {recipe.description && (
+          <p className="text-base sm:text-lg text-muted-foreground mb-6 leading-relaxed">
+            {recipe.description}
+          </p>
+        )}
+
+        {/* Metadata Row */}
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 items-center">
+          {/* Author and View Count */}
+          {authorProfile && (
+            <Link
+              href={`/profile/${authorProfile.username}`}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2 -ml-2 rounded-md hover:bg-accent"
+              aria-label={`View ${authorProfile.display_name}'s profile`}
+            >
+              <User className="w-4 h-4 flex-shrink-0" />
+              <span className="font-medium">by {authorProfile.display_name}</span>
+            </Link>
+          )}
+          {viewCount > 0 && (
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`${viewCount.toLocaleString()} views`}>
+              <Eye className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
+              </span>
             </div>
-
-            {/* Desktop: Full buttons with labels */}
-            <div className="hidden sm:flex flex-wrap gap-2">
-              {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-              {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
-              {!isOwner && (
-                <CloneRecipeButton
-                  recipeId={recipe.id}
-                  recipeName={recipe.name}
-                  currentUserId={user?.id}
-                  recipeOwnerId={recipe.user_id}
-                  variant="outline"
-                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                />
-              )}
-              {isUserAdmin && (
-                <FlagImageButton
-                  recipeId={recipe.id}
-                  recipeName={recipe.name}
-                  isFlagged={recipe.image_flagged_for_regeneration || false}
-                />
-              )}
-              <Button
-                variant="outline"
-                onClick={handleCopyRecipe}
-                className="flex items-center gap-2 backdrop-blur-sm bg-background/80 hover:bg-background/90"
-              >
-                <Copy className="h-4 w-4" />
-                Copy Recipe
-              </Button>
-              {isOwner && (
-                <>
-                  <Link href={editUrl}>
-                    <Button
-                      variant="outline"
-                      className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDeleteDialog(true)}
-                    disabled={deleting}
-                    className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </>
-              )}
-              <div className="relative group">
-                <Button
-                  variant="outline"
-                  disabled={exporting}
-                  className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {exporting ? 'Exporting...' : 'Export'}
-                </Button>
-                <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
-                  <button
-                    onClick={handleExportMarkdown}
-                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                    disabled={exporting}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export as Markdown
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="w-full text-left px-4 py-2 hover:bg-accent flex items-center"
-                    disabled={exporting}
-                  >
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export as PDF
-                  </button>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => window.print()}
-                className="backdrop-blur-sm bg-background/80 hover:bg-background/90"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </Button>
-            </div>
-          </div>
-
-          {/* Full-width title and description */}
-          <div className="pr-24 sm:pr-0 sm:max-w-[calc(100%-200px)]">
-            <h1 className="text-4xl font-bold mb-2">{recipe.name}</h1>
-            {recipe.description && (
-              <p className="text-lg text-muted-foreground">{recipe.description}</p>
-            )}
-
-            {/* Author and View Count */}
-            <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-              {authorProfile && (
-                <Link
-                  href={`/profile/${authorProfile.username}`}
-                  className="flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  <User className="w-4 h-4" />
-                  <span>by {authorProfile.display_name}</span>
-                </Link>
-              )}
-              {viewCount > 0 && (
-                <div className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  <span>
-                    {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Metadata */}
-        <div className="flex flex-wrap gap-4 text-sm">
+          )}
           {recipe.cuisine && (
-            <div className="flex items-center gap-1">
-              <ChefHat className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Cuisine: ${recipe.cuisine}`}>
+              <ChefHat className="w-4 h-4 flex-shrink-0" />
               <span>{recipe.cuisine}</span>
             </div>
           )}
           {totalTime > 0 && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Total time: ${totalTime} minutes`}>
+              <Clock className="w-4 h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">
                 {recipe.prep_time ? `${recipe.prep_time} min prep` : ''}
                 {recipe.prep_time && recipe.cook_time ? ' + ' : ''}
                 {recipe.cook_time ? `${recipe.cook_time} min cook` : ''}
@@ -629,8 +566,8 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
             </div>
           )}
           {recipe.servings && (
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Servings: ${recipe.servings}`}>
+              <Users className="w-4 h-4 flex-shrink-0" />
               <span>{recipe.servings} servings</span>
             </div>
           )}
@@ -639,133 +576,46 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
               variant="outline"
               className={
                 recipe.difficulty === 'easy'
-                  ? 'text-green-600'
+                  ? 'text-green-600 border-green-600/20'
                   : recipe.difficulty === 'medium'
-                    ? 'text-yellow-600'
-                    : 'text-red-600'
+                    ? 'text-yellow-600 border-yellow-600/20'
+                    : 'text-red-600 border-red-600/20'
               }
+              aria-label={`Difficulty: ${recipe.difficulty}`}
             >
               {recipe.difficulty}
             </Badge>
           )}
           {recipe.is_ai_generated && (
-            <Badge variant="secondary">
+            <Badge variant="secondary" aria-label="AI Generated Recipe">
               <Bot className="w-3 h-3 mr-1" />
               AI Generated
             </Badge>
           )}
           {recipe.is_system_recipe && (
-            <Badge variant="default" className="bg-jk-tomato">
+            <Badge variant="default" className="bg-jk-tomato" aria-label="Shared System Recipe">
               <Lock className="w-3 h-3 mr-1" />
               Shared
             </Badge>
           )}
         </div>
 
-        {/* Categorized Tags in 3 rows */}
-        {categoryEntries.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {/* Row 1: Difficulty + Meal Type */}
-            {(categorizedTags.Difficulty?.length > 0 ||
-              categorizedTags['Meal Type']?.length > 0) && (
-              <div className="flex flex-wrap gap-2">
-                {categorizedTags.Difficulty?.map((tag, index) => (
-                  <Badge
-                    key={`diff-${index}`}
-                    className={getCategoryColor('Difficulty')}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {categorizedTags['Meal Type']?.map((tag, index) => (
-                  <Badge
-                    key={`meal-${index}`}
-                    className={getCategoryColor('Meal Type')}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* Row 2: Main Ingredient + Dietary */}
-            {(categorizedTags['Main Ingredient']?.length > 0 ||
-              categorizedTags.Dietary?.length > 0) && (
-              <div className="flex flex-wrap gap-2">
-                {categorizedTags['Main Ingredient']?.slice(0, 3).map((tag, index) => (
-                  <Badge
-                    key={`ing-${index}`}
-                    className={getCategoryColor('Main Ingredient')}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {(categorizedTags['Main Ingredient']?.length || 0) > 3 && (
-                  <Badge className={getCategoryColor('Main Ingredient')} variant="outline">
-                    +{(categorizedTags['Main Ingredient']?.length || 0) - 3}
-                  </Badge>
-                )}
-                {categorizedTags.Dietary?.slice(0, 2).map((tag, index) => (
-                  <Badge
-                    key={`diet-${index}`}
-                    className={getCategoryColor('Dietary')}
-                    variant="outline"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {(categorizedTags.Dietary?.length || 0) > 2 && (
-                  <Badge className={getCategoryColor('Dietary')} variant="outline">
-                    +{(categorizedTags.Dietary?.length || 0) - 2}
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Row 3: Season + Other (Expandable) */}
-            {(categorizedTags.Season?.length > 0 || categorizedTags.Other?.length > 0) && (
-              <details className="group/tags">
-                <summary className="text-sm text-muted-foreground cursor-pointer hover:text-primary flex items-center gap-1 list-none">
-                  <span className="group-open/tags:rotate-90 transition-transform inline-block">
-                    ▸
-                  </span>
-                  <span>
-                    More tags (
-                    {(categorizedTags.Season?.length || 0) + (categorizedTags.Other?.length || 0)})
-                  </span>
-                </summary>
-                <div className="flex flex-wrap gap-2 mt-2 pt-1">
-                  {categorizedTags.Season?.map((tag, index) => (
-                    <Badge
-                      key={`season-${index}`}
-                      className={getCategoryColor('Season')}
-                      variant="outline"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                  {categorizedTags.Other?.map((tag, index) => (
-                    <Badge
-                      key={`other-${index}`}
-                      className={getCategoryColor('Other')}
-                      variant="outline"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </details>
-            )}
+        {/* Semantic Tags */}
+        {recipe.tags && recipe.tags.length > 0 && (
+          <div className="mt-4">
+            <SemanticTagDisplay
+              tags={recipe.tags}
+              layout="grouped"
+              showCategoryLabels
+              size="md"
+            />
           </div>
         )}
       </div>
 
       {/* Fork Attribution - show if this recipe was forked from another */}
       {originalRecipe && (
-        <div className="mt-6">
+        <div className="mb-6">
           <RecipeForkAttribution
             originalRecipeName={originalRecipe.name}
             originalRecipeId={originalRecipe.id}
@@ -776,7 +626,7 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
 
       {/* Engagement Stats */}
       {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
-        <div className="mt-6">
+        <div className="mb-8">
           <RecipeEngagementStats
             likeCount={recipe.like_count || 0}
             forkCount={recipe.fork_count || 0}
@@ -801,37 +651,9 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
         </div>
       )}
 
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* Ingredients */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ingredients</CardTitle>
-            <CardDescription>Everything you'll need</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <IngredientsList ingredients={recipe.ingredients} />
-          </CardContent>
-        </Card>
-
-        {/* Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Instructions</CardTitle>
-            <CardDescription>Step-by-step directions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-4">
-              {recipe.instructions.map((instruction: string, index: number) => (
-                <li key={index} className="flex">
-                  <span className="font-semibold text-primary mr-3 flex-shrink-0">
-                    {index + 1}.
-                  </span>
-                  <span>{instruction}</span>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
+        {/* Recipe Content with Admin Edit Overlays */}
+        <RecipeContentWithEdit recipe={recipe} isAdmin={isUserAdmin} />
       </div>
 
       {/* Similar Recipes Widget */}
@@ -839,27 +661,28 @@ ${recipe.tags && recipe.tags.length > 0 ? `\nTags: ${recipe.tags.join(', ')}` : 
         <SimilarRecipesWidget recipeId={recipe.id} recipeName={recipe.name} limit={6} />
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{recipe.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{recipe.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </AdminEditModeProvider>
   );
 }

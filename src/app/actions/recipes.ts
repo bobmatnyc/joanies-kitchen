@@ -1,6 +1,6 @@
 'use server';
 
-import { and, asc, desc, eq, gte, like, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNull, like, or, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
@@ -20,7 +20,10 @@ export async function getAllTags() {
       ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
       : eq(recipes.is_public, true);
 
-    const allRecipes = await db.select({ tags: recipes.tags }).from(recipes).where(accessCondition);
+    const allRecipes = await db
+      .select({ tags: recipes.tags })
+      .from(recipes)
+      .where(and(accessCondition, isNull(recipes.deleted_at)));
 
     // Extract and aggregate unique tags
     const tagSet = new Set<string>();
@@ -76,6 +79,9 @@ export async function getRecipes(selectedTags?: string[]) {
 
     // Build conditions array
     const conditions = [];
+
+    // CRITICAL: Exclude soft-deleted recipes
+    conditions.push(isNull(recipes.deleted_at));
 
     // Add user/public condition
     if (!userId) {
@@ -136,11 +142,19 @@ export async function getRecipe(idOrSlug: string) {
     const { userId } = await auth();
 
     // Try to fetch by slug first (SEO-friendly)
-    let recipe = await db.select().from(recipes).where(eq(recipes.slug, idOrSlug)).limit(1);
+    let recipe = await db
+      .select()
+      .from(recipes)
+      .where(and(eq(recipes.slug, idOrSlug), isNull(recipes.deleted_at)))
+      .limit(1);
 
     // If not found by slug, try by ID (backwards compatibility)
     if (recipe.length === 0) {
-      recipe = await db.select().from(recipes).where(eq(recipes.id, idOrSlug)).limit(1);
+      recipe = await db
+        .select()
+        .from(recipes)
+        .where(and(eq(recipes.id, idOrSlug), isNull(recipes.deleted_at)))
+        .limit(1);
     }
 
     if (recipe.length === 0) {
@@ -164,7 +178,11 @@ export async function getRecipe(idOrSlug: string) {
 export async function getRecipeBySlug(slug: string) {
   try {
     const { userId } = await auth();
-    const recipe = await db.select().from(recipes).where(eq(recipes.slug, slug)).limit(1);
+    const recipe = await db
+      .select()
+      .from(recipes)
+      .where(and(eq(recipes.slug, slug), isNull(recipes.deleted_at)))
+      .limit(1);
 
     if (recipe.length === 0) {
       return { success: false, error: 'Recipe not found' };
@@ -206,7 +224,7 @@ export async function searchRecipes(query: string) {
     const searchResults = await db
       .select()
       .from(recipes)
-      .where(and(searchConditions, accessCondition))
+      .where(and(searchConditions, accessCondition, isNull(recipes.deleted_at)))
       .orderBy(desc(recipes.created_at));
 
     return { success: true, data: searchResults };
@@ -655,10 +673,93 @@ export interface PaginatedRecipeResponse {
   pagination: PaginationMetadata;
 }
 
+// Category types for Top 50 filtering
+export type RecipeCategory = 'mains' | 'sides' | 'desserts' | 'all';
+export type MainsSubcategory = 'beef' | 'chicken' | 'lamb' | 'pasta' | 'seafood' | 'pork' | 'other-proteins';
+export type SidesSubcategory = 'vegetables' | 'salads' | 'grains' | 'potatoes' | 'bread';
+export type DessertsSubcategory = 'cakes' | 'cookies' | 'pies' | 'puddings' | 'frozen';
+
+// Tag mapping for categorization
+const CATEGORY_TAG_MAPPING = {
+  mains: {
+    beef: ['beef', 'steak', 'ground beef', 'roast'],
+    chicken: ['chicken', 'poultry', 'roasted chicken'],
+    lamb: ['lamb'],
+    pasta: ['pasta', 'noodles', 'spaghetti', 'lasagna', 'ravioli'],
+    seafood: ['seafood', 'fish', 'salmon', 'shrimp', 'tuna', 'cod'],
+    pork: ['pork', 'bacon', 'ham', 'sausage'],
+    'other-proteins': ['turkey', 'duck', 'venison', 'tofu', 'tempeh'],
+  },
+  sides: {
+    vegetables: ['vegetables', 'vegetable', 'broccoli', 'carrots', 'green beans'],
+    salads: ['salad', 'coleslaw', 'greens'],
+    grains: ['rice', 'quinoa', 'grains', 'pilaf', 'risotto'],
+    potatoes: ['potatoes', 'potato', 'mashed potatoes', 'fries'],
+    bread: ['bread', 'rolls', 'biscuits'],
+  },
+  desserts: {
+    cakes: ['cake', 'cakes', 'cupcakes', 'cheesecake'],
+    cookies: ['cookies', 'cookie', 'biscotti'],
+    pies: ['pie', 'pies', 'tart', 'tarts'],
+    puddings: ['pudding', 'custard', 'mousse'],
+    frozen: ['ice cream', 'sorbet', 'frozen dessert'],
+  },
+};
+
+// Check if recipe matches category based on tags
+function recipeMatchesCategory(
+  recipe: Recipe,
+  category: RecipeCategory,
+  subcategory?: string
+): boolean {
+  if (category === 'all') return true;
+
+  try {
+    const tags = recipe.tags ? JSON.parse(recipe.tags) : [];
+    if (!Array.isArray(tags)) return false;
+
+    const normalizedTags = tags.map((t: string) => t.toLowerCase());
+
+    if (subcategory && CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING]) {
+      const subcatTags =
+        CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING][
+          subcategory as keyof (typeof CATEGORY_TAG_MAPPING)[keyof typeof CATEGORY_TAG_MAPPING]
+        ] as string[] | undefined;
+      return (
+        (Array.isArray(subcatTags) &&
+          subcatTags.some((tag: string) => normalizedTags.some((t) => t.includes(tag)))) ||
+        false
+      );
+    }
+
+    // Check if recipe matches any tag in the category
+    const categoryMapping =
+      CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING];
+    if (!categoryMapping) return false;
+
+    return Object.values(categoryMapping).some((subcatTags) =>
+      subcatTags.some((tag) => normalizedTags.some((t) => t.includes(tag)))
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
 // Get top-rated recipes with combined system and user ratings
-export async function getTopRatedRecipes({ limit = 50 }: { limit?: number } = {}) {
+export async function getTopRatedRecipes({
+  limit = 50,
+  category = 'all',
+  subcategory,
+}: {
+  limit?: number;
+  category?: RecipeCategory;
+  subcategory?: string;
+} = {}) {
   try {
     // Query recipes ordered by rating (system + user average)
+    // Fetch more than limit to account for filtering
+    const fetchLimit = category === 'all' ? limit : limit * 5;
+
     const topRecipes = await db
       .select()
       .from(recipes)
@@ -686,9 +787,18 @@ export async function getTopRatedRecipes({ limit = 50 }: { limit?: number } = {}
         ),
         desc(recipes.created_at)
       )
-      .limit(limit);
+      .limit(fetchLimit);
 
-    return topRecipes;
+    // Filter by category and subcategory
+    let filtered = topRecipes;
+    if (category !== 'all') {
+      filtered = topRecipes.filter((recipe) =>
+        recipeMatchesCategory(recipe, category, subcategory)
+      );
+    }
+
+    // Return only the requested limit
+    return filtered.slice(0, limit);
   } catch (error) {
     console.error('Failed to fetch top recipes:', error);
     return [];

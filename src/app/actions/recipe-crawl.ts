@@ -437,6 +437,11 @@ export async function storeRecipe(
         instruction_metadata_version: null,
         instruction_metadata_generated_at: null,
         instruction_metadata_model: null,
+        content_flagged_for_cleanup: false,
+        ingredients_need_cleanup: false,
+        instructions_need_cleanup: false,
+        deleted_at: null,
+        deleted_by: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -666,6 +671,11 @@ async function storeRecipeWithWeek(
         instruction_metadata_version: null,
         instruction_metadata_generated_at: null,
         instruction_metadata_model: null,
+        content_flagged_for_cleanup: false,
+        ingredients_need_cleanup: false,
+        instructions_need_cleanup: false,
+        deleted_at: null,
+        deleted_by: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`

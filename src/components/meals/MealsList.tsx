@@ -14,16 +14,17 @@ import { GuestMealBanner } from './SignInToSaveDialog';
 interface MealsListProps {
   initialMeals?: Meal[];
   mealType?: string;
+  isPublicView?: boolean;
 }
 
-export function MealsList({ initialMeals = [], mealType }: MealsListProps) {
+export function MealsList({ initialMeals = [], mealType, isPublicView = false }: MealsListProps) {
   const { userId } = useAuth();
   const [meals, setMeals] = useState<(Meal | GuestMeal)[]>(initialMeals);
-  const [isLoading, setIsLoading] = useState(!userId);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load guest meals when not authenticated
+  // Load guest meals when not authenticated and not in public view
   useEffect(() => {
-    if (!userId) {
+    if (!userId && !isPublicView) {
       const guestMeals = getGuestMeals();
 
       // Filter by meal type if specified
@@ -37,7 +38,7 @@ export function MealsList({ initialMeals = [], mealType }: MealsListProps) {
       setMeals(initialMeals);
       setIsLoading(false);
     }
-  }, [userId, initialMeals, mealType]);
+  }, [userId, initialMeals, mealType, isPublicView]);
 
   if (isLoading) {
     return (

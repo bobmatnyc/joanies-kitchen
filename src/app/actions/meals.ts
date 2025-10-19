@@ -173,6 +173,39 @@ export async function getUserMeals(params?: unknown) {
 }
 
 /**
+ * Get all public meals (shared by users)
+ *
+ * @param params - Query parameters (mealType filter, validated)
+ * @returns Success response with public meals array or error message
+ */
+export async function getPublicMeals(params?: unknown) {
+  try {
+    // Validate query parameters (optional)
+    const validatedParams = params
+      ? validateInput(getUserMealsSchema, params)
+      : { mealType: 'all' as const };
+
+    const conditions = [eq(meals.is_public, true)];
+    if (validatedParams.mealType && validatedParams.mealType !== 'all') {
+      conditions.push(eq(meals.meal_type, validatedParams.mealType));
+    }
+
+    const publicMeals = await db
+      .select()
+      .from(meals)
+      .where(and(...conditions))
+      .orderBy(desc(meals.created_at))
+      .limit(50); // Limit to 50 most recent public meals
+
+    return { success: true, data: publicMeals };
+  } catch (error) {
+    console.error('Failed to fetch public meals:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch public meals';
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
  * Get a single meal with all its recipes
  *
  * @param id - Meal ID (validated as UUID)
@@ -716,4 +749,35 @@ function categorizeIngredient(ingredientName: string): string {
   }
 
   return 'other';
+}
+
+/**
+ * Get AI-powered recipe recommendations based on a main dish
+ * Analyzes cuisine, cooking method, flavor profile, and suggests matching sides/appetizers
+ *
+ * @param mainRecipeId - ID of the main dish recipe
+ * @returns Success response with recommendations or error message
+ */
+export async function getRecipeRecommendations(mainRecipeId: string) {
+  try {
+    // Get the main recipe
+    const [mainRecipe] = await db.select().from(recipes).where(eq(recipes.id, mainRecipeId));
+
+    if (!mainRecipe) {
+      return { success: false, error: 'Main recipe not found' };
+    }
+
+    // Import AI recommendation logic
+    const { generateMealRecommendations } = await import('@/lib/ai/meal-recommendations');
+
+    // Generate recommendations using AI
+    const recommendations = await generateMealRecommendations(mainRecipe);
+
+    return { success: true, data: recommendations };
+  } catch (error) {
+    console.error('Failed to generate recommendations:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to generate recommendations';
+    return { success: false, error: errorMessage };
+  }
 }
