@@ -46,6 +46,9 @@
   --radius-xl: 12px;
   --radius-jk: 8px;
 
+  /* Custom transition durations */
+  --duration-2000: 2000ms;
+
   /* Mobile breakpoints */
   --breakpoint-xs: 320px;
   --breakpoint-sm: 640px;

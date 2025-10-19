@@ -614,12 +614,15 @@ export default function DiscoverPage() {
                   )}
 
                 {generatedRecipe.tags && generatedRecipe.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {generatedRecipe.tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
+                  <div>
+                    <h4 className="font-semibold mb-2">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {generatedRecipe.tags.map((tag: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

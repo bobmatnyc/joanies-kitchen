@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { categorizeTags, getCategoryColor, getCategoryIcon } from '@/lib/tag-ontology';
 import type { TagCategory } from '@/lib/tag-ontology';
 import { getSemanticTag } from '@/lib/tags/semantic-tags';
 import { getTagLabel, normalizeTagToId, type Locale } from '@/lib/tags';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 interface SemanticTagDisplayProps {
   tags: string[];
@@ -16,6 +18,37 @@ interface SemanticTagDisplayProps {
   className?: string;
   onTagClick?: (tag: string) => void;
   locale?: Locale; // Localization support
+  excludeCategories?: TagCategory[]; // Categories to exclude from display
+}
+
+/**
+ * User-friendly category label mapping
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  'Cuisine': 'Cuisine',
+  'Difficulty': 'Difficulty',
+  'Meal Type': 'Meal Type',
+  'Main Ingredient': 'Main Ingredient',
+  'Dietary': 'Dietary Preferences',
+  'Cooking Method': 'Cooking Method',
+  'Course': 'Course',
+  'Season': 'Season',
+  'Occasion': 'Occasion',
+  'Equipment': 'Equipment',
+  'Technique': 'Technique',
+  'Flavor Profile': 'Flavor Profile',
+  'Texture': 'Texture',
+  'Temperature': 'Temperature',
+  'Prep Style': 'Prep Style',
+  'Time': 'Time',
+  'Other': 'Other Tags',
+};
+
+/**
+ * Get user-friendly category label
+ */
+function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] || category;
 }
 
 /**
@@ -31,7 +64,10 @@ export function SemanticTagDisplay({
   className,
   onTagClick,
   locale = 'en',
+  excludeCategories = [],
 }: SemanticTagDisplayProps) {
+  const [isOtherExpanded, setIsOtherExpanded] = useState(false);
+
   if (!tags || tags.length === 0) {
     return null;
   }
@@ -40,6 +76,13 @@ export function SemanticTagDisplay({
   const normalizedTags = tags.map(tag => normalizeTagToId(tag));
 
   const categorizedTags = categorizeTags(normalizedTags);
+
+  // Filter out excluded categories
+  const filteredCategorizedTags = Object.fromEntries(
+    Object.entries(categorizedTags).filter(([category]) =>
+      !excludeCategories.includes(category as TagCategory)
+    )
+  ) as Record<TagCategory, string[]>;
 
   // Define category display order
   const categoryOrder: TagCategory[] = [
@@ -55,9 +98,9 @@ export function SemanticTagDisplay({
     'Other',
   ];
 
-  // Filter and sort categories by order
+  // Filter and sort categories by order (using filtered tags)
   const sortedCategories = categoryOrder.filter(
-    (cat) => categorizedTags[cat] && categorizedTags[cat].length > 0
+    (cat) => filteredCategorizedTags[cat] && filteredCategorizedTags[cat].length > 0
   );
 
   // Size-based styling
@@ -106,15 +149,44 @@ export function SemanticTagDisplay({
   return (
     <div className={cn('space-y-3', className)}>
       {sortedCategories.map((category) => {
-        const categoryTags = categorizedTags[category];
+        const categoryTags = filteredCategorizedTags[category];
         if (!categoryTags || categoryTags.length === 0) return null;
+
+        const isOther = category === 'Other';
+
+        // Skip "Other" if collapsed and it has tags
+        if (isOther && !isOtherExpanded && categoryTags.length > 0) {
+          return (
+            <div key={category} className="space-y-1.5">
+              <button
+                onClick={() => setIsOtherExpanded(true)}
+                className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground uppercase tracking-wide transition-colors"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+                <span>{getCategoryLabel(category)} ({categoryTags.length})</span>
+              </button>
+            </div>
+          );
+        }
 
         return (
           <div key={category} className="space-y-1.5">
             {showCategoryLabels && (
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {getCategoryIcon(category)}
-                <span>{category}</span>
+                {isOther ? (
+                  <button
+                    onClick={() => setIsOtherExpanded(false)}
+                    className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    <span>{getCategoryLabel(category)}</span>
+                  </button>
+                ) : (
+                  <>
+                    {getCategoryIcon(category)}
+                    <span>{getCategoryLabel(category)}</span>
+                  </>
+                )}
               </div>
             )}
             <div className={cn('flex flex-wrap', sizeClasses[size])}>

@@ -5,7 +5,7 @@ model: sonnet
 type: engineer
 color: green
 category: engineering
-version: "2.1.0"
+version: "2.2.1"
 author: "Claude MPM Team"
 created_at: 2025-09-15T00:00:00.000000Z
 updated_at: 2025-10-17T00:00:00.000000Z
@@ -552,45 +552,302 @@ async def cancelable_task_group(
     return [r.result() for r in results]
 ```
 
+**Production-Ready AsyncWorkerPool**:
+```python
+# Pattern 5: Async Worker Pool with Retries and Exponential Backoff
+import asyncio
+from typing import Callable, Any, Optional
+from dataclasses import dataclass
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class TaskResult:
+    """Result of task execution with retry metadata."""
+    success: bool
+    result: Any = None
+    error: Optional[Exception] = None
+    attempts: int = 0
+    total_time: float = 0.0
+
+class AsyncWorkerPool:
+    """Worker pool with configurable retry logic and exponential backoff.
+
+    Features:
+    - Fixed number of worker tasks
+    - Task queue with asyncio.Queue
+    - Retry logic with exponential backoff
+    - Graceful shutdown with drain semantics
+    - Per-task retry tracking
+
+    Example:
+        pool = AsyncWorkerPool(num_workers=5, max_retries=3)
+        result = await pool.submit(my_async_task)
+        await pool.shutdown()
+    """
+
+    def __init__(self, num_workers: int, max_retries: int):
+        """Initialize worker pool.
+
+        Args:
+            num_workers: Number of concurrent worker tasks
+            max_retries: Maximum retry attempts per task (0 = no retries)
+        """
+        self.num_workers = num_workers
+        self.max_retries = max_retries
+        self.task_queue: asyncio.Queue = asyncio.Queue()
+        self.workers: list[asyncio.Task] = []
+        self.shutdown_event = asyncio.Event()
+        self._start_workers()
+
+    def _start_workers(self) -> None:
+        """Start worker tasks that process from queue."""
+        for i in range(self.num_workers):
+            worker = asyncio.create_task(self._worker(i))
+            self.workers.append(worker)
+
+    async def _worker(self, worker_id: int) -> None:
+        """Worker coroutine that processes tasks from queue.
+
+        Continues until shutdown_event is set AND queue is empty.
+        """
+        while not self.shutdown_event.is_set() or not self.task_queue.empty():
+            try:
+                # Wait for task with timeout to check shutdown periodically
+                task_data = await asyncio.wait_for(
+                    self.task_queue.get(),
+                    timeout=0.1
+                )
+
+                # Process task with retries
+                await self._execute_with_retry(task_data)
+                self.task_queue.task_done()
+
+            except asyncio.TimeoutError:
+                # No task available, continue to check shutdown
+                continue
+            except Exception as e:
+                logger.error(f"Worker {worker_id} error: {e}")
+
+    async def _execute_with_retry(
+        self,
+        task_data: dict[str, Any]
+    ) -> None:
+        """Execute task with exponential backoff retry logic.
+
+        Args:
+            task_data: Dict with 'task' (callable) and 'future' (to set result)
+        """
+        task: Callable = task_data['task']
+        future: asyncio.Future = task_data['future']
+
+        last_error: Optional[Exception] = None
+        start_time = time.time()
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                # Execute the task
+                result = await task()
+
+                # Success! Set result and return
+                if not future.done():
+                    future.set_result(TaskResult(
+                        success=True,
+                        result=result,
+                        attempts=attempt + 1,
+                        total_time=time.time() - start_time
+                    ))
+                return
+
+            except Exception as e:
+                last_error = e
+
+                # If we've exhausted retries, fail
+                if attempt >= self.max_retries:
+                    break
+
+                # Exponential backoff: 0.1s, 0.2s, 0.4s, 0.8s, ...
+                backoff_time = 0.1 * (2 ** attempt)
+                logger.warning(
+                    f"Task failed (attempt {attempt + 1}/{self.max_retries + 1}), "
+                    f"retrying in {backoff_time}s: {e}"
+                )
+                await asyncio.sleep(backoff_time)
+
+        # All retries exhausted, set failure result
+        if not future.done():
+            future.set_result(TaskResult(
+                success=False,
+                error=last_error,
+                attempts=self.max_retries + 1,
+                total_time=time.time() - start_time
+            ))
+
+    async def submit(self, task: Callable) -> Any:
+        """Submit task to worker pool and wait for result.
+
+        Args:
+            task: Async callable to execute
+
+        Returns:
+            TaskResult with execution metadata
+
+        Raises:
+            RuntimeError: If pool is shutting down
+        """
+        if self.shutdown_event.is_set():
+            raise RuntimeError("Cannot submit to shutdown pool")
+
+        # Create future to receive result
+        future: asyncio.Future = asyncio.Future()
+
+        # Add task to queue
+        await self.task_queue.put({'task': task, 'future': future})
+
+        # Wait for result
+        return await future
+
+    async def shutdown(self, timeout: Optional[float] = None) -> None:
+        """Gracefully shutdown worker pool.
+
+        Drains queue, then cancels workers after timeout.
+
+        Args:
+            timeout: Max time to wait for queue drain (None = wait forever)
+        """
+        # Signal shutdown
+        self.shutdown_event.set()
+
+        # Wait for queue to drain
+        try:
+            if timeout:
+                await asyncio.wait_for(
+                    self.task_queue.join(),
+                    timeout=timeout
+                )
+            else:
+                await self.task_queue.join()
+        except asyncio.TimeoutError:
+            logger.warning("Shutdown timeout, forcing worker cancellation")
+
+        # Cancel all workers
+        for worker in self.workers:
+            worker.cancel()
+
+        # Wait for workers to finish
+        await asyncio.gather(*self.workers, return_exceptions=True)
+
+# Usage Example:
+async def example_usage():
+    # Create pool with 5 workers, max 3 retries
+    pool = AsyncWorkerPool(num_workers=5, max_retries=3)
+
+    # Define task that might fail
+    async def flaky_task():
+        import random
+        if random.random() < 0.5:
+            raise ValueError("Random failure")
+        return "success"
+
+    # Submit task
+    result = await pool.submit(flaky_task)
+
+    if result.success:
+        print(f"Task succeeded: {result.result} (attempts: {result.attempts})")
+    else:
+        print(f"Task failed after {result.attempts} attempts: {result.error}")
+
+    # Graceful shutdown
+    await pool.shutdown(timeout=5.0)
+
+# Key Concepts:
+# - Worker pool: Fixed workers processing from shared queue
+# - Exponential backoff: 0.1 * (2 ** attempt) seconds
+# - Graceful shutdown: Drain queue, then cancel workers
+# - Future pattern: Submit returns future, worker sets result
+# - TaskResult dataclass: Track attempts, time, success/failure
+```
+
 **When to Use Each Pattern**:
 - **Gather with timeout**: Multiple independent operations (API calls, DB queries)
-- **Worker pool**: Rate-limited operations (API with rate limits, DB connection pool)
+- **Worker pool (simple)**: Rate-limited operations (API with rate limits, DB connection pool)
 - **Retry with backoff**: Unreliable external services (network calls, third-party APIs)
 - **TaskGroup**: Related operations where failure of one should cancel others
+- **AsyncWorkerPool (production)**: Production systems needing retry logic, graceful shutdown, task tracking
 
 ### Common Algorithm Patterns
 
 **Sliding Window (Two Pointers)**:
 ```python
-# Pattern: Longest substring without repeating characters
-def longest_unique_substring(s: str) -> int:
-    """Find length of longest substring with unique characters.
+# Pattern: Longest Substring Without Repeating Characters
+def length_of_longest_substring(s: str) -> int:
+    """Find length of longest substring without repeating characters.
 
+    Sliding window technique with hash map to track character positions.
     Time: O(n), Space: O(min(n, alphabet_size))
+
+    Example: "abcabcbb" -> 3 (substring "abc")
     """
+    if not s:
+        return 0
+
+    # Track last seen index of each character
     char_index: dict[str, int] = {}
     max_length = 0
-    left = 0
+    left = 0  # Left pointer of sliding window
 
     for right, char in enumerate(s):
-        # If char seen and within current window, move left pointer
+        # If character seen AND it's within current window
         if char in char_index and char_index[char] >= left:
+            # Move left pointer past the previous occurrence
+            # This maintains "no repeating chars" invariant
             left = char_index[char] + 1
+
+        # Update character's latest position
         char_index[char] = right
+
+        # Update max length seen so far
+        # Current window size is (right - left + 1)
         max_length = max(max_length, right - left + 1)
 
     return max_length
+
+# Sliding Window Key Principles:
+# 1. Two pointers: left (start) and right (end) define window
+# 2. Expand window by incrementing right pointer
+# 3. Contract window by incrementing left when constraint violated
+# 4. Track window state with hash map, set, or counter
+# 5. Update result during expansion or contraction
+# Common uses: substring/subarray with constraints (unique chars, max sum, min length)
 ```
 
 **BFS Tree Traversal (Level Order)**:
 ```python
-# Pattern: Binary tree level-order traversal
+# Pattern: Binary Tree Level Order Traversal (BFS)
 from collections import deque
+from typing import Optional
 
-def level_order_traversal(root: TreeNode | None) -> list[list[int]]:
-    """Traverse binary tree level by level.
+class TreeNode:
+    def __init__(self, val: int = 0, left: Optional['TreeNode'] = None, right: Optional['TreeNode'] = None):
+        self.val = val
+        self.left = left
+        self.right = right
 
-    Time: O(n), Space: O(w) where w is max width
+def level_order_traversal(root: Optional[TreeNode]) -> list[list[int]]:
+    """Perform BFS level-order traversal of binary tree.
+
+    Returns list of lists where each inner list contains node values at that level.
+    Time: O(n), Space: O(w) where w is max width of tree
+
+    Example:
+        Input:     3
+                  / \
+                 9  20
+                   /  \
+                  15   7
+        Output: [[3], [9, 20], [15, 7]]
     """
     if not root:
         return []
@@ -599,21 +856,32 @@ def level_order_traversal(root: TreeNode | None) -> list[list[int]]:
     queue: deque[TreeNode] = deque([root])
 
     while queue:
-        level_size = len(queue)  # Critical: capture size before loop
-        level_values: list[int] = []
+        # CRITICAL: Capture level size BEFORE processing
+        # This separates current level from next level nodes
+        level_size = len(queue)
+        current_level: list[int] = []
 
+        # Process exactly level_size nodes (all nodes at current level)
         for _ in range(level_size):
-            node = queue.popleft()
-            level_values.append(node.val)
+            node = queue.popleft()  # O(1) with deque
+            current_level.append(node.val)
 
+            # Add children for next level processing
             if node.left:
                 queue.append(node.left)
             if node.right:
                 queue.append(node.right)
 
-        result.append(level_values)
+        result.append(current_level)
 
     return result
+
+# BFS Key Principles:
+# 1. Use collections.deque for O(1) append/popleft operations (NOT list)
+# 2. Capture level_size = len(queue) before inner loop to separate levels
+# 3. Process entire level before moving to next (prevents mixing levels)
+# 4. Add children during current level processing
+# Common uses: level order traversal, shortest path, connected components, graph exploration
 ```
 
 **Binary Search on Two Arrays**:
@@ -676,10 +944,10 @@ def two_sum(nums: list[int], target: int) -> tuple[int, int] | None:
 ```
 
 **When to Use Each Pattern**:
-- **Sliding Window**: Substring/subarray problems with constraints (unique chars, max sum)
-- **BFS with Queue**: Tree/graph level-order traversal, shortest path
-- **Binary Search on Two Arrays**: Median, kth element in sorted arrays
-- **Hash Map**: O(1) lookups to avoid nested loops (O(n²) → O(n))
+- **Sliding Window**: Substring/subarray with constraints (unique chars, max/min sum, fixed/variable length)
+- **BFS with Deque**: Tree/graph level-order traversal, shortest path, connected components
+- **Binary Search on Two Arrays**: Median, kth element in sorted arrays (O(log n))
+- **Hash Map**: O(1) lookups to convert O(n²) nested loops to O(n) single pass
 
 ## Quality Standards (95% Confidence Target)
 

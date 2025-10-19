@@ -109,6 +109,16 @@ export const recipes = pgTable(
     instruction_metadata_version: varchar('instruction_metadata_version', { length: 20 }), // Schema version (e.g., "1.0.0")
     instruction_metadata_generated_at: timestamp('instruction_metadata_generated_at'), // When classification was done
     instruction_metadata_model: varchar('instruction_metadata_model', { length: 100 }), // Model used (e.g., "google/gemini-2.0-flash-exp:free")
+
+    // Meal Pairing Metadata (v0.65.0) - for sophisticated multi-course meal planning
+    weight_score: integer('weight_score'), // Dish heaviness (1-5): 1=light salad, 5=heavy stew
+    richness_score: integer('richness_score'), // Fat/oil content (1-5): 1=lean, 5=rich/fatty
+    acidity_score: integer('acidity_score'), // Acidic components (1-5): 1=neutral, 5=very acidic
+    sweetness_level: text('sweetness_level', { enum: ['light', 'moderate', 'rich'] }), // For desserts and sweet components
+    dominant_textures: text('dominant_textures'), // JSON array: ["crispy", "creamy", "crunchy", "soft", "flaky", "smooth"]
+    dominant_flavors: text('dominant_flavors'), // JSON array: ["umami", "sweet", "salty", "bitter", "sour", "spicy"]
+    serving_temperature: text('serving_temperature', { enum: ['hot', 'cold', 'room'] }), // Serving temperature
+    pairing_rationale: text('pairing_rationale'), // Why this pairs well in a multi-course meal
   },
   (table) => ({
     // Performance indexes for pagination and filtering
@@ -138,6 +148,12 @@ export const recipes = pgTable(
     instructionMetadataIdx: index('idx_recipes_instruction_metadata').on(
       table.instruction_metadata
     ), // GIN index for JSONB queries (created via SQL)
+    pairingMetadataIdx: index('idx_recipes_pairing_metadata').on(
+      table.weight_score,
+      table.richness_score,
+      table.acidity_score
+    ), // Composite index for meal pairing queries
+    servingTempIdx: index('idx_recipes_serving_temp').on(table.serving_temperature), // Index for temperature-based filtering
   })
 );
 
