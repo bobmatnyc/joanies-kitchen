@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, Loader2, Lock, Plus, Save, Tag, X } from 'lucide-react';
+import { Globe, Loader2, Lock, Plus, Save, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createRecipe, updateRecipe } from '@/app/actions/recipes';
@@ -19,7 +19,6 @@ import { Switch } from '@/components/ui/switch';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
 import { ImageUploader } from './ImageUploader';
-import { SemanticTagInput } from './SemanticTagInput';
 
 interface RecipeFormProps {
   recipe?: Recipe;
@@ -54,7 +53,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
   });
 
   const handleArrayChange = (
-    field: 'ingredients' | 'instructions' | 'tags',
+    field: 'ingredients' | 'instructions',
     index: number,
     value: string
   ) => {
@@ -64,14 +63,14 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     }));
   };
 
-  const addArrayItem = (field: 'ingredients' | 'instructions' | 'tags') => {
+  const addArrayItem = (field: 'ingredients' | 'instructions') => {
     setFormData((prev) => ({
       ...prev,
       [field]: [...prev[field], ''],
     }));
   };
 
-  const removeArrayItem = (field: 'ingredients' | 'instructions' | 'tags', index: number) => {
+  const removeArrayItem = (field: 'ingredients' | 'instructions', index: number) => {
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].filter((_: string, i: number) => i !== index),
@@ -86,7 +85,6 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
       // Filter out empty strings
       const filteredIngredients = formData.ingredients.filter((i: string) => i.trim());
       const filteredInstructions = formData.instructions.filter((i: string) => i.trim());
-      const filteredTags = formData.tags.filter((t: string) => t.trim());
 
       if (filteredIngredients.length === 0) {
         toast.error('Please add at least one ingredient');
@@ -101,12 +99,13 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
       }
 
       // Prepare data for submission with JSON strings
+      // Tags are preserved from existing recipe or left empty (auto-generation happens server-side for AI recipes)
       const cleanedData = {
         name: formData.name,
         difficulty: formData.difficulty,
         ingredients: JSON.stringify(filteredIngredients),
         instructions: JSON.stringify(filteredInstructions),
-        tags: JSON.stringify(filteredTags),
+        tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : null,
         images: formData.images.length > 0 ? JSON.stringify(formData.images) : null,
         prep_time: formData.prepTime || null,
         cook_time: formData.cookTime || null,
@@ -328,29 +327,6 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
               <Plus className="w-4 h-4 mr-2" />
               Add Step
             </Button>
-          </CardContent>
-        </Card>
-
-        {/* Tags */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tag className="w-5 h-5" />
-              Tags
-            </CardTitle>
-            <CardDescription>
-              Add tags to help categorize and discover your recipe. Tags are automatically grouped
-              by type (cuisine, dietary, etc.)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SemanticTagInput
-              selectedTags={formData.tags}
-              onChange={(tags) => setFormData((prev) => ({ ...prev, tags }))}
-              placeholder="Type to search or add tags..."
-              maxTags={20}
-              showPopular
-            />
           </CardContent>
         </Card>
 

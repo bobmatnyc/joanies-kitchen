@@ -393,6 +393,7 @@ export async function storeRecipe(
         id: '', // Temporary ID, will be replaced
         user_id: userId || '',
         chef_id: null,
+        source_id: null,
         name: recipe.name,
         description: recipe.description || '',
         ingredients: JSON.stringify(recipe.ingredients),
@@ -411,6 +412,7 @@ export async function storeRecipe(
         nutrition_info: null,
         model_used: null,
         source: null,
+        license: 'ALL_RIGHTS_RESERVED', // Default license for crawled recipes
         created_at: new Date(),
         updated_at: new Date(),
         search_query: null,
@@ -636,6 +638,7 @@ async function storeRecipeWithWeek(
         id: '',
         user_id: userId || '',
         chef_id: null,
+        source_id: null,
         name: recipe.name,
         description: recipe.description || '',
         ingredients: JSON.stringify(recipe.ingredients),
@@ -654,6 +657,7 @@ async function storeRecipeWithWeek(
         nutrition_info: null,
         model_used: null,
         source: null,
+        license: 'ALL_RIGHTS_RESERVED', // Default license for crawled recipes
         created_at: new Date(),
         updated_at: new Date(),
         search_query: null,

@@ -10,6 +10,7 @@ interface RecipeEngagementStatsProps {
   collectionCount: number;
   recipeId: string;
   compact?: boolean;
+  inline?: boolean;
 }
 
 export function RecipeEngagementStats({
@@ -18,22 +19,26 @@ export function RecipeEngagementStats({
   collectionCount,
   recipeId,
   compact = false,
+  inline = false,
 }: RecipeEngagementStatsProps) {
   const stats = [
     {
       label: 'Likes',
+      singular: 'like',
       count: likeCount,
       icon: '❤️',
       color: 'text-red-600',
     },
     {
       label: 'Forks',
+      singular: 'fork',
       count: forkCount,
       icon: '🍴',
       color: 'text-blue-600',
     },
     {
       label: 'Collections',
+      singular: 'collection',
       count: collectionCount,
       icon: '📚',
       color: 'text-green-600',
@@ -55,6 +60,25 @@ export function RecipeEngagementStats({
             <span className="mr-1">{stat.icon}</span>
             {stat.count} {stat.label.toLowerCase()}
           </Badge>
+        ))}
+      </div>
+    );
+  }
+
+  // Inline display mode - single row with bullet separators
+  if (inline) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        {stats.map((stat, index) => (
+          <div key={stat.label} className="flex items-center gap-1.5">
+            <span>{stat.icon}</span>
+            <span>
+              {stat.count} {stat.count === 1 ? stat.singular : stat.label.toLowerCase()}
+            </span>
+            {index < stats.length - 1 && (
+              <span className="ml-4 text-muted-foreground/50">•</span>
+            )}
+          </div>
         ))}
       </div>
     );

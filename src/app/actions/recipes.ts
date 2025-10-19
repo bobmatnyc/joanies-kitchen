@@ -674,21 +674,23 @@ export interface PaginatedRecipeResponse {
 }
 
 // Category types for Top 50 filtering
-export type RecipeCategory = 'mains' | 'sides' | 'desserts' | 'all';
-export type MainsSubcategory = 'beef' | 'chicken' | 'lamb' | 'pasta' | 'seafood' | 'pork' | 'other-proteins';
+export type RecipeCategory = 'mains' | 'sides' | 'desserts' | 'appetizers' | 'all';
+export type MainsSubcategory = 'beef' | 'chicken' | 'lamb' | 'pasta' | 'seafood' | 'pork' | 'vegetarian' | 'vegan';
 export type SidesSubcategory = 'vegetables' | 'salads' | 'grains' | 'potatoes' | 'bread';
 export type DessertsSubcategory = 'cakes' | 'cookies' | 'pies' | 'puddings' | 'frozen';
+export type AppetizersSubcategory = 'dips' | 'finger-foods' | 'cheese' | 'meat' | 'vegetable';
 
 // Tag mapping for categorization
 const CATEGORY_TAG_MAPPING = {
   mains: {
     beef: ['beef', 'steak', 'ground beef', 'roast'],
     chicken: ['chicken', 'poultry', 'roasted chicken'],
-    lamb: ['lamb'],
+    lamb: ['lamb', 'goat'],
     pasta: ['pasta', 'noodles', 'spaghetti', 'lasagna', 'ravioli'],
     seafood: ['seafood', 'fish', 'salmon', 'shrimp', 'tuna', 'cod'],
     pork: ['pork', 'bacon', 'ham', 'sausage'],
-    'other-proteins': ['turkey', 'duck', 'venison', 'tofu', 'tempeh'],
+    vegetarian: ['vegetarian', 'veggie', 'meatless'],
+    vegan: ['vegan', 'plant-based'],
   },
   sides: {
     vegetables: ['vegetables', 'vegetable', 'broccoli', 'carrots', 'green beans'],
@@ -703,6 +705,13 @@ const CATEGORY_TAG_MAPPING = {
     pies: ['pie', 'pies', 'tart', 'tarts'],
     puddings: ['pudding', 'custard', 'mousse'],
     frozen: ['ice cream', 'sorbet', 'frozen dessert'],
+  },
+  appetizers: {
+    dips: ['dip', 'dips', 'hummus', 'guacamole', 'salsa'],
+    'finger-foods': ['finger food', 'appetizer', 'hors d\'oeuvre', 'canape'],
+    cheese: ['cheese board', 'cheese platter', 'brie', 'charcuterie'],
+    meat: ['meatball', 'wing', 'wings', 'skewer'],
+    vegetable: ['crudite', 'veggie platter', 'stuffed mushroom'],
   },
 };
 
@@ -822,6 +831,9 @@ export async function getRecipesPaginated({
 
     // Build WHERE conditions
     const conditions: SQL[] = [];
+
+    // CRITICAL: Exclude soft-deleted recipes
+    conditions.push(isNull(recipes.deleted_at));
 
     // Access control: user's recipes OR public recipes
     if (filters.userId) {

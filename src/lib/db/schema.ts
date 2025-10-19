@@ -5,6 +5,7 @@ import {
   decimal,
   index,
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -14,6 +15,37 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { chefs } from './chef-schema';
+
+// ====================
+// RECIPE LICENSE ONTOLOGY
+// ====================
+/**
+ * Recipe License Types - Defines usage rights and restrictions for recipes
+ *
+ * License Types:
+ * - PUBLIC_DOMAIN: No copyright restrictions, free to use for any purpose
+ * - CC_BY: Creative Commons Attribution - Free to use with attribution
+ * - CC_BY_SA: CC Attribution-ShareAlike - Free to use with attribution, derivative works must use same license
+ * - CC_BY_NC: CC Attribution-NonCommercial - Free for non-commercial use with attribution
+ * - CC_BY_NC_SA: CC Attribution-NonCommercial-ShareAlike - Non-commercial use with attribution, same license for derivatives
+ * - EDUCATIONAL_USE: Restricted to educational purposes only
+ * - PERSONAL_USE: Restricted to personal, non-commercial use only
+ * - ALL_RIGHTS_RESERVED: Full copyright protection, requires permission for use
+ * - FAIR_USE: Content used under fair use doctrine (news, commentary, education)
+ *
+ * Default: ALL_RIGHTS_RESERVED (most restrictive, safest default for imported content)
+ */
+export const recipeLicenseEnum = pgEnum('recipe_license', [
+  'PUBLIC_DOMAIN',
+  'CC_BY',
+  'CC_BY_SA',
+  'CC_BY_NC',
+  'CC_BY_NC_SA',
+  'EDUCATIONAL_USE',
+  'PERSONAL_USE',
+  'ALL_RIGHTS_RESERVED',
+  'FAIR_USE',
+]);
 
 // Custom type for pgvector embedding columns
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -33,6 +65,48 @@ const vector = customType<{ data: number[]; driverData: string }>({
   },
 });
 
+// ====================
+// RECIPE SOURCES ONTOLOGY (2-level hierarchy)
+// ====================
+
+// Recipe Sources (Top Level) - Where recipes and chefs come from
+export const recipeSources = pgTable(
+  'recipe_sources',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(), // e.g., "Serious Eats", "TheMealDB", "User Generated"
+    slug: text('slug').notNull().unique(), // URL-friendly: serious-eats, themealdb
+    website_url: text('website_url'), // Optional website URL
+    logo_url: text('logo_url'), // Optional logo URL
+    description: text('description'), // Description of the source
+    is_active: boolean('is_active').notNull().default(true), // Can deactivate without deleting
+    created_at: timestamp('created_at').notNull().defaultNow(),
+    updated_at: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    slugIdx: index('recipe_sources_slug_idx').on(table.slug),
+    isActiveIdx: index('recipe_sources_is_active_idx').on(table.is_active),
+  })
+);
+
+// Recipe Source Types (2nd Level) - Categories/types within each source
+export const recipeSourceTypes = pgTable(
+  'recipe_source_types',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    source_id: uuid('source_id')
+      .notNull()
+      .references(() => recipeSources.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(), // e.g., "Web Scrape", "API", "Manual Entry", "Chef Profile"
+    description: text('description'), // Description of the source type
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    sourceIdIdx: index('recipe_source_types_source_id_idx').on(table.source_id),
+    uniqueSourceType: unique('unique_source_type').on(table.source_id, table.name),
+  })
+);
+
 // Recipes table with authentication support
 export const recipes = pgTable(
   'recipes',
@@ -42,6 +116,7 @@ export const recipes = pgTable(
       .$defaultFn(() => randomUUID()),
     user_id: text('user_id').notNull(), // Clerk user ID
     chef_id: uuid('chef_id').references(() => chefs.id, { onDelete: 'set null' }), // Optional reference to chef (for chef-attributed recipes)
+    source_id: uuid('source_id').references(() => recipeSources.id, { onDelete: 'set null' }), // Optional reference to recipe source
     name: text('name').notNull(),
     description: text('description'),
     ingredients: text('ingredients').notNull(), // JSON array of strings
@@ -61,6 +136,10 @@ export const recipes = pgTable(
     nutrition_info: text('nutrition_info'), // JSON object with nutritional data
     model_used: text('model_used'), // AI model used for generation
     source: text('source'), // Recipe source (URL, chef name, etc.)
+
+    // License and usage rights
+    license: recipeLicenseEnum('license').notNull().default('ALL_RIGHTS_RESERVED'), // Recipe usage rights and restrictions
+
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow(),
 
@@ -154,6 +233,7 @@ export const recipes = pgTable(
       table.acidity_score
     ), // Composite index for meal pairing queries
     servingTempIdx: index('idx_recipes_serving_temp').on(table.serving_temperature), // Index for temperature-based filtering
+    licenseIdx: index('idx_recipes_license').on(table.license), // Index for license-based filtering
   })
 );
 
@@ -461,6 +541,11 @@ export const mealOccasions = pgTable('meal_occasions', {
 }));
 
 // Type exports
+export type RecipeLicense = typeof recipeLicenseEnum.enumValues[number];
+export type RecipeSource = typeof recipeSources.$inferSelect;
+export type NewRecipeSource = typeof recipeSources.$inferInsert;
+export type RecipeSourceType = typeof recipeSourceTypes.$inferSelect;
+export type NewRecipeSourceType = typeof recipeSourceTypes.$inferInsert;
 export type Recipe = typeof recipes.$inferSelect;
 export type NewRecipe = typeof recipes.$inferInsert;
 export type RecipeEmbedding = typeof recipeEmbeddings.$inferSelect;
@@ -491,6 +576,10 @@ export type MealOccasion = typeof mealOccasions.$inferSelect;
 export type NewMealOccasion = typeof mealOccasions.$inferInsert;
 
 // Zod schemas for validation
+export const insertRecipeSourceSchema = createInsertSchema(recipeSources);
+export const selectRecipeSourceSchema = createSelectSchema(recipeSources);
+export const insertRecipeSourceTypeSchema = createInsertSchema(recipeSourceTypes);
+export const selectRecipeSourceTypeSchema = createSelectSchema(recipeSourceTypes);
 export const insertRecipeSchema = createInsertSchema(recipes);
 export const selectRecipeSchema = createSelectSchema(recipes);
 export const insertRecipeEmbeddingSchema = createInsertSchema(recipeEmbeddings);

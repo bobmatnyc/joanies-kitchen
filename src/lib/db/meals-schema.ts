@@ -8,6 +8,7 @@ import {
   timestamp,
   unique,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { recipes } from './schema';
@@ -65,6 +66,9 @@ export const meals = pgTable(
     total_prep_time: integer('total_prep_time'), // Total prep time in minutes (calculated)
     total_cook_time: integer('total_cook_time'), // Total cook time in minutes (calculated)
 
+    // SEO slug for friendly URLs
+    slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "thanksgiving-dinner-2024")
+
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -74,6 +78,7 @@ export const meals = pgTable(
     isTemplateIdx: index('meals_is_template_idx').on(table.is_template),
     isPublicIdx: index('meals_is_public_idx').on(table.is_public),
     createdAtIdx: index('meals_created_at_idx').on(table.created_at.desc()),
+    slugIdx: index('meals_slug_idx').on(table.slug), // Index for slug-based lookups
   })
 );
 

@@ -12,7 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { recipes } from './schema';
+import { recipes, recipeSources } from './schema';
 
 // Chefs table - Famous chefs/creators (no login required)
 export const chefs = pgTable(
@@ -20,6 +20,7 @@ export const chefs = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     slug: text('slug').notNull().unique(), // URL-friendly: kenji-lopez-alt
+    source_id: uuid('source_id').references(() => recipeSources.id, { onDelete: 'set null' }), // Optional reference to recipe source
     name: text('name').notNull(), // Kenji López-Alt
     display_name: text('display_name'), // J. Kenji López-Alt
     bio: text('bio'),

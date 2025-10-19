@@ -57,6 +57,29 @@ export interface OpenRecipeDBRecipe {
 }
 
 /**
+ * USDA Recipe Types
+ */
+export interface USDARecipe {
+  name: string;
+  description?: string;
+  ingredients: string[];
+  instructions: string[];
+  servings?: number;
+  prepTime?: number;
+  cookTime?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbohydrates?: number;
+    fat?: number;
+    fiber?: number;
+    sodium?: number;
+  };
+  sourceUrl: string;
+  sourceName: string;
+}
+
+/**
  * Cuisine mapping for TheMealDB
  */
 const CUISINE_MAP: Record<string, string> = {
@@ -357,6 +380,66 @@ export function transformOpenRecipeDBRecipe(
     is_public: true,
     is_ai_generated: false,
     source: recipe.source_url || `Open Recipe DB (ID: ${recipe.id})`,
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+}
+
+/**
+ * Transform USDA recipe to our schema
+ */
+export function transformUSDARecipe(
+  recipe: USDARecipe,
+  systemUserId: string,
+  sourceId: string
+) {
+  // Format ingredients as array of objects with item and quantity
+  const ingredients = recipe.ingredients.map((ing) => {
+    // USDA ingredients are typically already formatted with measurements
+    return { item: ing, quantity: '' };
+  });
+
+  // Build tags
+  const tags: string[] = [
+    'source.usda',
+    'license.public-domain',
+  ];
+
+  // Add government/educational tag
+  tags.push('source.government');
+
+  // Add nutrition-verified tag if nutrition data is present
+  if (recipe.nutrition && Object.keys(recipe.nutrition).length > 0) {
+    tags.push('quality.nutrition-verified');
+  }
+
+  // Generate description if not provided
+  const description =
+    recipe.description ||
+    (recipe.instructions.length > 0
+      ? recipe.instructions[0].substring(0, 200) + (recipe.instructions[0].length > 200 ? '...' : '')
+      : `Recipe from ${recipe.sourceName}`);
+
+  return {
+    id: randomUUID(),
+    user_id: systemUserId,
+    source_id: sourceId,
+    name: recipe.name,
+    slug: slugify(recipe.name),
+    description,
+    ingredients: JSON.stringify(ingredients),
+    instructions: JSON.stringify(recipe.instructions),
+    prep_time: recipe.prepTime || null,
+    cook_time: recipe.cookTime || null,
+    servings: recipe.servings || null,
+    nutrition_info: recipe.nutrition ? JSON.stringify(recipe.nutrition) : null,
+    cuisine: null, // USDA recipes typically don't specify cuisine
+    tags: JSON.stringify(tags),
+    is_system_recipe: true,
+    is_public: true,
+    is_ai_generated: false,
+    license: 'PUBLIC_DOMAIN' as const,
+    source: recipe.sourceUrl,
     created_at: new Date(),
     updated_at: new Date(),
   };

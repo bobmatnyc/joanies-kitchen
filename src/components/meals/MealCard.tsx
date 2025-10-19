@@ -46,13 +46,15 @@ export const MealCard = memo(function MealCard({ meal }: MealCardProps) {
 
       if (result.success) {
         toast.success('Shopping list generated!');
-        router.push(`/meals/${meal.id}#shopping-list`);
+        // Use slug for navigation if available, fallback to ID
+        const mealPath = meal.slug || meal.id;
+        router.push(`/meals/${mealPath}#shopping-list`);
       } else {
         toast.error(result.error || 'Failed to generate shopping list');
       }
       setIsGenerating(false);
     },
-    [meal.id, router]
+    [meal.id, meal.slug, router]
   );
 
   return (
@@ -128,7 +130,7 @@ export const MealCard = memo(function MealCard({ meal }: MealCardProps) {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2 pt-2">
-          <Link href={`/meals/${meal.id}`} className="flex-1">
+          <Link href={`/meals/${meal.slug || meal.id}`} className="flex-1">
             <Button
               variant="outline"
               className="w-full min-h-[44px] touch-manipulation border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui"

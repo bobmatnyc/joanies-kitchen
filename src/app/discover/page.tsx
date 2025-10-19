@@ -23,6 +23,7 @@ import { getAllTags } from '@/app/actions/recipes';
 import { RequireAuthAI } from '@/components/auth/RequireAuth';
 import { WebSearchPanel } from '@/components/recipe/WebSearchPanel';
 import { Badge } from '@/components/ui/badge';
+import { getTagLabel } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -246,15 +247,16 @@ export default function DiscoverPage() {
                   <div className="flex flex-wrap gap-2">
                     {popularTags.map((tag) => {
                       const isSelected = selectedTags.includes(tag.toLowerCase());
+                      const displayLabel = getTagLabel(tag as any, 'en');
                       return (
                         <Badge
                           key={tag}
                           variant={isSelected ? 'default' : 'outline'}
-                          className="cursor-pointer transition-all hover:scale-105 capitalize"
+                          className="cursor-pointer transition-all hover:scale-105"
                           onClick={() => handleTagClick(tag)}
                         >
                           {isSelected && <X className="w-3 h-3 mr-1" />}
-                          {tag}
+                          {displayLabel}
                         </Badge>
                       );
                     })}

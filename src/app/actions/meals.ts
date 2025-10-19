@@ -31,6 +31,7 @@ import {
   consolidateShoppingListItems,
   parseIngredientString,
 } from '@/lib/utils/ingredient-consolidation';
+import { ensureUniqueSlug, generateMealSlug } from '@/lib/utils/meal-slug';
 
 /**
  * Create a new meal
@@ -48,11 +49,20 @@ export async function createMeal(data: unknown) {
     // Validate input with Zod schema
     const validatedData = validateInput(createMealSchema, data);
 
+    // Generate slug from name
+    const baseSlug = generateMealSlug(validatedData.name, new Date());
+
+    // Ensure slug is unique
+    const existingMeals = await db.select({ slug: meals.slug }).from(meals);
+    const existingSlugs = existingMeals.map((m) => m.slug).filter((s): s is string => !!s);
+    const uniqueSlug = ensureUniqueSlug(baseSlug, existingSlugs);
+
     const [newMeal] = await db
       .insert(meals)
       .values({
         ...validatedData,
         user_id: userId,
+        slug: uniqueSlug,
       })
       .returning();
 
@@ -249,6 +259,52 @@ export async function getMealById(id: unknown) {
     return { success: true, data: mealWithRecipes };
   } catch (error) {
     console.error('Failed to fetch meal:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meal';
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Get a single meal by slug with all its recipes
+ *
+ * @param slug - Meal slug (e.g., "thanksgiving-dinner-2024")
+ * @returns Success response with meal and recipes or error message
+ */
+export async function getMealBySlug(slug: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const [meal] = await db
+      .select()
+      .from(meals)
+      .where(and(eq(meals.slug, slug), eq(meals.user_id, userId)));
+
+    if (!meal) {
+      return { success: false, error: 'Meal not found' };
+    }
+
+    // Get all recipes for this meal
+    const mealRecipesList = await db
+      .select({
+        mealRecipe: mealRecipes,
+        recipe: recipes,
+      })
+      .from(mealRecipes)
+      .innerJoin(recipes, eq(mealRecipes.recipe_id, recipes.id))
+      .where(eq(mealRecipes.meal_id, meal.id))
+      .orderBy(mealRecipes.display_order);
+
+    const mealWithRecipes = {
+      ...meal,
+      recipes: mealRecipesList,
+    };
+
+    return { success: true, data: mealWithRecipes };
+  } catch (error) {
+    console.error('Failed to fetch meal by slug:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meal';
     return { success: false, error: errorMessage };
   }

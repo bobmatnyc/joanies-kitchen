@@ -13,10 +13,11 @@ const GUEST_MEAL_RECIPES_KEY = 'guest_meal_recipes';
 const GUEST_SHOPPING_LISTS_KEY = 'guest_shopping_lists';
 
 // Guest data types (matches DB schema but with client-side IDs)
-export type GuestMeal = Omit<Meal, 'user_id' | 'created_at' | 'updated_at'> & {
+export type GuestMeal = Omit<Meal, 'user_id' | 'created_at' | 'updated_at' | 'slug'> & {
   id: string;
   created_at: string;
   updated_at: string;
+  slug?: string | null; // Optional slug for guest meals
 };
 
 export type GuestMealRecipe = Omit<MealRecipe, 'created_at'> & {

@@ -227,11 +227,28 @@ export function getTagLabel(tagId: TagId, locale: Locale = 'en'): string {
     // Fallback: use last part of tag ID (e.g., "cuisine.italian" → "Italian")
     const parts = tagId.split('.');
     const lastPart = parts[parts.length - 1];
-    // Convert camelCase to Title Case
-    return lastPart
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str) => str.toUpperCase())
+
+    // Handle common patterns
+    const patterns: [RegExp, string][] = [
+      [/free$/i, ' Free'],  // soyfree → soy Free, glutenfree → gluten Free
+      [/based$/i, ' Based'],  // plantbased → plant Based
+    ];
+
+    let formatted = lastPart;
+    for (const [pattern, replacement] of patterns) {
+      formatted = formatted.replace(pattern, replacement);
+    }
+
+    // Convert camelCase to spaces (e.g., "glutenFree" → "gluten Free")
+    formatted = formatted
+      .replace(/([A-Z])/g, ' $1')  // Add space before capital letters
       .trim();
+
+    // Capitalize each word
+    return formatted
+      .split(/[\s-]+/)  // Split on spaces or hyphens
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   return tagLabel.label[locale];
