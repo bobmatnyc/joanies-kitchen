@@ -29,3 +29,13 @@ export interface MealPlanEntry {
   dinner?: number; // Recipe ID
   snack?: number; // Recipe ID
 }
+
+// Meal Pairing Types (re-export from meal-pairing-engine)
+export type {
+  MealPairingMode,
+  MealPairingInput,
+  MealPlanCourse,
+  MealPlan,
+  SimpleMealRequest,
+  MealGenerationResult,
+} from '@/lib/ai/meal-pairing-engine';
