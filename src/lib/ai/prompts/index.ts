@@ -16,6 +16,7 @@ import type {
 import { mealGenerationPrompts } from './meal-generation';
 import { recipeAnalysisPrompts } from './recipe-analysis';
 import { nutritionalEstimationPrompts } from './nutritional-estimation';
+import { mealPairingPrompts } from './meal-pairing';
 
 /**
  * Central prompt store registry
@@ -33,6 +34,10 @@ export const promptStore: Record<string, PromptTemplate> = {
   // Nutritional Estimation Prompts (4 prompts)
   ...Object.fromEntries(
     Object.entries(nutritionalEstimationPrompts).map(([, prompt]) => [prompt.id, prompt])
+  ),
+  // Meal Pairing Prompts (4 prompts)
+  ...Object.fromEntries(
+    Object.entries(mealPairingPrompts).map(([, prompt]) => [prompt.id, prompt])
   ),
 };
 
@@ -242,6 +247,7 @@ export * from './types';
 export * from './meal-generation';
 export * from './recipe-analysis';
 export * from './nutritional-estimation';
+export * from './meal-pairing';
 
 // Export metadata for documentation
 export const PROMPT_STORE_VERSION = '1.0.0';
