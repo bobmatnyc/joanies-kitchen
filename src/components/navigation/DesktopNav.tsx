@@ -1,33 +1,50 @@
 'use client';
 
 import {
+  Refrigerator,
+  Recycle,
+  GraduationCap,
+  Leaf,
+  Heart,
   BookOpen,
-  Calendar,
-  ChefHat,
-  FolderHeart,
-  Globe,
-  Sparkles,
-  Trophy,
 } from 'lucide-react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
 import { NavLink } from '@/components/navigation/NavLink';
 
 /**
- * Desktop Navigation Component
+ * Desktop Navigation Component - Week 4 Task 5.1
  *
  * Main navigation bar for desktop screens (>= 1280px / xl breakpoint)
- * Features active state indication and user authentication controls
+ * Reorganized around zero-waste mission per ROADMAP.md
+ *
+ * Primary Navigation:
+ * 1. What's in Your Fridge - Core entry point for waste reduction
+ * 2. Rescue Ingredients - Browse by ingredient type (wilting greens, aging veggies, etc.)
+ * 3. Learn Techniques - Educational content on zero-waste cooking
+ * 4. Sustainability Chefs - Featured chefs with zero-waste focus
+ * 5. Philosophy - Joanie's approach to cooking and waste reduction
+ * 6. All Recipes - Complete searchable collection (secondary)
  */
 export function DesktopNav() {
   return (
     <div className="hidden xl:flex items-center gap-2">
+      {/* Primary: Zero-Waste Entry Point */}
+      <NavLink href="/fridge" icon={Refrigerator} label="What's in Your Fridge" />
+
+      {/* Rescue Ingredients - NEW */}
+      <NavLink href="/rescue" icon={Recycle} label="Rescue Ingredients" />
+
+      {/* Learn Techniques - NEW */}
+      <NavLink href="/learn" icon={GraduationCap} label="Learn" />
+
+      {/* Sustainability Chefs */}
+      <NavLink href="/discover/chefs" icon={Leaf} label="Chefs" />
+
+      {/* Philosophy - NEW */}
+      <NavLink href="/philosophy" icon={Heart} label="Philosophy" />
+
+      {/* Secondary: All Recipes */}
       <NavLink href="/recipes" icon={BookOpen} label="Recipes" />
-      <NavLink href="/collections" icon={FolderHeart} label="Collections" />
-      <NavLink href="/meals" icon={Calendar} label="Meals" />
-      <NavLink href="/recipes/top-50" icon={Trophy} label="Top 50" />
-      <NavLink href="/shared" icon={Globe} label="Shared" />
-      <NavLink href="/discover" icon={Sparkles} label="Discover" />
-      <NavLink href="/discover/chefs" icon={ChefHat} label="Chefs" />
 
       {/* Auth Controls */}
       <AuthButtons />

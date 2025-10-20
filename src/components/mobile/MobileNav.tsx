@@ -1,15 +1,14 @@
 'use client';
 
 import {
-  BookOpen,
-  Calendar,
-  ChefHat,
-  FolderHeart,
-  Globe,
+  Refrigerator,
+  Recycle,
+  GraduationCap,
+  Leaf,
   Heart,
+  BookOpen,
   Menu,
   Sparkles,
-  Trophy,
 } from 'lucide-react';
 import { useState } from 'react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
@@ -18,10 +17,12 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 /**
- * Mobile Navigation Component
+ * Mobile Navigation Component - Week 4 Task 5.1
  *
  * Provides a hamburger menu for mobile/tablet screens with all navigation items
  * in a slide-out drawer. Automatically closes the drawer when a link is clicked.
+ *
+ * Reorganized around zero-waste mission per ROADMAP.md
  */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -48,47 +49,68 @@ export function MobileNav() {
           <SheetTitle className="text-jk-linen font-heading text-xl">Menu</SheetTitle>
         </SheetHeader>
 
-        {/* Navigation Links - Stacked Vertically */}
+        {/* Primary Navigation - Zero-Waste Focus */}
         <nav className="flex flex-col gap-2 mt-8">
+          {/* Core Entry Point */}
+          <NavLink
+            href="/fridge"
+            icon={Refrigerator}
+            label="What's in Your Fridge"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Rescue Ingredients - NEW */}
+          <NavLink
+            href="/rescue"
+            icon={Recycle}
+            label="Rescue Ingredients"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Learn Techniques - NEW */}
+          <NavLink
+            href="/learn"
+            icon={GraduationCap}
+            label="Learn Techniques"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Sustainability Chefs */}
+          <NavLink
+            href="/discover/chefs"
+            icon={Leaf}
+            label="Sustainability Chefs"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Philosophy - NEW */}
+          <NavLink
+            href="/philosophy"
+            icon={Heart}
+            label="Philosophy"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Divider */}
+          <div className="border-t border-jk-sage/30 my-4" />
+
+          {/* Secondary Navigation */}
           <NavLink
             href="/recipes"
             icon={BookOpen}
-            label="Recipes"
+            label="All Recipes"
             variant="mobile"
             onClick={handleLinkClick}
           />
           <NavLink
-            href="/collections"
-            icon={FolderHeart}
-            label="Collections"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/meals"
-            icon={Calendar}
-            label="Meals"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/recipes/top-50"
-            icon={Trophy}
-            label="Top 50"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/favorites"
-            icon={Heart}
-            label="Favorites"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/shared"
-            icon={Globe}
-            label="Shared"
+            href="/recipes/zero-waste"
+            icon={Leaf}
+            label="Zero-Waste Collection"
             variant="mobile"
             onClick={handleLinkClick}
           />
@@ -96,13 +118,6 @@ export function MobileNav() {
             href="/discover"
             icon={Sparkles}
             label="Discover"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-          <NavLink
-            href="/discover/chefs"
-            icon={ChefHat}
-            label="Chefs"
             variant="mobile"
             onClick={handleLinkClick}
           />
