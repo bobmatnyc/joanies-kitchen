@@ -71,7 +71,7 @@ async function importTastyRecipes() {
     console.error('❌ RAPIDAPI_KEY not found in environment variables');
     console.log('\nPlease add your RapidAPI key to .env.local:');
     console.log('  RAPIDAPI_KEY=your_rapidapi_key_here');
-    console.log('  RAPIDAPI_HOST=tasty.p.rapidapi.com');
+    console.log('  RAPIDAPI_HOST=tasty-api1.p.rapidapi.com');
     console.log('\nGet your API key from: https://rapidapi.com/apidojo/api/tasty');
     process.exit(1);
   }
