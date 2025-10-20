@@ -453,6 +453,7 @@ export async function storeRecipe(
         dominant_flavors: null,
         serving_temperature: null,
         pairing_rationale: null,
+        video_url: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -698,6 +699,7 @@ async function storeRecipeWithWeek(
         dominant_flavors: null,
         serving_temperature: null,
         pairing_rationale: null,
+        video_url: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`

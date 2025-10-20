@@ -58,7 +58,7 @@ export function ServerActionFridgeInputExample() {
         limit: 20,
       });
 
-      if (result.success) {
+      if (result.success && result.data) {
         setResults(result.data);
       }
     } catch (error) {
