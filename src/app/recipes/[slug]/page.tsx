@@ -46,6 +46,7 @@ import {
 } from '@/components/recipe/RecipeEngagementStats';
 import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
+import { WasteReductionSection } from '@/components/recipe/WasteReductionSection';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -714,6 +715,21 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           ingredients={recipe.ingredients}
         />
       </div>
+
+      {/* WASTE-REDUCTION CONTENT SECTION - Week 2 Task 3.3 */}
+      {(recipe.resourcefulness_score ||
+        recipe.waste_reduction_tags ||
+        recipe.scrap_utilization_notes ||
+        recipe.environmental_notes) && (
+        <div className="mb-8">
+          <WasteReductionSection
+            resourcefulnessScore={recipe.resourcefulness_score}
+            wasteReductionTags={recipe.waste_reduction_tags}
+            scrapUtilizationNotes={recipe.scrap_utilization_notes}
+            environmentalNotes={recipe.environmental_notes}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
         {/* Recipe Content with Admin Edit Overlays */}
