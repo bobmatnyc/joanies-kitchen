@@ -1,6 +1,32 @@
 # Joanie's Kitchen - Documentation
 
-Welcome to the Joanie's Kitchen documentation. This guide will help you understand, use, and contribute to the project.
+**Last Updated:** October 20, 2025
+**Project Version:** v0.7.0
+**Mission:** Zero-Waste Cooking Platform
+
+Welcome to Joanie's Kitchen documentation. This guide will help you understand, use, and contribute to our zero-waste cooking platform.
+
+> *"I'd like to see technology help with food waste. That would be the highlight of my life."* — Joanie
+
+## 🎯 Project Status
+
+**Current Phase:** Phase 5 of 6 (80% complete)
+**Next Milestone:** Polish & Launch Prep
+**Target Launch:** November 1, 2025
+
+**See:** [`/ROADMAP.md`](../ROADMAP.md) for detailed progress
+
+---
+
+## 🚀 Quick Start
+
+**New to the project?** Start here:
+1. [`/README.md`](../README.md) - Project overview
+2. [`/ROADMAP.md`](../ROADMAP.md) - Current progress & priorities
+3. [`/CLAUDE.md`](../CLAUDE.md) - Technical context for AI assistants
+4. [`docs/getting-started/`](./getting-started/) - Development setup
+
+---
 
 ## 👨‍💻 Developer Hub
 
@@ -8,7 +34,7 @@ Welcome to the Joanie's Kitchen documentation. This guide will help you understa
 
 - **[Developer Documentation Hub](./developer/README.md)** - Complete technical guide with architecture overview, API docs, testing guides, and troubleshooting
 
-## 🚀 Getting Started
+## 🏃 Getting Started
 
 New to Joanie's Kitchen? Start here:
 
