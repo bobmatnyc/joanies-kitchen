@@ -110,7 +110,7 @@ export default function Home() {
             <FridgeInput
               onSearch={handleFridgeSearch}
               placeholder="What's in your fridge? (e.g., chicken, rice, carrots)"
-              className="shadow-2xl"
+              className="shadow-2xl [&_input]:text-jk-linen [&_input]:placeholder:text-jk-linen/60"
             />
           </div>
 
