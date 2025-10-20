@@ -70,7 +70,7 @@ export function ServerActionFridgeInputExample() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <FridgeInput onSearch={handleSearch} maxIngredients={15} />
+      <FridgeInput onSearch={handleSearch} />
 
       {loading && (
         <div className="mt-6 text-center text-jk-clay/60">
@@ -105,7 +105,6 @@ export function CustomStyledFridgeInputExample() {
       <FridgeInput
         onSearch={handleSearch}
         placeholder="Enter ingredients you have..."
-        maxIngredients={10}
         className="max-w-xl"
       />
     </div>

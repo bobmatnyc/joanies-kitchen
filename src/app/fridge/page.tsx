@@ -59,7 +59,6 @@ export default function FridgePage() {
           <FridgeInput
             onSearch={handleSearch}
             placeholder="What's in your fridge?"
-            maxIngredients={20}
             className="w-full"
           />
         </div>

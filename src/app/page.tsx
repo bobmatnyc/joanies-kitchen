@@ -69,7 +69,7 @@ export default function Home() {
   }, []);
 
   // Handle Fridge Search
-  const handleFridgeSearch = async (ingredients: string[]) => {
+  const handleFridgeSearch = async (ingredients: string[]): Promise<void> => {
     const query = ingredients.join(',');
     router.push(`/fridge/results?ingredients=${encodeURIComponent(query)}`);
   };
