@@ -3,7 +3,7 @@
 import { CheckCircle, ChefHat, Edit, Loader2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { searchRecipesByIngredients } from '@/app/actions/ingredient-search';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import type { RecipeWithMatch } from '@/types/ingredient-search';
@@ -39,7 +39,7 @@ type SortOption = 'best-match' | 'fewest-missing' | 'cook-time';
  * - Stack filters vertically on mobile
  * - Touch-friendly controls
  */
-export default function FridgeResultsPage() {
+function FridgeResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -254,6 +254,29 @@ export default function FridgeResultsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Default export wrapped in Suspense boundary
+ * Required by Next.js 15 for useSearchParams()
+ */
+export default function FridgeResultsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-jk-clay mx-auto" />
+            <p className="text-lg text-jk-charcoal/70 font-ui">
+              Loading recipe matches...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <FridgeResultsContent />
+    </Suspense>
   );
 }
 
