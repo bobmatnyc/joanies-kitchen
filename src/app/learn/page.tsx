@@ -128,7 +128,7 @@ export default function LearnPage() {
                 Joanie's Full Story
               </h2>
               <p className="text-base text-jk-charcoal/70 mb-4 leading-relaxed">
-                Learn more about Joanie Matsuoka's philosophy on cooking, gardening, and food waste.
+                Learn more about Joanie's philosophy on cooking, gardening, and food waste.
                 Her approach to resourcefulness goes beyond the kitchen — it's a way of life.
               </p>
               <Link

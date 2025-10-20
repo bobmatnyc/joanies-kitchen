@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 
 export const metadata = {
   title: 'Joanie\'s Philosophy | Joanie\'s Kitchen',
-  description: 'The story behind our zero-waste cooking platform. Learn about Joanie Matsuoka\'s approach to resourceful cooking, FIFO principles, and why technology should help with food waste.',
+  description: 'The story behind our zero-waste cooking platform. Learn about Joanie\'s approach to resourceful cooking, FIFO principles, and why technology should help with food waste.',
 };
 
 export default function PhilosophyPage() {
@@ -39,7 +39,7 @@ export default function PhilosophyPage() {
             </h2>
             <div className="space-y-4 text-base text-jk-charcoal/80 leading-relaxed">
               <p>
-                <strong>Joanie Matsuoka</strong> doesn't cook from recipes. She cooks from her fridge.
+                <strong>Joanie</strong> doesn't cook from recipes. She cooks from her fridge.
                 Every meal begins with the same question: <em>"What do I have that might go bad?"</em>
               </p>
               <p>
