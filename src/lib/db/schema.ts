@@ -164,6 +164,9 @@ export const recipes = pgTable(
     // SEO slug for friendly URLs
     slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "grandmas-chocolate-chip-cookies")
 
+    // Video URL for recipe tutorials (e.g., YouTube, Vimeo, Tasty)
+    video_url: text('video_url'), // Optional video tutorial URL
+
     // Admin image flagging and regeneration
     image_flagged_for_regeneration: boolean('image_flagged_for_regeneration').default(false),
     image_regeneration_requested_at: timestamp('image_regeneration_requested_at'),
@@ -645,3 +648,35 @@ export {
   selectShoppingListSchema,
   shoppingLists,
 } from './meals-schema';
+
+// Re-export inventory-related types and schemas for convenience
+export {
+  insertInventoryItemSchema,
+  insertInventoryUsageLogSchema,
+  insertWasteTrackingSchema,
+  type InventoryItem,
+  type InventoryItemWithDetails,
+  type InventoryStats,
+  type InventoryStatus,
+  inventoryStatusEnum,
+  inventoryItems,
+  type InventoryUsageLog,
+  inventoryUsageLog,
+  type NewInventoryItem,
+  type NewInventoryUsageLog,
+  type NewWasteTracking,
+  selectInventoryItemSchema,
+  selectInventoryUsageLogSchema,
+  selectWasteTrackingSchema,
+  type StorageLocation,
+  storageLocationEnum,
+  type UsageAction,
+  usageActionEnum,
+  type UsageLogWithDetails,
+  type WasteOutcome,
+  wasteOutcomeEnum,
+  type WasteStats,
+  type WasteTracking,
+  wasteTracking,
+  type WasteTrackingWithDetails,
+} from './inventory-schema';
