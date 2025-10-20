@@ -30,7 +30,7 @@ Add to `.env.local`:
 
 ```env
 RAPIDAPI_KEY=your_rapidapi_key_here
-RAPIDAPI_HOST=tasty.p.rapidapi.com
+RAPIDAPI_HOST=tasty-api1.p.rapidapi.com  # Corrected host (2025-10-19)
 ```
 
 ### 3. Test API Connection
