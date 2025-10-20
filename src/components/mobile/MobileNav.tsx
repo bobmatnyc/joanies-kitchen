@@ -38,7 +38,7 @@ export function MobileNav() {
         <Button
           variant="ghost"
           size="icon"
-          className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80"
+          className="text-jk-linen hover:text-jk-sage hover:bg-jk-olive/80 size-11"
           aria-label="Open navigation menu"
         >
           <Menu className="h-6 w-6" />
