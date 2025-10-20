@@ -1,56 +1,78 @@
+'use client';
+
 import { BookOpen, Calendar, CalendarClock, ChefHat, ChevronRight, Lightbulb, PlusCircle, Recycle, Refrigerator, Sparkles, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { getBackgroundImages } from '@/app/actions/background-images';
 import { getSharedRecipes, getTopRatedRecipes } from '@/app/actions/recipes';
 import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
+import { FridgeInput } from '@/components/inventory';
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
-import { VectorSearchBar } from '@/components/search/VectorSearchBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Recipe } from '@/lib/db/schema';
 
-// ISR: Revalidate homepage every 5 minutes
-// Homepage shows dynamic data (shared recipes, top recipes, background images) but can be cached
-export const revalidate = 300; // 5 minutes
+export default function Home() {
+  const router = useRouter();
+  const [sharedRecipes, setSharedRecipes] = useState<Recipe[]>([]);
+  const [topRecipes, setTopRecipes] = useState<Recipe[]>([]);
+  const [backgroundImages, setBackgroundImages] = useState<string[]>([]);
 
-export default async function Home() {
-  // Parallel data fetching for improved performance
-  // All three fetches are independent - no data dependencies
-  const [sharedRecipesResult, topRecipesResult, backgroundImagesResult] = await Promise.allSettled([
-    getSharedRecipes(),
-    getTopRatedRecipes({ limit: 8 }),
-    getBackgroundImages(),
-  ]);
+  // Fetch data on component mount
+  useEffect(() => {
+    async function fetchData() {
+      // Parallel data fetching for improved performance
+      const [sharedRecipesResult, topRecipesResult, backgroundImagesResult] = await Promise.allSettled([
+        getSharedRecipes(),
+        getTopRatedRecipes({ limit: 8 }),
+        getBackgroundImages(),
+      ]);
 
-  // Extract data with fallbacks for failed promises
-  const sharedRecipes =
-    sharedRecipesResult.status === 'fulfilled' &&
-    sharedRecipesResult.value.success &&
-    sharedRecipesResult.value.data
-      ? sharedRecipesResult.value.data.slice(0, 15)
-      : [];
+      // Extract data with fallbacks for failed promises
+      const sharedRecipesData =
+        sharedRecipesResult.status === 'fulfilled' &&
+        sharedRecipesResult.value.success &&
+        sharedRecipesResult.value.data
+          ? sharedRecipesResult.value.data.slice(0, 15)
+          : [];
 
-  const topRecipes = topRecipesResult.status === 'fulfilled' ? topRecipesResult.value : [];
+      const topRecipesData = topRecipesResult.status === 'fulfilled' ? topRecipesResult.value : [];
 
-  const backgroundImages =
-    backgroundImagesResult.status === 'fulfilled' &&
-    backgroundImagesResult.value.success &&
-    backgroundImagesResult.value.data
-      ? backgroundImagesResult.value.data
-      : [];
+      const backgroundImagesData =
+        backgroundImagesResult.status === 'fulfilled' &&
+        backgroundImagesResult.value.success &&
+        backgroundImagesResult.value.data
+          ? backgroundImagesResult.value.data
+          : [];
 
-  // Log errors (optional - helps with debugging)
-  if (sharedRecipesResult.status === 'rejected') {
-    console.error('[Homepage] Failed to fetch shared recipes:', sharedRecipesResult.reason);
-  }
-  if (topRecipesResult.status === 'rejected') {
-    console.error('[Homepage] Failed to fetch top-rated recipes:', topRecipesResult.reason);
-  }
-  if (backgroundImagesResult.status === 'rejected') {
-    console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
-  }
+      // Log errors (optional - helps with debugging)
+      if (sharedRecipesResult.status === 'rejected') {
+        console.error('[Homepage] Failed to fetch shared recipes:', sharedRecipesResult.reason);
+      }
+      if (topRecipesResult.status === 'rejected') {
+        console.error('[Homepage] Failed to fetch top-rated recipes:', topRecipesResult.reason);
+      }
+      if (backgroundImagesResult.status === 'rejected') {
+        console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
+      }
+
+      setSharedRecipes(sharedRecipesData);
+      setTopRecipes(topRecipesData);
+      setBackgroundImages(backgroundImagesData);
+    }
+
+    fetchData();
+  }, []);
+
+  // Handle Fridge Search
+  const handleFridgeSearch = async (ingredients: string[]) => {
+    const query = ingredients.join(',');
+    router.push(`/fridge/results?ingredients=${encodeURIComponent(query)}`);
+  };
   return (
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
@@ -79,9 +101,29 @@ export default async function Home() {
           <p className="font-body text-xl sm:text-2xl md:text-3xl text-jk-sage italic mb-3">
             Cook With What You Have. Waste Nothing.
           </p>
-          <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
+          <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-6 md:mb-8 px-4">
             Enter what's in your fridge and we'll show you delicious meals you can make right now — with substitutions for what's missing.
           </p>
+
+          {/* FridgeInput Component */}
+          <div className="max-w-3xl mx-auto px-4 mb-6">
+            <FridgeInput
+              onSearch={handleFridgeSearch}
+              placeholder="What's in your fridge? (e.g., chicken, rice, carrots)"
+              className="shadow-2xl"
+            />
+          </div>
+
+          {/* Explainer Link */}
+          <div className="mb-8">
+            <Link
+              href="/how-it-works"
+              className="text-jk-linen/80 text-sm underline hover:text-jk-linen transition-colors"
+            >
+              How does this work? Learn more →
+            </Link>
+          </div>
+
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
             <Button
               size="lg"
@@ -186,13 +228,6 @@ export default async function Home() {
 
           </div>
         </div>
-      </section>
-
-      {/* Vector Search Section */}
-      <section className="bg-gradient-to-b from-jk-sage/10 to-white py-8 md:py-12">
-        <MobileContainer maxWidth="2xl">
-          <VectorSearchBar />
-        </MobileContainer>
       </section>
 
       {/* CTA Buttons Section */}

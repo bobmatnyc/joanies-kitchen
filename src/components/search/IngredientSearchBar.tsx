@@ -2,10 +2,8 @@
 
 import { Loader2, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  getIngredientSuggestions,
-  type IngredientSuggestion,
-} from '@/app/actions/ingredient-search';
+import { getIngredientSuggestions } from '@/app/actions/ingredient-search';
+import type { IngredientSuggestion } from '@/types/ingredient-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

@@ -1,6 +1,6 @@
 'use server';
 
-import { and, asc, desc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -294,7 +294,7 @@ export async function getUserInventory(filters?: {
       futureDate.setDate(futureDate.getDate() + filters.expiringWithinDays);
       conditions.push(
         and(
-          isNull(inventoryItems.expiry_date) === false,
+          isNotNull(inventoryItems.expiry_date),
           lte(inventoryItems.expiry_date, futureDate),
           gte(inventoryItems.expiry_date, new Date())
         ) as any
