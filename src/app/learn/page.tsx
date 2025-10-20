@@ -6,7 +6,7 @@
  */
 
 import Link from 'next/link';
-import { GraduationCap, Recycle, Shuffle, Soup, BookOpen } from 'lucide-react';
+import { GraduationCap, Recycle, Shuffle, Soup, BookOpen, RotateCcw } from 'lucide-react';
 
 export const metadata = {
   title: 'Learn Zero-Waste Techniques | Joanie\'s Kitchen',
@@ -23,6 +23,16 @@ const techniques = [
     color: 'from-green-100 to-emerald-100',
     borderColor: 'border-green-300',
     iconColor: 'text-green-600',
+  },
+  {
+    slug: 'fifo-management',
+    name: 'FIFO Management',
+    icon: RotateCcw,
+    description: 'Master First In, First Out to eliminate food waste and save money',
+    topics: ['Daily FIFO practices', 'Fridge & pantry setup', 'Storage by category', 'Common mistakes to avoid'],
+    color: 'from-purple-100 to-pink-100',
+    borderColor: 'border-purple-300',
+    iconColor: 'text-purple-600',
   },
   {
     slug: 'substitution-guide',
@@ -85,7 +95,7 @@ export default function LearnPage() {
           <h2 className="text-3xl font-heading text-jk-olive mb-8 text-center">
             Core Techniques
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {techniques.map((technique) => {
               const IconComponent = technique.icon;
               return (
