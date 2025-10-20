@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, ChefHat, ChevronRight, PlusCircle, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Calendar, ChefHat, ChevronRight, PlusCircle, Refrigerator, Sparkles, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getBackgroundImages } from '@/app/actions/background-images';
@@ -77,11 +77,10 @@ export default async function Home() {
             Joanie's Kitchen
           </h1>
           <p className="font-body text-xl sm:text-2xl md:text-3xl text-jk-sage italic mb-3">
-            From Garden to Table — with Heart and Soil
+            Cook With What You Have. Waste Nothing.
           </p>
           <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-8 md:mb-10 px-4">
-            Celebrate cooking with the seasons. Your personal recipe collection and AI-powered
-            kitchen companion.
+            Enter what's in your fridge and we'll show you delicious meals you can make right now — with substitutions for what's missing.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
             <Button
@@ -89,9 +88,9 @@ export default async function Home() {
               className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target"
               asChild
             >
-              <Link href="/discover">
-                <Sparkles className="h-5 w-5" />
-                Discover Recipes
+              <Link href="/fridge">
+                <Refrigerator className="h-5 w-5" />
+                What's in Your Fridge?
               </Link>
             </Button>
             <Button
@@ -119,18 +118,18 @@ export default async function Home() {
       <section className="bg-white py-6 md:py-8 border-b border-jk-sage/20">
         <MobileContainer maxWidth="xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {/* Discover Recipes */}
-            <Link href="/discover" className="block">
+            {/* Cook From Your Fridge */}
+            <Link href="/fridge" className="block">
               <Card className="recipe-card h-full cursor-pointer border-2 border-jk-sage hover:border-jk-tomato hover:shadow-lg transition-all group">
                 <CardContent className="flex flex-col items-center justify-center text-center p-8 md:p-10">
                   <div className="w-16 h-16 bg-jk-tomato/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-jk-tomato/20 transition-colors">
-                    <Sparkles className="h-8 w-8 text-jk-tomato" />
+                    <Refrigerator className="h-8 w-8 text-jk-tomato" />
                   </div>
                   <h3 className="font-heading text-xl md:text-2xl text-jk-olive mb-2 group-hover:text-jk-tomato transition-colors">
-                    Discover Recipes
+                    Cook From Your Fridge
                   </h3>
                   <p className="text-sm text-jk-charcoal/70 font-ui">
-                    Explore curated recipes from famous chefs and the community
+                    Tell us what you have and we'll find recipes you can make right now
                   </p>
                 </CardContent>
               </Card>
@@ -177,12 +176,10 @@ export default async function Home() {
         {/* Welcome Message */}
         <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
           <h2 className="font-heading text-3xl md:text-4xl text-jk-olive mb-4">
-            Welcome to Your Kitchen
+            Stop Wasting Food. Start Cooking.
           </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/80">
-            Whether you're bringing fresh ingredients from your garden or exploring new seasonal
-            flavors, Joanie's Kitchen helps you create wholesome, delicious meals with warmth and
-            authenticity.
+            Got odds and ends in your fridge? Perfect. Joanie's Kitchen helps you turn what you have into something unforgettable — no shopping required. Tell us what's on hand and we'll show you what you can make.
           </p>
         </div>
 
@@ -308,11 +305,10 @@ export default async function Home() {
           <div className="mt-12 md:mt-16 mb-8 md:mb-12">
             <div className="jk-divider mb-8 md:mb-12"></div>
             <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-jk-olive">
-              The Community Table
+              Resourceful Recipes from Our Community
             </h2>
             <p className="font-body text-center text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              Recipes shared with love from our community. Each dish tells a story of tradition,
-              innovation, and the joy of cooking.
+              Real home cooks sharing flexible recipes that work with what you have. Swap ingredients, adapt to your fridge, and waste nothing.
             </p>
             <SharedRecipeCarousel recipes={sharedRecipes} />
           </div>
@@ -322,11 +318,10 @@ export default async function Home() {
         <div className="mt-12 md:mt-16 text-center">
           <div className="jk-divider mb-8 md:mb-12"></div>
           <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-jk-olive">
-            Ready to Start Cooking?
+            Cook With What You Have
           </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-            Every great meal begins with inspiration. Choose your path and let's create something
-            wonderful.
+            Stop food waste, save money, and get creative. Tell us what's in your fridge or explore recipes built for flexibility.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
             <Button
@@ -334,9 +329,9 @@ export default async function Home() {
               className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium rounded-jk touch-target"
               asChild
             >
-              <Link href="/discover">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Discover New Recipe
+              <Link href="/fridge">
+                <Refrigerator className="h-4 w-4 mr-2" />
+                What's in My Fridge?
               </Link>
             </Button>
             <Button

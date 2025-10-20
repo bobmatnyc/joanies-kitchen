@@ -21,7 +21,7 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="font-heading text-6xl text-jk-linen mb-4">About Joanie</h1>
           <p className="text-2xl text-jk-sage italic font-body">
-            From Garden to Table — with Heart and Soil
+            Cook With What You Have. Waste Nothing.
           </p>
         </div>
       </div>
@@ -110,12 +110,8 @@ export default function AboutPage() {
             </h3>
 
             <p>
-              This site is a curated collection of recipes from across the culinary world — from
-              celebrated chefs like Kenji López-Alt and Ina Garten, to home cooks and food
-              publications. You'll find Joanie's personal favorites marked in{' '}
-              <strong className="text-jk-tomato">Joanie's Collection</strong>, where she shares the
-              recipes she makes most often from her kitchen and garden — seasonal favorites, family
-              traditions, and new discoveries, all tested, tasted, and loved.
+              This site helps you cook resourcefully with what you have. Browse 3,200+ flexible recipes where substitutions are encouraged, not exceptions. You'll find Joanie's personal favorites in{' '}
+              <strong className="text-jk-tomato">Joanie's Collection</strong> — seasonal, adaptable recipes tested in her own "nothing in the fridge" challenges.
             </p>
 
             <p>

@@ -48,9 +48,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Joanie's Kitchen",
+  title: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
   description:
-    'From Garden to Table — with Heart and Soil. A trained chef and lifelong gardener sharing seasonal recipes from her terraced home overlooking the Hudson River.',
+    "Stop food waste with AI that helps you cook from your fridge. Enter what you have and find recipes you can make right now — with substitutions for what's missing.",
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -69,13 +69,14 @@ export const metadata: Metadata = {
     telephone: false, // Prevent auto-linking of phone numbers
   },
   keywords: [
-    'recipes',
-    'seasonal cooking',
-    'garden to table',
-    'farm to table',
-    'wholesome',
-    'organic',
-    'authentic cooking',
+    'food waste',
+    'cook from fridge',
+    'ingredient substitution',
+    'resourceful cooking',
+    'leftovers',
+    'fridge ingredients',
+    'zero waste cooking',
+    'budget meals',
   ],
 };
 
@@ -112,7 +113,7 @@ export default function RootLayout({
                       Joanie's Kitchen
                     </span>
                     <span className="text-jk-sage text-xs font-ui italic -mt-0.5 hidden sm:block">
-                      Garden to Table
+                      Zero Food Waste
                     </span>
                   </div>
                 </Link>
@@ -154,7 +155,7 @@ export default function RootLayout({
                 © {new Date().getFullYear()} Joanie's Kitchen
               </p>
               <p className="text-jk-sage font-ui text-xs mt-1 italic">
-                From Garden to Table — with Heart and Soil
+                Cook With What You Have. Waste Nothing.
               </p>
             </div>
           </footer>
