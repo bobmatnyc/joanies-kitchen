@@ -59,7 +59,8 @@ function FridgeResultsContent() {
     if (ingredients.length === 0) {
       router.push('/fridge');
     }
-  }, [ingredients, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ingredients.length]);
 
   // Fetch recipes on mount or when ingredients change
   useEffect(() => {
@@ -92,7 +93,8 @@ function FridgeResultsContent() {
     }
 
     fetchRecipes();
-  }, [ingredients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ingredientsParam]);
 
   // Apply client-side sorting and filtering
   const filteredAndSortedRecipes = [...recipes]
