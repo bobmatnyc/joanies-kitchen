@@ -87,7 +87,7 @@ export default async function ZeroWastePage() {
               "I'd like to see technology help with food waste. That would be the highlight of my life."
             </blockquote>
             <p className="text-base text-jk-charcoal/70 leading-relaxed">
-              <strong>— Joanie Matsuoka</strong>
+              <strong>— Joanie</strong>
             </p>
             <p className="text-base text-jk-charcoal/70 mt-4 leading-relaxed">
               Joanie doesn't cook from recipes — she cooks from her fridge. These recipes honor her approach:
