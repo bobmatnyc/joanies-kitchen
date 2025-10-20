@@ -39,6 +39,7 @@ import { BackToChef } from '@/components/recipe/BackToChef';
 import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { InventoryMatchSection } from '@/components/recipe/InventoryMatchSection';
+import { SubstitutionSuggestionsWrapper } from '@/components/recipe/SubstitutionSuggestionsWrapper';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
@@ -701,6 +702,15 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
       <div className="mb-8">
         <InventoryMatchSection
           recipeId={recipe.id}
+          ingredients={recipe.ingredients}
+        />
+      </div>
+
+      {/* SMART SUBSTITUTIONS SECTION */}
+      <div className="mb-8">
+        <SubstitutionSuggestionsWrapper
+          recipeId={recipe.id}
+          recipeName={recipe.name}
           ingredients={recipe.ingredients}
         />
       </div>
