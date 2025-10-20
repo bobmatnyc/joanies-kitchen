@@ -814,6 +814,54 @@ export async function getTopRatedRecipes({
   }
 }
 
+/**
+ * Get resourceful recipes for homepage
+ * Fetches recipes with resourcefulness_score >= 4
+ * Sorted by score DESC, then rating DESC
+ *
+ * Week 3 Task 4.3: Feature content aligned with Joanie's philosophy
+ */
+export async function getResourcefulRecipes({
+  limit = 8,
+  minScore = 4,
+}: {
+  limit?: number;
+  minScore?: number;
+} = {}) {
+  try {
+    const resourcefulRecipes = await db
+      .select()
+      .from(recipes)
+      .where(
+        and(
+          eq(recipes.is_public, true),
+          sql`${recipes.resourcefulness_score} >= ${minScore}`
+        )
+      )
+      .orderBy(
+        desc(recipes.resourcefulness_score),
+        desc(
+          sql`COALESCE(
+            (COALESCE(${recipes.system_rating}, 0) + COALESCE(${recipes.avg_user_rating}, 0)) /
+            NULLIF(
+              (CASE WHEN ${recipes.system_rating} IS NOT NULL THEN 1 ELSE 0 END +
+               CASE WHEN ${recipes.avg_user_rating} IS NOT NULL THEN 1 ELSE 0 END),
+              0
+            ),
+            COALESCE(${recipes.system_rating}, ${recipes.avg_user_rating}, 0)
+          )`
+        ),
+        desc(recipes.created_at)
+      )
+      .limit(limit);
+
+    return resourcefulRecipes;
+  } catch (error) {
+    console.error('Failed to fetch resourceful recipes:', error);
+    return [];
+  }
+}
+
 // Get recipes with pagination, filtering, and sorting
 export async function getRecipesPaginated({
   page = 1,
