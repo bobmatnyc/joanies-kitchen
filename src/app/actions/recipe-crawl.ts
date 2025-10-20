@@ -454,6 +454,11 @@ export async function storeRecipe(
         serving_temperature: null,
         pairing_rationale: null,
         video_url: null,
+        // Waste-reduction and resourcefulness fields (v0.45.0)
+        resourcefulness_score: null,
+        waste_reduction_tags: null,
+        scrap_utilization_notes: null,
+        environmental_notes: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -700,6 +705,11 @@ async function storeRecipeWithWeek(
         serving_temperature: null,
         pairing_rationale: null,
         video_url: null,
+        // Waste-reduction and resourcefulness fields (v0.45.0)
+        resourcefulness_score: null,
+        waste_reduction_tags: null,
+        scrap_utilization_notes: null,
+        environmental_notes: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`

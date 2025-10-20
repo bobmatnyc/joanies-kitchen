@@ -82,6 +82,11 @@ describe('RecipeCard', () => {
     dominant_flavors: null,
     serving_temperature: null,
     pairing_rationale: null,
+    video_url: null,
+    resourcefulness_score: null,
+    waste_reduction_tags: null,
+    scrap_utilization_notes: null,
+    environmental_notes: null,
   };
 
   it('renders recipe name', () => {

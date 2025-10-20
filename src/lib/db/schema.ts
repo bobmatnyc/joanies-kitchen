@@ -201,6 +201,12 @@ export const recipes = pgTable(
     dominant_flavors: text('dominant_flavors'), // JSON array: ["umami", "sweet", "salty", "bitter", "sour", "spicy"]
     serving_temperature: text('serving_temperature', { enum: ['hot', 'cold', 'room'] }), // Serving temperature
     pairing_rationale: text('pairing_rationale'), // Why this pairs well in a multi-course meal
+
+    // Waste-Reduction and Resourcefulness Fields (v0.45.0 - Zero-Waste Pivot)
+    resourcefulness_score: integer('resourcefulness_score'), // 1-5 scale: How resourceful/waste-conscious this recipe is
+    waste_reduction_tags: text('waste_reduction_tags'), // JSON array: ["uses-scraps", "one-pot", "flexible-ingredients", "minimal-waste", "uses-aging", "seasonal"]
+    scrap_utilization_notes: text('scrap_utilization_notes'), // Tips on using scraps/leftovers: "Save chicken bones for stock"
+    environmental_notes: text('environmental_notes'), // Environmental impact notes: "Uses seasonal ingredients to reduce carbon footprint"
   },
   (table) => ({
     // Performance indexes for pagination and filtering
