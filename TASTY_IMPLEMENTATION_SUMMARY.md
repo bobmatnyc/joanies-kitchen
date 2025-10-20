@@ -149,8 +149,9 @@ Added RapidAPI configuration:
 # Tasty API (RapidAPI) for BuzzFeed recipe import
 # Get your API key from https://rapidapi.com/apidojo/api/tasty
 # Free tier: 500 requests/month, Pro tier: $9.99/month for 10,000 requests/month
+# NOTE: Host was corrected on 2025-10-19 - use tasty-api1.p.rapidapi.com (not tasty.p.rapidapi.com)
 RAPIDAPI_KEY=your_rapidapi_key_here
-RAPIDAPI_HOST=tasty.p.rapidapi.com
+RAPIDAPI_HOST=tasty-api1.p.rapidapi.com
 ```
 
 ---
@@ -376,7 +377,7 @@ https://rapidapi.com/apidojo/api/tasty
 ```bash
 # Add to .env.local
 RAPIDAPI_KEY=your_key_here
-RAPIDAPI_HOST=tasty.p.rapidapi.com
+RAPIDAPI_HOST=tasty-api1.p.rapidapi.com  # Corrected host (2025-10-19)
 ```
 
 ### 3. Test API Connection (30 seconds)
