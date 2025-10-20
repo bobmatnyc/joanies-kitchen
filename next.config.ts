@@ -224,6 +224,13 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      // TheMealDB API
+      {
+        protocol: 'https',
+        hostname: 'www.themealdb.com',
+        port: '',
+        pathname: '/images/**',
+      },
     ],
   },
 };
