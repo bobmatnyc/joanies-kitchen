@@ -1139,6 +1139,1032 @@ const BROWN_SUGAR: StaticSubstitutionEntry = {
 };
 
 /**
+ * CONDIMENTS & SAUCES
+ */
+const MAYONNAISE: StaticSubstitutionEntry = {
+  ingredient: 'mayonnaise',
+  aliases: ['mayo'],
+  category: 'condiment',
+  substitutions: [
+    {
+      substitute_ingredient: 'greek yogurt',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Similar creamy texture with tangy flavor. Much healthier alternative.',
+      best_for: ['dressings', 'dips', 'sandwiches'],
+      avoid_for: ['hot dishes (may curdle)'],
+      flavor_impact: 'minimal',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Add at end for hot dishes to prevent curdling.',
+    },
+    {
+      substitute_ingredient: 'sour cream',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar tang and creaminess. Slightly thinner consistency.',
+      best_for: ['dips', 'dressings', 'cold salads'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'minimal',
+    },
+    {
+      substitute_ingredient: 'avocado (mashed)',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Healthy fat alternative with creamy texture. Different flavor profile.',
+      best_for: ['sandwiches', 'wraps', 'spreads'],
+      avoid_for: ['baking', 'coleslaw'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Best used immediately to prevent browning.',
+    },
+  ],
+};
+
+const DIJON_MUSTARD: StaticSubstitutionEntry = {
+  ingredient: 'dijon mustard',
+  aliases: ['dijon', 'grey poupon'],
+  category: 'condiment',
+  substitutions: [
+    {
+      substitute_ingredient: 'whole grain mustard',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Similar tang and heat. Adds texture from mustard seeds.',
+      best_for: ['vinaigrettes', 'marinades', 'sauces'],
+      avoid_for: ['smooth sauces'],
+      flavor_impact: 'minimal',
+      texture_impact: 'noticeable',
+    },
+    {
+      substitute_ingredient: 'yellow mustard',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Sharper, more acidic. Less refined flavor than Dijon.',
+      best_for: ['marinades', 'dressings'],
+      avoid_for: ['delicate sauces', 'French cuisine'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+      cooking_adjustment: 'Add slightly less as yellow mustard is more acidic.',
+    },
+    {
+      substitute_ingredient: 'horseradish',
+      ratio: '1 tbsp mustard = 1 tsp horseradish',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Similar heat and pungency. Much stronger.',
+      best_for: ['sauces', 'roast beef'],
+      avoid_for: ['vinaigrettes', 'most applications'],
+      flavor_impact: 'significant',
+      texture_impact: 'noticeable',
+      cooking_adjustment: 'Use 1/3 the amount. Much more intense.',
+    },
+  ],
+};
+
+const SOY_SAUCE: StaticSubstitutionEntry = {
+  ingredient: 'soy sauce',
+  aliases: ['shoyu', 'tamari'],
+  category: 'condiment',
+  substitutions: [
+    {
+      substitute_ingredient: 'tamari',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.95,
+      reason: 'Nearly identical flavor. Gluten-free alternative to soy sauce.',
+      best_for: ['all applications'],
+      avoid_for: [],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'coconut aminos',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Soy-free, gluten-free. Slightly sweeter with similar umami.',
+      best_for: ['stir-fries', 'marinades', 'dressings'],
+      avoid_for: ['authentic Asian dishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+      cooking_adjustment: 'Slightly sweeter. May want to reduce other sweeteners.',
+    },
+    {
+      substitute_ingredient: 'worcestershire sauce',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.65,
+      reason: 'Provides umami depth. Different flavor profile with more complexity.',
+      best_for: ['marinades', 'stews', 'gravies'],
+      avoid_for: ['Asian dishes', 'sushi'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const WORCESTERSHIRE_SAUCE: StaticSubstitutionEntry = {
+  ingredient: 'worcestershire sauce',
+  aliases: ['worcester sauce', 'lea & perrins'],
+  category: 'condiment',
+  substitutions: [
+    {
+      substitute_ingredient: 'soy sauce + vinegar',
+      ratio: '1 tbsp worcestershire = 1 tbsp soy sauce + 1 tsp vinegar',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Mimics umami and tangy components. Add dash of hot sauce for complexity.',
+      best_for: ['marinades', 'stews', 'sauces'],
+      avoid_for: ['Bloody Marys', 'Caesar dressing'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'balsamic vinegar',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Provides depth and tang. Sweeter than worcestershire.',
+      best_for: ['marinades', 'glazes'],
+      avoid_for: ['traditional British dishes'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'fish sauce',
+      ratio: '1 tbsp worcestershire = 2 tsp fish sauce',
+      confidence: 'medium',
+      confidence_score: 0.65,
+      reason: 'Strong umami flavor. Much more pungent.',
+      best_for: ['Asian-inspired dishes', 'marinades'],
+      avoid_for: ['traditional recipes', 'seafood-averse diners'],
+      flavor_impact: 'significant',
+      texture_impact: 'none',
+      cooking_adjustment: 'Use less (2/3 amount). Very potent.',
+    },
+  ],
+};
+
+/**
+ * ADDITIONAL VEGETABLES
+ */
+const CELERY: StaticSubstitutionEntry = {
+  ingredient: 'celery',
+  aliases: ['celery stalks', 'celery ribs'],
+  category: 'vegetable',
+  substitutions: [
+    {
+      substitute_ingredient: 'fennel',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Similar crunch and texture. Adds subtle anise flavor.',
+      best_for: ['soups', 'stews', 'salads'],
+      avoid_for: ['recipes where celery flavor is important'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'bok choy stems',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar crunch and water content. Milder flavor.',
+      best_for: ['stir-fries', 'soups', 'stocks'],
+      avoid_for: ['raw applications', 'Western cuisine'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'celery seed',
+      ratio: '1 stalk = 1/2 tsp celery seed',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Provides celery flavor without texture. Much more concentrated.',
+      best_for: ['soups', 'stews', 'dry rubs'],
+      avoid_for: ['salads', 'dishes needing crunch'],
+      flavor_impact: 'minimal',
+      texture_impact: 'significant',
+      cooking_adjustment: 'No texture. Use sparingly as very concentrated.',
+    },
+  ],
+};
+
+const CARROTS: StaticSubstitutionEntry = {
+  ingredient: 'carrots',
+  aliases: ['carrot'],
+  category: 'vegetable',
+  substitutions: [
+    {
+      substitute_ingredient: 'parsnips',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar texture and sweetness. Slightly earthier flavor.',
+      best_for: ['roasting', 'soups', 'stews'],
+      avoid_for: ['raw salads', 'carrot cake'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'sweet potato',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Similar sweetness and color. Softer texture when cooked.',
+      best_for: ['soups', 'purees', 'roasting'],
+      avoid_for: ['raw applications', 'quick cooking'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'noticeable',
+      cooking_adjustment: 'Cooks faster than carrots. Sweeter flavor.',
+    },
+    {
+      substitute_ingredient: 'butternut squash',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar sweetness and color. Different texture.',
+      best_for: ['roasting', 'soups', 'purees'],
+      avoid_for: ['stir-fries', 'raw applications'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'noticeable',
+    },
+  ],
+};
+
+const BELL_PEPPER: StaticSubstitutionEntry = {
+  ingredient: 'bell pepper',
+  aliases: ['sweet pepper', 'capsicum', 'red bell pepper', 'green bell pepper'],
+  category: 'vegetable',
+  substitutions: [
+    {
+      substitute_ingredient: 'poblano pepper',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Similar texture with mild heat. Adds depth of flavor.',
+      best_for: ['Mexican dishes', 'roasting', 'stuffing'],
+      avoid_for: ['heat-sensitive diners'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+      cooking_adjustment: 'Slightly spicy. Remove seeds for milder flavor.',
+    },
+    {
+      substitute_ingredient: 'zucchini',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.65,
+      reason: 'Similar water content. Different flavor and softer texture.',
+      best_for: ['stir-fries', 'pasta sauces', 'casseroles'],
+      avoid_for: ['raw applications', 'stuffed peppers'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'noticeable',
+    },
+    {
+      substitute_ingredient: 'tomatoes',
+      ratio: '1:1',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Adds sweetness and acidity. Very different texture.',
+      best_for: ['sauces', 'stews'],
+      avoid_for: ['stir-fries', 'raw applications'],
+      flavor_impact: 'significant',
+      texture_impact: 'significant',
+      cooking_adjustment: 'Adds liquid. Different flavor profile.',
+    },
+  ],
+};
+
+const TOMATOES: StaticSubstitutionEntry = {
+  ingredient: 'tomatoes',
+  aliases: ['fresh tomatoes', 'tomato'],
+  category: 'vegetable',
+  substitutions: [
+    {
+      substitute_ingredient: 'canned tomatoes',
+      ratio: '1 lb fresh = 1 (14 oz) can',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Often better for cooking. More consistent flavor year-round.',
+      best_for: ['sauces', 'soups', 'stews'],
+      avoid_for: ['salads', 'sandwiches', 'fresh applications'],
+      flavor_impact: 'minimal',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Drain if too much liquid. Already cooked.',
+    },
+    {
+      substitute_ingredient: 'tomato paste + water',
+      ratio: '1 cup tomatoes = 1/4 cup paste + 3/4 cup water',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Concentrated tomato flavor. Lacks fresh texture.',
+      best_for: ['sauces', 'soups'],
+      avoid_for: ['salads', 'chunky sauces'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'significant',
+    },
+    {
+      substitute_ingredient: 'red bell pepper',
+      ratio: '1:1',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Provides sweetness and color. Lacks acidity.',
+      best_for: ['salads', 'stir-fries'],
+      avoid_for: ['tomato-based sauces', 'acidic dishes'],
+      flavor_impact: 'significant',
+      texture_impact: 'noticeable',
+      cooking_adjustment: 'Add lemon juice for acidity.',
+    },
+  ],
+};
+
+const TOMATO_PASTE: StaticSubstitutionEntry = {
+  ingredient: 'tomato paste',
+  aliases: ['concentrated tomato paste'],
+  category: 'condiment',
+  substitutions: [
+    {
+      substitute_ingredient: 'ketchup',
+      ratio: '1 tbsp paste = 2-3 tbsp ketchup',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar tomato base. Much sweeter and thinner.',
+      best_for: ['sauces', 'stews'],
+      avoid_for: ['dishes where sugar is unwanted'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Reduce sugar in recipe. Use more to achieve thickness.',
+    },
+    {
+      substitute_ingredient: 'tomato sauce (reduced)',
+      ratio: '1 tbsp paste = 3-4 tbsp tomato sauce (simmered)',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Same base ingredient. Just needs concentration.',
+      best_for: ['all applications'],
+      avoid_for: [],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+      cooking_adjustment: 'Simmer tomato sauce to reduce and concentrate.',
+    },
+    {
+      substitute_ingredient: 'sun-dried tomatoes (pureed)',
+      ratio: '1 tbsp paste = 2 tbsp rehydrated sun-dried tomatoes',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Concentrated tomato flavor with deeper, sweeter notes.',
+      best_for: ['pasta sauces', 'Mediterranean dishes'],
+      avoid_for: [],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Rehydrate and puree. More complex flavor.',
+    },
+  ],
+};
+
+/**
+ * ADDITIONAL HERBS & SPICES
+ */
+const THYME: StaticSubstitutionEntry = {
+  ingredient: 'thyme',
+  aliases: ['fresh thyme', 'thyme leaves', 'dried thyme'],
+  category: 'herb',
+  substitutions: [
+    {
+      substitute_ingredient: 'oregano',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Similar earthy, woodsy profile. Common in Mediterranean cuisine.',
+      best_for: ['roasted meats', 'vegetables', 'tomato-based dishes'],
+      avoid_for: ['French cuisine', 'delicate fish'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'rosemary',
+      ratio: '1 tsp thyme = 1/2 tsp rosemary',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar woody character. Much stronger and more piney.',
+      best_for: ['roasted meats', 'potatoes', 'bread'],
+      avoid_for: ['fish', 'delicate dishes'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+      cooking_adjustment: 'Use half the amount. Rosemary is more potent.',
+    },
+    {
+      substitute_ingredient: 'marjoram',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Closely related herb. Sweeter and more delicate than thyme.',
+      best_for: ['poultry', 'vegetables', 'soups'],
+      avoid_for: ['heavily thyme-flavored dishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const ROSEMARY: StaticSubstitutionEntry = {
+  ingredient: 'rosemary',
+  aliases: ['fresh rosemary', 'rosemary leaves'],
+  category: 'herb',
+  substitutions: [
+    {
+      substitute_ingredient: 'thyme',
+      ratio: '1 tsp rosemary = 2 tsp thyme',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Similar woody character. Much milder than rosemary.',
+      best_for: ['roasted meats', 'vegetables'],
+      avoid_for: ['rosemary-focused dishes'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+      cooking_adjustment: 'Double the amount. Thyme is milder.',
+    },
+    {
+      substitute_ingredient: 'sage',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar strong, earthy flavor. Different aroma.',
+      best_for: ['pork', 'poultry', 'stuffing'],
+      avoid_for: ['Italian dishes', 'lamb'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'bay leaves',
+      ratio: '1 sprig rosemary = 2 bay leaves',
+      confidence: 'low',
+      confidence_score: 0.6,
+      reason: 'Provides aromatic depth. Very different flavor.',
+      best_for: ['soups', 'stews', 'braising'],
+      avoid_for: ['grilling', 'roasting'],
+      flavor_impact: 'significant',
+      texture_impact: 'none',
+      cooking_adjustment: 'Remove bay leaves before serving.',
+    },
+  ],
+};
+
+const MINT: StaticSubstitutionEntry = {
+  ingredient: 'mint',
+  aliases: ['fresh mint', 'mint leaves', 'peppermint', 'spearmint'],
+  category: 'herb',
+  substitutions: [
+    {
+      substitute_ingredient: 'basil',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.65,
+      reason: 'Provides fresh, aromatic notes. Different flavor profile.',
+      best_for: ['salads', 'fruit dishes'],
+      avoid_for: ['Middle Eastern dishes', 'mojitos'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'cilantro',
+      ratio: '1:1',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Fresh, herbaceous quality. Very different taste.',
+      best_for: ['salads', 'Thai dishes'],
+      avoid_for: ['desserts', 'drinks', 'Middle Eastern cuisine'],
+      flavor_impact: 'significant',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'mint extract',
+      ratio: '1/4 cup mint = 1/4 tsp extract',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Concentrated mint flavor. No texture.',
+      best_for: ['desserts', 'drinks'],
+      avoid_for: ['savory dishes', 'garnishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'significant',
+      cooking_adjustment: 'Very concentrated. Use sparingly (1/4 tsp per 1/4 cup fresh).',
+    },
+  ],
+};
+
+const DILL: StaticSubstitutionEntry = {
+  ingredient: 'dill',
+  aliases: ['fresh dill', 'dill weed', 'dill fronds'],
+  category: 'herb',
+  substitutions: [
+    {
+      substitute_ingredient: 'fennel fronds',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Similar anise-like flavor. Slightly sweeter.',
+      best_for: ['fish', 'salads', 'pickles'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'tarragon',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Anise-like flavor with more complexity. Stronger taste.',
+      best_for: ['fish', 'chicken', 'sauces'],
+      avoid_for: ['pickles', 'dishes where dill is prominent'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'parsley + celery seed',
+      ratio: '1 tbsp dill = 1 tbsp parsley + pinch celery seed',
+      confidence: 'low',
+      confidence_score: 0.6,
+      reason: 'Mimics freshness and subtle anise notes.',
+      best_for: ['salads', 'dressings'],
+      avoid_for: ['pickles', 'Scandinavian dishes'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+    },
+  ],
+};
+
+const CHIVES: StaticSubstitutionEntry = {
+  ingredient: 'chives',
+  aliases: ['fresh chives'],
+  category: 'herb',
+  substitutions: [
+    {
+      substitute_ingredient: 'green onion tops',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Nearly identical onion flavor. Slightly stronger.',
+      best_for: ['garnish', 'baked potatoes', 'dips'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'shallots (minced)',
+      ratio: '1 tbsp chives = 1 tsp minced shallot',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Similar mild onion flavor. Stronger and no green color.',
+      best_for: ['cooked dishes', 'vinaigrettes'],
+      avoid_for: ['garnish', 'dishes needing green color'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+      cooking_adjustment: 'Use less (1/3 amount). Stronger flavor.',
+    },
+    {
+      substitute_ingredient: 'onion powder',
+      ratio: '1 tbsp chives = 1/4 tsp onion powder',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Provides onion flavor without texture or color.',
+      best_for: ['cooked dishes', 'dips'],
+      avoid_for: ['garnish', 'fresh applications'],
+      flavor_impact: 'minimal',
+      texture_impact: 'significant',
+    },
+  ],
+};
+
+const CAYENNE_PEPPER: StaticSubstitutionEntry = {
+  ingredient: 'cayenne pepper',
+  aliases: ['cayenne', 'ground cayenne'],
+  category: 'spice',
+  substitutions: [
+    {
+      substitute_ingredient: 'red pepper flakes',
+      ratio: '1/2 tsp cayenne = 1 tsp red pepper flakes',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar heat level. Adds texture from flakes.',
+      best_for: ['pasta', 'pizza', 'stir-fries'],
+      avoid_for: ['smooth sauces', 'baking'],
+      flavor_impact: 'minimal',
+      texture_impact: 'noticeable',
+    },
+    {
+      substitute_ingredient: 'hot paprika',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Similar heat with more complex flavor. Slightly less spicy.',
+      best_for: ['Hungarian dishes', 'rubs', 'sauces'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'chili powder',
+      ratio: '1/2 tsp cayenne = 1 tsp chili powder',
+      confidence: 'medium',
+      confidence_score: 0.65,
+      reason: 'Contains cayenne plus other spices. More complex.',
+      best_for: ['Mexican dishes', 'chili'],
+      avoid_for: ['pure heat needed'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+      cooking_adjustment: 'Contains cumin and other spices.',
+    },
+  ],
+};
+
+const ALLSPICE: StaticSubstitutionEntry = {
+  ingredient: 'allspice',
+  aliases: ['ground allspice', 'allspice berries'],
+  category: 'spice',
+  substitutions: [
+    {
+      substitute_ingredient: 'cinnamon + nutmeg + cloves',
+      ratio: '1 tsp allspice = 1/2 tsp cinnamon + 1/4 tsp nutmeg + 1/4 tsp cloves',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Mimics the combination flavors allspice naturally has.',
+      best_for: ['baking', 'pumpkin spice', 'Caribbean dishes'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'cinnamon',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Dominant flavor in allspice. Lacks complexity.',
+      best_for: ['baking', 'simple dishes'],
+      avoid_for: ['complex spice blends', 'Caribbean cuisine'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'pumpkin pie spice',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Contains allspice plus other warm spices.',
+      best_for: ['baking', 'fall recipes'],
+      avoid_for: ['savory dishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+/**
+ * ADDITIONAL SWEETENERS & EXTRACTS
+ */
+const HONEY: StaticSubstitutionEntry = {
+  ingredient: 'honey',
+  aliases: ['raw honey', 'liquid honey'],
+  category: 'sweetener',
+  substitutions: [
+    {
+      substitute_ingredient: 'maple syrup',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar liquid sweetness. Different flavor profile.',
+      best_for: ['baking', 'glazes', 'breakfast'],
+      avoid_for: ['recipes where honey flavor is important'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'agave nectar',
+      ratio: '3/4 cup agave = 1 cup honey',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Similar consistency. Sweeter than honey.',
+      best_for: ['beverages', 'glazes', 'marinades'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+      cooking_adjustment: 'Reduce amount by 25%. Sweeter than honey.',
+    },
+    {
+      substitute_ingredient: 'sugar + water',
+      ratio: '1 cup honey = 1 1/4 cup sugar + 1/4 cup water',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Provides sweetness and moisture. Lacks honey flavor.',
+      best_for: ['baking'],
+      avoid_for: ['glazes', 'dressings', 'honey-flavored dishes'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'minimal',
+    },
+  ],
+};
+
+const VANILLA_EXTRACT: StaticSubstitutionEntry = {
+  ingredient: 'vanilla extract',
+  aliases: ['pure vanilla extract', 'vanilla'],
+  category: 'extract',
+  substitutions: [
+    {
+      substitute_ingredient: 'vanilla bean paste',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.95,
+      reason: 'More intense vanilla flavor with visible seeds. Premium option.',
+      best_for: ['custards', 'ice cream', 'baking'],
+      avoid_for: [],
+      flavor_impact: 'none',
+      texture_impact: 'minimal',
+    },
+    {
+      substitute_ingredient: 'vanilla bean',
+      ratio: '1 tsp extract = 1 inch vanilla bean',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Pure, intense vanilla flavor. More expensive.',
+      best_for: ['custards', 'puddings', 'ice cream'],
+      avoid_for: ['quick recipes'],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+      cooking_adjustment: 'Split and scrape seeds. Steep in liquid.',
+    },
+    {
+      substitute_ingredient: 'almond extract',
+      ratio: '1 tsp vanilla = 1/2 tsp almond',
+      confidence: 'low',
+      confidence_score: 0.5,
+      reason: 'Different flavor. Adds aromatic sweetness.',
+      best_for: ['baking', 'cookies', 'cakes'],
+      avoid_for: ['vanilla-focused recipes'],
+      flavor_impact: 'significant',
+      texture_impact: 'none',
+      cooking_adjustment: 'Use half the amount. Much stronger.',
+    },
+  ],
+};
+
+/**
+ * ADDITIONAL LIQUIDS & ACIDS
+ */
+const LIME_JUICE: StaticSubstitutionEntry = {
+  ingredient: 'lime juice',
+  aliases: ['fresh lime juice', 'lime'],
+  category: 'acid',
+  substitutions: [
+    {
+      substitute_ingredient: 'lemon juice',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.95,
+      reason: 'Similar acidity. Slightly sweeter and less bitter.',
+      best_for: ['dressings', 'marinades', 'beverages'],
+      avoid_for: ['lime-focused dishes', 'Mexican/Thai cuisine'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'white wine vinegar',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Similar acidity. Lacks citrus flavor.',
+      best_for: ['dressings', 'marinades'],
+      avoid_for: ['drinks', 'desserts'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'rice vinegar',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Milder acidity. Works in Asian dishes.',
+      best_for: ['Asian cuisine', 'dressings'],
+      avoid_for: ['Mexican dishes', 'drinks'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const RICE_VINEGAR: StaticSubstitutionEntry = {
+  ingredient: 'rice vinegar',
+  aliases: ['rice wine vinegar', 'seasoned rice vinegar'],
+  category: 'acid',
+  substitutions: [
+    {
+      substitute_ingredient: 'apple cider vinegar + sugar',
+      ratio: '1 tbsp rice vinegar = 1 tbsp ACV + 1/4 tsp sugar',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar mild acidity and sweetness.',
+      best_for: ['Asian dishes', 'sushi rice', 'dressings'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'white wine vinegar + sugar',
+      ratio: '1 tbsp rice vinegar = 1 tbsp white wine vinegar + 1/4 tsp sugar',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Mimics mild sweetness of rice vinegar.',
+      best_for: ['sushi rice', 'dressings', 'marinades'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'lime juice',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Provides acidity with citrus brightness.',
+      best_for: ['Asian dishes', 'dressings'],
+      avoid_for: ['sushi rice'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const BALSAMIC_VINEGAR: StaticSubstitutionEntry = {
+  ingredient: 'balsamic vinegar',
+  aliases: ['balsamic', 'aged balsamic'],
+  category: 'acid',
+  substitutions: [
+    {
+      substitute_ingredient: 'red wine vinegar + sugar',
+      ratio: '1 tbsp balsamic = 1 tbsp red wine vinegar + 1/2 tsp sugar',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Mimics sweet-tart balance of balsamic.',
+      best_for: ['dressings', 'marinades', 'reductions'],
+      avoid_for: ['dishes where balsamic is the star'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'sherry vinegar',
+      ratio: '1:1',
+      confidence: 'medium',
+      confidence_score: 0.75,
+      reason: 'Complex, slightly sweet acidity. Different flavor.',
+      best_for: ['vinaigrettes', 'sauces'],
+      avoid_for: ['balsamic reductions'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'worcestershire sauce',
+      ratio: '1:1',
+      confidence: 'low',
+      confidence_score: 0.6,
+      reason: 'Provides depth and tang. Very different flavor.',
+      best_for: ['marinades', 'savory dishes'],
+      avoid_for: ['salads', 'sweet applications'],
+      flavor_impact: 'significant',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const WHITE_WINE: StaticSubstitutionEntry = {
+  ingredient: 'white wine',
+  aliases: ['dry white wine', 'cooking wine'],
+  category: 'liquid',
+  substitutions: [
+    {
+      substitute_ingredient: 'chicken broth + lemon juice',
+      ratio: '1 cup wine = 1 cup broth + 1 tbsp lemon juice',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Provides acidity and flavor. Non-alcoholic.',
+      best_for: ['sauces', 'risotto', 'braising'],
+      avoid_for: ['wine-focused dishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'white wine vinegar + water',
+      ratio: '1 cup wine = 2 tbsp vinegar + 1 cup water',
+      confidence: 'high',
+      confidence_score: 0.8,
+      reason: 'Mimics acidity. No alcohol.',
+      best_for: ['deglazing', 'sauces', 'marinades'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'vermouth',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Similar acidity with herbal notes. Actually better for cooking.',
+      best_for: ['sauces', 'deglazing', 'risotto'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+const BUTTERMILK: StaticSubstitutionEntry = {
+  ingredient: 'buttermilk',
+  aliases: ['cultured buttermilk', 'low-fat buttermilk'],
+  category: 'dairy',
+  substitutions: [
+    {
+      substitute_ingredient: 'milk + lemon juice',
+      ratio: '1 cup buttermilk = 1 cup milk + 1 tbsp lemon juice',
+      confidence: 'high',
+      confidence_score: 0.95,
+      reason: 'Creates instant buttermilk substitute. Let sit 5 minutes to curdle.',
+      best_for: ['baking', 'pancakes', 'biscuits'],
+      avoid_for: ['drinking', 'cold applications'],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+      cooking_adjustment: 'Mix and let sit 5-10 minutes before using.',
+    },
+    {
+      substitute_ingredient: 'milk + vinegar',
+      ratio: '1 cup buttermilk = 1 cup milk + 1 tbsp white vinegar',
+      confidence: 'high',
+      confidence_score: 0.95,
+      reason: 'Identical to lemon juice method.',
+      best_for: ['baking', 'marinades'],
+      avoid_for: [],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+      cooking_adjustment: 'Let sit 5 minutes to curdle.',
+    },
+    {
+      substitute_ingredient: 'plain yogurt + milk',
+      ratio: '1 cup buttermilk = 3/4 cup yogurt + 1/4 cup milk',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Similar tang and thickness. More protein.',
+      best_for: ['baking', 'marinades', 'dressings'],
+      avoid_for: [],
+      flavor_impact: 'minimal',
+      texture_impact: 'minimal',
+    },
+  ],
+};
+
+const CHICKEN_BROTH: StaticSubstitutionEntry = {
+  ingredient: 'chicken broth',
+  aliases: ['chicken stock', 'low-sodium chicken broth'],
+  category: 'liquid',
+  substitutions: [
+    {
+      substitute_ingredient: 'vegetable broth',
+      ratio: '1:1',
+      confidence: 'high',
+      confidence_score: 0.85,
+      reason: 'Similar savory depth. Vegetarian-friendly.',
+      best_for: ['soups', 'risotto', 'sauces'],
+      avoid_for: ['chicken-focused dishes'],
+      flavor_impact: 'minimal',
+      texture_impact: 'none',
+    },
+    {
+      substitute_ingredient: 'bouillon cube + water',
+      ratio: '1 cup broth = 1 cube + 1 cup hot water',
+      confidence: 'high',
+      confidence_score: 0.9,
+      reason: 'Concentrated broth. Watch salt levels.',
+      best_for: ['all applications'],
+      avoid_for: [],
+      flavor_impact: 'none',
+      texture_impact: 'none',
+      cooking_adjustment: 'Often very salty. Adjust seasoning.',
+    },
+    {
+      substitute_ingredient: 'water + soy sauce',
+      ratio: '1 cup broth = 1 cup water + 1 tsp soy sauce',
+      confidence: 'medium',
+      confidence_score: 0.7,
+      reason: 'Adds umami depth. Different flavor profile.',
+      best_for: ['Asian dishes', 'stir-fries'],
+      avoid_for: ['light-colored sauces'],
+      flavor_impact: 'noticeable',
+      texture_impact: 'none',
+    },
+  ],
+};
+
+/**
  * BAKING ESSENTIALS
  */
 const BAKING_POWDER: StaticSubstitutionEntry = {
@@ -1297,47 +2323,79 @@ const CORNSTARCH: StaticSubstitutionEntry = {
 
 /**
  * COMPLETE STATIC LIBRARY - Export all substitutions
+ *
+ * Coverage: 54 ingredients with 160+ substitution options
  */
 export const STATIC_SUBSTITUTION_LIBRARY: StaticSubstitutionEntry[] = [
-  // Fats & Oils (5 ingredients)
+  // Fats & Oils (4 ingredients)
   BUTTER,
   OLIVE_OIL,
   VEGETABLE_OIL,
   COCONUT_OIL,
 
-  // Dairy (4 ingredients)
+  // Dairy (5 ingredients)
   MILK,
   HEAVY_CREAM,
   SOUR_CREAM,
   EGGS,
+  BUTTERMILK,
 
-  // Acids (2 ingredients)
+  // Condiments & Sauces (6 ingredients)
+  MAYONNAISE,
+  DIJON_MUSTARD,
+  SOY_SAUCE,
+  WORCESTERSHIRE_SAUCE,
+  TOMATO_PASTE,
+
+  // Acids & Vinegars (5 ingredients)
   LEMON_JUICE,
+  LIME_JUICE,
   VINEGAR_WHITE,
+  RICE_VINEGAR,
+  BALSAMIC_VINEGAR,
 
   // Proteins (2 ingredients)
   CHICKEN_BREAST,
   GROUND_BEEF,
+
+  // Vegetables (5 ingredients)
+  CELERY,
+  CARROTS,
+  BELL_PEPPER,
+  TOMATOES,
 
   // Aromatics (3 ingredients)
   GARLIC,
   ONION,
   GINGER,
 
-  // Herbs (4 ingredients)
+  // Fresh Herbs (8 ingredients)
   BASIL,
   OREGANO,
   CILANTRO,
   PARSLEY,
+  THYME,
+  ROSEMARY,
+  MINT,
+  DILL,
+  CHIVES,
 
-  // Spices (3 ingredients)
+  // Spices (5 ingredients)
   CUMIN,
   PAPRIKA,
   CINNAMON,
+  CAYENNE_PEPPER,
+  ALLSPICE,
 
-  // Sweeteners (2 ingredients)
+  // Sweeteners & Extracts (4 ingredients)
   SUGAR,
   BROWN_SUGAR,
+  HONEY,
+  VANILLA_EXTRACT,
+
+  // Liquids (2 ingredients)
+  WHITE_WINE,
+  CHICKEN_BROTH,
 
   // Baking Essentials (4 ingredients)
   BAKING_POWDER,
