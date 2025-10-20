@@ -192,10 +192,9 @@ export default function DiscoverPage() {
     >
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Discover Recipes</h1>
+          <h1 className="text-4xl font-bold mb-2">Find Recipes You Can Make</h1>
           <p className="text-muted-foreground">
-            Generate AI recipes or search the web for authentic recipes from food blogs and chef
-            resources
+            Tell us what's in your fridge and we'll find recipes you can make right now — or generate new ideas using what you have
           </p>
         </div>
 
