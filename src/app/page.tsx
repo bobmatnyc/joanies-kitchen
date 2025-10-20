@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, ChefHat, ChevronRight, PlusCircle, Refrigerator, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Calendar, CalendarClock, ChefHat, ChevronRight, Lightbulb, PlusCircle, Recycle, Refrigerator, Sparkles, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getBackgroundImages } from '@/app/actions/background-images';
@@ -107,6 +107,87 @@ export default async function Home() {
         </MobileContainer>
       </section>
 
+      {/* Joanie's Philosophy Section */}
+      <section className="py-16 bg-jk-sage/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+
+            {/* Section Header */}
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-jk-charcoal mb-4">
+                A Mission Against Food Waste
+              </h2>
+              <p className="text-lg text-jk-olive italic">
+                "I'd like to see technology help with food waste.
+                That would be the highlight of my life."
+                <span className="block text-sm mt-2 not-italic">— Joanie</span>
+              </p>
+            </div>
+
+            {/* Philosophy Grid */}
+            <div className="grid md:grid-cols-3 gap-8">
+
+              {/* Principle 1: FIFO */}
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-jk-olive rounded-full flex items-center justify-center">
+                  <CalendarClock className="h-8 w-8 text-jk-linen" />
+                </div>
+                <h3 className="text-xl font-semibold text-jk-charcoal mb-2">
+                  First In, First Out
+                </h3>
+                <p className="text-jk-olive">
+                  Use what you bought first. Track what's aging in your fridge
+                  and get recipes to rescue ingredients before they spoil.
+                </p>
+              </div>
+
+              {/* Principle 2: Resourcefulness */}
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-jk-olive rounded-full flex items-center justify-center">
+                  <Lightbulb className="h-8 w-8 text-jk-linen" />
+                </div>
+                <h3 className="text-xl font-semibold text-jk-charcoal mb-2">
+                  Creative Substitutions
+                </h3>
+                <p className="text-jk-olive">
+                  Missing an ingredient? No problem. Our recipes suggest smart
+                  swaps so you can cook with what you have, not what you don't.
+                </p>
+              </div>
+
+              {/* Principle 3: Zero Waste */}
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-jk-olive rounded-full flex items-center justify-center">
+                  <Recycle className="h-8 w-8 text-jk-linen" />
+                </div>
+                <h3 className="text-xl font-semibold text-jk-charcoal mb-2">
+                  Nothing Goes to Waste
+                </h3>
+                <p className="text-jk-olive">
+                  Every ingredient matters. Learn techniques to use scraps,
+                  stems, and peels that others throw away.
+                </p>
+              </div>
+
+            </div>
+
+            {/* Call to Action */}
+            <div className="text-center mt-12">
+              <p className="text-jk-olive mb-4">
+                Americans waste <span className="font-bold text-jk-charcoal">$1,500 worth of food per year</span>.
+                Let's change that together.
+              </p>
+              <Button asChild>
+                <Link href="/fridge">
+                  Start Cooking from Your Fridge
+                </Link>
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* Vector Search Section */}
       <section className="bg-gradient-to-b from-jk-sage/10 to-white py-8 md:py-12">
         <MobileContainer maxWidth="2xl">
@@ -192,10 +273,10 @@ export default async function Home() {
             <div className="text-center mb-8 md:mb-12">
               <Trophy className="h-10 w-10 md:h-12 md:w-12 text-jk-tomato mx-auto mb-4" />
               <h2 className="text-3xl md:text-4xl font-heading text-jk-olive mb-3 md:mb-4">
-                Top-Rated Recipes
+                Recipes You Can Make Right Now
               </h2>
               <p className="text-base md:text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body px-4">
-                Our most beloved recipes, tried, tested, and highly rated
+                Flexible recipes that work with what you have
               </p>
             </div>
 

@@ -20,21 +20,27 @@ import {
 } from '@/lib/db/ingredients-schema';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
+import type {
+  RecipeWithMatch,
+  IngredientSearchResult,
+  IngredientSuggestion,
+  SuggestionResult,
+} from '@/types/ingredient-search';
 
 // ============================================================================
-// VALIDATION SCHEMAS
+// VALIDATION SCHEMAS (Internal only - not exported)
 // ============================================================================
 
 /**
  * Match modes for ingredient-based recipe search
  */
-export const MatchMode = z.enum(['all', 'any', 'exact']);
-export type MatchModeType = z.infer<typeof MatchMode>;
+const MatchMode = z.enum(['all', 'any', 'exact']);
+type MatchModeType = z.infer<typeof MatchMode>;
 
 /**
  * Search options schema for validation
  */
-export const SearchOptionsSchema = z.object({
+const SearchOptionsSchema = z.object({
   matchMode: MatchMode.default('any'),
   cuisine: z.string().optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
@@ -51,68 +57,27 @@ export const SearchOptionsSchema = z.object({
   includeScoreBreakdown: z.boolean().default(false),
 });
 
-export type SearchOptions = z.infer<typeof SearchOptionsSchema>;
+type SearchOptions = z.infer<typeof SearchOptionsSchema>;
 
 /**
  * Ingredient suggestion options
  */
-export const SuggestionOptionsSchema = z.object({
+const SuggestionOptionsSchema = z.object({
   limit: z.number().min(1).max(50).default(10),
   category: z.string().optional(),
   commonOnly: z.boolean().default(false),
 });
 
-export type SuggestionOptions = z.infer<typeof SuggestionOptionsSchema>;
+type SuggestionOptions = z.infer<typeof SuggestionOptionsSchema>;
 
 // ============================================================================
-// RESPONSE TYPES
+// RESPONSE TYPES (Import from @/types/ingredient-search for client components)
 // ============================================================================
-
-/**
- * Recipe with ingredient match information
- */
-export interface RecipeWithMatch extends Recipe {
-  matchedIngredients: string[];
-  totalIngredients: number;
-  matchPercentage: number;
-  rankingScore: number;
-}
-
-/**
- * Search result response
- */
-export interface IngredientSearchResult {
-  success: boolean;
-  recipes: RecipeWithMatch[];
-  totalCount: number;
-  error?: string;
-}
-
-/**
- * Ingredient suggestion response
- */
-export interface IngredientSuggestion {
-  id: string;
-  name: string;
-  displayName: string;
-  category: string | null;
-  isCommon: boolean;
-  recipeCount?: number;
-}
-
-/**
- * Suggestion result response
- */
-export interface SuggestionResult {
-  success: boolean;
-  suggestions: IngredientSuggestion[];
-  error?: string;
-}
 
 /**
  * Popular ingredients response
  */
-export interface PopularIngredientsResult {
+interface PopularIngredientsResult {
   success: boolean;
   ingredients: IngredientWithStats[];
   error?: string;
@@ -121,7 +86,7 @@ export interface PopularIngredientsResult {
 /**
  * Recipe ingredients response
  */
-export interface RecipeIngredientsResult {
+interface RecipeIngredientsResult {
   success: boolean;
   ingredients: RecipeIngredientWithDetails[];
   error?: string;
