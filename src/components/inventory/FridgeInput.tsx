@@ -69,7 +69,7 @@ export function FridgeInput({
         onKeyPress={handleKeyPress}
         placeholder={placeholder}
         disabled={searching}
-        className="flex-1 h-12 text-base px-4 text-jk-charcoal placeholder:text-jk-charcoal/50"
+        className="flex-1 h-12 text-base px-4"
       />
       <Button
         onClick={handleSearch}
