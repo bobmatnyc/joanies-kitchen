@@ -1,1112 +1,840 @@
-# Joanie's Kitchen Roadmap
+# Strategic Implementation Guide: Transforming to Zero-Waste Focus
 
-**Current Version**: 0.5.3 (Tag System v2 & Admin Tools - COMPLETED)
-**Next Priority**: Version 0.55.0 (Public Content & Social Features)
-**Target**: Version 1.0 (Production-Ready - July 2025)
-**Recipe Count**: 4,343 (High-quality, migrated to ID-based tags)
-
----
-
-## ✅ Version 0.1.0 - Foundation (COMPLETED)
-*Launched: October 2024*
-
-**Core Infrastructure**: Next.js 15 with App Router, TypeScript strict mode, Clerk authentication (dual-environment), Neon PostgreSQL with Drizzle ORM, Tailwind CSS v4, and shadcn/ui components.
-
-**Basic Features**: Recipe CRUD operations, user authentication, recipe browsing, and basic search functionality.
+**For:** Claude Code (Implementation Partner)  
+**Project:** Joanie's Kitchen Platform Transformation  
+**Goal:** Transform from luxury recipe aggregator to zero-waste cooking platform  
+**Timeline:** 6 weeks (November 2025 launch)  
+**Core Principle:** Every change must serve Joanie's value: "Technology should help with food waste"
 
 ---
 
-## ✅ Version 0.2.0 - AI Integration (COMPLETED)
-*Launched: October 2024*
+## Philosophy & Approach
 
-**AI-Powered Features**: OpenRouter integration with multi-LLM support, AI recipe generation from ingredients, recipe import from URLs, Perplexity-based discovery, quality evaluation (AI ratings 0-5), and authentication gates for LLM features.
+### Decision Framework for All Changes
 
-**Content**: System recipe ingestion (600+ recipes), TheMealDB integration, and recipe sharing (public/private).
+Before implementing anything, evaluate:
+1. **Does this help users waste less food?**
+2. **Does this promote cooking with what you have?**
+3. **Would Joanie approve?**
+4. **Does this serve resourcefulness or consumption?**
 
----
+If answer is "no" to any - reconsider or modify approach.
 
-## ✅ Version 0.3.0 - Branding & Content (COMPLETED)
-*Launched: October 2024*
+### Technical Priorities
 
-**Joanie's Kitchen Branding**: Complete rebrand from Recipe Manager, including custom logo/favicon, portrait integration, "From Garden to Table" messaging, and comprehensive brand identity.
+**Maintain:**
+- Type safety and existing patterns
+- Performance standards (queries <500ms)
+- Mobile responsiveness
+- Accessibility standards
+- Authentication system (Clerk)
+- Database integrity (can add, not remove)
+- All 3,276 existing recipes and chef data
 
-**Design System**: Deep Olive (#5B6049) primary, Sage Green (#A7BEA4) accents, Linen (#FAF5EE) backgrounds, Tomato (#E65F45) CTAs, with Playfair Display and Lora fonts.
-
----
-
-## ✅ Version 0.4.0 - Scale & Performance (COMPLETED)
-*October 2024*
-
-**Data Acquisition**: Multi-source ingestion pipeline with Food.com (180K+), Epicurious (20K+), and OpenRecipes (200K+) integrations. Total potential: 400K+ recipes.
-
-**Performance & Scale**: Pagination (24 recipes/page), infinite scroll, database indexing (8 specialized indexes), query optimization (<200ms for 100K recipes), lazy image loading, and advanced filtering (cuisine, difficulty, rating).
-
-**UX Improvements**: Clickable recipe cards, tag ontology (10 categories), nested tag display, enhanced hover effects, copy button, ingredient amounts display, and top-rated filtering.
-
----
-
-## ✅ Version 0.4.1 - Quality & Developer Experience (COMPLETED)
-*Released: October 16, 2025*
-
-**Developer Experience**: Versioning system with build tracking (semantic versioning, automated CHANGELOG, 15 NPM scripts), type safety system (100% coverage, safe JSON parsing utilities, automated validation), and comprehensive documentation (20+ files, 12 guides).
-
-**Data Acquisition**: Serious Eats recipe integration research complete (3,000+ professional recipes ready, Python recipe-scrapers library, cost-effective $14-57 solution vs $324-810 alternatives).
-
-**Chef System Enhancement**: Chef profile images with `ChefAvatar` component (4 size variants), Next.js Image optimization (WebP/AVIF), verified badges, Joanie's profile created, and responsive image sizing.
-
-**Performance Optimization**: 60-80% FCP/LCP improvements (2.5s→0.8-1.2s FCP, 3.5s→1.2-2.0s LCP), hero image optimization (3.5MB→200-300KB), Next.js Image optimization enabled, and automated performance analysis tools.
-
-**Bug Fixes**: Nested anchor tag hydration errors resolved (14 components fixed), JSON parse errors eliminated (44 recipes fixed), zero React warnings.
-
-**Statistics**: 62 files created, 12 files modified, 15 NPM scripts added, 20+ documentation files, 60-80% performance improvement, 100% type coverage.
+**Change:**
+- User-facing content and messaging
+- Homepage layout and priorities
+- Navigation structure
+- Featured content selection
+- Content metadata and enrichment
 
 ---
 
-## ✅ Version 0.45.0 - Mobile Parity Phase 1 (COMPLETED)
-*Completed: October 2024 | Status: Phase 1 Complete, Phase 2 Pending*
+## Phase 1: Homepage Transformation (Week 1)
 
-**Mobile Foundation & Infrastructure (COMPLETED)**: Mobile-first CSS approach (Tailwind breakpoints), safe area insets for notched devices, touch-friendly input sizing (16px minimum), mobile typography optimization, responsive component system (MobileContainer, MobileSpacer, TouchTarget), mobile detection hooks (useMobileDetect, useBreakpoint, useOrientation, useTouchDevice), 18 mobile utility functions, recipe card mobile optimization (1 col mobile/2 tablet/3+ desktop), and homepage mobile-first redesign. See: `docs/guides/MOBILE_DEVELOPMENT.md`
+### Days 1-3: Replace Browse with "What's in Your Fridge?"
 
-**Phase 2 (Pending)**: Navigation optimization (hamburger menu, bottom tabs), touch optimization (44x44px targets, swipe gestures, pull-to-refresh), mobile UX enhancements (typography, loading skeletons, offline indicators), performance optimization (bundle size <200KB, FCP <1.5s on 3G, Lighthouse Mobile Score 90+), and real device testing (iOS, Android).
+#### Current State Analysis
+The homepage currently features:
+- Hero with "From Garden to Table" messaging
+- "Top-Rated Recipes" as primary content (featuring luxury items)
+- Small "About Joanie" section
+- Generic "AI-powered kitchen companion" positioning
 
-**Context**: Prerequisite for user discovery features. Mobile users represent 60-70% of recipe site traffic and often cook with devices in hand.
+#### Target State
+Homepage should communicate immediately:
+- Primary entry point: "What's in your fridge?" input
+- Clear value proposition: "Stop Wasting Food. Start Cooking."
+- Joanie's philosophy prominently explained
+- Featured recipes emphasize flexibility, not luxury
 
----
+#### Task 1.1: New Hero Section - Fridge Input
 
-## ✅ Version 0.5.0 - Smart Features & Infrastructure (75% COMPLETE)
-*Target: December 2024 | Status: 75% Complete*
+**What to build:**
+- Large, friendly text input asking "What's in your fridge?"
+- Accepts comma-separated ingredient list
+- Example placeholder: "chicken, spinach, garlic, rice, lemon..."
+- Submit button: "Find Recipes You Can Make"
+- Helper text: "💡 Example: 'chicken, rice, lemon, olive oil'"
 
-### Infrastructure & Quality - **COMPLETED** ✅
-- ✅ Snake_case database standardization (35+ fields, 91% error reduction)
-- ✅ Biome linter/formatter setup (100x faster than ESLint/Prettier)
-- ✅ Vitest testing framework (with React Testing Library)
-- ✅ Mobile development infrastructure (Phase 1)
-- ✅ Comprehensive documentation (8+ new guides)
-- ✅ Dev server stability improvements (make dev-clean, dev-stable, dev-monitor targets)
-- ✅ Comprehensive troubleshooting guide (DEV_SERVER_STABILITY.md)
+**User experience goals:**
+- Feels conversational and approachable
+- Mobile-first (large touch target)
+- Low friction (just type and submit)
+- Sets expectation: this is about using what you have
 
-### Chef System - **COMPLETED** ✅
-- ✅ Chef profiles (name, bio, specialties, social links)
-- ✅ Chef-recipe relationships (many-to-many)
-- ✅ Chef discovery page with search/filter
-- ✅ Firecrawl integration for recipe scraping
-- ✅ AI recipe parsing (Claude Sonnet 4.5)
-- ✅ Bulk scraping with progress tracking
-- ✅ Admin scraping interface
+**Implementation considerations:**
+- Form validation: minimum 2 ingredients
+- Input normalization: trim spaces, handle common typos
+- State management: consider URL params for shareable searches
+- Error handling: clear messaging if submission fails
+- Loading states: show progress during search
 
-### Chef Content Quality - **COMPLETED** ✅ (NEW)
-- ✅ **Lidia Bastianich content audit** (89.3/100 quality score)
-- ✅ **Recipe-to-chef linking** (all 27 recipes linked to Lidia's profile)
-- ✅ **Time estimates added** (prepTime, cookTime standardized)
-- ✅ **AI-generated recipe images** (4 professional images using Gemini Flash)
-- ✅ **100% image coverage** (27/27 Lidia recipes have images)
-- ✅ **Quality scoring system** (0-100 scale across 10 categories)
-- ✅ **Reusable audit scripts** (audit-lidia-recipes.ts, 580 lines)
-- ✅ **Comprehensive documentation** (LIDIA_CONTENT_QUALITY_REPORT.md)
-
-### Chef Navigation - **COMPLETED** ✅ (NEW)
-- ✅ **Back navigation from recipes to chef pages** (BackToChef component)
-- ✅ **URL parameter approach** (?from=chef/[slug])
-- ✅ **Mobile-friendly design** (44x44px touch targets)
-- ✅ **Dynamic chef name fetching** (server-side async component)
-- ✅ **Recipe card URL enhancement** (fromChefSlug prop support)
-
-### Recipe Content Formatting - **COMPLETED** ✅ (NEW)
-- ✅ **Instructions formatting** (87/87 recipes formatted, 100% success rate)
-- ✅ **LLM-based intelligent formatting** (Claude Haiku)
-- ✅ **Malformed JSON repair** (27 recipes fixed with regex)
-- ✅ **Numbered steps creation** (1,013 total steps, avg 11.6 per recipe)
-- ✅ **Zero data loss** (backup and restore capabilities)
-- ✅ **Two-stage approach** (regex repair + LLM formatting)
-- ✅ **Comprehensive documentation** (CHEF_INSTRUCTIONS_FORMATTING_SUMMARY.md)
-
-### Homepage UX - **COMPLETED** ✅ (NEW)
-- ✅ **Layout reorganization** (hero → search → CTA cards)
-- ✅ **Duplicate card removal** (streamlined to 3 main CTAs)
-- ✅ **Visual hierarchy improvement** (60% reduction in page length)
-- ✅ **Better information architecture** (clearer user flow)
-
-### AI Recipe Upload - **COMPLETED** ✅
-- ✅ Text/markdown recipe upload with AI parsing
-- ✅ Image recipe upload (OCR + vision models)
-- ✅ URL recipe import (Firecrawl + AI)
-- ✅ Recipe preview before saving
-- ✅ Multi-format support (text, image, URL)
-
-### Recipe Content Cleanup - **COMPLETED** ✅
-- ✅ LLM-based ingredient amount extraction (Claude 3 Haiku)
-- ✅ 3,276 recipes processed (ongoing - 99.3% success rate)
-- ✅ Standardized ingredient format
-- ✅ Batch processing with progress tracking
-- ✅ Ingredient amount standardization
-- ✅ Title capitalization fixes
-- ✅ Description enhancement
-
-### Data Acquisition - **COMPLETED** ✅
-- ✅ Epicurious import pipeline (2,259/20,130 recipes imported - 100% deduplicated)
-- ✅ Duplicate detection and deduplication (100% accurate)
-- ✅ Current recipe count: 3,276 (post quality filtering)
-
-### Recipe Quality Management - **COMPLETED** ✅
-- ✅ AI quality evaluation system (0-5 rating scale)
-- ✅ Quality analysis scripts (check-recipe-quality.ts)
-- ✅ Low-quality recipe removal (6 recipes < 2.0 removed)
-- ✅ Recipe export tools for manual review
-- ✅ Comprehensive quality documentation
-- ✅ Backup and rollback capabilities
-- ✅ Quality improvement: Min rating 1.5 → 2.0
-
-### Enhanced Search - **PENDING** ⏳
-- ⏳ Semantic search (vector similarity)
-- ⏳ "More Like This" recommendations
-- ⏳ Embedding generation (384d vectors)
-- ⏳ HuggingFace API integration
-
-### Ingredients Database - **PENDING** ⏳
-- ⏳ Ingredients database (normalized, 1000+ entries)
-- ⏳ Ingredient categorization (produce, dairy, meats, etc.)
-- ⏳ Ingredient search and autocomplete
-- ⏳ Nutritional data integration
-
-### User Collections & Profiles (Phase 1) - **PENDING** ⏳
-**See:** `docs/guides/USER_DISCOVERY_FEATURES.md`
-
-**Database Schema (Ready):**
-- ✅ `user_profiles` table (extended user info) - Schema defined
-- ✅ `collections` table (recipe collections) - Schema defined
-- ✅ `collection_recipes` table (many-to-many) - Schema defined
-- ✅ `favorites` table (favorited recipes) - Schema defined
-- ✅ `recipe_views` table (view history) - Schema defined
-
-**User Profiles (Pending):**
-- ⏳ User profile creation & management
-- ⏳ Username selection & validation
-- ⏳ Profile editor (bio, location, specialties)
-- ⏳ Public/private profile visibility
-- ⏳ Profile statistics & badges
-- ⏳ Profile URLs (`/chef/[username]`)
-
-**Recipe Collections (Pending):**
-- ⏳ Create & manage recipe collections
-- ⏳ Add/remove recipes to collections
-- ⏳ Collection organization (reorder, notes)
-- ⏳ Public/private collection visibility
-- ⏳ Collection URLs (`/collections/[username]/[slug]`)
-- ⏳ Collection cover images (auto-generated)
-
-**User Features (Pending):**
-- ⏳ Top 50 highest-rated recipes page
-- ⏳ Favorite recipes (heart button)
-- ⏳ Recipe view history
-- ⏳ Personal recipe dashboard
-
-### Success Metrics
-- ✅ 100% database fields standardized (snake_case)
-- ✅ Chef content quality: 81.1 → 89.3/100
-- ✅ Instructions formatting: 100% success rate (87/87 recipes)
-- ✅ Homepage UX: 60% cleaner layout
-- ⏳ Semantic search accuracy > 85%
-- ⏳ 1000+ normalized ingredients in database
-- ⏳ User profiles functional for all users
-- ⏳ Collections feature fully operational
+**Success metrics:**
+- Input field is largest element on page
+- Clearly visible on all screen sizes
+- Users can submit without confusion
+- Form errors are helpful, not technical
 
 ---
 
-## ✅ Version 0.5.3 - Tag System v2 & Admin Tools (COMPLETED)
-*Completed: October 18, 2025*
+#### Task 1.2: New Messaging Throughout
 
-**Priority**: HIGH - Production-ready tag system and admin content management
+**Replace existing messaging:**
 
-### ID-Based Tag System - **COMPLETED** ✅
-- ✅ **Tag ID Migration** (4,343 recipes, 59,241 tags, 100% success rate, 99.4% accuracy)
-- ✅ **Dot-notation IDs** (`cuisine.italian`, `difficulty.beginner`)
-- ✅ **11 tag categories** (~200 tags): Cuisine, Meal Type, Course, Dish Type, Dietary, Cooking Method, Main Ingredient, Season, Planning, Difficulty, Characteristics
-- ✅ **Localization system** (English complete, Spanish/French structure ready)
-- ✅ **Leaf node display** (tags show "Italian" not "cuisine.italian")
-- ✅ **Hierarchical tags** (`cuisine.italian.sicilian`)
-- ✅ **Backward compatibility** (old string tags still work)
+| Location | Current | New |
+|----------|---------|-----|
+| Site tagline | "From Garden to Table — with Heart and Soil" | "Cook With What You Have. Waste Nothing." |
+| Homepage headline | "Welcome to Your Kitchen" | "Stop Wasting Food. Start Cooking." |
+| Meta description | "Your personal recipe collection and AI-powered kitchen companion" | "Stop food waste with AI that helps you cook from your fridge. Find recipes using what you have, get substitutions, and turn nothing into something unforgettable." |
+| Hero description | Generic welcome text | "Enter what's in your fridge and we'll show you delicious meals you can make right now, with substitutions for what's missing." |
 
-### Admin Content Editing - **COMPLETED** ✅
-- ✅ **Admin Edit Mode** (toggle in admin menu)
-- ✅ **Ingredient Editor** (inline editing, add/remove/reorder, AI parsing with Claude 3.5 Sonnet)
-- ✅ **Instruction Editor** (step-by-step editing, AI formatting)
-- ✅ **Image Editor** (upload new, regenerate with DALL-E 3)
-- ✅ **Admin server actions** (6 actions with auth checks)
-- ✅ **Content flagging system** (flag for cleanup, soft delete)
-- ✅ **Mobile-optimized** (44x44px touch targets, sheet overlays)
+**Tone guidelines:**
+- Direct and practical (not aspirational)
+- Focus on waste reduction (not culinary excellence)
+- Emphasize "what you have" (not "what you want")
+- Action-oriented (not passive browsing)
 
-### Meal Builder System - **COMPLETED** ✅
-- ✅ **AI-powered recommendations** (Gemini 2.0 Flash, cuisine-based pairing)
-- ✅ **Multi-course composition** (appetizers, mains, sides, desserts)
-- ✅ **Anonymous user support** (build meals without account)
-- ✅ **Public meal discovery** (`/meals` page)
-- ✅ **Private meal management** (`/my-meals` for registered users)
-- ✅ **Shopping list generation** (from meal recipes)
-
-### UI/UX Improvements - **COMPLETED** ✅
-- ✅ **Chef page layout** (3-column recipe grid on desktop)
-- ✅ **Tag label display** (clean leaf-node labels)
-- ✅ **RecipeCard updates** (uses getTagLabel for all tags)
-
-### Statistics
-- **Total New Code**: ~2,144 lines
-- **Files Created**: 10+ (admin editors, meal builder, tag system)
-- **Files Modified**: 15+
-- **Migration Success**: 100% (0 failures)
-- **Components**: AdminEditMode, IngredientEditor, InstructionEditor, ImageEditor, MealBuilder
-- **Server Actions**: 12 new functions (admin-edit.ts, meals.ts enhancements)
+**What to avoid:**
+- Generic "AI-powered" buzzwords
+- Luxury/prestige positioning
+- "Discover recipes" language (implies shopping)
+- "Top-rated" or "trending" (consumption mindset)
 
 ---
 
-## 🔄 Version 0.55.0 - Recipe Extraction & Content Expansion (NEXT - IN PROGRESS)
-*Started: October 18, 2025 | Timeline: 8-10 weeks*
+#### Task 1.3: Add Prominent Philosophy Section
 
-**Strategic Pivot**: Scaling from 4,343 to 10,000+ recipes through systematic extraction from 60+ high-quality sources. Prioritizes legal certainty (public domain first), maintains attribution standards, and builds on existing Firecrawl integration.
+**Content to add after hero:**
 
-**See**: `docs/scraping/recipe-extraction-technical-plan.md` for complete technical details
-**Progress Tracker**: `docs/scraping/PROGRESS.md`
+**Section title:** "Joanie's Kitchen Philosophy"
 
-**Priority Order**: Phase 1 (Public Domain) → Phase 2 (APIs) → Phase 3 (Prestige) → Phase 4 (Specialized Cuisine) → Phase 5 (QA) → Phase 6 (Deployment)
+**Quote (large):**
+> "I'd like to see technology help with food waste. That would be the highlight of my life."
 
-### Phase 1: Public Domain Sources - **PLANNED** 📋
-*Timeline: Weeks 1-2 | Target: 3,500-4,000 recipes | Risk: LOW*
+**Explanation (3-4 sentences):**
+"Joanie doesn't cook from recipes — she cooks from her fridge. Every meal starts with the same question: What do I have that might go bad?
 
-**Objective**: Extract recipes with zero legal risk from government and educational sources.
+This platform embodies her approach: technology that helps you waste less, substitute creatively, and cook with confidence from whatever's in your kitchen."
 
-- ⏳ **USDA Recipe Extraction** (2,300+ recipes)
-  - What's Cooking? USDA Mixing Bowl (~1,000 recipes)
-  - Institute of Child Nutrition Recipe Box (~800 recipes)
-  - Team Nutrition (~500 recipes)
-  - Firecrawl + Python fallback approach
-  - PUBLIC_DOMAIN license with full nutrition data
+**Key principles (bullet format):**
+- **FIFO (First In, First Out):** Use what came first before it expires
+- **Zero Waste:** Everything finds a home, from wilting lettuce to vegetable scraps
+- **Resourcefulness:** A "perfect" recipe isn't better than one that uses what you have
 
-- ⏳ **University Extension Recipes** (1,000-1,500 recipes)
-  - Oregon State Extension, Cornell Cooperative Extension
-  - University of Maine, Penn State, NC State
-  - Public domain/CC-BY licensed educational recipes
-  - USDA NIFA funded content
+**Link:** "Learn more about Joanie's approach →" (to full philosophy page)
 
-- ⏳ **CulinaryDB Integration** (1,000+ recipes)
-  - IIIT-Delhi academic research database
-  - CSV download with 4-table structure
-  - International recipes with ingredient ontology
-  - License verification required for commercial use
-
-**Deliverables**:
-- Firecrawl extraction scripts
-- Python fallback scrapers
-- Data quality reports
-- Legal compliance documentation
-
-### Phase 2: Free API Integration - **PLANNED** 📋
-*Timeline: Weeks 2-3 | Target: 300-500 recipes | Risk: LOW*
-
-**Objective**: Add recipes via APIs with clear licensing + build nutrition enrichment infrastructure.
-
-- ⏳ **TheMealDB Integration** (~280 recipes)
-  - JSON API with Patreon supporter key ($5-20/month)
-  - Curated recipes with images and videos
-  - PATREON_SUPPORTER license
-  - Rate limiting: 1 second between requests
-
-- ⏳ **USDA FoodData Central API** (Nutrition Service)
-  - 350,000+ food items for nutrition calculation
-  - Free API (1,000 requests/hour)
-  - Enriches recipes lacking nutrition data
-  - Unit conversion system implementation
-
-- ⏳ **Nutritionix/FatSecret APIs** (Validation Service)
-  - Nutritionix: 1,000+ common dishes (5,000 req/day free)
-  - FatSecret: 17,000+ curated recipes (5,000 req/day free)
-  - Cross-reference nutrition accuracy
-  - Natural language ingredient parsing
-
-**Deliverables**:
-- API client implementations
-- Nutrition calculation service
-- Unit conversion system
-- Recipe validation infrastructure
-
-### Phase 3: Celebrity Chefs & Prestige Sources - **PLANNED** 📋
-*Timeline: Weeks 3-6 | Target: 1,000-2,000 recipes | Risk: MEDIUM*
-
-**Objective**: Extract prestige recipes with careful legal compliance and attribution.
-
-- ⏳ **Terms of Service Review Framework**
-  - Automated robots.txt checks for 60+ sources
-  - Manual ToS review documentation
-  - Schema.org detection (positive indicator)
-  - Legal decision matrix per source
-  - Partnership outreach for high-value sources
-
-- ⏳ **Recipe-Scrapers Python Library Integration**
-  - GitHub: hhursev/recipe-scrapers (supports 100+ sites)
-  - Schema.org automatic extraction
-  - Rate limiting (3 seconds minimum)
-  - Batch processing with error handling
-
-- ⏳ **High-Value Source Extraction** (ToS-approved only)
-  - James Beard Foundation: jamesbeard.org (1,000-1,500 recipes)
-  - Jacques Pépin: jacquespepin.com (300-500 recipes)
-  - Ina Garten: barefootcontessa.com (200-300 recipes)
-  - Food52: food52.com (500-800 curated/awarded)
-  - Serious Eats: seriouseats.com (300-500 tested recipes)
-  - CIA: ciafoodies.com (300-500 recipes)
-  - URL discovery → extraction → attribution → validation
-
-**Deliverables**:
-- Legal compliance framework
-- ToS review documentation
-- Python extraction environment
-- Per-source extraction scripts
-- Attribution verification reports
-
-### Phase 4: Specialized Cuisine Sources - **PLANNED** 📋
-*Timeline: Weeks 4-8 | Target: 1,500-2,000 recipes | Risk: MEDIUM*
-
-**Objective**: Fill diversity gaps with culturally authentic recipes from specialized sources.
-
-- ⏳ **Asian Cuisine** (300-400 recipes)
-  - EzyThaiCooking, Temple of Thai, Chef Lola's Kitchen (Asian section)
-  - Authentic Thai home cooking
-  - Traditional techniques and ingredients
-
-- ⏳ **African Cuisine** (200-300 recipes)
-  - Chef Lola's Kitchen (organized by country)
-  - Yummy Medley (West African focus)
-  - Regional metadata: West, East, North African
-
-- ⏳ **Latin American Cuisine** (300-400 recipes)
-  - LANIC Network directory (UT Austin)
-  - Jewish Food Society (diaspora fusion)
-  - University and cultural organization focus
-
-- ⏳ **Indigenous North American Cuisine** (150-200 recipes)
-  - First Nations Development Institute (PDF cookbooks)
-  - NATIFS, University of Kansas
-  - Food sovereignty and traditional ingredients
-
-- ⏳ **Middle Eastern Cuisine** (200-250 recipes)
-  - Feasting At Home (Lebanese, Israeli, Turkish, Persian)
-  - Fufu's Kitchen (Palestinian with cultural stories)
-
-- ⏳ **Nordic/Scandinavian Cuisine** (150-200 recipes)
-  - Nordic Food Living (5 countries)
-  - True North Kitchen
-  - New Nordic vs traditional, foraging techniques
-
-- ⏳ **Eastern European Cuisine** (200-250 recipes)
-  - Natasha's Kitchen (Russian, Ukrainian)
-  - Where Is My Spoon (Romanian, Polish, Croatian, Serbian)
-  - Regional variations and family stories
-
-**Deliverables**:
-- Cuisine-specific extraction scripts
-- Cultural metadata enrichment
-- Attribution tracking per source
-- Diversity metrics report
-
-### Phase 5: Data Processing & Quality Assurance - **ONGOING** 🔄
-*Timeline: Throughout all phases | Target: >95% validation rate*
-
-**Objective**: Validate, transform, and import all extracted recipes with quality controls.
-
-- ⏳ **Data Validation Pipeline**
-  - Zod schema for recipe structure
-  - Required fields: title, ingredients (min 2), instructions (min 2), sourceUrl, sourceName, license
-  - Optional fields: description, times, servings, nutrition, images
-  - Per-file and master validation reports
-  - Error categorization and tracking
-
-- ⏳ **Database Import Pipeline**
-  - Batch processing (50 recipes per batch)
-  - Duplicate detection by sourceUrl
-  - Chef/author record management
-  - Ingredient linkage system
-  - Nutrition data integration
-  - Import progress logging
-
-- ⏳ **Attribution Tracking System**
-  - Verify all recipes have sourceUrl + sourceName + license
-  - License breakdown reports
-  - Source-level statistics
-  - Weekly attribution audits
-  - Compliance dashboard
-
-- ⏳ **Quality Control Dashboard** (/admin/quality-control)
-  - Validation status metrics (target >95%)
-  - Attribution compliance (target 100%)
-  - Source breakdown table
-  - Recent imports view
-  - Data quality metrics (images >80%, nutrition >60%)
-  - Export capabilities
-
-**Deliverables**:
-- Validation schema and scripts
-- Import automation system
-- Attribution tracking database
-- Admin QC dashboard
-- Quality metrics reports
-
-### Phase 6: Integration Testing & Deployment - **PLANNED** 📋
-*Timeline: Week 10 | Target: Production-ready 10,000+ recipes*
-
-**Objective**: Verify complete pipeline and deploy to production.
-
-- ⏳ **End-to-End Testing**
-  - Unit tests (validation, import, attribution)
-  - Integration tests (scrape → validate → import → verify)
-  - Source-specific tests (USDA, TheMealDB, prestige, cuisine)
-  - Performance tests (<1 min validation per 1000, <5 min import per 1000)
-  - Automated test suite for CI/CD
-
-- ⏳ **Production Deployment Checklist**
-  - **Legal**: All ToS documented, attribution displayed, no prohibited sources
-  - **Quality**: >95% valid, 100% attribution, >80% images, >60% nutrition
-  - **Technical**: Database indexes, embeddings, CDN, rate limiting, monitoring
-  - **Content**: 10,000+ recipes, diversity goals met, chef profiles linked
-  - **Testing**: Search, attribution, mobile, load testing, SEO, accessibility
-  - **Monitoring**: Error tracking, performance alerts, backups, uptime
-  - Deployment runbook with rollback plan
-
-**Deliverables**:
-- Complete test suite with fixtures
-- CI/CD pipeline configuration
-- Pre-deployment checklist (completed)
-- Deployment runbook
-- Rollback procedure
-- Post-deployment monitoring
-
-### Success Metrics
-
-**Volume Metrics:**
-- ✅ Current: 4,343 recipes
-- 🎯 Target: 10,000+ recipes
-- Public domain: 3,500-4,000 (35%+)
-- API recipes: 300-500 (3-5%)
-- Prestige sources: 1,000-2,000 (15-20%)
-- Specialized cuisines: 1,500-2,000 (15-20%)
-
-**Quality Metrics:**
-- Validation pass rate: >95%
-- Complete attribution: 100%
-- Recipes with images: >80%
-- Recipes with nutrition: >60%
-- Search performance: <100ms average
-
-**Diversity Metrics:**
-- Cuisines represented: 20+ (currently 11)
-- Geographic diversity: All continents
-- Chef attribution: 1,000+ unique chefs
-- Cultural context documented: 30%+
-
-**Legal Metrics:**
-- Public domain recipes: 35%+
-- Licensed API recipes: 3-5%
-- Ethically scraped with attribution: 60%+
-- Zero prohibited sources: 100%
-- Attribution compliance: 100%
+**Design considerations:**
+- This should be prominent, not buried
+- Consider using Joanie's actual photo cooking (not just portrait)
+- Visual emphasis on the quote
+- Should feel warm and personal, not corporate
 
 ---
 
-## 🔄 Version 0.6.0 - Public Content & Social Features (DEFERRED)
-*Original Target: December 2025 | Status: Deferred pending extraction completion*
+#### Task 1.4: Reorder and Rename Homepage Sections
 
-**Note**: Social features (Phase 1-3 from v0.55.0) moved to v0.6.0 after extraction completion. This ensures we have sufficient high-quality content before building social engagement layers.
+**New section hierarchy (top to bottom):**
 
-### Phase 1: Navigation Structure - **PLANNED** 📋
-*Priority: HIGH* | *Effort: 2-3 days*
+1. **Fridge Input Hero** (largest)
+   - Primary user action
+   - Immediate engagement
 
-**Objective**: Restructure top-level navigation to show only public shared content.
+2. **Joanie's Philosophy** (prominent)
+   - Explains the "why"
+   - Differentiates from other sites
 
-- ⏳ **Public Recipe Discovery** (`/recipes`)
-  - Show only recipes where `is_public = true`
-  - Remove user-specific recipes from top-level browse
-  - Keep filtering and search working
+3. **Recipes You Can Make Right Now** (moderate)
+   - Previously: "Top-Rated Recipes"
+   - Show 6 recipes with high flexibility
+   - Emphasize: "Work with what you have"
+   - Filter criteria: recipes tagged for waste reduction
 
-- ⏳ **Public Collections** (`/collections`)
-  - Display only public collections
-  - User-specific collections moved to `/user-profile`
-  - Collection sharing controls
+4. **Learn Techniques** (moderate, new section)
+   - "How to rescue wilting greens"
+   - "Substitution strategies"
+   - "Building a resourceful pantry"
+   - Links to technique guides
 
-- ✅ **Public Meals** (`/meals`) - **COMPLETE**
-  - Show only meals where `is_public = true`
-  - Private meals accessible at `/my-meals`
+5. **Sustainability Champions** (smaller)
+   - Previously: "Community Table"
+   - Feature only chefs with zero-waste focus
+   - Dan Barber, Alice Waters, Tamar Adler types
 
-- ⏳ **User Profile Page Updates**
-  - Move "My Recipes" to profile
-  - Move "My Collections" to profile
-  - Move "My Meals" to profile (link to `/my-meals`)
-  - Share toggles for each content type
-
-### Phase 2: Persona Collections - **PLANNED** 📋
-*Priority: HIGH* | *Effort: 3-4 days*
-
-**Objective**: Create themed public collections using 47 existing personas to provide curated recipe discovery.
-
-- ⏳ **Collection Generation**
-  - Generate 100+ themed collections
-  - Themes: "Weeknight Dinners", "Holiday Feasts", "Quick Lunches", "Comfort Food", "Healthy Bowls", etc.
-  - 10-20 recipes per collection
-  - Rich descriptions and appropriate tags
-  - Assign to appropriate personas (e.g., "Italian Nonna" → Italian collections)
-
-- ⏳ **Collection Curation Logic**
-  - Use existing 4,343 recipes with ID-based tags
-  - Tag-based filtering for collection assembly
-  - Quality scoring (prefer recipes with images, complete data)
-  - Diversity within collections (variety of techniques, ingredients)
-
-### Phase 3: Synthetic User Activity - **PLANNED** 📋
-*Priority: MEDIUM* | *Effort: 4-5 days*
-
-**Objective**: Generate realistic user engagement using 47 personas to create a vibrant community feel.
-
-- ⏳ **Recipe Likes**
-  - 47 personas liking top recipes
-  - Power law distribution (popular recipes get more likes)
-  - Persona-appropriate likes (Italian persona likes Italian recipes)
-
-- ⏳ **Recipe Comments**
-  - Meaningful comments on recipes
-  - Comments reflect persona characteristics
-  - Engagement patterns (replies, questions, tips)
-
-- ⏳ **Collection Activity**
-  - Personas following themed collections
-  - Collection saves and shares
-  - Collection comments and ratings
-
-- ⏳ **Realistic Patterns**
-  - Time-based activity (not all at once)
-  - Power law distribution (some users more active)
-  - Persona consistency (behavior matches persona traits)
-
+**What to remove or hide:**
+- "Top-Rated" language (implies consumption)
+- Featured luxury recipes (dry-aged steakburgers, lobster rolls)
+- Generic community content (if not aligned with mission)
 
 ---
 
-## 🔄 Version 0.5.2 - Synthetic User Creation & Testing (DEFERRED)
-*Target: December 2024 | Status: Phases 1 & 2 Complete, Phases 3 & 4 Pending*
+### Days 4-7: Build Recipe Search Results
 
-**Priority**: HIGH - Create realistic user base for testing social features
+#### Task 2.1: Create Ingredient Matching System
 
-**Context**: Before implementing social features (likes, forks, comments), we need a realistic user base with activity patterns. This allows us to test features under realistic conditions and validate UI/UX decisions.
+**What it needs to do:**
+1. Accept list of user-provided ingredients
+2. Search recipe database for matches
+3. Calculate "match percentage" (what % of recipe ingredients user has)
+4. Identify "missing ingredients" (what user needs)
+5. Sort recipes by match percentage
+6. Return top 20 results
 
-**Documentation**:
-- ✅ `data/synth-users/README.md` (350+ lines)
-- ✅ `data/synth-users/METHODOLOGY.md` (700+ lines)
-- ✅ `docs/developer/implementation/SYNTHETIC_USER_IMPLEMENTATION_SUMMARY.md` (400+ lines)
+**Matching logic considerations:**
+- Ingredient name normalization (handle "chicken" vs "chicken breast")
+- Fuzzy matching for typos and variations
+- Common pantry items (salt, pepper, oil) might be assumed
+- Minimum threshold: 50% match or 2+ ingredients
 
-### Persona Generation - **COMPLETED** ✅
-- ✅ LLM-based persona creation (GPT-4o, $0.006 per persona)
-- ✅ Diverse user archetypes (15 archetypes implemented):
-  - Busy Parent (healthy, quick meals)
-  - Foodie Explorer (exotic, complex recipes)
-  - Health Conscious (low-carb, vegan)
-  - Budget Cook (economical, meal prep)
-  - Beginner Chef (simple, classic recipes)
-  - Professional Chef (advanced techniques)
-  - Senior Cook (traditional, comfort food)
-  - College Student, Meal Prepper, Gourmet Enthusiast
-  - Plant-Based Cook, Traditional Home Cook
-  - Quick & Easy Specialist, Baking Enthusiast, International Cuisine Lover
-- ✅ Persona attributes implemented (7 dimensions):
-  - Cooking skill level (beginner/intermediate/advanced)
-  - Dietary preferences/restrictions (11 options)
-  - Cuisine interests (15 cuisines available)
-  - Time availability (minimal/moderate/flexible)
-  - Budget constraints (economy/moderate/premium)
-  - Family size (single, couple, small family, large family)
-  - Age group (18-25, 26-35, 36-50, 51-65, 66+)
-- ✅ Persona-recipe alignment scoring algorithm (5 dimensions, 0-100% score)
-- ✅ Statistical distributions designed:
-  - Power law for activity (20% users = 80% activity)
-  - Normal distribution for ratings (mean 3.5, σ=0.8)
-  - Weighted random sampling for recipe selection
-- ✅ Quality validation (name format, email, bio length, enum values)
-- ✅ Diversity metrics (56.3% achieved with 5 test personas)
-- ✅ Generation script: `data/synth-users/scripts/generate-personas.ts` (450 lines)
+**Data structure needed:**
+For each matched recipe, provide:
+- Full recipe object
+- Total ingredient count
+- Matched ingredient count
+- Match percentage (matched/total * 100)
+- List of matched ingredients
+- List of missing ingredients
+- Estimated cost of missing items (future enhancement)
 
-### Recipe Generation Per Persona - **COMPLETED** ✅
-- ✅ Persona-matched recipe creation (10 recipes per user target)
-- ✅ Recipe generation using LLM (Gemini 2.0 Flash free tier, rate-limited)
-- ✅ Recipe attributes aligned to persona (5-dimensional scoring):
-  - Cuisine match (20 points) - Recipe cuisine in persona interests
-  - Difficulty match (20 points) - Skill-appropriate complexity
-  - Time availability match (20 points) - Cook time fits schedule
-  - Servings match (15 points) - Portion size for family size
-  - Dietary compliance (25 points) - Respects restrictions
-- ✅ Alignment scores achieved: 95-100% on test recipes
-- ✅ Quality validation (name, description, ingredients, instructions, tags)
-- ✅ Rejection criteria: <60% alignment score or validation failures
-- ✅ Test results: 100% success rate (2/2 before rate limit)
-- ✅ Generation script: `data/synth-users/scripts/generate-recipes-per-persona.ts` (551 lines)
-
-### User Activity Generation - **0.3 weeks**
-- ⏳ Collections creation (2-5 per active user)
-  - Collection themes (Weeknight Dinners, Holiday Favorites, etc.)
-  - 5-20 recipes per collection
-  - Public/private mix (70% public)
-- ⏳ Favorites selection (10-30 per user)
-  - Based on persona preferences
-  - Mix of own recipes and system recipes
-- ⏳ Recipe views history (20-100 per user)
-  - View patterns (recent activity weighted)
-- ⏳ Meal plans creation (1-3 per active user)
-  - Weekly meal planning
-  - Recipe assignments per day/meal type
-
-### Database Seeding - **0.2 weeks**
-- ⏳ Batch insert script (`seed-synthetic-users.ts`)
-- ⏳ Transaction-based seeding (atomic operations)
-- ⏳ Progress tracking and logging
-- ⏳ Rollback capability (backup before seeding)
-- ⏳ Validation checks (referential integrity)
-- ⏳ Performance optimization (batch size: 100 users)
-
-### Scripts & Tools
-- ✅ `data/synth-users/scripts/generate-personas.ts` (450 lines) - **COMPLETED**
-- ✅ `data/synth-users/scripts/generate-recipes-per-persona.ts` (551 lines) - **COMPLETED**
-- ⏳ `data/synth-users/scripts/generate-user-activity.ts` (300+ lines) - **PENDING**
-- ⏳ `data/synth-users/scripts/seed-database.ts` (200+ lines) - **PENDING**
-- ⏳ `data/synth-users/scripts/validate-synthetic-data.ts` (150+ lines) - **PENDING**
-
-### Quality Validation
-- ✅ Persona generation: 100% success rate (5/5 test personas)
-- ✅ Persona diversity: 56.3% across 7 dimensions
-- ✅ Recipe generation: 100% success rate (2/2 before rate limit)
-- ✅ Recipe alignment: 95-100% persona match scores
-- ✅ Validation: 100% pass rate for both personas and recipes
-- ⏳ Statistical distribution checks (pending full dataset):
-  - Activity follows power law (Gini coefficient > 0.7)
-  - Ratings follow normal distribution (Shapiro-Wilk test p > 0.05)
-  - Collections per user: mean 3, σ=2
-  - Recipes per user: mean 10, σ=5
-- ⏳ No duplicate recipes across users
-- ⏳ All foreign keys valid (referential integrity)
-
-### Cost Optimization
-- ✅ Using GPT-4o for persona generation ($0.006 per persona)
-- ✅ Using Gemini 2.0 Flash free tier for recipes (rate-limited)
-- ✅ Markdown stripping for robust JSON parsing
-- ✅ Exponential backoff for rate limit handling
-- ✅ Cost so far: <$0.50 (mostly free tier)
-- ⏳ Full implementation estimated: $0.30-$12.80
-  - 50 personas @ $0.006 = $0.30
-  - 500 recipes free (rate-limited) or $12.50 (GPT-4o-mini)
-
-### Success Metrics
-- ✅ Persona generation: 5/5 test personas (100% success)
-- ✅ Recipe generation: 2/2 test recipes (100% success)
-- ✅ Alignment scoring: 95-100% achieved
-- ✅ Documentation: 1,550+ lines across 3 comprehensive guides
-- ⏳ 50 synthetic users created (5 done, 45 pending)
-- ⏳ 500-750 synthetic recipes generated (2 done, 498+ pending)
-- ⏳ 100-250 collections created
-- ⏳ 500-1500 favorites recorded
-- ⏳ 1000-5000 recipe views logged
-- ⏳ Power law distribution validated (activity)
-- ⏳ Normal distribution validated (ratings)
-- ⏳ 100% referential integrity
-- ⏳ Total cost < $20
+**Performance requirements:**
+- Query should complete <200ms for 3,276 recipes
+- Consider caching common ingredient searches
+- Index optimization on recipe_ingredients table
 
 ---
 
-## 🚀 Version 0.6.0 - Social Features (PLANNED)
-*Target: January 2025 | Estimated: 2.5 weeks*
+#### Task 2.2: Build Results Display Page
 
-**Priority**: HIGH - Build community engagement and user interaction
+**Page structure:**
 
-**Prerequisite**: Version 0.5.2 (synthetic users for testing)
+**Header section:**
+- "✨ We found X recipes you can make"
+- Display user's entered ingredients
+- "Edit ingredients" link (back to input)
+- Sort controls: Best Match / Fewest Missing / Quickest
 
-### Engagement & Interaction - **1.5 weeks**
+**Recipe cards:**
+Each card shows:
+- Recipe photo
+- Recipe title
+- Match indicator: "You have 8/10 ingredients (80% match)"
+- Missing items: "You need: butter, white wine"
+- Time and difficulty
+- Click through to recipe detail
 
-**Recipe Ranking System:**
-- ⏳ Thumbs-up/like system for recipes
-- ⏳ Like counter display on recipe cards
-- ⏳ User's liked recipes tracking
-- ⏳ Most-liked recipes sorting/filtering
-- ⏳ Like button with optimistic UI updates
-- ⏳ Database table: `recipe_likes` (user_id, recipe_id, created_at)
+**Visual hierarchy:**
+- Top 3 results: Larger cards, most prominent
+- Remaining results: Standard grid
+- "Load more" if >20 results
 
-**Recipe Forking ("Fork Recipe"):**
-- ⏳ "Fork this recipe" button on recipe detail pages
-- ⏳ Creates copy of recipe linked to original
-- ⏳ Attribution to original recipe and author
-- ⏳ User's forked recipes section in profile
-- ⏳ Fork counter on original recipes
-- ⏳ Database table: `recipe_forks` (id, recipe_id, original_recipe_id, user_id, created_at)
-- ⏳ Fork history/lineage tracking
-
-**Flat Commenting System:**
-- ⏳ Comment thread on recipe detail pages
-- ⏳ Flat comment structure (no nesting)
-- ⏳ Emoji support in comments (emoji picker integration)
-- ⏳ Comment editing and deletion
-- ⏳ Comment moderation (basic flagging)
-- ⏳ Database table: `recipe_comments` (id, recipe_id, user_id, content, created_at, updated_at)
-- ⏳ Comment count display on recipe cards
-
-**Recipe Layout Improvements:**
-- ⏳ Tag display optimization (max 3 rows with overflow)
-- ⏳ CSS grid layout for tags
-- ⏳ "Show more/less" toggle for tag overflow
-- ⏳ Responsive tag layout (mobile vs desktop)
-
-### Following System - **0.5 weeks**
-
-**User Following:**
-- ⏳ Follow/unfollow users
-- ⏳ Followers & following lists
-- ⏳ Mutual follow indicators
-- ⏳ Follow button on profiles
-- ⏳ Database table: `follows` (follower_id, following_id, created_at)
-
-**Engagement Features:**
-- ⏳ Favorite button on recipe cards
-- ⏳ Save recipes to favorites
-- ⏳ Personal notes on favorites
-- ⏳ "My Favorites" page with organization
-
-### Discovery Features - **0.5 weeks**
-
-**User Discovery:**
-- ⏳ Browse users/chefs page (`/discover/chefs`)
-- ⏳ Search users by name/username
-- ⏳ Filter by specialties, location
-- ⏳ Featured chefs section
-- ⏳ User recommendation algorithm
-
-**Collection Discovery:**
-- ⏳ Browse collections page (`/discover/collections`)
-- ⏳ Search collections by name/tags
-- ⏳ Featured collections section
-- ⏳ Trending collections algorithm
-- ⏳ Collection statistics
-
-### Components
-- ⏳ LikeButton component (with counter)
-- ⏳ ForkButton component
-- ⏳ CommentThread component
-- ⏳ CommentForm component with emoji picker
-- ⏳ EmojiPicker component
-- ⏳ TagGrid component (max 3 rows)
-- ⏳ UserCard & UserGrid components
-- ⏳ CollectionCard & CollectionGrid
-- ⏳ FollowButton component
-- ⏳ FavoriteButton component
-
-### Success Metrics
-- ⏳ Like feature implemented on all recipe pages
-- ⏳ Fork feature creates exact copies with attribution
-- ⏳ Comments load and display correctly
-- ⏳ Emoji picker functional in comments
-- ⏳ Tags display in maximum 3 rows
-- ⏳ Following system functional
-- ⏳ User engagement metrics tracked (likes, forks, comments)
+**Empty states:**
+- No results: "We couldn't find exact matches, but here are recipes where you have most of what you need..."
+- Too few ingredients: "Please enter at least 2 ingredients"
+- Invalid input: Clear error messaging
 
 ---
 
-## 🍽️ Version 0.65.0 - Meals Planning System (PLANNED)
-*Target: February 2025 | Estimated: 3.5 weeks*
+## Phase 2: Recipe Detail Enhancement (Week 2)
 
-**Priority**: HIGH - Complete meal planning for occasions and events
+### Goal: Every recipe shows what you have vs. what you need
 
-**Overview**: Occasion-based meal planning with AI assistance. Users select a theme/occasion, system suggests recipes, user builds complete multi-course meals.
+#### Task 3.1: Add "You Have / You Need" Section
 
-### Core Meal Builder - **1.5 weeks**
+**For every recipe page, add prominent section before instructions:**
 
-**Occasion/Theme System:**
-- ⏳ New top-level page: `/meals`
-- ⏳ Occasion selector interface (dropdown/cards)
-- ⏳ Predefined occasions:
-  - Thanksgiving, Christmas, Easter, New Year's
-  - Date Night, Family Dinner, Birthday Party
-  - Summer BBQ, Picnic, Brunch, Game Day
-  - Casual, Formal, Outdoor, Indoor
-- ⏳ Custom occasion creation
-- ⏳ Occasion tags and categorization
+**If user arrived from fridge search:**
+Display their inventory context:
 
-**Multi-Course Meal Builder:**
-- ⏳ Course type selector (Appetizers, Mains, Sides, Desserts)
-- ⏳ AI-powered recipe suggestions (filtered by occasion)
-- ⏳ Recipe cards with drag-and-drop
-- ⏳ Add/remove recipes from meal
-- ⏳ Recipe search within meal builder
-- ⏳ Serving size selector (number of people: 2, 4, 6, 8, 10+)
-- ⏳ Meal preview/menu view
+**"✅ YOU HAVE (8 ingredients):"**
+- Checkmarked list of ingredients they entered
+- Green/positive styling
 
-**Database Schema:** Implemented in `src/lib/db/meals-schema.ts`
+**"🛒 YOU NEED (2 ingredients):"**
+- Missing ingredients with amounts
+- Estimated cost (optional, future)
+- Store location hints (optional)
 
-### AI Integration (GPT-4/Claude) - **1 week**
+**If user arrived without search context:**
+Prompt them to enter what they have:
+- "Enter what's in your fridge to see what you need →"
 
-**Recipe Suggestions:**
-- ⏳ LLM-based recipe recommendations by occasion
-- ⏳ Flavor profile matching
-- ⏳ Course balance validation
-- ⏳ Dietary restriction filtering
-- ⏳ Cuisine consistency suggestions
-
-**Meal Composition Assistance:**
-- ⏳ Validate meal composition (balance of flavors/courses)
-- ⏳ Suggest missing courses
-- ⏳ Recommend wine/beverage pairings
-- ⏳ Check for ingredient conflicts
-
-**Consolidated Shopping List:**
-- ⏳ Aggregate ingredients across all recipes
-- ⏳ Adjust quantities for serving size
-- ⏳ Remove duplicates and consolidate
-- ⏳ Categorize by grocery section
-- ⏳ Price estimation (LLM-based)
-
-**Meal Prep Timeline:**
-- ⏳ Step-by-step prep instructions
-- ⏳ Timeline optimization (what to prep when)
-- ⏳ Parallel task identification
-- ⏳ Critical path analysis
-- ⏳ Time-based todo list generation
-
-**Tools & Equipment:**
-- ⏳ Compile all needed tools/equipment
-- ⏳ Categorize (cookware, utensils, appliances)
-- ⏳ Identify potential conflicts (same oven needed)
-
-### Meal Summary View - **0.5 weeks**
-
-**Complete Menu Display:**
-- ⏳ Course-by-course layout
-- ⏳ Recipe names with images
-- ⏳ Servings display
-- ⏳ Total prep time (aggregated)
-- ⏳ Total cook time (aggregated)
-- ⏳ Print-friendly menu format
-
-**Consolidated Information:**
-- ⏳ Shopping list (quantities adjusted for servings)
-- ⏳ Meal prep ToDo list with timeline
-- ⏳ Tools/equipment needed list
-- ⏳ Estimated total cost (if price data available)
-- ⏳ Difficulty rating (aggregated)
-
-### User Features - **0.5 weeks**
-
-**Logged-in Users:**
-- ⏳ Save meals to profile
-- ⏳ Edit saved meals
-- ⏳ Share meals (public/private)
-- ⏳ Meal history/library
-- ⏳ Duplicate meals (create variations)
-- ⏳ Meal URLs (`/meals/[username]/[meal-slug]`)
-
-**Anonymous Users:**
-- ⏳ Build meal without account
-- ⏳ Print menu view
-- ⏳ Export shopping list (PDF)
-- ⏳ Export prep instructions (PDF)
-- ⏳ Save meal prompt (create account)
-
-### Success Metrics
-- ⏳ Meal builder functional for all occasions
-- ⏳ AI suggestions relevant and accurate (>80% user acceptance)
-- ⏳ Shopping list consolidation accurate (100%)
-- ⏳ Prep timeline generated correctly
-- ⏳ PDF export functional for anonymous users
-- ⏳ Logged-in users can save and share meals
-- ⏳ Mobile-friendly meal builder interface
-- ⏳ <2s load time for meal builder page
+**Design considerations:**
+- This should be prominent (above or next to main recipe)
+- Clear visual distinction between "have" and "need"
+- Mobile-friendly layout
+- Printable (if user wants to shop)
 
 ---
 
-## 📋 Version 0.7.0 - Community & Sharing (PLANNED)
-*Target: March 2025 | Estimated: 2.5 weeks*
+#### Task 3.2: Add Substitution Suggestions (Basic)
 
-### Enhanced Social (Phase 4) - **1.5 weeks**
+**For each "You Need" ingredient, show alternatives:**
 
-**Activity & Engagement:**
-- ⏳ Activity feed (personal & following)
-- ⏳ Recipe variations/remixes
-- ⏳ Cook's notes on recipes
-- ⏳ User badges & achievements
-- ⏳ Cooking milestones
+**Example:**
+"You need: Butter (2 tablespoons)
+🔄 Substitutions:
+- Olive oil (you have this!) - Use 3/4 the amount
+- Coconut oil - Similar fat content
+- Ghee - Nearly identical"
 
-**Advanced Discovery:**
-- ⏳ Advanced recommendation algorithms
-- ⏳ Trending users/collections
-- ⏳ Seasonal recommendations
-- ⏳ Network-based suggestions
+**Substitution sources (MVP):**
+1. Check user's stated ingredients first
+2. Fall back to common pantry items
+3. Show 2-3 alternatives maximum
 
-### Sharing & Export - **1 week**
-- ⏳ Enhanced recipe sharing
-- ⏳ Social media preview cards (Open Graph)
-- ⏳ Collection sharing options
-- ⏳ Recipe cards (printable PDF)
-- ⏳ Shopping list export (PDF, email)
-- ⏳ Meal plan calendar export (iCal)
-- ⏳ Export collection as cookbook (PDF)
+**Information to include:**
+- Alternative ingredient name
+- Why it works (brief explanation)
+- Any cooking adjustments needed
+- Confidence level (optional: ⭐⭐⭐⭐⭐ rating)
 
----
+**Implementation approach:**
+- Start with hardcoded substitution rules for common ingredients
+- Store as JSON in recipe metadata or separate table
+- Can enhance with AI generation later
 
-## 📋 Version 0.75.0 - SEO & Discoverability (PLANNED)
-*Target: April 2025 | Estimated: 2 weeks*
-
-### SEO Infrastructure - **1 week**
-
-**URL Optimization:**
-- ⏳ Semantic URL slugs (LLM-powered generation)
-  - Current: `/recipes/[uuid]`
-  - Target: `/recipes/[semantic-slug]` (e.g., `/recipes/grandmas-chocolate-chip-cookies`)
-- ⏳ Slug generation algorithm (Claude Sonnet 4.5)
-- ⏳ URL migration script (preserve old UUIDs as redirects)
-
-**Meta Tags & SEO:**
-- ⏳ Dynamic meta descriptions (LLM-generated)
-- ⏳ Open Graph tags (social media sharing)
-- ⏳ JSON-LD structured data (Recipe schema)
-- ⏳ Sitemap generation
-
-### Content Optimization - **0.5 weeks**
-- ⏳ Recipe description enhancement for SEO
-- ⏳ Keyword extraction and optimization
-- ⏳ Structured data (cookTime, prepTime, nutrition)
-
-### Analytics & Tracking - **0.5 weeks**
-- ⏳ Google Search Console integration
-- ⏳ Performance monitoring
-- ⏳ Core Web Vitals tracking
+**Priority ingredients for substitution rules:**
+- Butter, oils, fats
+- Acids (lemon, vinegar, wine)
+- Dairy (milk, cream, cheese)
+- Herbs and spices
+- Proteins (if cooking method is similar)
 
 ---
 
-## 📋 Version 0.8.0 - Mobile & PWA (PLANNED)
-*Target: May 2025 | Estimated: 2 weeks*
+#### Task 3.3: Add Waste-Reduction Content
 
-### Progressive Web App - **1 week**
-- ⏳ PWA manifest configuration
-- ⏳ Service worker implementation
-- ⏳ Offline recipe access
-- ⏳ Add to home screen prompt
+**New recipe metadata to display:**
 
-### Advanced Mobile Features - **0.5 weeks**
-- ⏳ Push notifications (recipe reminders)
-- ⏳ Background sync
-- ⏳ Share target API
-- ⏳ Voice search integration
+1. **"💡 Resourcefulness Tips"** (if available):
+   - "Save chicken bones for stock"
+   - "Carrot tops can be blended into pesto"
+   - "This is a one-pot recipe - minimal cleanup!"
 
-### Enhanced Performance - **0.5 weeks**
-- ⏳ Advanced service worker caching
-- ⏳ Precaching strategies
-- ⏳ Runtime caching
+2. **"♻️ Zero-Waste Notes"** (if available):
+   - What scraps can be composted
+   - How to use leftovers
+   - Storage tips to extend ingredient life
 
----
+3. **"🌍 Environmental Context"** (optional):
+   - "Uses seasonal ingredients"
+   - "Local sourcing reduces carbon footprint"
+   - "Minimal food waste in preparation"
 
-## 📋 Version 0.9.0 - Intelligence & Advanced Features (PLANNED)
-*Target: June 2025 | Estimated: 2.5 weeks*
-
-### Joanie's Fridge (Smart Ingredient Matching) - **1 week**
-- ⏳ Plaintext fridge inventory (LLM parsing)
-- ⏳ Ingredient matching algorithm
-- ⏳ Recipe suggestions based on available ingredients
-- ⏳ "What can I make?" feature
-
-### Image Recognition - **1 week**
-- ⏳ Fridge photo recognition
-- ⏳ Ingredient detection from images
-- ⏳ Vision model integration (GPT-4 Vision or Gemini)
-
-### Analytics & Insights - **0.5 weeks**
-- ⏳ Cooking trends dashboard
-- ⏳ Personal recipe analytics
-- ⏳ Most popular recipes
+**Where this content comes from:**
+- Extract from existing recipe descriptions
+- Add manually for featured recipes
+- Generate with AI for high-value recipes
+- Crowdsource from users sharing tips
 
 ---
 
-## 🎯 Version 1.0 - Production Release (TARGET)
-*Target: July 2025 | Estimated: 3 weeks*
+## Phase 3: Content Curation (Week 3-4)
 
-### Polish & Quality - **1.5 weeks**
-- ⏳ Comprehensive testing suite
-- ⏳ Performance audit (95%+ Lighthouse scores)
-- ⏳ Accessibility (WCAG AA compliance)
-- ⏳ Security audit
+### Goal: Feature content that aligns with Joanie's philosophy
 
-### Production Infrastructure - **1 week**
-- ⏳ CDN for images
-- ⏳ Rate limiting
-- ⏳ Monitoring and alerts
-- ⏳ Database optimization
+#### Task 4.1: Recipe Audit and Tagging
 
-### Documentation & Launch - **0.5 weeks**
-- ⏳ User guide
-- ⏳ API documentation
-- ⏳ Video tutorials
+**Audit all 3,276 recipes and categorize:**
 
----
+**High alignment (feature prominently):**
+- ✅ Uses common pantry ingredients
+- ✅ Offers flexibility in ingredients
+- ✅ One-pot or minimal dishes
+- ✅ Uses aging/wilting produce
+- ✅ Includes scrap utilization
+- ✅ Seasonal/local emphasis
 
-## 🚀 Post-1.0 (Future)
+**Medium alignment (include but don't feature):**
+- Requires some specialty ingredients
+- Moderate flexibility
+- Standard home cooking
 
-### Integrations (Version 1.x)
-- Meal delivery services
-- Grocery delivery APIs
-- Smart kitchen devices
-- Voice assistants
+**Low alignment (hide or archive):**
+- ❌ Requires expensive specialty ingredients
+- ❌ Precision-dependent (molecular gastronomy)
+- ❌ Creates significant food waste
+- ❌ Out-of-season requirements
+- ❌ Luxury/status positioning
 
-### Premium Features (Version 2.0+)
-- Meal planning AI assistant
-- Personal nutritionist
-- Cooking classes integration
-- Recipe development tools
+**Tagging system to implement:**
+Add tags to recipes:
+- `waste_reduction`: Uses aging ingredients, scraps, leftovers
+- `flexible`: Accepts substitutions easily
+- `one_pot`: Minimal cleanup
+- `seasonal`: Uses seasonal produce
+- `resourceful`: Embodies Joanie's approach
 
----
-
-## Version Summary
-
-### Completed Versions (✅)
-- **0.1.0** - Foundation
-- **0.2.0** - AI Integration
-- **0.3.0** - Branding & Content
-- **0.4.0** - Scale & Performance
-- **0.4.1** - Quality & Developer Experience
-- **0.45.0 Phase 1** - Mobile Foundation
-- **0.5.0** - Smart Features & Infrastructure (75% - Chef content quality, navigation, formatting complete)
-
-### In Progress (🔄)
-- **0.5.2** - Synthetic User Creation (NEXT - Documentation ready, implementation pending)
-
-### Planned Versions (📋)
-- **0.6.0** - Social Features (2.5 weeks)
-- **0.65.0** - Meals Planning System (3.5 weeks)
-- **0.7.0** - Community & Sharing (2.5 weeks)
-- **0.75.0** - SEO & Discoverability (2 weeks)
-- **0.8.0** - Mobile & PWA (2 weeks)
-- **0.9.0** - Intelligence & Advanced Features (2.5 weeks)
-- **1.0** - Production Release (3 weeks)
-
-### Timeline
-- **Current Version**: 0.5.1 (December 2024)
-- **Next Milestone**: 0.5.2 - Synthetic User Creation
-- **Production Release**: Version 1.0 (July 2025)
+**Priority:** Tag top 500 recipes first, then expand
 
 ---
 
-**Key Changes (Latest Update - October 18, 2025)**:
-- ✅ **Version 0.5.1 Work Completed**:
-  - Lidia Bastianich content quality improvements (89.3/100 score)
-  - Chef back navigation (BackToChef component)
-  - Recipe instructions formatting (87/87 recipes, 100% success)
-  - Homepage layout reorganization (hero → search → CTA)
-  - Dev server stability improvements (make targets, monitoring)
-  - 7 new scripts created
-  - Comprehensive documentation (5 new reports)
-  - Pushed to GitHub (commit b63cca8)
-- 📊 **Synthetic User Documentation Complete**:
-  - README.md (350+ lines) with methodology
-  - METHODOLOGY.md (700+ lines) with technical details
-  - Ready for implementation (data/synth-users/)
-- 🆕 **New Version 0.5.2**: Synthetic User Creation & Testing
-  - Prerequisite for Version 0.6.0 (Social Features)
-  - 50 synthetic users with realistic activity patterns
-  - LLM-driven persona and recipe generation
-  - Estimated cost: $5-15
-- ⏳ **Pending**: Semantic search, ingredients database, user profiles/collections (remainder of 0.5.0)
+#### Task 4.2: Add Resourcefulness Score
 
-*Last Updated: October 18, 2025*
+**New recipe field: `resourcefulness_score` (1-5 scale)**
+
+**Scoring criteria:**
+
+**5 stars (Most resourceful):**
+- Uses only common pantry/fridge staples
+- Many ingredient substitutions possible
+- Forgiving technique (no precision required)
+- Utilizes scraps or aging ingredients
+- One pot or minimal cleanup
+
+**4 stars:**
+- Mostly common ingredients
+- Some substitution flexibility
+- Standard home cooking techniques
+
+**3 stars:**
+- Mix of common and specialty ingredients
+- Moderate substitution tolerance
+- Standard recipe complexity
+
+**2 stars:**
+- Several specialty ingredients required
+- Limited substitution options
+- Requires specific techniques
+
+**1 star (Least resourceful):**
+- Expensive or rare ingredients
+- No substitution tolerance
+- Precision-dependent techniques
+- Creates food waste in preparation
+
+**Implementation:**
+- Calculate programmatically based on ingredient data
+- Can manually adjust for special cases
+- Use to sort and filter recipe collections
+
+---
+
+#### Task 4.3: Update Featured Content
+
+**Homepage "Recipes You Can Make Right Now":**
+- Show only recipes with resourcefulness_score ≥ 4
+- Sort by score DESC, then rating
+- Rotate selection to show variety
+
+**Chef profiles to feature:**
+Keep only sustainability-focused:
+- ✅ Lidia Bastianich (home cooking, seasonal)
+- ✅ Jacques Pépin (technique, flexibility)
+- ❌ Remove or deprioritize luxury chefs without sustainability focus
+
+Add new sustainability champions:
+- Alice Waters (local, seasonal, garden-to-table)
+- Dan Barber (waste reduction pioneer)
+- Tamar Adler (leftovers, resourcefulness)
+- Joshua McFadden (vegetable-forward)
+
+**Update chef profile template:**
+Add section: "Philosophy on Food Waste"
+- Their approach to sustainability
+- Signature resourceful techniques
+- Environmental values
+
+---
+
+## Phase 4: Navigation & Information Architecture (Week 4)
+
+### Goal: Organize site around waste reduction mission
+
+#### Task 5.1: Update Primary Navigation
+
+**Current navigation likely includes:**
+- Browse Recipes (by category, cuisine)
+- Chefs
+- About
+- Sign In
+
+**New navigation structure:**
+
+**Primary:**
+1. **What's in Your Fridge** - Hero feature, always accessible
+2. **Rescue Ingredients** - Browse by ingredient type
+   - Wilting Greens
+   - Aging Vegetables
+   - Leftover Proteins
+   - Excess Herbs
+3. **Learn Techniques** - Educational content
+   - Zero-Waste Kitchen
+   - Substitution Guide
+   - FIFO Management
+   - Stock from Scraps
+4. **Sustainability Chefs** - Curated chef profiles
+5. **Philosophy** - About Joanie's approach
+
+**Secondary (footer):**
+- All Recipes (searchable collection)
+- About Us
+- Contact
+
+**Remove or deprioritize:**
+- "Top Rated" or "Trending" sections
+- Browse by arbitrary categories
+- Generic "Community" (unless aligned with mission)
+
+---
+
+#### Task 5.2: Create "Rescue Ingredients" Pages
+
+**New section: Browse by ingredient-to-rescue**
+
+**Structure:**
+`/rescue/wilting-greens`
+`/rescue/aging-vegetables`
+`/rescue/leftover-proteins`
+`/rescue/excess-herbs`
+
+**Each page shows:**
+- "What to do with [ingredient type] about to go bad"
+- Techniques (sauté, ferment, freeze, compost)
+- Recipes that use these ingredients
+- Storage tips to extend life
+- When to compost vs. use
+
+**Content examples:**
+
+**Wilting Greens:**
+- "Lettuce starting to wilt? Sauté it with garlic"
+- "Spinach getting slimy? Perfect for smoothies or soup"
+- Recipes tagged with wilting greens usage
+
+**Aging Vegetables:**
+- "Carrots going soft? Roast or soup time"
+- "Tomatoes overripe? Sauce or salsa"
+- Techniques for second-life vegetables
+
+---
+
+#### Task 5.3: Create Techniques/Education Pages
+
+**New section: `/learn/[technique]`**
+
+**Key pages to create:**
+
+1. **Zero-Waste Kitchen**
+   - FIFO principle explained
+   - Scrap utilization guide
+   - Composting basics
+   - Storage tips
+
+2. **Substitution Guide**
+   - Common substitutions by category
+   - Why they work (flavor compounds, texture)
+   - Confidence levels
+   - Cultural considerations
+
+3. **Stock from Scraps**
+   - What scraps to save
+   - Basic stock recipes
+   - Storage and freezing
+   - Using stock in recipes
+
+4. **Joanie's Philosophy (detailed)**
+   - Her full story
+   - FIFO in practice
+   - Garden to kitchen cycle
+   - Environmental connection
+
+**Content format:**
+- How-to instructions
+- Visual guides (photos/illustrations)
+- Related recipes
+- User tips and stories
+
+---
+
+## Phase 5: Database & Content Enrichment (Week 5)
+
+### Goal: Enrich existing recipes with substitution and waste-reduction data
+
+#### Task 6.1: Add New Recipe Fields
+
+**Database schema additions needed:**
+
+**New columns for recipes table:**
+- `resourcefulness_score` (integer 1-5)
+- `waste_reduction_tags` (array of strings)
+- `tools_required` (array of strings)
+- `scrap_utilization_notes` (text, optional)
+- `environmental_notes` (text, optional)
+
+**New table: recipe_substitutions**
+- recipe_id
+- ingredient_name
+- substitute_name
+- confidence_score (0-100)
+- reason (why it works)
+- cooking_adjustment (optional)
+
+---
+
+#### Task 6.2: Enrichment Pipeline
+
+**Process all 3,276 recipes:**
+
+**Priority 1: Resourcefulness scoring**
+- Calculate score based on ingredient complexity
+- Consider substitution potential
+- Mark one-pot/minimal waste recipes
+- Can be largely automated
+
+**Priority 2: Waste-reduction tagging**
+- Identify recipes using aging ingredients
+- Tag one-pot recipes
+- Mark scrap utilization
+- Mix automated + manual review
+
+**Priority 3: Substitution generation**
+- Focus on top 500 recipes first
+- Use AI to generate substitutions
+- Manual review for quality
+- Common ingredients first (butter, milk, eggs, etc.)
+
+**Priority 4: Tools extraction**
+- Parse instructions for equipment mentions
+- Standardize tool names
+- Lower priority (nice-to-have)
+
+**Implementation approach:**
+- Create scripts for batch processing
+- Process in batches of 100 recipes
+- Log progress and errors
+- Manual spot-checks for quality
+
+---
+
+#### Task 6.3: Substitution Rule Database
+
+**Build comprehensive substitution library:**
+
+**Start with top 50 most common ingredients:**
+- Butter, oils, eggs, milk, flour
+- Common proteins (chicken, beef, fish)
+- Basic vegetables
+- Acids (lemon, vinegar)
+- Herbs and spices
+
+**For each, define substitutions:**
+- Alternative ingredient
+- Confidence level (0-100)
+- Reason (flavor, texture, nutrition)
+- Quantity adjustment
+- Cooking method changes
+
+**Storage:**
+- Can be JSON in recipe metadata
+- Or dedicated substitutions table
+- Should be easily queryable
+- Expandable over time
+
+**Example structure:**
+```
+Ingredient: Butter
+Substitutes:
+  - Olive oil (85% confidence): Similar fat, use 3/4 amount
+  - Coconut oil (75% confidence): Solid fat, expect mild coconut flavor
+  - Ghee (95% confidence): Nearly identical, lactose-free
+```
+
+---
+
+## Phase 6: Polish & Launch Prep (Week 6)
+
+### Goal: Production-ready, tested, and aligned with mission
+
+#### Task 7.1: Content Audit
+
+**Review all public-facing content:**
+
+✅ **Check homepage:**
+- [ ] Fridge input is primary feature
+- [ ] Philosophy is prominently explained
+- [ ] No luxury recipes in hero positions
+- [ ] Messaging emphasizes waste reduction
+- [ ] Mobile responsive
+
+✅ **Check recipe pages:**
+- [ ] Substitutions display correctly
+- [ ] "You have/need" sections work
+- [ ] Waste-reduction tips visible
+- [ ] No broken images or links
+
+✅ **Check navigation:**
+- [ ] "Rescue Ingredients" pages exist
+- [ ] Technique guides are complete
+- [ ] Chef profiles emphasize sustainability
+- [ ] No dead links
+
+✅ **Check messaging consistency:**
+- [ ] Tagline consistent across pages
+- [ ] No "top-rated" language remains
+- [ ] Philosophy accurately represented
+- [ ] Tone is practical, not preachy
+
+---
+
+#### Task 7.2: Functional Testing
+
+**Test critical user flows:**
+
+1. **Fridge input flow:**
+   - [ ] Enter ingredients → See results
+   - [ ] Results show accurate matches
+   - [ ] Match percentages correct
+   - [ ] Missing ingredients identified
+   - [ ] Can edit and re-search
+
+2. **Recipe detail flow:**
+   - [ ] "You have/need" displays correctly
+   - [ ] Substitutions show for missing items
+   - [ ] Full recipe accessible
+   - [ ] Can save/favorite (if implemented)
+
+3. **Navigation flow:**
+   - [ ] Can reach rescue pages
+   - [ ] Technique guides load
+   - [ ] Chef profiles display
+   - [ ] Philosophy page complete
+
+4. **Mobile experience:**
+   - [ ] Fridge input usable on phone
+   - [ ] Recipe cards readable
+   - [ ] Navigation accessible
+   - [ ] Touch targets adequate (44x44px)
+
+---
+
+#### Task 7.3: Performance Optimization
+
+**Check and optimize:**
+
+- [ ] Fridge search completes <500ms
+- [ ] Recipe pages load <2s (LCP)
+- [ ] Images optimized and cached
+- [ ] Database queries use indexes
+- [ ] No N+1 query problems
+
+**Monitoring setup:**
+- Error tracking configured
+- Performance monitoring active
+- User analytics tracking key flows
+- Search query logging (for improvement)
+
+---
+
+#### Task 7.4: Documentation
+
+**Create user-facing docs:**
+
+1. **How to Use the Fridge Feature**
+   - What to enter
+   - How matching works
+   - Understanding substitutions
+
+2. **About Joanie's Philosophy**
+   - Full story
+   - FIFO explained
+   - Zero-waste principles
+   - Why this platform is different
+
+3. **FAQ**
+   - How do substitutions work?
+   - Why aren't all recipes showing?
+   - How do you calculate match percentage?
+   - What if no recipes match?
+
+---
+
+## Success Criteria
+
+### For Launch Approval, Verify:
+
+**Philosophy Alignment:**
+- [ ] Joanie's values are clear throughout
+- [ ] Zero waste is organizing principle
+- [ ] No conflicting luxury/consumption messaging
+- [ ] Would Joanie recognize her philosophy?
+
+**Functionality:**
+- [ ] Fridge input works reliably
+- [ ] Recipe matching is accurate
+- [ ] Substitutions are helpful
+- [ ] Mobile experience is solid
+
+**Content Quality:**
+- [ ] Featured recipes align with mission
+- [ ] No luxury recipes prominently displayed
+- [ ] Chefs emphasize sustainability
+- [ ] Educational content is complete
+
+**Performance:**
+- [ ] <500ms search response time
+- [ ] <2s page load times
+- [ ] No critical errors
+- [ ] Accessible and responsive
+
+**User Value:**
+- [ ] Clear what makes this different
+- [ ] Immediate value (find recipes with what you have)
+- [ ] Helpful substitutions reduce barriers
+- [ ] Encourages waste reduction behavior
+
+---
+
+## Post-Launch Roadmap
+
+### V1.1 Features (December 2025)
+- Persistent fridge inventory (save state)
+- FIFO expiration tracking
+- Waste impact dashboard
+- User substitution sharing
+
+### V1.2 Features (January 2026)
+- Photo recognition for ingredients
+- Advanced substitution intelligence (AI-enhanced)
+- Meal planning from inventory
+- Social features (waste reduction focused)
+
+### V1.3+ Features (February 2026+)
+- Garden integration
+- Seasonal produce guides
+- Community recipe contributions
+- Environmental impact tracking
+
+---
+
+## Notes for Claude Code
+
+### When In Doubt:
+- Prioritize waste reduction over feature complexity
+- Keep Joanie's philosophy central
+- Choose simplicity over sophistication
+- Ask: Would this help someone waste less food?
+
+### Technical Decisions:
+- Use existing patterns and infrastructure
+- Don't refactor unnecessarily
+- Maintain type safety and performance
+- Document significant changes
+
+### Content Decisions:
+- When unsure about recipe curation, err toward flexibility
+- Substitutions don't need to be perfect, just helpful
+- Educational content is valuable even if simple
+- User feedback will guide improvements
+
+This transformation is about honoring Joanie's actual philosophy, not building a technically impressive platform. Every feature should serve waste reduction. If it doesn't, we probably don't need it.

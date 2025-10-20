@@ -1,6 +1,6 @@
-# Recipe Manager - Agentic Coder Instructions
+# Joanie's Kitchen - Agentic Coder Instructions
 
-**AI-Powered Recipe Generator & Meal Planning Application**
+**Zero-Waste Cooking Intelligence Platform**
 
 Built with Next.js 15, TypeScript, Clerk Auth, Neon PostgreSQL, and OpenRouter AI
 
@@ -9,8 +9,8 @@ Built with Next.js 15, TypeScript, Clerk Auth, Neon PostgreSQL, and OpenRouter A
 ## Quick Navigation
 
 - **Project Overview**: README.md
-- **Roadmap**: ROADMAP.md
-- **Mobile Parity**: docs/guides/MOBILE_PARITY_REQUIREMENTS.md (🔴 CURRENT PRIORITY)
+- **Roadmap**: ROADMAP.md (🔴 ZERO-WASTE PIVOT - see for current priorities)
+- **Archived Roadmaps**: docs/archive/ (pre-pivot documentation)
 - **Project Organization**: docs/reference/PROJECT_ORGANIZATION.md
 - **Authentication**: docs/guides/AUTHENTICATION_GUIDE.md
 - **Environment Setup**: docs/guides/ENVIRONMENT_SETUP.md
