@@ -38,6 +38,7 @@ import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { BackToChef } from '@/components/recipe/BackToChef';
 import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
+import { InventoryMatchSection } from '@/components/recipe/InventoryMatchSection';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
@@ -695,6 +696,14 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           />
         </div>
       )}
+
+      {/* YOU HAVE / YOU NEED SECTION - Week 2 Task 3.1 */}
+      <div className="mb-8">
+        <InventoryMatchSection
+          recipeId={recipe.id}
+          ingredients={recipe.ingredients}
+        />
+      </div>
 
       <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
         {/* Recipe Content with Admin Edit Overlays */}
