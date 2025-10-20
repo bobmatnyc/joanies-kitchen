@@ -22,7 +22,7 @@ async function testTastyAPI() {
 
   // Check for required environment variables
   const apiKey = process.env.RAPIDAPI_KEY;
-  const apiHost = process.env.RAPIDAPI_HOST || 'tasty.p.rapidapi.com';
+  const apiHost = process.env.RAPIDAPI_HOST || 'tasty-api1.p.rapidapi.com';
 
   if (!apiKey) {
     console.error('❌ RAPIDAPI_KEY not found in environment variables');

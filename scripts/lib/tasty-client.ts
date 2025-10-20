@@ -88,7 +88,7 @@ export class TastyClient {
   private requestDelay: number;
   private lastRequestTime: number;
 
-  constructor(apiKey: string, apiHost = 'tasty.p.rapidapi.com', requestDelay = 1000) {
+  constructor(apiKey: string, apiHost = 'tasty-api1.p.rapidapi.com', requestDelay = 1000) {
     this.apiKey = apiKey;
     this.apiHost = apiHost;
     this.baseUrl = `https://${apiHost}`;
