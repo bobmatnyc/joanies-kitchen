@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getBackgroundImages } from '@/app/actions/background-images';
-import { getSharedRecipes, getTopRatedRecipes } from '@/app/actions/recipes';
+import { getSharedRecipes, getResourcefulRecipes } from '@/app/actions/recipes';
 import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
 import { FridgeInput } from '@/components/inventory';
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
@@ -28,7 +28,7 @@ export default function Home() {
       // Parallel data fetching for improved performance
       const [sharedRecipesResult, topRecipesResult, backgroundImagesResult] = await Promise.allSettled([
         getSharedRecipes(),
-        getTopRatedRecipes({ limit: 8 }),
+        getResourcefulRecipes({ limit: 8 }),
         getBackgroundImages(),
       ]);
 
@@ -278,17 +278,17 @@ export default function Home() {
 
         <MobileSpacer size="sm" />
 
-        {/* Top Recipes Preview */}
+        {/* Resourceful Recipes - Week 3 Task 4.3 */}
         {topRecipes.length > 0 && (
           <section className="mt-12 md:mt-16 mb-12 md:mb-16">
             <div className="jk-divider mb-8 md:mb-12"></div>
             <div className="text-center mb-8 md:mb-12">
-              <Trophy className="h-10 w-10 md:h-12 md:w-12 text-jk-tomato mx-auto mb-4" />
+              <Refrigerator className="h-10 w-10 md:h-12 md:w-12 text-jk-sage mx-auto mb-4" />
               <h2 className="text-3xl md:text-4xl font-heading text-jk-olive mb-3 md:mb-4">
                 Recipes You Can Make Right Now
               </h2>
               <p className="text-base md:text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body px-4">
-                Flexible recipes that work with what you have
+                Flexible recipes that work with what you have — high resourcefulness scores
               </p>
             </div>
 
