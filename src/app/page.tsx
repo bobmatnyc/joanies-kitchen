@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Calendar, CalendarClock, ChefHat, ChevronRight, Lightbulb, PlusCircle, Recycle, Refrigerator, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Calendar, CalendarClock, ChefHat, ChevronRight, Lightbulb, PlusCircle, Recycle, Refrigerator, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -122,29 +122,6 @@ export default function Home() {
             >
               How does this work? Learn more →
             </Link>
-          </div>
-
-          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg gap-2 rounded-jk touch-target"
-              asChild
-            >
-              <Link href="/fridge">
-                <Refrigerator className="h-5 w-5" />
-                What's in Your Fridge?
-              </Link>
-            </Button>
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium px-6 md:px-8 py-5 md:py-6 text-base md:text-lg rounded-jk touch-target"
-              asChild
-            >
-              <Link href="/recipes">
-                <BookOpen className="h-5 w-5 mr-2" />
-                My Recipes
-              </Link>
-            </Button>
           </div>
         </MobileContainer>
       </section>
