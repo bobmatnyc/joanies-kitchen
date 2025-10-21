@@ -132,6 +132,39 @@ logs: ## View development logs
 setup: install db-push db-seed ## Complete setup for new developers
 	@echo "Setup complete! Run 'make dev' to start"
 
+##@ Image Generation
+
+image-setup: ## Setup image generation environment (one-time)
+	@echo "Setting up image generation with Stable Diffusion XL..."
+	@./scripts/image-gen/setup.sh
+
+image-test-mps: ## Test Metal Performance Shaders availability
+	@echo "Testing MPS availability..."
+	@source venv-image-gen/bin/activate && python scripts/image-gen/test_mps.py
+
+image-test: ## Generate test image
+	@echo "Generating test image..."
+	@source venv-image-gen/bin/activate && python scripts/image-gen/generate_test.py
+
+image-generate: ## Generate recipe image (usage: make image-generate RECIPE="Pasta Carbonara")
+	@if [ -z "$(RECIPE)" ]; then \
+		echo "Error: RECIPE not specified"; \
+		echo "Usage: make image-generate RECIPE=\"Your Recipe Name\""; \
+		exit 1; \
+	fi
+	@echo "Generating image for: $(RECIPE)"
+	@source venv-image-gen/bin/activate && python scripts/image-gen/recipe_image_generator.py --recipe "$(RECIPE)"
+
+image-batch: ## Batch generate from file (usage: make image-batch FILE=recipes.txt)
+	@if [ -z "$(FILE)" ]; then \
+		FILE="scripts/image-gen/examples/recipes.txt"; \
+	fi
+	@echo "Batch generating from: $(FILE)"
+	@source venv-image-gen/bin/activate && python scripts/image-gen/recipe_image_generator.py --batch "$(FILE)"
+
+image-docs: ## View image generation documentation
+	@cat scripts/image-gen/QUICKSTART.md
+
 ##@ Documentation
 
 docs-serve: ## Serve documentation locally (TO BE IMPLEMENTED)
