@@ -177,3 +177,11 @@ venv.bak/
 venv/
 virtualenv/
 wheels/
+
+# Image Generation
+venv-image-gen/
+scripts/image-gen/.env
+tmp/ingredient-images/
+tmp/image-gen-tests/
+tmp/ingredient-batch.txt
+tmp/top-10-ingredients.txt
