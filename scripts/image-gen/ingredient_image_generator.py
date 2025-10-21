@@ -80,9 +80,19 @@ class IngredientImageGenerator:
         ingredient_lower = ingredient_name.lower()
         has_droplets = any(keyword in ingredient_lower for keyword in fresh_produce_keywords)
 
+        # Ingredient-specific enhancements
+        ingredient_descriptor = f"single fresh {ingredient_name}"
+        color_emphasis = ""
+
+        # Enhance watermelon with specific descriptors
+        if 'watermelon' in ingredient_lower:
+            ingredient_descriptor = "fresh cut watermelon slice"
+            color_emphasis = "vibrant red flesh, crisp texture, juicy appearance, "
+
         # Base photorealistic style
         ingredient_style = (
-            f"single fresh {ingredient_name}, "
+            f"{ingredient_descriptor}, "
+            f"{color_emphasis}"
             "macro food photography, "
             "photorealistic, "
             "shot on Canon EOS R5, "
