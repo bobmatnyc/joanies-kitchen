@@ -123,7 +123,7 @@ export async function getAllIngredients(options: {
 
     // Apply conditions if any
     const results = conditions.length > 0
-      ? await query.where(sql`${sql.join(conditions, sql` AND `)})
+      ? await query.where(sql`${sql.join(conditions, sql` AND `)}`)
       : await query;
 
     // Get total count for pagination

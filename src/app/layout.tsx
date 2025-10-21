@@ -1,9 +1,11 @@
+import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Lora, Playfair_Display } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
 import { MobileNav } from '@/components/mobile/MobileNav';
@@ -91,6 +93,9 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}>
+        {/* Analytics Components */}
+        <GoogleAnalytics />
+
         <AuthProvider>
           {/* Navigation Header - Joanie's Kitchen */}
           <header className="bg-jk-olive border-b border-jk-sage shadow-sm">
@@ -149,6 +154,7 @@ export default function RootLayout({
           </footer>
 
           <Toaster position="bottom-right" richColors />
+          <Analytics />
           <SpeedInsights />
         </AuthProvider>
       </body>
