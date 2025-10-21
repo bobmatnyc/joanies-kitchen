@@ -69,37 +69,71 @@ class IngredientImageGenerator:
     def _build_ingredient_prompt(self, ingredient_name: str) -> tuple[str, str]:
         """Build optimized prompt for ingredient photography."""
 
-        # Ingredient-specific style
+        # Determine if this is fresh produce (gets subtle water droplets)
+        fresh_produce_keywords = [
+            'tomato', 'lettuce', 'spinach', 'kale', 'basil', 'cilantro', 'parsley',
+            'cucumber', 'pepper', 'apple', 'berry', 'grape', 'cherry', 'peach',
+            'strawberry', 'blueberry', 'raspberry', 'orange', 'lemon', 'lime',
+            'carrot', 'celery', 'broccoli', 'cauliflower', 'cabbage', 'sprouts'
+        ]
+
+        ingredient_lower = ingredient_name.lower()
+        has_droplets = any(keyword in ingredient_lower for keyword in fresh_produce_keywords)
+
+        # Base photorealistic style
         ingredient_style = (
-            f"fresh {ingredient_name}, "
-            "professional food photography, "
-            "ingredient close-up, "
-            "white background, "
-            "studio lighting, "
-            "high detail, "
-            "clean composition, "
-            "natural colors, "
-            "8k quality, "
-            "sharp focus"
+            f"single fresh {ingredient_name}, "
+            "macro food photography, "
+            "photorealistic, "
+            "shot on Canon EOS R5, "
+            "100mm macro lens, "
+            "soft natural lighting, "
+            "pure white seamless background, "
+            "shallow depth of field, "
+            "sharp focus on texture, "
+            "natural imperfections, "
         )
 
-        # Negative prompt for ingredients
+        # Add subtle water droplets only for fresh produce
+        if has_droplets:
+            ingredient_style += "subtle water droplets, "
+
+        # Complete the style
+        ingredient_style += (
+            "organic surface details, "
+            "professional commercial photography, "
+            "product shot, "
+            "high resolution, "
+            "RAW photo quality"
+        )
+
+        # Enhanced negative prompt to avoid artificial look
         negative_prompt = (
+            "artificial, "
+            "plastic looking, "
+            "fake, "
+            "CGI, "
+            "3D render, "
+            "cartoon, "
+            "illustration, "
+            "painting, "
+            "digital art, "
+            "synthetic, "
+            "oversaturated, "
+            "overexposed, "
             "blurry, "
             "low quality, "
             "distorted, "
+            "deformed, "
             "watermark, "
             "text, "
             "logo, "
-            "multiple items scattered, "
-            "messy, "
-            "artificial, "
-            "plastic, "
-            "CGI, "
-            "cartoon, "
-            "oversaturated, "
+            "multiple items, "
+            "cluttered, "
             "dark background, "
-            "cluttered"
+            "colored background, "
+            "grainy, "
+            "noisy"
         )
 
         return ingredient_style, negative_prompt
