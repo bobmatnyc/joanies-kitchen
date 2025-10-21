@@ -9,6 +9,7 @@ import {
   BookOpen,
   Menu,
   Sparkles,
+  Package,
 } from 'lucide-react';
 import { useState } from 'react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
@@ -65,6 +66,15 @@ export function MobileNav() {
             href="/rescue"
             icon={Recycle}
             label="Rescue Ingredients"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Ingredients Directory */}
+          <NavLink
+            href="/ingredients"
+            icon={Package}
+            label="Ingredients"
             variant="mobile"
             onClick={handleLinkClick}
           />
