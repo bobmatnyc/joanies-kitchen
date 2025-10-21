@@ -70,9 +70,10 @@ export function IngredientFilters({
   const hasActiveFilters = selectedCategory !== 'all' || searchTerm !== '' || sortBy !== 'alphabetical';
 
   return (
-    <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 space-y-4">
-      {/* Top Row: Search and Category */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div className="container mx-auto px-4 py-4 space-y-4">
+        {/* Top Row: Search and Category */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -150,6 +151,7 @@ export function IngredientFilters({
             </Button>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
