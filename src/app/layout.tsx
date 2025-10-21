@@ -48,9 +48,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help'),
+  title: {
+    default: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
+    template: "%s | Joanie's Kitchen"
+  },
   description:
-    "Stop food waste with AI that helps you cook from your fridge. Enter what you have and find recipes you can make right now — with substitutions for what's missing.",
+    "Transform what's in your fridge into delicious meals. AI-powered recipe matching finds recipes you can make right now with smart substitutions for missing ingredients. Join the zero-waste cooking movement.",
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -77,7 +81,47 @@ export const metadata: Metadata = {
     'fridge ingredients',
     'zero waste cooking',
     'budget meals',
+    'recipe finder',
+    'smart substitutions',
+    'waste nothing',
+    'FIFO cooking',
   ],
+  openGraph: {
+    type: 'website',
+    siteName: "Joanie's Kitchen",
+    title: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
+    description: "Transform what's in your fridge into delicious meals. Stop food waste. Start cooking smart.",
+    url: '/',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: "Joanie's Kitchen - Cook from your fridge, waste nothing",
+      },
+    ],
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Joanie's Kitchen | Zero Food Waste Cooking",
+    description: "Cook from your fridge. Waste nothing. Smart substitutions for every ingredient.",
+    images: ['/og-image.png'],
+  },
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
