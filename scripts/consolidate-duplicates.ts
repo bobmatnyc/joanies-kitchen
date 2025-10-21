@@ -15,7 +15,7 @@
  * @module scripts/consolidate-duplicates
  */
 
-import { db } from '../src/lib/db';
+import { db, cleanup } from './db-with-transactions';
 import { ingredients, recipeIngredients } from '../src/lib/db/ingredients-schema';
 import {
   findExactDuplicates,
@@ -232,7 +232,8 @@ async function findVariantDuplicatesWithRecipeCounts(
 
 async function executeConsolidation(
   changes: ConsolidationChange[],
-  verbose: boolean
+  verbose: boolean,
+  tx: any // Transaction context from db.transaction()
 ): Promise<{
   ingredientsDeleted: number;
   recipeIngredientsUpdated: number;
@@ -252,11 +253,55 @@ async function executeConsolidation(
     }
 
     const duplicateIds = change.duplicates.map((d) => d.id);
+    const allIngredientIds = [change.canonical.id, ...duplicateIds];
 
     try {
+      // Step 0: Find and delete recipe_ingredients that would create duplicates
+      // This handles cases where a recipe has multiple variants of the same ingredient
+      if (duplicateIds.length > 0) {
+        // Find recipes that have BOTH canonical AND duplicate ingredients
+        const conflictingRecipes = await tx
+          .select({
+            recipe_id: recipeIngredients.recipe_id,
+            position: recipeIngredients.position,
+            ingredient_id: recipeIngredients.ingredient_id,
+          })
+          .from(recipeIngredients)
+          .where(inArray(recipeIngredients.ingredient_id, allIngredientIds));
+
+        // Group by recipe_id to find recipes with multiple variants
+        const recipeMap = new Map<string, Set<string>>();
+        for (const row of conflictingRecipes) {
+          if (!recipeMap.has(row.recipe_id)) {
+            recipeMap.set(row.recipe_id, new Set());
+          }
+          recipeMap.get(row.recipe_id)!.add(row.ingredient_id);
+        }
+
+        // Delete duplicate entries (keep canonical, remove variants)
+        let duplicatesRemoved = 0;
+        for (const [recipeId, ingredientIds] of recipeMap.entries()) {
+          if (ingredientIds.size > 1) {
+            // This recipe has multiple variants - delete the duplicate ones
+            await tx
+              .delete(recipeIngredients)
+              .where(
+                sql`${recipeIngredients.recipe_id} = ${recipeId} AND ${recipeIngredients.ingredient_id} IN (${sql.join(duplicateIds.map((id) => sql`${id}`), sql`, `)})`
+              );
+            duplicatesRemoved += ingredientIds.size - 1;
+          }
+        }
+
+        if (verbose && duplicatesRemoved > 0) {
+          console.log(
+            `     ℹ Removed ${duplicatesRemoved} duplicate ingredient entries from recipes`
+          );
+        }
+      }
+
       // Step 1: Update all recipe_ingredients to point to canonical
       if (duplicateIds.length > 0) {
-        const updateResult = await db
+        const updateResult = await tx
           .update(recipeIngredients)
           .set({
             ingredient_id: change.canonical.id,
@@ -274,7 +319,7 @@ async function executeConsolidation(
         change.canonical.usage_count || 0
       );
 
-      await db
+      await tx
         .update(ingredients)
         .set({
           aliases: JSON.stringify(change.mergedAliases),
@@ -287,7 +332,7 @@ async function executeConsolidation(
 
       // Step 3: Delete duplicate ingredients
       if (duplicateIds.length > 0) {
-        await db.delete(ingredients).where(inArray(ingredients.id, duplicateIds));
+        await tx.delete(ingredients).where(inArray(ingredients.id, duplicateIds));
         ingredientsDeleted += duplicateIds.length;
       }
 
@@ -462,7 +507,7 @@ async function main() {
       // Execute in transaction
       await db.transaction(async (tx) => {
         const allChanges = [...exactChanges, ...variantChanges];
-        stats = await executeConsolidation(allChanges, args.verbose);
+        stats = await executeConsolidation(allChanges, args.verbose, tx);
       });
 
       console.log('✅ Consolidation complete!\n');
@@ -476,10 +521,12 @@ async function main() {
     console.log('✅ CONSOLIDATION ' + (args.execute ? 'COMPLETE' : 'ANALYSIS COMPLETE'));
     console.log('═══════════════════════════════════════════════════════════════\n');
 
+    await cleanup();
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Error during consolidation:', error);
     console.error('\n⚠️  All changes have been rolled back.\n');
+    await cleanup();
     process.exit(1);
   }
 }
