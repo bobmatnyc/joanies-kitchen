@@ -1,13 +1,14 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { CheckCircle2, ChefHat, ShoppingCart, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChefHat, ShoppingCart, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getUserInventory } from '@/app/actions/inventory';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface IngredientMatch {
   ingredient: string;
@@ -46,6 +47,7 @@ export function InventoryMatchSection({
   const [loading, setLoading] = useState(true);
   const [hasInventory, setHasInventory] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     async function checkInventory() {
@@ -246,28 +248,39 @@ export function InventoryMatchSection({
 
   // Main content with matches
   return (
-    <Card className={`border-2 border-jk-sage ${className}`}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ChefHat className="h-5 w-5 text-jk-sage" />
-            Ingredient Match
-          </CardTitle>
-          <Badge
-            variant={matchPercentage >= 70 ? 'default' : 'secondary'}
-            className={
-              matchPercentage >= 70
-                ? 'bg-green-600 hover:bg-green-600/90'
-                : matchPercentage >= 50
-                ? 'bg-orange-500 hover:bg-orange-500/90'
-                : 'bg-gray-500'
-            }
-          >
-            {matchPercentage}% Match
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className={`border-2 border-jk-sage ${className}`}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center justify-between w-full text-left hover:opacity-80 transition-opacity">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ChefHat className="h-5 w-5 text-jk-sage" />
+                Ingredient Match
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={matchPercentage >= 70 ? 'default' : 'secondary'}
+                  className={
+                    matchPercentage >= 70
+                      ? 'bg-green-600 hover:bg-green-600/90'
+                      : matchPercentage >= 50
+                      ? 'bg-orange-500 hover:bg-orange-500/90'
+                      : 'bg-gray-500'
+                  }
+                >
+                  {matchPercentage}% Match
+                </Badge>
+                {isOpen ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+            </button>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
         {/* Summary Stats */}
         <div className="flex items-center justify-center gap-6 text-sm">
           <div className="text-center">
@@ -363,7 +376,9 @@ export function InventoryMatchSection({
             Great match! You have most ingredients ready to cook.
           </div>
         )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

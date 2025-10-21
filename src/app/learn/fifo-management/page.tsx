@@ -27,7 +27,7 @@ export default function FIFOManagementPage() {
           </h1>
           <p className="text-xl text-jk-charcoal/80 font-body max-w-2xl mx-auto leading-relaxed">
             First In, First Out: The simple inventory principle that prevents food waste.
-            Learn to use what came first before it expires—starting today.
+            Learn to identify what's about to go off and use it today—not what's merely old.
           </p>
         </div>
 
@@ -38,8 +38,9 @@ export default function FIFOManagementPage() {
           </h2>
           <p className="text-base text-jk-charcoal/70 leading-relaxed mb-6">
             FIFO (First In, First Out) is an inventory management principle borrowed from restaurants and warehouses:
-            <strong> the oldest items get used first.</strong> It's non-negotiable in professional kitchens because
-            it prevents waste, maximizes freshness, and saves money.
+            <strong> check your fridge regularly for what's aging, wilting, or about to expire.</strong> It's non-negotiable
+            in professional kitchens because it prevents waste, maximizes freshness, and saves money. The key question isn't
+            "what's old?" but <strong>"what's about to go bad?"</strong>
           </p>
 
           <div className="space-y-4">
@@ -47,8 +48,8 @@ export default function FIFOManagementPage() {
               <h3 className="font-heading text-jk-clay mb-2">The Core Principle</h3>
               <p className="text-sm text-jk-charcoal/70">
                 When you bring groceries home, <strong>move older items to the front</strong>. New items go to the back.
-                When cooking, <strong>reach for what's been there longest first</strong>. That's it. Simple in theory,
-                powerful in practice.
+                When cooking, ask: <strong>"What's about to go off? What might I throw away tomorrow if I don't use it today?"</strong>
+                You might be able to use it today even if it's old. That's it. Simple in theory, powerful in practice.
               </p>
             </div>
 

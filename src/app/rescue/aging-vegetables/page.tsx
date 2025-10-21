@@ -156,16 +156,18 @@ export default function AgingVegetablesPage() {
             <div>
               <h3 className="text-lg font-heading text-jk-clay mb-2 flex items-center gap-2">
                 <span className="bg-orange-100 text-orange-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
-                Pickle or Quick-Pickle
+                Quick-Pickle
               </h3>
               <p className="text-base text-jk-charcoal/70 leading-relaxed ml-10 mb-2">
-                Wrinkly peppers, soft carrots, and aging cucumbers get a second life in vinegar brine. Quick-pickles are ready in 1 hour.
+                Wrinkly peppers, soft carrots, and aging cucumbers get a second life in vinegar brine. Quick-pickles are ready in 1 hour and perfect
+                for aging vegetables. (Note: Traditional pickling requires very fresh vegetables.)
               </p>
               <p className="text-sm text-jk-charcoal/60 ml-10 italic">
                 <strong>Perfect for:</strong> Wrinkly peppers, soft carrots, aging cucumbers, onions
               </p>
               <p className="text-sm text-jk-charcoal/60 ml-10 mt-2">
                 <strong>How:</strong> Heat equal parts vinegar and water with sugar and salt. Pour over sliced vegetables. Refrigerate 1+ hours.
+                Vinegar and water ratios can vary by preference.
               </p>
             </div>
           </div>
@@ -179,7 +181,7 @@ export default function AgingVegetablesPage() {
           <div className="space-y-3 text-base text-jk-charcoal/70">
             <div className="flex items-start gap-3">
               <span className="text-jk-sage text-xl flex-shrink-0">•</span>
-              <span><strong>Carrots:</strong> Store in water in the fridge (change water every 3 days) to restore crispness</span>
+              <span><strong>Carrots:</strong> Remove tops immediately. Wash and peel before storing. Store submerged horizontally in water in Tupperware in the fridge (not upright like flowers). Ready to use immediately.</span>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-jk-sage text-xl flex-shrink-0">•</span>
@@ -195,7 +197,15 @@ export default function AgingVegetablesPage() {
             </div>
             <div className="flex items-start gap-3">
               <span className="text-jk-sage text-xl flex-shrink-0">•</span>
-              <span><strong>Squash/Zucchini:</strong> Refrigerate in loose plastic bag with paper towel to absorb moisture</span>
+              <span><strong>Summer Squash (Zucchini, soft squash):</strong> Refrigerate in loose plastic bag with paper towel to absorb moisture</span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-jk-sage text-xl flex-shrink-0">•</span>
+              <span><strong>Winter Squash (Pumpkin, acorn, butternut, spaghetti):</strong> Store with potatoes/onions (NOT refrigerated). Hard squash lasts weeks-months at room temperature.</span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-jk-sage text-xl flex-shrink-0">•</span>
+              <span><strong>Delicata Squash:</strong> Special case - looks hard but refrigerate like summer squash. Cook immediately, never let age.</span>
             </div>
           </div>
         </div>

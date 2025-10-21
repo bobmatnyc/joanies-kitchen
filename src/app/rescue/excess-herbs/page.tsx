@@ -199,7 +199,7 @@ export default function ExcessHerbsPage() {
             </div>
             <div className="flex items-start gap-3">
               <span className="text-jk-sage text-xl flex-shrink-0">•</span>
-              <span><strong>Buy what you need:</strong> Most herbs are sold in huge bunches. Consider buying from bulk bins if available.</span>
+              <span><strong>Buy it the way you want to buy it:</strong> If you plan to freeze or dry herbs, buying in bulk makes sense. But don't buy fresh in bulk unless you'll use it fresh in bulk.</span>
             </div>
           </div>
         </div>

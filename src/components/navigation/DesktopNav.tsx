@@ -7,6 +7,7 @@ import {
   Leaf,
   Heart,
   BookOpen,
+  Package,
 } from 'lucide-react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
 import { NavLink } from '@/components/navigation/NavLink';
@@ -33,6 +34,9 @@ export function DesktopNav() {
 
       {/* Rescue Ingredients - NEW */}
       <NavLink href="/rescue" icon={Recycle} label="Rescue Ingredients" />
+
+      {/* Ingredients Directory */}
+      <NavLink href="/ingredients" icon={Package} label="Ingredients" />
 
       {/* Learn Techniques - NEW */}
       <NavLink href="/learn" icon={GraduationCap} label="Learn" />
