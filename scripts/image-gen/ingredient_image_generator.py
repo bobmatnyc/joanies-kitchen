@@ -89,7 +89,7 @@ class IngredientImageGenerator:
             ingredient_descriptor = "fresh cut watermelon slice"
             color_emphasis = "vibrant red flesh, crisp texture, juicy appearance, "
 
-        # Base photorealistic style
+        # Base photorealistic style with kitchen context
         ingredient_style = (
             f"{ingredient_descriptor}, "
             f"{color_emphasis}"
@@ -98,9 +98,10 @@ class IngredientImageGenerator:
             "shot on Canon EOS R5, "
             "100mm macro lens, "
             "soft natural lighting, "
-            "pure white seamless background, "
+            "placed on rustic wooden cutting board, "
+            "kitchen counter setting, "
             "shallow depth of field, "
-            "sharp focus on texture, "
+            "sharp focus on ingredient, "
             "natural imperfections, "
         )
 
@@ -117,7 +118,7 @@ class IngredientImageGenerator:
             "RAW photo quality"
         )
 
-        # Enhanced negative prompt to avoid artificial look
+        # Enhanced negative prompt to avoid artificial look and white background
         negative_prompt = (
             "artificial, "
             "plastic looking, "
@@ -140,8 +141,9 @@ class IngredientImageGenerator:
             "logo, "
             "multiple items, "
             "cluttered, "
-            "dark background, "
-            "colored background, "
+            "white background, "
+            "plain background, "
+            "studio backdrop, "
             "grainy, "
             "noisy"
         )
