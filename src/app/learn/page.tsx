@@ -129,25 +129,51 @@ export default function LearnPage() {
           </div>
         </div>
 
-        {/* Philosophy Page Link */}
-        <div className="bg-white rounded-2xl p-8 mb-12 border-2 border-jk-sage/20">
-          <div className="flex items-start gap-6">
-            <BookOpen className="h-12 w-12 text-jk-clay flex-shrink-0" />
-            <div className="flex-1">
-              <h2 className="text-2xl font-heading text-jk-olive mb-3">
-                Joanie's Full Story
-              </h2>
-              <p className="text-base text-jk-charcoal/70 mb-4 leading-relaxed">
-                Learn more about Joanie's philosophy on cooking, gardening, and food waste.
-                Her approach to resourcefulness goes beyond the kitchen — it's a way of life.
-              </p>
-              <Link
-                href="/philosophy"
-                className="inline-flex items-center gap-2 text-jk-sage hover:text-jk-olive transition-colors font-medium"
-              >
-                Read Joanie's Philosophy
-                <span className="text-lg">→</span>
-              </Link>
+        {/* Additional Resources - Two Column Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {/* Philosophy Page Link */}
+          <div className="bg-white rounded-2xl p-8 border-2 border-jk-sage/20">
+            <div className="flex items-start gap-6">
+              <BookOpen className="h-12 w-12 text-jk-clay flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-2xl font-heading text-jk-olive mb-3">
+                  Joanie's Full Story
+                </h2>
+                <p className="text-base text-jk-charcoal/70 mb-4 leading-relaxed">
+                  Learn more about Joanie's philosophy on cooking, gardening, and food waste.
+                  Her approach to resourcefulness goes beyond the kitchen — it's a way of life.
+                </p>
+                <Link
+                  href="/philosophy"
+                  className="inline-flex items-center gap-2 text-jk-sage hover:text-jk-olive transition-colors font-medium"
+                >
+                  Read Joanie's Philosophy
+                  <span className="text-lg">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Rescue Ingredients Link */}
+          <div className="bg-white rounded-2xl p-8 border-2 border-jk-sage/20">
+            <div className="flex items-start gap-6">
+              <Recycle className="h-12 w-12 text-jk-sage flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-2xl font-heading text-jk-olive mb-3">
+                  Rescue Ingredients
+                </h2>
+                <p className="text-base text-jk-charcoal/70 mb-4 leading-relaxed">
+                  Discover creative ways to rescue ingredients that are about to go bad.
+                  Turn wilting vegetables and aging proteins into delicious meals.
+                </p>
+                <Link
+                  href="/rescue"
+                  className="inline-flex items-center gap-2 text-jk-sage hover:text-jk-olive transition-colors font-medium"
+                >
+                  Browse Rescue Guides
+                  <span className="text-lg">→</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
