@@ -145,6 +145,10 @@ export default function WiltingGreensPage() {
               <span className="text-blue-600 text-xl flex-shrink-0">•</span>
               <span><strong>Ice bath revival:</strong> Submerge wilted greens in ice water for 15 minutes to crisp them back up</span>
             </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 text-xl flex-shrink-0">•</span>
+              <span><strong>Dress salads at the table:</strong> Undressed greens last longer in the fridge. Once dressed, greens degrade much faster (exception: kale can be dressed ahead and even turned into relish)</span>
+            </li>
           </ul>
         </div>
 

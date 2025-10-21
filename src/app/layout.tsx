@@ -1,5 +1,4 @@
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Plus } from 'lucide-react';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Lora, Playfair_Display } from 'next/font/google';
 import Image from 'next/image';
@@ -10,7 +9,6 @@ import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
 import { MobileNav } from '@/components/mobile/MobileNav';
 import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
-import { Button } from '@/components/ui/button';
 import './globals.css';
 
 // Joanie's Kitchen Typography
@@ -123,16 +121,6 @@ export default function RootLayout({
 
                 {/* Mobile/Tablet Navigation (<1024px) */}
                 <div className="flex xl:hidden items-center gap-2">
-                  {/* Add Recipe Button - Always visible on mobile */}
-                  <Link href="/recipes/new">
-                    <Button
-                      size="sm"
-                      className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui font-medium"
-                    >
-                      <Plus className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Add</span>
-                    </Button>
-                  </Link>
                   {/* Hamburger Menu */}
                   <MobileNav />
                 </div>

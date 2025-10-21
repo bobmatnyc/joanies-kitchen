@@ -19,6 +19,7 @@ import { getMultipleIngredientSubstitutions } from '@/app/actions/substitutions'
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { SubstitutionResult, SubstitutionConfidence } from '@/lib/substitutions/types';
 
 interface SubstitutionSuggestionsProps {
@@ -268,6 +269,7 @@ export function SubstitutionSuggestions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // First item expanded by default
+  const [isSectionOpen, setIsSectionOpen] = useState(false); // Section collapsed by default
 
   useEffect(() => {
     async function fetchSubstitutions() {
@@ -375,49 +377,62 @@ export function SubstitutionSuggestions({
   const allExpanded = expandedItems.size === results.length;
 
   return (
-    <Card className={`border-2 border-jk-sage ${className}`}>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-jk-sage" />
-              Smart Substitutions
-            </CardTitle>
-            <CardDescription className="mt-1">
-              Can&apos;t find an ingredient? Try these alternatives
-            </CardDescription>
-          </div>
+    <Collapsible open={isSectionOpen} onOpenChange={setIsSectionOpen}>
+      <Card className={`border-2 border-jk-sage ${className}`}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center justify-between w-full text-left hover:opacity-80 transition-opacity">
+              <div className="flex-1">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-jk-sage" />
+                  Smart Substitutions
+                  {totalSubstitutions > 0 && (
+                    <Badge variant="secondary" className="bg-jk-sage/20 text-jk-sage ml-2">
+                      {totalSubstitutions} options
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Can&apos;t find an ingredient? Try these alternatives
+                </CardDescription>
+              </div>
+              {isSectionOpen ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
+              )}
+            </button>
+          </CollapsibleTrigger>
 
-          {/* Expand/Collapse all button */}
-          {results.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={allExpanded ? collapseAll : expandAll}
-              className="shrink-0"
-            >
-              {allExpanded ? 'Collapse All' : 'Expand All'}
-            </Button>
+          {/* Summary stats - shown when expanded */}
+          {isSectionOpen && totalSubstitutions > 0 && (
+            <div className="mt-3 flex items-center gap-2 text-sm flex-wrap">
+              {results.some((r) => r.substitutions.some((s) => s.is_user_available)) && (
+                <Badge variant="secondary" className="bg-green-600 text-white">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Some you have!
+                </Badge>
+              )}
+              {/* Expand/Collapse all button */}
+              {results.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering CollapsibleTrigger
+                    allExpanded ? collapseAll() : expandAll();
+                  }}
+                  className="ml-auto"
+                >
+                  {allExpanded ? 'Collapse All Items' : 'Expand All Items'}
+                </Button>
+              )}
+            </div>
           )}
-        </div>
+        </CardHeader>
 
-        {/* Summary stats */}
-        {totalSubstitutions > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <Badge variant="secondary" className="bg-jk-sage text-white">
-              {totalSubstitutions} total options
-            </Badge>
-            {results.some((r) => r.substitutions.some((s) => s.is_user_available)) && (
-              <Badge variant="secondary" className="bg-green-600 text-white">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Some you have!
-              </Badge>
-            )}
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent className="space-y-2">
+        <CollapsibleContent>
+          <CardContent className="space-y-2">
         {results.map((result, idx) => (
           <SubstitutionCard
             key={idx}
@@ -431,7 +446,9 @@ export function SubstitutionSuggestions({
         <div className="text-xs text-center text-muted-foreground pt-4 border-t">
           💡 Tip: Substitutions marked &quot;You Have&quot; are in your fridge inventory
         </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

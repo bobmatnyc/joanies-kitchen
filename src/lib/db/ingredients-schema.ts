@@ -46,6 +46,7 @@ export const ingredients = pgTable(
     // Normalized Names
     name: text('name').notNull().unique(), // Lowercase normalized name (e.g., "green onion")
     display_name: text('display_name').notNull(), // Properly capitalized (e.g., "Green Onion")
+    slug: varchar('slug', { length: 255 }).unique(), // URL-friendly slug (e.g., "green-onion")
 
     // Categorization
     category: varchar('category', { length: 50 }), // e.g., 'vegetables', 'proteins', 'dairy', 'grains', 'spices', 'condiments', 'herbs', 'fruits', 'nuts', 'oils', 'sweeteners', 'baking', 'beverages', 'other'
@@ -53,6 +54,12 @@ export const ingredients = pgTable(
     // Metadata
     common_units: text('common_units'), // JSON array: ['cup', 'tablespoon', 'piece', 'gram', 'ounce']
     aliases: text('aliases'), // JSON array: alternative names (e.g., ['scallion', 'spring onion'] for 'green onion')
+
+    // Ingredient Details (for dedicated ingredient pages)
+    description: text('description'), // General information about the ingredient
+    storage_tips: text('storage_tips'), // How to store properly (Joanie's advice)
+    substitutions: text('substitutions'), // JSON array of substitution suggestions
+    image_url: text('image_url'), // Image URL for ingredient (Unsplash, Pexels, or uploaded)
 
     // Flags
     is_common: boolean('is_common').notNull().default(false), // Frequently used ingredients (for autocomplete priority)
@@ -73,6 +80,7 @@ export const ingredients = pgTable(
     nameIdx: index('ingredients_name_idx').on(table.name), // Exact name lookup
     nameLowerIdx: index('ingredients_name_lower_idx').on(sql`LOWER(${table.name})`), // Case-insensitive search
     displayNameIdx: index('ingredients_display_name_idx').on(table.display_name),
+    slugIdx: index('ingredients_slug_idx').on(table.slug), // Slug-based lookup for URLs
     categoryIdx: index('ingredients_category_idx').on(table.category), // Filter by category
     commonIdx: index('ingredients_common_idx').on(table.is_common, table.name), // Common ingredients first
     allergenIdx: index('ingredients_allergen_idx').on(table.is_allergen), // Allergen filtering

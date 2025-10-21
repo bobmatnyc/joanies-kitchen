@@ -415,6 +415,37 @@ export const recipeComments = pgTable('recipe_comments', {
 }));
 
 // ====================
+// JOANIE'S PERSONAL NOTES (Joanie Comments)
+// ====================
+
+// Joanie Comments table - Personal observations and cooking stories from Joanie
+export const joanieComments = pgTable('joanie_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Flexible reference - comment can be attached to recipe, meal, or ingredient
+  recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'cascade' }),
+  meal_id: uuid('meal_id'), // Will reference meals.id once imported
+  ingredient_id: uuid('ingredient_id'), // Will reference ingredients.id once imported
+
+  // Comment content
+  comment_text: text('comment_text').notNull(),
+  comment_type: text('comment_type', {
+    enum: ['story', 'tip', 'substitution', 'general']
+  }),
+
+  // Metadata
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  // Indexes for efficient queries
+  recipeIdIdx: index('joanie_comments_recipe_id_idx').on(table.recipe_id),
+  mealIdIdx: index('joanie_comments_meal_id_idx').on(table.meal_id),
+  ingredientIdIdx: index('joanie_comments_ingredient_id_idx').on(table.ingredient_id),
+  commentTypeIdx: index('joanie_comments_type_idx').on(table.comment_type),
+  createdAtIdx: index('joanie_comments_created_at_idx').on(table.created_at.desc()),
+}));
+
+// ====================
 // MEAL PLANNING INFRASTRUCTURE (v0.65.0)
 // ====================
 
@@ -573,6 +604,9 @@ export type RecipeFork = typeof recipeForks.$inferSelect;
 export type NewRecipeFork = typeof recipeForks.$inferInsert;
 export type RecipeComment = typeof recipeComments.$inferSelect;
 export type NewRecipeComment = typeof recipeComments.$inferInsert;
+export type JoanieComment = typeof joanieComments.$inferSelect;
+export type NewJoanieComment = typeof joanieComments.$inferInsert;
+export type JoanieCommentType = 'story' | 'tip' | 'substitution' | 'general';
 // NOTE: Ingredient and RecipeIngredient types are re-exported from ingredients-schema.ts below
 export type Tool = typeof tools.$inferSelect;
 export type NewTool = typeof tools.$inferInsert;
@@ -601,6 +635,8 @@ export const insertSlideshowPhotoSchema = createInsertSchema(slideshowPhotos);
 export const selectSlideshowPhotoSchema = createSelectSchema(slideshowPhotos);
 export const insertHeroBackgroundSchema = createInsertSchema(heroBackgrounds);
 export const selectHeroBackgroundSchema = createSelectSchema(heroBackgrounds);
+export const insertJoanieCommentSchema = createInsertSchema(joanieComments);
+export const selectJoanieCommentSchema = createSelectSchema(joanieComments);
 
 // Re-export ingredient-related types and schemas for convenience
 export {
