@@ -1,0 +1,53 @@
+# Joanie's Kitchen - Robots.txt
+# Zero-waste cooking platform helping reduce food waste
+# Updated: 2025-10-21
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemaps (both primary and alternate domains)
+Sitemap: https://recipes.help/sitemap.xml
+Sitemap: https://joanies.kitchen/sitemap.xml
+
+# Crawl-delay for politeness (1 second between requests)
+Crawl-delay: 1
+
+# Disallow authentication and admin pages
+Disallow: /api/
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /user-profile
+Disallow: /admin
+Disallow: /profile/recipes/
+Disallow: /profile/settings
+
+# Allow public recipe pages
+Allow: /recipes/
+Allow: /ingredients/
+Allow: /fridge
+Allow: /learn
+Allow: /rescue
+Allow: /philosophy
+Allow: /about
+
+# Prevent indexing of test/development pages
+Disallow: /test
+Disallow: /dev
+Disallow: /_next/
+
+# Prevent indexing of duplicate content
+Disallow: /*?*env=
+Disallow: /*?*debug=
+
+# Allow Google Image Bot (for recipe images)
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /api/
+
+# Block bad bots (optional - add as needed)
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10

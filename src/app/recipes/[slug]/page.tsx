@@ -402,8 +402,65 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
     return null;
   }
 
+  // Generate JSON-LD structured data for recipe
+  const recipeJsonLd = useMemo(() => {
+    if (!recipe) return null;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+    const recipeUrl = recipe.slug ? `${baseUrl}/recipes/${recipe.slug}` : `${baseUrl}/recipes/${recipe.id}`;
+
+    return {
+      "@context": "https://schema.org",
+      "@type": "Recipe",
+      "name": recipe.name,
+      "description": recipe.description || `Delicious ${recipe.name} recipe from Joanie's Kitchen`,
+      "image": recipe.images?.[0] || (recipe.image_url ? [recipe.image_url] : []),
+      "author": {
+        "@type": authorProfile ? "Person" : "Organization",
+        "name": authorProfile?.display_name || "Joanie's Kitchen"
+      },
+      "datePublished": recipe.created_at,
+      "dateModified": recipe.updated_at,
+      "prepTime": recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
+      "cookTime": recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
+      "totalTime": totalTime > 0 ? `PT${totalTime}M` : undefined,
+      "recipeYield": recipe.servings ? `${recipe.servings} servings` : undefined,
+      "recipeCategory": recipe.cuisine || undefined,
+      "recipeCuisine": recipe.cuisine || undefined,
+      "keywords": recipe.tags?.join(", ") || undefined,
+      "recipeIngredient": recipe.ingredients || [],
+      "recipeInstructions": recipe.instructions?.map((step: string, i: number) => ({
+        "@type": "HowToStep",
+        "position": i + 1,
+        "text": step
+      })) || [],
+      "nutrition": recipe.nutrition_info ? {
+        "@type": "NutritionInformation",
+        ...(typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
+      } : undefined,
+      "aggregateRating": (recipe.avg_user_rating && recipe.total_user_ratings) ? {
+        "@type": "AggregateRating",
+        "ratingValue": recipe.avg_user_rating,
+        "ratingCount": recipe.total_user_ratings
+      } : undefined,
+      "url": recipeUrl,
+      "isAccessibleForFree": "True",
+      "license": recipe.license ? `https://creativecommons.org/licenses/${recipe.license.toLowerCase().replace(/_/g, '-')}/4.0/` : undefined
+    };
+  }, [recipe, authorProfile, totalTime]);
+
   return (
     <AdminEditModeProvider>
+      {/* JSON-LD Structured Data for SEO */}
+      {recipeJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(recipeJsonLd)
+          }}
+        />
+      )}
+
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         {/* Show back to chef if coming from a chef page, otherwise back to recipes */}
         {chefSlug ? (
