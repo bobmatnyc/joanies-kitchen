@@ -54,8 +54,7 @@ def generate_test_image(prompt: str, output_dir: Path):
 
         pipe = StableDiffusionXLPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0",
-            torch_dtype=torch.float16,
-            variant="fp16",
+            torch_dtype=torch.float32,  # Use float32 for MPS to avoid NaN issues
             use_safetensors=True
         )
 

@@ -36,7 +36,7 @@ class ImageGenerationConfig:
     """Configuration for image generation."""
     model_id: str = "stabilityai/stable-diffusion-xl-base-1.0"
     device: str = "mps"
-    dtype: torch.dtype = torch.float16
+    dtype: torch.dtype = torch.float32  # Use float32 for MPS to avoid NaN issues
     num_inference_steps: int = 30
     guidance_scale: float = 7.5
     height: int = 1024
@@ -67,7 +67,6 @@ class RecipeImageGenerator:
         self.pipe = StableDiffusionXLPipeline.from_pretrained(
             self.config.model_id,
             torch_dtype=self.config.dtype,
-            variant="fp16",
             use_safetensors=True
         )
 
