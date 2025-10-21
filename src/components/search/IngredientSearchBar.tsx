@@ -103,6 +103,13 @@ export function IngredientSearchBar({
         aliases: null,
         is_allergen: false,
         typical_unit: null,
+        // New fields from ingredients schema
+        slug: null,
+        description: null,
+        image_url: null,
+        storage_tips: null,
+        substitutions: null,
+        usage_count: 0,
       };
       onIngredientsChange([...selectedIngredients, ingredient]);
       setQuery('');

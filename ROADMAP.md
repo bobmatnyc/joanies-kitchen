@@ -77,11 +77,13 @@ Overall Progress: ████████████████░░░░  
 
 ### Next Immediate Priorities
 
-1. **Complete ingredient extraction** (~11 hours remaining) - ETA Oct 21 morning
+1. **Complete ingredient extraction** (~10 hours remaining) - ETA Oct 21 morning
 2. **Task 7.1: Content Audit** (homepage, recipe pages, navigation) - estimated 1 day
 3. **Task 7.2: Functional Testing** (fridge flow, mobile experience) - estimated 1 day
-4. **Populate Joanie comments** for key recipes - estimated 0.5 days
-5. **Add ingredient images** for top 100 ingredients - estimated 1 day
+4. **Task 7.3: Performance Optimization** (monitoring, caching, query optimization) - estimated 1-2 days
+5. **Task 7.4: SEO Optimization** (structured data, sitemaps, meta tags) - estimated 1 day
+6. **Populate Joanie comments** for key recipes - estimated 0.5 days
+7. **Add ingredient images** for top 100 ingredients - estimated 1 day
 
 ---
 
@@ -411,10 +413,31 @@ Overall Progress: ████████████████░░░░  
 - [ ] Setup monitoring
   - [ ] Error tracking configured
   - [ ] Performance monitoring active
-  - [ ] User analytics tracking key flows
+  - [x] User analytics tracking key flows (Vercel Analytics installed)
   - [ ] Search query logging (for improvement)
 
-**Task 7.4: Documentation** (Estimated: 0.5 days)
+**Task 7.4: SEO Optimization** (Estimated: 1 day)
+- [ ] Implement SEO fundamentals
+  - [ ] Add structured data (JSON-LD) for Recipe schema
+  - [ ] Create dynamic sitemap.xml with all recipes
+  - [ ] Add meta descriptions to all pages
+  - [ ] Optimize Open Graph tags for social sharing
+  - [ ] Add Twitter Card meta tags
+  - [ ] Implement canonical URLs
+- [ ] Technical SEO
+  - [ ] Set up robots.txt
+  - [ ] Add alt text to all images
+  - [ ] Ensure semantic HTML structure
+  - [ ] Optimize page titles (50-60 chars)
+  - [ ] Add breadcrumb navigation
+- [ ] Content SEO
+  - [ ] Optimize recipe page URLs (slugs)
+  - [ ] Add internal linking between recipes
+  - [ ] Create recipe categories/tags for discovery
+  - [ ] Optimize ingredient pages for search
+  - [ ] Add FAQ schema markup
+
+**Task 7.5: Documentation** (Estimated: 0.5 days)
 - [ ] Create user-facing docs
   - [ ] How to Use the Fridge Feature
   - [ ] About Joanie's Philosophy (detailed)

@@ -14,7 +14,7 @@ import {
 import type { SortOption } from '@/app/actions/ingredients';
 
 interface IngredientFiltersProps {
-  categories: Array<{ category: string; count: number }>;
+  categories: Array<{ category: string | null; count: number }>;
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
   searchTerm: string;
@@ -103,11 +103,14 @@ export function IngredientFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.category} value={cat.category}>
-                  {cat.category.charAt(0).toUpperCase() + cat.category.slice(1)} ({cat.count})
-                </SelectItem>
-              ))}
+              {categories.map((cat) => {
+                const categoryName = cat.category || 'uncategorized';
+                return (
+                  <SelectItem key={categoryName} value={categoryName}>
+                    {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} ({cat.count})
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
