@@ -61,6 +61,9 @@ export const ingredients = pgTable(
     // Nutritional Reference (optional - for future features)
     typical_unit: varchar('typical_unit', { length: 20 }), // Most common unit used (e.g., "cup", "piece")
 
+    // Statistics
+    usage_count: integer('usage_count').notNull().default(0), // Number of recipes using this ingredient
+
     // Timestamps
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow(),
