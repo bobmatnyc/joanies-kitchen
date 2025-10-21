@@ -1,7 +1,7 @@
 # Joanie's Kitchen: Zero-Waste Transformation Roadmap
 
 **Last Updated:** October 21, 2025
-**Current Version:** v0.7.1 (Build 93)
+**Current Version:** v0.7.2 (Build 94)
 **Project Status:** 🟢 **LAUNCH READY** - 6 Days to Launch
 
 ---
@@ -41,6 +41,7 @@ Overall Progress: ████████████████████ 1
 | Rescue Pages | 0 | 4 | 4 | ✅ 100% |
 | Learn Pages | 0 | 4 | 4 | ✅ 100% |
 | Ingredient Extraction | 0 | 4,641/4,644 | 4,400+ | ✅ 99.94% |
+| Ingredient Consolidation | ❌ | ✅ Complete (2,982) | ✅ | ✅ 100% |
 | Ingredients Directory | ❌ | ✅ Live (495) | ✅ | ✅ Complete |
 | Joanie Comments System | ❌ | ✅ Infrastructure | ✅ | ✅ Complete |
 
@@ -61,13 +62,14 @@ Overall Progress: ████████████████████ 1
 ### Recent Achievements (October 21, 2025)
 
 1. ✅ **Phase 6 COMPLETE** - All launch prep tasks finished (100%)
-2. ✅ **Image Generation System** - Stable Diffusion XL local generation operational
-3. ✅ **Kitchen Counter Style** - Finalized visual direction for ingredient images
-4. ✅ **SEO Optimization** - 5,159 URLs, JSON-LD schema, comprehensive meta tags
-5. ✅ **Analytics Infrastructure** - Vercel Analytics + Google Analytics G-FZDVSZLR8V
-6. ✅ **Performance Excellence** - 10/10 score, homepage 138ms TTFB (5.8x better)
-7. ✅ **Launch Documentation** - Complete checklist and decision logs created
-8. ✅ **Ingredient Extraction** - 99.94% coverage (4,641/4,644 recipes)
+2. ✅ **Ingredient Consolidation** - Fixed transaction bug, consolidated 60 duplicates, created 235 aliases
+3. ✅ **Image Generation System** - Stable Diffusion XL local generation operational
+4. ✅ **Kitchen Counter Style** - Finalized visual direction for ingredient images
+5. ✅ **SEO Optimization** - 5,159 URLs, JSON-LD schema, comprehensive meta tags
+6. ✅ **Analytics Infrastructure** - Vercel Analytics + Google Analytics G-FZDVSZLR8V
+7. ✅ **Performance Excellence** - 10/10 score, homepage 138ms TTFB (5.8x better)
+8. ✅ **Launch Documentation** - Complete checklist and decision logs created
+9. ✅ **Ingredient Extraction** - 99.94% coverage (4,641/4,644 recipes)
 
 ### Recent Achievements (Last 7 Days)
 
