@@ -33,8 +33,8 @@ export function IngredientCard({ ingredient, className = '' }: IngredientCardPro
       href={`/ingredients/${ingredient.slug}`}
       className={`group block rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600 overflow-hidden ${className}`}
     >
-      {/* Image Section */}
-      <div className="relative aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+      {/* Image Section - Reduced height */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-700">
         {ingredient.image_url ? (
           <Image
             src={ingredient.image_url}
@@ -45,44 +45,44 @@ export function IngredientCard({ ingredient, className = '' }: IngredientCardPro
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <Package className="h-16 w-16 text-gray-300 dark:text-gray-600" />
+            <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
           </div>
         )}
 
         {/* Trending Badge */}
         {isTrending && (
-          <div className="absolute top-2 right-2 rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-white flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            Trending
+          <div className="absolute top-1.5 right-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-white flex items-center gap-0.5">
+            <TrendingUp className="h-2.5 w-2.5" />
+            <span className="hidden sm:inline">Trending</span>
           </div>
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="p-4">
+      {/* Content Section - Compact */}
+      <div className="p-3">
         {/* Ingredient Name */}
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">
           {ingredient.display_name}
         </h3>
 
-        {/* Category */}
-        {ingredient.category && (
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 capitalize">
-            {ingredient.category}
-          </p>
-        )}
-
-        {/* Usage Stats */}
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-gray-500 dark:text-gray-400">
-            Used in {usageCount} {usageCount === 1 ? 'recipe' : 'recipes'}
-          </span>
+        {/* Category & Usage - Single line */}
+        <div className="mt-1 flex items-center justify-between text-xs">
+          {ingredient.category && (
+            <span className="text-gray-600 dark:text-gray-400 capitalize">
+              {ingredient.category}
+            </span>
+          )}
 
           {ingredient.is_common && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
               Popular
             </span>
           )}
+        </div>
+
+        {/* Usage Stats - Smaller */}
+        <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          {usageCount} {usageCount === 1 ? 'recipe' : 'recipes'}
         </div>
       </div>
     </Link>
