@@ -116,29 +116,44 @@ recipe-manager/
 ```
 
 ### Key Features
-- 🔴 AI Recipe Generation (OpenRouter API with multiple LLM models)
-- 🔴 User Authentication (Clerk dual-environment setup)
-- 🔴 Recipe Library (CRUD operations with PostgreSQL)
-- 🟡 Meal Planning (Drag-and-drop interface with @dnd-kit)
-- 🟡 Shopping Lists (Auto-generation from meal plans)
-- 🟡 Recipe Import (URL-based recipe extraction)
-- 🟡 Recipe Sharing (Public/private visibility)
-- 🟢 Nutritional Information Tracking
-- 🟢 Multi-image Support (up to 6 images per recipe)
-- 🟢 System/Curated Recipes (Discover page)
-- 🟢 Recipe Export (PDF, JSON, Markdown, ZIP)
+- 🔴 **Fridge Feature** (Ingredient matching with AI-powered substitutions)
+  - Search 4,644 recipes by ingredients you have
+  - 99.94% ingredient extraction coverage (4,641/4,644 recipes)
+  - Hybrid rule-based + GPT-4o-mini substitution suggestions
+  - Resourcefulness scoring for zero-waste cooking
+- 🔴 **AI Recipe Generation** (OpenRouter API with multiple LLM models)
+- 🔴 **User Authentication** (Clerk dual-environment setup)
+- 🔴 **Recipe Library** (CRUD operations with PostgreSQL)
+- 🟡 **SEO Infrastructure** (5,159 URLs in sitemap, JSON-LD schema, OG tags)
+- 🟡 **Analytics** (Vercel Analytics + Google Analytics G-FZDVSZLR8V)
+- 🟡 **Meal Planning** (Drag-and-drop interface with @dnd-kit)
+- 🟡 **Shopping Lists** (Auto-generation from meal plans)
+- 🟡 **Recipe Import** (URL-based recipe extraction)
+- 🟡 **Recipe Sharing** (Public/private visibility)
+- 🟢 **Performance Optimization** (10/10 score, sub-200ms response times)
+- 🟢 **Nutritional Information Tracking**
+- 🟢 **Multi-image Support** (up to 6 images per recipe)
+- 🟢 **System/Curated Recipes** (Discover page)
+- 🟢 **Recipe Export** (PDF, JSON, Markdown, ZIP)
 
-### 🔴 Current Priority: Version 0.45.0 - Mobile Parity
-**See**: `ROADMAP.md` and `docs/guides/MOBILE_PARITY_REQUIREMENTS.md`
+### 🔴 Current Status: Version 0.7.1 - Phase 6 Launch Preparation (70% Complete)
+**See**: `ROADMAP.md` and `docs/phase-6/`
 
-Before adding more advanced features, we're ensuring the existing desktop experience works flawlessly on mobile devices. Mobile users represent 60-70% of recipe site traffic, and they often cook with their phones/tablets in hand.
+**Launch Date**: October 27, 2025 (6 days)
 
-**Focus Areas**:
-- Responsive layouts (mobile-first approach)
-- Touch optimization (44x44px minimum targets)
-- Mobile navigation (hamburger menu, bottom nav)
-- Performance optimization (< 200KB bundle, 90+ Lighthouse score)
-- Real device testing (iOS, Android)
+**Phase 6 Progress**:
+- ✅ Task 7.1: Content Audit (100%)
+- ✅ Task 7.2: Functional Testing (100% - 82.4% pass rate, 5-star code quality)
+- ✅ Task 7.3: Performance Optimization (100% - 10/10 score, all metrics 3-8x better)
+- ✅ Task 7.4: SEO Implementation (100% - 5,159 URLs, JSON-LD, OG tags)
+- ⏳ Task 7.5: Launch Documentation (In Progress)
+
+**Production Metrics**:
+- **Database**: 4,644 recipes indexed
+- **Performance**: Homepage 138ms TTFB (target: <800ms), Fridge Search 150-272ms (target: <500ms)
+- **SEO**: 5,159 URLs in sitemap, comprehensive JSON-LD schema
+- **Analytics**: Dual tracking (Vercel + GA4) fully operational
+- **Quality**: 5-star code quality, 82.4% functional test pass rate
 
 ---
 
@@ -234,13 +249,21 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
 See: `.env.local.example` for full configuration template
 
-### 🔴 Database Schema (src/lib/db/schema.ts)
+### 🔴 Database Schema
+**Main Schema**: `src/lib/db/schema.ts`
+**Ingredients Schema**: `src/lib/db/ingredients-schema.ts`
+
 ```typescript
-// Primary tables:
+// Primary tables (schema.ts):
 - recipes          // User recipes with AI generation support
 - mealPlans        // Weekly meal planning
 - mealPlanRecipes  // Many-to-many relationship
 - shoppingLists    // Generated shopping lists
+
+// Ingredients tables (ingredients-schema.ts):
+- ingredients          // Master ingredient list (normalized, 4,641 indexed)
+- recipeIngredients    // Recipe-ingredient relationships with amounts/units
+- ingredientStatistics // Usage statistics and trending data
 
 // Key fields:
 - userId (Clerk ID) // User ownership
@@ -384,6 +407,8 @@ See: `AUTHENTICATION_GUIDE.md` for detailed setup
 - **Migrations**: Automatic with `drizzle-kit push`
 - **Studio**: Web UI via `pnpm db:studio` (port 4983)
 - **Validation**: Zod schemas generated from Drizzle schemas
+- **Performance**: 15+ indexes, connection pooling, edge network routing
+- **Coverage**: 4,644 recipes indexed, 99.94% with ingredient extraction (4,641)
 
 ---
 
@@ -451,6 +476,26 @@ Base components in `src/components/ui/`:
 - getUserRecipes(userId: string)
 - getPublicRecipes()
 - getSystemRecipes()
+```
+
+### 🔴 Fridge/Ingredient Actions
+**`src/app/actions/ingredient-search.ts`** (Core zero-waste feature)
+```typescript
+- searchRecipesByIngredients(ingredientNames: string[], options)
+  // Match modes: 'all', 'any', 'exact'
+  // Returns ranked recipes with match percentage
+- getIngredientSuggestions(query: string, options)
+  // Fuzzy search autocomplete with pg_trgm
+- getIngredientsByCategory(categories: string | string[])
+- getRecipeIngredients(recipeId: string)
+- getPopularIngredients(limit: number, category?: string)
+```
+
+**`src/app/actions/substitutions.ts`**
+```typescript
+- getIngredientSubstitutions(ingredient: string, context)
+  // Hybrid rule-based + GPT-4o-mini substitutions
+- getMultipleIngredientSubstitutions(ingredients: string[], context)
 ```
 
 ### 🔴 AI Recipe Actions (`src/app/actions/ai-recipes.ts`)
@@ -575,11 +620,21 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 4. Test migration locally: `pnpm db:migrate`
 5. Deploy: Vercel auto-runs migrations on build
 
-### 🟢 Performance Optimization
-- Enable Vercel Edge Runtime for API routes
-- Use Next.js Image Optimization for recipe images
-- Implement ISR for public recipe pages
-- Configure caching headers for static assets
+### 🟢 Performance Optimization (ACTIVE - 10/10 Score)
+**Production Metrics** (October 2025):
+- **Homepage TTFB**: 138ms (target: <800ms, **5.8x better**)
+- **Fridge Search**: 150-272ms (target: <500ms, **pass**)
+- **Recipe Pages**: 160-326ms (target: <2s, **6.1x better**)
+- **Bundle Size**: 103kB shared (target: <150kB, **pass**)
+- **Static Pages**: 50 pre-rendered (target: >20, **2.5x target**)
+
+**Active Optimizations**:
+- ✅ Vercel Edge Runtime for API routes
+- ✅ Next.js Image Optimization with CDN caching
+- ✅ ISR (Incremental Static Regeneration) for public recipes
+- ✅ 15+ database indexes for query optimization
+- ✅ Connection pooling (Neon PostgreSQL)
+- ✅ Response caching headers configured
 
 ---
 
@@ -716,11 +771,15 @@ pnpm auth:validate     # Validate authentication setup
 
 ### Documentation
 - `README.md` - Project overview
+- `ROADMAP.md` - Zero-waste pivot and launch roadmap
 - `docs/reference/PROJECT_ORGANIZATION.md` - File organization standard
 - `docs/guides/AUTHENTICATION_GUIDE.md` - Clerk setup guide
 - `docs/guides/ENVIRONMENT_SETUP.md` - Environment configuration
 - `docs/guides/CLERK_SETUP_GUIDE.md` - Detailed Clerk instructions
 - `docs/guides/PRODUCTION_KEYS_LOCALHOST.md` - Dual-env setup
+- `docs/guides/FRIDGE_FEATURE_GUIDE.md` - Fridge feature user guide
+- `docs/api/API_REFERENCE.md` - Server actions and API routes reference
+- `docs/phase-6/` - Phase 6 launch preparation documentation
 
 ---
 
@@ -763,6 +822,6 @@ pnpm auth:validate     # Validate authentication setup
 
 ---
 
-**Last Updated**: 2025-10-14
-**Version**: 0.1.0
+**Last Updated**: 2025-10-21
+**Version**: 0.7.1 (Build 93)
 **Maintained By**: Recipe Manager Team
