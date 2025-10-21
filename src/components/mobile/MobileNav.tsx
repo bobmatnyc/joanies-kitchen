@@ -1,15 +1,13 @@
 'use client';
 
 import {
-  Refrigerator,
-  Recycle,
   GraduationCap,
   Leaf,
-  Heart,
   BookOpen,
   Menu,
   Sparkles,
   Package,
+  CalendarDays,
 } from 'lucide-react';
 import { useState } from 'react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
@@ -18,12 +16,15 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 /**
- * Mobile Navigation Component - Week 4 Task 5.1
+ * Mobile Navigation Component - Week 4 Task 5.1 (Updated Oct 21)
  *
  * Provides a hamburger menu for mobile/tablet screens with all navigation items
  * in a slide-out drawer. Automatically closes the drawer when a link is clicked.
  *
  * Reorganized around zero-waste mission per ROADMAP.md
+ *
+ * Note: "What's in Your Fridge" is linked from homepage hero
+ * Note: "Philosophy" and "Rescue Ingredients" are linked from /learn page
  */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -52,20 +53,29 @@ export function MobileNav() {
 
         {/* Primary Navigation - Zero-Waste Focus */}
         <nav className="flex flex-col gap-2 mt-8">
-          {/* Core Entry Point */}
+          {/* Learn Techniques */}
           <NavLink
-            href="/fridge"
-            icon={Refrigerator}
-            label="What's in Your Fridge"
+            href="/learn"
+            icon={GraduationCap}
+            label="Learn"
             variant="mobile"
             onClick={handleLinkClick}
           />
 
-          {/* Rescue Ingredients - NEW */}
+          {/* All Recipes */}
           <NavLink
-            href="/rescue"
-            icon={Recycle}
-            label="Rescue Ingredients"
+            href="/recipes"
+            icon={BookOpen}
+            label="Recipes"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Meal Plans */}
+          <NavLink
+            href="/meal-plans"
+            icon={CalendarDays}
+            label="Meals"
             variant="mobile"
             onClick={handleLinkClick}
           />
@@ -79,29 +89,11 @@ export function MobileNav() {
             onClick={handleLinkClick}
           />
 
-          {/* Learn Techniques - NEW */}
-          <NavLink
-            href="/learn"
-            icon={GraduationCap}
-            label="Learn Techniques"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-
           {/* Sustainability Chefs */}
           <NavLink
             href="/discover/chefs"
             icon={Leaf}
-            label="Sustainability Chefs"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
-
-          {/* Philosophy - NEW */}
-          <NavLink
-            href="/philosophy"
-            icon={Heart}
-            label="Philosophy"
+            label="Chefs"
             variant="mobile"
             onClick={handleLinkClick}
           />
@@ -110,13 +102,6 @@ export function MobileNav() {
           <div className="border-t border-jk-sage/30 my-4" />
 
           {/* Secondary Navigation */}
-          <NavLink
-            href="/recipes"
-            icon={BookOpen}
-            label="All Recipes"
-            variant="mobile"
-            onClick={handleLinkClick}
-          />
           <NavLink
             href="/recipes/zero-waste"
             icon={Leaf}
