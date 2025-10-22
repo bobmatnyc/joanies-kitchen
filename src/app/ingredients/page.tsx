@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package } from 'lucide-react';
+import { Package, Wrench, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { IngredientFilters } from '@/components/ingredient/IngredientFilters';
 import { IngredientList } from '@/components/ingredient/IngredientList';
 import {
@@ -84,19 +85,41 @@ export default function IngredientsPage() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-4">
-            <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-3">
-              <Package className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-3">
+                <Package className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Ingredients Directory
+                </h1>
+                <p className="mt-1 text-gray-600 dark:text-gray-400">
+                  Explore ingredients with Joanie&apos;s personal notes and cooking tips
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Ingredients Directory
-              </h1>
-              <p className="mt-1 text-gray-600 dark:text-gray-400">
-                Explore ingredients with Joanie&apos;s personal notes and cooking tips
-              </p>
-            </div>
+
+            {/* Link to Kitchen Tools */}
+            <Link
+              href="/tools"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white rounded-lg transition-colors font-medium shadow-sm hover:shadow-md"
+            >
+              <Wrench className="h-5 w-5" />
+              <span>Kitchen Tools</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
+
+          {/* Mobile Tools Link */}
+          <Link
+            href="/tools"
+            className="sm:hidden mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white rounded-lg transition-colors font-medium shadow-sm hover:shadow-md"
+          >
+            <Wrench className="h-5 w-5" />
+            <span>Kitchen Tools</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
 

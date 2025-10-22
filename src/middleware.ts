@@ -4,6 +4,13 @@ import { authConfig, isAuthEnabled, logAuthStatus } from './lib/auth-config';
 import { handleClerkProxy } from './lib/clerk-proxy';
 
 export async function middleware(request: NextRequest) {
+  // PRODUCTION ONLY: Redirect sign-up attempts to registration-closed page
+  if (process.env.NODE_ENV === 'production' && request.nextUrl.pathname.startsWith('/sign-up')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/registration-closed';
+    return NextResponse.redirect(url);
+  }
+
   // Handle Clerk proxy for production keys on localhost
   const proxyResponse = await handleClerkProxy(request);
   if (proxyResponse) {
