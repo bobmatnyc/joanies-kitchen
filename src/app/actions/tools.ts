@@ -117,8 +117,23 @@ export async function getAllTools(
       );
     }
 
-    // Build query
-    let query = db
+    // Determine order by clause
+    let orderByClause;
+    switch (sort) {
+      case 'usage':
+        orderByClause = sql`${ingredients.usage_count} DESC NULLS LAST`;
+        break;
+      case 'canonical':
+        // Sort by canonical name (we'll do this in memory after fetching)
+        orderByClause = sql`LOWER(${ingredients.display_name}) ASC`;
+        break;
+      case 'alphabetical':
+      default:
+        orderByClause = sql`LOWER(${ingredients.display_name}) ASC`;
+    }
+
+    // Build and execute query in one go
+    const results = await db
       .select({
         id: ingredients.id,
         name: ingredients.name,
@@ -128,23 +143,10 @@ export async function getAllTools(
         usageCount: ingredients.usage_count,
       })
       .from(ingredients)
-      .where(and(...conditions));
-
-    // Apply sorting
-    switch (sort) {
-      case 'usage':
-        query = query.orderBy(sql`${ingredients.usage_count} DESC NULLS LAST`);
-        break;
-      case 'canonical':
-        // Sort by canonical name (we'll do this in memory after fetching)
-        break;
-      case 'alphabetical':
-      default:
-        query = query.orderBy(sql`LOWER(${ingredients.display_name}) ASC`);
-    }
-
-    // Execute query
-    const results = await query.limit(limit).offset(offset);
+      .where(and(...conditions))
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset);
 
     // Map to KitchenTool objects with canonical names
     let tools: KitchenTool[] = results.map((row) => {
