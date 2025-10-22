@@ -25,7 +25,7 @@ export function AlphaStamp() {
   return (
     <div className="pointer-events-none fixed inset-0 z-50 hidden sm:block">
       {/* Top Secret Stamp */}
-      <div className="absolute -top-16 -right-16 rotate-45">
+      <div className="absolute top-8 right-8 rotate-45">
         <div className="border-8 border-red-600 bg-red-600/10 backdrop-blur-sm px-12 py-6 shadow-2xl">
           <div className="border-4 border-red-600 border-dashed px-8 py-4">
             <div className="text-center">
