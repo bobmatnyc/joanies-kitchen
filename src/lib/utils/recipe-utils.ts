@@ -16,6 +16,18 @@ function safeParseArray(value: string | string[] | null | undefined): string[] {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) {
+      // Handle legacy object format: [{item: "...", quantity: "..."}]
+      if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+        return parsed.map((obj: any) => {
+          // If it's an object with item and quantity, convert to string
+          if ('item' in obj && 'quantity' in obj) {
+            // Format: "quantity item" (e.g., "4 Eggs")
+            return `${obj.quantity} ${obj.item}`.trim();
+          }
+          // Otherwise, stringify the object
+          return String(obj);
+        });
+      }
       return parsed;
     }
     // If parsed but not an array, treat as single item
