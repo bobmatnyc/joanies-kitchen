@@ -5,6 +5,7 @@ import { Inter, Lora, Playfair_Display } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
+import { AlphaStamp } from '@/components/AlphaStamp';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
@@ -137,6 +138,9 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}>
+        {/* Alpha Stamp (Production Only) */}
+        <AlphaStamp />
+
         {/* Analytics Components */}
         <GoogleAnalytics />
 
