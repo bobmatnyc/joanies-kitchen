@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { ingredients, recipeIngredients } from '@/lib/db/ingredients-schema';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql, and, like } from 'drizzle-orm';
 
 // Tool IDs from the analysis (31 tools currently in ingredients table)
 const TOOL_IDS = [
@@ -108,7 +108,16 @@ export async function getAllTools(
   try {
     const { search = '', sort = 'alphabetical', limit = 50, offset = 0 } = options;
 
-    // Fetch tools from ingredients table
+    // Build where conditions
+    const conditions = [inArray(ingredients.id, TOOL_IDS)];
+
+    if (search) {
+      conditions.push(
+        sql`LOWER(${ingredients.display_name}) LIKE ${`%${search.toLowerCase()}%`}`
+      );
+    }
+
+    // Build query
     let query = db
       .select({
         id: ingredients.id,
@@ -119,14 +128,7 @@ export async function getAllTools(
         usageCount: ingredients.usage_count,
       })
       .from(ingredients)
-      .where(inArray(ingredients.id, TOOL_IDS));
-
-    // Apply search filter if provided
-    if (search) {
-      query = query.where(
-        sql`LOWER(${ingredients.display_name}) LIKE ${'%' + search.toLowerCase() + '%'}`
-      );
-    }
+      .where(and(...conditions));
 
     // Apply sorting
     switch (sort) {
