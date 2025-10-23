@@ -39,6 +39,7 @@ export function ChefCard({ chef }: ChefCardProps) {
               imageUrl={chef.profileImageUrl}
               name={chef.name}
               verified={chef.isVerified}
+              specialties={chef.specialties}
               className="flex-shrink-0"
             />
 

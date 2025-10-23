@@ -3,6 +3,8 @@
 import { Check } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { isSustainabilityFocused, getSustainabilityTooltip } from '@/lib/utils/chef-utils';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -11,6 +13,7 @@ interface ChefAvatarProps {
   imageUrl?: string | null;
   name: string;
   verified?: boolean | null;
+  specialties?: string[] | null;
   className?: string;
 }
 
@@ -49,11 +52,15 @@ export function ChefAvatar({
   imageUrl,
   name,
   verified = false,
+  specialties,
   className,
 }: ChefAvatarProps) {
   const sizes = sizeClasses[size];
   const border = sizeBorders[size];
   const initial = name.charAt(0).toUpperCase();
+
+  // Only show verification badge for sustainability-focused chefs
+  const showBadge = verified && isSustainabilityFocused(specialties ?? null);
 
   return (
     <div className={cn('relative', className)}>
@@ -83,17 +90,26 @@ export function ChefAvatar({
         )}
       </div>
 
-      {/* Verified Badge */}
-      {verified && (
-        <div
-          className={cn(
-            sizes.badge,
-            'absolute rounded-full bg-blue-500 flex items-center justify-center',
-            'ring-2 ring-white shadow-sm'
-          )}
-        >
-          <Check className="w-full h-full p-0.5 text-white" strokeWidth={3} />
-        </div>
+      {/* Sustainability Verified Badge with Tooltip */}
+      {showBadge && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={cn(
+                  sizes.badge,
+                  'absolute rounded-full bg-green-600 flex items-center justify-center',
+                  'ring-2 ring-white shadow-sm cursor-help'
+                )}
+              >
+                <Check className="w-full h-full p-0.5 text-white" strokeWidth={3} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="bg-jk-olive text-white font-medium">
+              <p>{getSustainabilityTooltip()}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
   );
