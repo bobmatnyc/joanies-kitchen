@@ -757,6 +757,16 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         </div>
       )}
 
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
+        {/* Recipe Content with Admin Edit Overlays */}
+        <RecipeContentWithEdit recipe={recipe} isAdmin={isUserAdmin} />
+      </div>
+
+      {/* Similar Recipes Widget */}
+      <div className="mt-8">
+        <SimilarRecipesWidget recipeId={recipe.id} recipeName={recipe.name} limit={6} />
+      </div>
+
       {/* YOU HAVE / YOU NEED SECTION - Week 2 Task 3.1 */}
       <div className="mb-8">
         <InventoryMatchSection
@@ -788,16 +798,6 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           />
         </div>
       )}
-
-      <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
-        {/* Recipe Content with Admin Edit Overlays */}
-        <RecipeContentWithEdit recipe={recipe} isAdmin={isUserAdmin} />
-      </div>
-
-      {/* Similar Recipes Widget */}
-      <div className="mt-8">
-        <SimilarRecipesWidget recipeId={recipe.id} recipeName={recipe.name} limit={6} />
-      </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
