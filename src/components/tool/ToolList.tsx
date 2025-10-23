@@ -1,11 +1,11 @@
 'use client';
 
-import type { KitchenTool } from '@/app/actions/tools';
+import type { Tool } from '@/app/actions/tools';
 import { ToolCard } from './ToolCard';
 import { Wrench } from 'lucide-react';
 
 interface ToolListProps {
-  tools: KitchenTool[];
+  tools: Tool[];
   className?: string;
 }
 

@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import { Wrench } from 'lucide-react';
-import type { KitchenTool } from '@/app/actions/tools';
+import type { Tool } from '@/app/actions/tools';
 
 interface ToolCardProps {
-  tool: KitchenTool;
+  tool: Tool;
   className?: string;
 }
 
@@ -14,7 +14,7 @@ interface ToolCardProps {
  *
  * Features:
  * - Tool image with fallback
- * - Canonical name and variant
+ * - Display name and category
  * - Usage count
  *
  * Design:
@@ -24,6 +24,8 @@ interface ToolCardProps {
  * - Mobile-responsive
  */
 export function ToolCard({ tool, className = '' }: ToolCardProps) {
+  const usageCount = tool.usageCount || 0;
+
   return (
     <div
       className={`group block rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600 overflow-hidden ${className}`}
@@ -45,9 +47,16 @@ export function ToolCard({ tool, className = '' }: ToolCardProps) {
         )}
 
         {/* High Usage Badge */}
-        {tool.usageCount >= 5 && (
+        {usageCount >= 5 && (
           <div className="absolute top-1.5 right-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-white">
             Popular
+          </div>
+        )}
+
+        {/* Essential Badge */}
+        {tool.isEssential && (
+          <div className="absolute top-1.5 left-1.5 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+            Essential
           </div>
         )}
       </div>
@@ -59,23 +68,21 @@ export function ToolCard({ tool, className = '' }: ToolCardProps) {
           {tool.displayName}
         </h3>
 
-        {/* Canonical & Variant - Single line */}
-        <div className="mt-1 flex items-center justify-between text-xs">
-          <span className="text-gray-600 dark:text-gray-400 truncate">
-            {tool.canonicalName}
-          </span>
+        {/* Category */}
+        <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 truncate capitalize">
+          {tool.category}
         </div>
 
-        {/* Variant info if different from display name */}
-        {tool.variant !== 'Standard' && (
+        {/* Type/Subtype if available */}
+        {tool.type && (
           <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">
-            {tool.variant}
+            {tool.subtype || tool.type}
           </div>
         )}
 
         {/* Usage Stats */}
         <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-          {tool.usageCount} {tool.usageCount === 1 ? 'recipe' : 'recipes'}
+          {usageCount} {usageCount === 1 ? 'recipe' : 'recipes'}
         </div>
       </div>
     </div>
