@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Wrench, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { getAllTools, type KitchenTool, type SortOption } from '@/app/actions/tools';
+import { getAllTools, type Tool, type SortOption } from '@/app/actions/tools';
 import { ToolFilters } from '@/components/tool/ToolFilters';
 import { ToolList } from '@/components/tool/ToolList';
 
@@ -12,17 +12,14 @@ import { ToolList } from '@/components/tool/ToolList';
  *
  * Browse all kitchen tools with:
  * - Search functionality
- * - Sort by usage or alphabetical
- * - Grid view with thumbnails
- * - Usage statistics
+ * - Sort by usage, alphabetical, category, or essential first
+ * - Grid view with category badges
+ * - Usage statistics from recipe_tools table
  *
  * Design mirrors /ingredients page for consistency
- *
- * Note: Tools are currently stored in the ingredients table
- * and will be migrated to a dedicated kitchen_tools table in Phase 2.
  */
 export default function ToolsPage() {
-  const [tools, setTools] = useState<KitchenTool[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,11 +117,12 @@ export default function ToolsPage() {
 
       {/* Footer Note */}
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Note:</strong> These tools are currently stored in the ingredients table and
-            will be migrated to a dedicated kitchen_tools table in a future update. This will
-            enable better organization and tool-specific features.
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>New:</strong> Kitchen tools have been migrated to a dedicated tools table with
+            rich ontology support (5 types, 48 subtypes). This enables better categorization,
+            essential/specialized flags, alternative suggestions, and accurate usage tracking across
+            all recipes.
           </p>
         </div>
       </div>

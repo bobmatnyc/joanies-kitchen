@@ -1,6 +1,6 @@
 'use server';
 
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
@@ -168,13 +168,13 @@ export async function getChefById(id: string) {
 
 /**
  * Get all active chefs (public)
- * Ordered by recipe count
+ * Ordered alphabetically by name
  */
 export async function getAllChefs() {
   try {
     const allChefs = await db.query.chefs.findMany({
       where: eq(chefs.is_active, true),
-      orderBy: [desc(chefs.recipe_count), desc(chefs.created_at)],
+      orderBy: [asc(chefs.name)],
     });
 
     // Transform snake_case to camelCase for frontend

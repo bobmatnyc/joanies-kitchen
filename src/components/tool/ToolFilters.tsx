@@ -62,7 +62,8 @@ export function ToolFilters({
             >
               <option value="usage">Most Used</option>
               <option value="alphabetical">Alphabetical</option>
-              <option value="canonical">By Base Tool</option>
+              <option value="category">By Category</option>
+              <option value="essential">Essential First</option>
             </select>
           </div>
         </div>
