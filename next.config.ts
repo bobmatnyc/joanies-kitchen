@@ -215,6 +215,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'hips.hearstapps.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'ljqhvy0frzhuigv1.public.blob.vercel-storage.com',
         port: '',
         pathname: '/**',
