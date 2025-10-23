@@ -1,10 +1,11 @@
-import { ChefHat, Globe, Instagram, Youtube } from 'lucide-react';
+import { ChefHat, Globe, Instagram, MapPin, Youtube } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { FaXTwitter } from 'react-icons/fa6';
 import { getChefBySlug } from '@/app/actions/chefs';
 import { ChefAvatar } from '@/components/chef/ChefAvatar';
 import { RecipeList } from '@/components/recipe/RecipeList';
 import { Badge } from '@/components/ui/badge';
+import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -46,6 +47,7 @@ export default async function ChefProfilePage({ params }: { params: Promise<{ sl
             imageUrl={chef.profile_image_url}
             name={chef.name}
             verified={chef.is_verified}
+            specialties={chef.specialties}
             className="flex-shrink-0"
           />
 
@@ -71,6 +73,18 @@ export default async function ChefProfilePage({ params }: { params: Promise<{ sl
                     {specialty}
                   </Badge>
                 ))}
+              </div>
+            )}
+
+            {/* Location */}
+            {(chef.location_city || chef.location_country) && (
+              <div className="flex items-center gap-2 text-jk-olive/70 mb-4">
+                <MapPin className="w-4 h-4" />
+                <span>
+                  {chef.location_city}
+                  {chef.location_state && `, ${chef.location_state}`}
+                  {chef.location_country && ` • ${chef.location_country}`}
+                </span>
               </div>
             )}
 
@@ -148,6 +162,9 @@ export default async function ChefProfilePage({ params }: { params: Promise<{ sl
           </div>
         )}
       </div>
+
+      {/* Educational Disclaimer (skip for Joanie) */}
+      {slug !== 'joanie' && <ChefDisclaimer chefName={chef.display_name || chef.name} />}
     </div>
   );
 }

@@ -173,7 +173,10 @@
     "build:production": "tsx scripts/version.ts build && next build",
     "prebuild": "tsx scripts/version.ts build",
     "perf:analyze": "tsx scripts/analyze-performance.ts",
-    "perf:analyze:full": "tsx scripts/analyze-performance.ts --full"
+    "perf:analyze:full": "tsx scripts/analyze-performance.ts --full",
+    "tools:extract-cookware": "tsx scripts/extract-cookware-from-recipes.ts",
+    "tools:extract-cookware:apply": "APPLY_CHANGES=true tsx scripts/extract-cookware-from-recipes.ts",
+    "tools:extract-cookware:test": "LIMIT=10 tsx scripts/extract-cookware-from-recipes.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.7",

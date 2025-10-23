@@ -1,0 +1,58 @@
+# Exclude local development files from Vercel deployments
+
+# MCP Vector Search (local only)
+.mcp-vector-search/
+
+# Claude MPM (local only)
+.claude-mpm/
+.claude/
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+*.db
+*.db-shm
+*.db-wal
+
+# Kuzu graph database
+.kuzu-memory/
+.kuzu-memory-backups/
+kuzu-memories/
+
+# Secrets and credentials
+.secrets/
+credentials/
+
+# Python virtual environments
+venv/
+venv-image-gen/
+env/
+.venv/
+
+# Build artifacts
+.build-number
+build-history.json
+build-info.json
+
+# Logs
+*.log
+logs/
+tmp/
+
+# Testing
+coverage/
+.vitest/
+test-results/
+playwright-report/
+
+# Documentation (not needed in production)
+docs/
+
+# Exclude most scripts except build-related ones
+scripts/*
+!scripts/version.ts
+
+# Data acquisition (large files)
+data/

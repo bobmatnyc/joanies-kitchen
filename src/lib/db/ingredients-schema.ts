@@ -48,8 +48,10 @@ export const ingredients = pgTable(
     display_name: text('display_name').notNull(), // Properly capitalized (e.g., "Green Onion")
     slug: varchar('slug', { length: 255 }).unique(), // URL-friendly slug (e.g., "green-onion")
 
-    // Categorization
-    category: varchar('category', { length: 50 }), // e.g., 'vegetables', 'proteins', 'dairy', 'grains', 'spices', 'condiments', 'herbs', 'fruits', 'nuts', 'oils', 'sweeteners', 'baking', 'beverages', 'other'
+    // Categorization (Legacy + New Ontology)
+    category: varchar('category', { length: 50 }), // Legacy: e.g., 'vegetables', 'proteins', 'dairy', 'grains', 'spices', 'condiments', 'herbs', 'fruits', 'nuts', 'oils', 'sweeteners', 'baking', 'beverages', 'other'
+    type: varchar('type', { length: 50 }), // Ontology main type: FRESH_PRODUCE, PROTEINS, DAIRY_EGGS, PANTRY_STAPLES, BAKING_SPECIALTY
+    subtype: varchar('subtype', { length: 100 }), // Ontology subtype: vegetables_leafy, meat_beef, cheese_soft, grains_rice, nuts_tree, etc.
 
     // Metadata
     common_units: text('common_units'), // JSON array: ['cup', 'tablespoon', 'piece', 'gram', 'ounce']
@@ -81,7 +83,10 @@ export const ingredients = pgTable(
     nameLowerIdx: index('ingredients_name_lower_idx').on(sql`LOWER(${table.name})`), // Case-insensitive search
     displayNameIdx: index('ingredients_display_name_idx').on(table.display_name),
     slugIdx: index('ingredients_slug_idx').on(table.slug), // Slug-based lookup for URLs
-    categoryIdx: index('ingredients_category_idx').on(table.category), // Filter by category
+    categoryIdx: index('ingredients_category_idx').on(table.category), // Filter by legacy category
+    typeIdx: index('ingredients_type_idx').on(table.type), // Filter by ontology type
+    subtypeIdx: index('ingredients_subtype_idx').on(table.subtype), // Filter by ontology subtype
+    typeSubtypeIdx: index('ingredients_type_subtype_idx').on(table.type, table.subtype), // Composite index for hierarchical filtering
     commonIdx: index('ingredients_common_idx').on(table.is_common, table.name), // Common ingredients first
     allergenIdx: index('ingredients_allergen_idx').on(table.is_allergen), // Allergen filtering
 

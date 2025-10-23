@@ -65,6 +65,8 @@ export async function middleware(request: NextRequest) {
     '/recipes/new(.*)', // Creating new recipes
     '/recipes/edit(.*)', // Editing recipes (simplified pattern)
     '/recipes$', // My Recipes listing (personal collection)
+    '/meals/new(.*)', // Creating new meals
+    '/meals$', // My Meals listing (personal collection)
     '/meal-plans(.*)', // Meal planning
     '/shopping-lists(.*)', // Shopping lists
   ]);
@@ -92,8 +94,11 @@ export async function middleware(request: NextRequest) {
     const isViewingRecipe =
       path.match(/^\/recipes\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new') && !path.includes('/edit');
 
-    // If it's a recipe view route, allow it (the page itself will check if the recipe is public)
-    if (isViewingRecipe) {
+    // Check if this is a meal view route (e.g., /meals/slug) but NOT /meals/new
+    const isViewingMeal = path.match(/^\/meals\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new');
+
+    // If it's a recipe or meal view route, allow it (the page itself will check if the content is public)
+    if (isViewingRecipe || isViewingMeal) {
       return NextResponse.next();
     }
 

@@ -7,11 +7,13 @@
  * - Extracting preparation methods
  * - Standardizing capitalization
  * - Generating clean slugs
+ * - Applying ingredient consolidation mappings
  *
  * @module lib/ingredients/normalization
  */
 
 import { PREPARATION_METHODS, type PreparationMethod } from '../db/ingredients-schema';
+import { applyConsolidation } from './consolidation-map';
 
 /**
  * Result of ingredient normalization
@@ -132,6 +134,7 @@ const LEAVES_ARE_INGREDIENT = [
  * Normalize an ingredient name by extracting metadata
  *
  * @param raw - Raw ingredient name as stored in database
+ * @param applyConsolidationMap - Whether to apply consolidation mappings (default: true)
  * @returns Normalized ingredient with extracted metadata
  *
  * @example
@@ -145,8 +148,16 @@ const LEAVES_ARE_INGREDIENT = [
  * @example
  * normalizeIngredientName("Baby Arugula Leaves")
  * // Returns: { base: "Baby Arugula", preparation: "leaves", original: "..." }
+ *
+ * @example
+ * normalizeIngredientName("Basil") // with consolidation enabled
+ * // Returns: { base: "Basil Leaves", original: "Basil" }
+ * // Note: "basil" consolidates to "basil leaves"
  */
-export function normalizeIngredientName(raw: string): NormalizedIngredient {
+export function normalizeIngredientName(
+  raw: string,
+  applyConsolidationMap: boolean = true
+): NormalizedIngredient {
   let working = raw.trim();
   const result: NormalizedIngredient = {
     base: working,
@@ -184,7 +195,13 @@ export function normalizeIngredientName(raw: string): NormalizedIngredient {
     }
   }
 
-  // Step 4: Clean and capitalize the base ingredient
+  // Step 4: Apply consolidation mapping (if enabled)
+  // This maps variant ingredients to canonical forms (e.g., "basil" -> "basil leaves")
+  if (applyConsolidationMap) {
+    working = applyConsolidation(working);
+  }
+
+  // Step 5: Clean and capitalize the base ingredient
   result.base = capitalizeWords(working);
 
   return result;
