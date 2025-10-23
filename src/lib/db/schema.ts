@@ -464,6 +464,10 @@ export const tools = pgTable('tools', {
     ]
   }).notNull(),
 
+  // Ontology categorization (NEW - 5 types, 48 subtypes)
+  type: varchar('type', { length: 50 }), // CUTTING_PREP, COOKING_VESSELS, MIXING_MEASURING, HEAT_POWER, STORAGE_SERVING
+  subtype: varchar('subtype', { length: 100 }), // knives_chef, pots_sauce, mixing_bowls, stovetop_gas, storage_containers, etc.
+
   // Tool characteristics
   is_essential: boolean('is_essential').default(false), // Part of basic kitchen
   is_specialized: boolean('is_specialized').default(false), // Specialized equipment
@@ -479,6 +483,9 @@ export const tools = pgTable('tools', {
   nameIdx: index('tools_name_idx').on(table.name),
   categoryIdx: index('tools_category_idx').on(table.category),
   isEssentialIdx: index('tools_is_essential_idx').on(table.is_essential),
+  typeIdx: index('tools_type_idx').on(table.type),
+  subtypeIdx: index('tools_subtype_idx').on(table.subtype),
+  typeSubtypeIdx: index('tools_type_subtype_idx').on(table.type, table.subtype),
 }));
 
 // Recipe Tools mapping

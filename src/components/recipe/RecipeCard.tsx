@@ -53,6 +53,14 @@ export function RecipeCard({
   // Use themed placeholder if no image available
   const displayImage = images[0] || recipe.image_url || getPlaceholderImage(tags);
 
+  // Check if image is external (not from our domain or known CDNs)
+  const isExternalImage = displayImage && (
+    displayImage.startsWith('http') &&
+    !displayImage.includes('vercel') &&
+    !displayImage.includes('unsplash.com') &&
+    !displayImage.includes('themealdb.com')
+  );
+
   // Categorize tags using the ontology system
   const categorizedTags = categorizeTags(tags);
   const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
@@ -107,6 +115,7 @@ export function RecipeCard({
               className="object-cover group-hover:scale-105 transition-transform duration-200"
               loading="lazy"
               quality={75}
+              unoptimized={isExternalImage}
             />
             {/* Favorite Button - Top Left */}
             <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>

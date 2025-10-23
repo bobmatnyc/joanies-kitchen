@@ -95,6 +95,8 @@ export function IngredientSearchBar({
         name: suggestion.name,
         display_name: suggestion.displayName,
         category: suggestion.category,
+        type: null, // Ontology type (not available in suggestion)
+        subtype: null, // Ontology subtype (not available in suggestion)
         is_common: suggestion.isCommon,
         // Fill in required fields with defaults
         created_at: new Date(),

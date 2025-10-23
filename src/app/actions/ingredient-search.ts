@@ -26,6 +26,7 @@ import type {
   IngredientSuggestion,
   SuggestionResult,
 } from '@/types/ingredient-search';
+import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/consolidation-map';
 
 // ============================================================================
 // VALIDATION SCHEMAS (Internal only - not exported)
@@ -163,13 +164,33 @@ export async function searchRecipesByIngredients(
     // Normalize ingredient names (lowercase, trim)
     const normalizedNames = ingredientNames.map((name) => name.toLowerCase().trim());
 
-    // Step 1: Find ingredient IDs from names (fuzzy match using aliases)
+    // Apply consolidation mapping to ingredient names
+    // This maps variants like "basil" -> "basil leaves"
+    const consolidatedNames = normalizedNames.map((name) => applyConsolidation(name));
+
+    // Create a comprehensive search list that includes:
+    // 1. Consolidated canonical names
+    // 2. Original input names (in case user searched for the canonical form)
+    // 3. All known variants of each canonical name
+    const searchNames = new Set<string>();
+    consolidatedNames.forEach((canonical) => {
+      searchNames.add(canonical);
+      // Also add variants that map to this canonical form
+      const variants = getVariantsForCanonical(canonical);
+      variants.forEach((v) => searchNames.add(v));
+    });
+    // Add original names to search
+    normalizedNames.forEach((name) => searchNames.add(name));
+
+    const allSearchNames = Array.from(searchNames);
+
+    // Step 1: Find ingredient IDs from names (fuzzy match using aliases and consolidation)
     const foundIngredients = await db
       .select()
       .from(ingredients)
       .where(
         or(
-          ...normalizedNames.map((name) =>
+          ...allSearchNames.map((name) =>
             or(
               eq(ingredients.name, name),
               ilike(ingredients.display_name, name),
@@ -444,6 +465,9 @@ export async function getIngredientSuggestions(
     const validatedOptions = SuggestionOptionsSchema.parse(options);
     const normalizedQuery = query.toLowerCase().trim();
 
+    // Apply consolidation to the query to suggest canonical forms
+    const consolidatedQuery = applyConsolidation(normalizedQuery);
+
     // Generate cache key
     const cacheKey = generateIngredientSuggestionsKey(query, validatedOptions);
 
@@ -457,11 +481,19 @@ export async function getIngredientSuggestions(
     }
 
     // Build search conditions
+    // Search for both the original query and the consolidated form
+    const searchQueries = [normalizedQuery];
+    if (consolidatedQuery !== normalizedQuery) {
+      searchQueries.push(consolidatedQuery);
+    }
+
     const conditions: SQL[] = [
       or(
-        ilike(ingredients.name, `%${normalizedQuery}%`),
-        ilike(ingredients.display_name, `%${normalizedQuery}%`),
-        sql`${ingredients.aliases}::text ILIKE ${`%${normalizedQuery}%`}`
+        ...searchQueries.flatMap((q) => [
+          ilike(ingredients.name, `%${q}%`),
+          ilike(ingredients.display_name, `%${q}%`),
+          sql`${ingredients.aliases}::text ILIKE ${`%${q}%`}`,
+        ])
       ) as SQL,
     ];
 

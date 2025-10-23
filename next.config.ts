@@ -7,6 +7,20 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  async redirects() {
+    return [
+      {
+        source: '/meal-plans',
+        destination: '/meals',
+        permanent: true,
+      },
+      {
+        source: '/meal-plans/:path*',
+        destination: '/meals/:path*',
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
@@ -221,6 +235,48 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'www.lidiasitaly.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.gordonramsay.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'homecookingcollective.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.homecookingcollective.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ottolenghi.co.uk',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.ottolenghi.co.uk',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nigella.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.nigella.com',
         port: '',
         pathname: '/**',
       },

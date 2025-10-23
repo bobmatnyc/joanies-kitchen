@@ -1,6 +1,7 @@
 import { ChefHat } from 'lucide-react';
 import { getAllChefs } from '@/app/actions/chefs';
 import { ChefViewToggle } from '@/components/discover/ChefViewToggle';
+import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 
 export const metadata = {
   title: "Discover Chefs | Joanie's Kitchen",
@@ -38,6 +39,9 @@ export default async function DiscoverChefsPage() {
 
       {/* Chef View Toggle (Grid/Map) */}
       <ChefViewToggle chefs={chefs} />
+
+      {/* Educational Disclaimer */}
+      <ChefDisclaimer />
     </div>
   );
 }
