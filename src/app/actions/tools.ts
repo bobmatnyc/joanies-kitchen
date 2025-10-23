@@ -80,7 +80,7 @@ export async function getAllTools(
     }
 
     if (type) {
-      conditions.push(sql`${tools.type} = ${type}`);
+      conditions.push(eq(tools.type, type));
     }
 
     if (essentialOnly) {
