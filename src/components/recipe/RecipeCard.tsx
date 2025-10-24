@@ -54,12 +54,12 @@ export function RecipeCard({
   const displayImage = images[0] || recipe.image_url || getPlaceholderImage(tags);
 
   // Check if image is external (not from our domain or known CDNs)
-  const isExternalImage = displayImage && (
+  const isExternalImage = Boolean(displayImage && (
     displayImage.startsWith('http') &&
     !displayImage.includes('vercel') &&
     !displayImage.includes('unsplash.com') &&
     !displayImage.includes('themealdb.com')
-  );
+  ));
 
   // Categorize tags using the ontology system
   const categorizedTags = categorizeTags(tags);
