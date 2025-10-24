@@ -459,6 +459,14 @@ export async function storeRecipe(
         waste_reduction_tags: null,
         scrap_utilization_notes: null,
         environmental_notes: null,
+        // QA tracking fields (v0.7.1)
+        qa_status: null,
+        qa_timestamp: null,
+        qa_method: null,
+        qa_confidence: null,
+        qa_notes: null,
+        qa_issues_found: null,
+        qa_fixes_applied: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -710,6 +718,14 @@ async function storeRecipeWithWeek(
         waste_reduction_tags: null,
         scrap_utilization_notes: null,
         environmental_notes: null,
+        // QA tracking fields (v0.7.1)
+        qa_status: null,
+        qa_timestamp: null,
+        qa_method: null,
+        qa_confidence: null,
+        qa_notes: null,
+        qa_issues_found: null,
+        qa_fixes_applied: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
