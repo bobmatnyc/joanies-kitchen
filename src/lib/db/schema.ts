@@ -207,6 +207,17 @@ export const recipes = pgTable(
     waste_reduction_tags: text('waste_reduction_tags'), // JSON array: ["uses-scraps", "one-pot", "flexible-ingredients", "minimal-waste", "uses-aging", "seasonal"]
     scrap_utilization_notes: text('scrap_utilization_notes'), // Tips on using scraps/leftovers: "Save chicken bones for stock"
     environmental_notes: text('environmental_notes'), // Environmental impact notes: "Uses seasonal ingredients to reduce carbon footprint"
+
+    // QA Tracking Fields (v0.7.1 - Phase 6 Launch Preparation)
+    // Purpose: Track recipe quality assurance validation for 4,707 recipes
+    // Workflow: pending → validated (success) | pending → flagged (issues) → fixed (auto-fix) | flagged → needs_review (human) → validated
+    qa_status: varchar('qa_status', { length: 50 }).default('pending'), // 'pending', 'validated', 'flagged', 'fixed', 'needs_review'
+    qa_timestamp: timestamp('qa_timestamp'), // When QA was last performed (null = never QA'd)
+    qa_method: varchar('qa_method', { length: 100 }), // 'human', 'qwen2.5-7b-instruct', 'gpt-4o-mini', 'automated-rules', etc.
+    qa_confidence: decimal('qa_confidence', { precision: 3, scale: 2 }), // 0.00-1.00 confidence score (null for human/automated rules)
+    qa_notes: text('qa_notes'), // Free-form human notes or validation details
+    qa_issues_found: text('qa_issues_found'), // JSON array: ["missing_ingredient:salt", "instruction_mismatch:butter"]
+    qa_fixes_applied: text('qa_fixes_applied'), // JSON array: ["added_ingredient:salt", "updated_quantity:2_cups_flour"]
   },
   (table) => ({
     // Performance indexes for pagination and filtering
@@ -243,6 +254,9 @@ export const recipes = pgTable(
     ), // Composite index for meal pairing queries
     servingTempIdx: index('idx_recipes_serving_temp').on(table.serving_temperature), // Index for temperature-based filtering
     licenseIdx: index('idx_recipes_license').on(table.license), // Index for license-based filtering
+    qaStatusIdx: index('idx_recipes_qa_status').on(table.qa_status), // Index for QA status filtering
+    qaTimestampIdx: index('idx_recipes_qa_timestamp').on(table.qa_timestamp), // Index for QA timestamp sorting
+    qaMethodIdx: index('idx_recipes_qa_method').on(table.qa_method), // Index for QA method filtering
   })
 );
 
