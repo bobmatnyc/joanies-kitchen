@@ -101,6 +101,7 @@ export async function getAllTools(
         alternatives: tools.alternatives,
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
+        imageUrl: tools.image_url,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
         usageCount: sql<number>`COALESCE(COUNT(DISTINCT ${recipeTools.recipe_id}), 0)`,
@@ -127,6 +128,7 @@ export async function getAllTools(
       tools.alternatives,
       tools.typical_price_usd,
       tools.description,
+      tools.image_url,
       tools.created_at,
       tools.updated_at
     );
@@ -171,10 +173,10 @@ export async function getAllTools(
       alternatives: row.alternatives,
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
+      imageUrl: row.imageUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       usageCount: Number(row.usageCount) || 0,
-      imageUrl: null, // TODO: Add image support in future
     }));
 
     // Count total (for pagination)
@@ -227,6 +229,7 @@ export async function getToolById(toolId: string): Promise<{
         alternatives: tools.alternatives,
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
+        imageUrl: tools.image_url,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -256,6 +259,7 @@ export async function getToolById(toolId: string): Promise<{
         alternatives: tool.alternatives,
         typicalPriceUsd: tool.typicalPriceUsd,
         description: tool.description,
+        imageUrl: tool.imageUrl,
         createdAt: tool.createdAt,
         updatedAt: tool.updatedAt,
       },
@@ -292,6 +296,7 @@ export async function getToolsByCategory(category: string): Promise<{
         alternatives: tools.alternatives,
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
+        imageUrl: tools.image_url,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -311,6 +316,7 @@ export async function getToolsByCategory(category: string): Promise<{
       alternatives: row.alternatives,
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
+      imageUrl: row.imageUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -351,6 +357,7 @@ export async function getRecipeTools(recipeId: string): Promise<{
         alternatives: tools.alternatives,
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
+        imageUrl: tools.image_url,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
         isOptional: recipeTools.is_optional,
@@ -374,6 +381,7 @@ export async function getRecipeTools(recipeId: string): Promise<{
       alternatives: row.alternatives,
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
+      imageUrl: row.imageUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       isOptional: row.isOptional ?? false,
@@ -417,6 +425,7 @@ export async function getToolsByType(type: string): Promise<{
         alternatives: tools.alternatives,
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
+        imageUrl: tools.image_url,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -436,6 +445,7 @@ export async function getToolsByType(type: string): Promise<{
       alternatives: row.alternatives,
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
+      imageUrl: row.imageUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
