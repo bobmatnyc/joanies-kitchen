@@ -286,6 +286,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'zerowastechef.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.zerowastechef.com',
+        port: '',
+        pathname: '/**',
+      },
       // TheMealDB API
       {
         protocol: 'https',
