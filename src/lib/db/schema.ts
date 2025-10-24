@@ -257,7 +257,10 @@ export const recipeEmbeddings = pgTable('recipe_embeddings', {
   model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+}, (table) => ({
+  // Unique constraint: one embedding per recipe
+  recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
+}));
 
 // Recipe Ratings table for individual user ratings
 export const recipeRatings = pgTable(
@@ -476,6 +479,7 @@ export const tools = pgTable('tools', {
   // Metadata
   typical_price_usd: decimal('typical_price_usd', { precision: 8, scale: 2 }),
   description: text('description'),
+  image_url: text('image_url'), // Tool image (/images/tools/...)
 
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
