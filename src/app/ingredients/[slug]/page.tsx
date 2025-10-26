@@ -12,6 +12,51 @@ interface IngredientPageProps {
   }>;
 }
 
+export async function generateMetadata({ params }: IngredientPageProps) {
+  const { slug } = await params;
+  const result = await getIngredientBySlug(slug);
+
+  if (!result.success || !result.ingredient) {
+    return {
+      title: 'Ingredient Not Found',
+    };
+  }
+
+  const { ingredient } = result;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const canonicalUrl = `${baseUrl}/ingredients/${slug}`;
+
+  return {
+    title: `${ingredient.display_name} | Ingredient Guide | Joanie's Kitchen`,
+    description: ingredient.description || `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes using this ingredient.`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${ingredient.display_name} | Ingredient Guide`,
+      description: ingredient.description || `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes.`,
+      url: canonicalUrl,
+      type: 'article',
+      images: ingredient.image_url ? [
+        {
+          url: ingredient.image_url,
+          width: 1200,
+          height: 630,
+          alt: ingredient.display_name,
+        }
+      ] : undefined,
+    },
+    keywords: [
+      ingredient.display_name,
+      ingredient.name,
+      `${ingredient.display_name} substitutes`,
+      `${ingredient.display_name} storage`,
+      `recipes with ${ingredient.display_name}`,
+      ingredient.category,
+    ].filter(Boolean),
+  };
+}
+
 /**
  * Individual Ingredient Detail Page
  *

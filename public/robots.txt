@@ -17,10 +17,12 @@ Crawl-delay: 1
 Disallow: /api/
 Disallow: /sign-in
 Disallow: /sign-up
-Disallow: /user-profile
-Disallow: /admin
-Disallow: /profile/recipes/
+Disallow: /user-profile/
+Disallow: /admin/
+Disallow: /profile/edit
+Disallow: /profile/recipes
 Disallow: /profile/settings
+Disallow: /profile/collections
 
 # Allow public recipe pages
 Allow: /recipes/

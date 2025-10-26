@@ -86,12 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'daily',
         priority: 0.9,
       },
-      {
-        url: `${baseUrl}/recipes/new`,
-        lastModified: new Date(),
-        changeFrequency: 'monthly',
-        priority: 0.5,
-      },
+      // NOTE: Removed /recipes/new from sitemap (requires authentication)
       {
         url: `${baseUrl}/recipes/top-50`,
         lastModified: new Date(),

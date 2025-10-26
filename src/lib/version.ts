@@ -5,9 +5,9 @@
  * DO NOT EDIT MANUALLY
  */
 
-export const VERSION = '0.7.1';
-export const BUILD = 105;
-export const BUILD_DATE = '2025-10-23T06:04:48.973Z';
+export const VERSION = '0.7.2';
+export const BUILD = 106;
+export const BUILD_DATE = '2025-10-26T18:08:37.273Z';
 
 export interface VersionInfo {
   version: string;
