@@ -43,15 +43,45 @@ export async function scrapeRecipePage(url: string): Promise<ScrapeResponse> {
   const client = getFirecrawlClient();
 
   try {
+    console.log(`[Firecrawl] Scraping ${url} with 120s timeout...`);
+
+    // Firecrawl SDK v4.4.1 uses the new v1 API which returns Document directly
+    // It throws errors on failure instead of returning {success: false}
     const result = (await client.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
       waitFor: 2000, // Wait 2 seconds for dynamic content
+      timeout: 120000, // Increase timeout to 120 seconds (2 minutes)
     })) as any;
 
-    return result;
-  } catch (error) {
-    console.error(`Error scraping recipe page ${url}:`, error);
+    console.log(`[Firecrawl] Success! Result:`, {
+      hasMarkdown: !!result.markdown,
+      hasHtml: !!result.html,
+      markdownLength: result.markdown?.length,
+    });
+
+    // The new API doesn't have a 'success' field - it just returns the document
+    // Add success: true for backward compatibility with our interface
+    return {
+      success: true,
+      markdown: result.markdown,
+      html: result.html,
+      metadata: result.metadata,
+    };
+  } catch (error: any) {
+    console.error(`[Firecrawl] ERROR scraping ${url}:`);
+    console.error(`[Firecrawl] Error message:`, error?.message);
+    console.error(`[Firecrawl] Error name:`, error?.name);
+    console.error(`[Firecrawl] Error type:`, error?.constructor?.name);
+
+    // Log specific Firecrawl SDK errors
+    if (error.name === 'FirecrawlSdkError') {
+      console.error(`[Firecrawl] Firecrawl SDK Error Details:`, {
+        message: error.message,
+        code: error.code,
+      });
+    }
+
     throw new Error(
       `Failed to scrape recipe page: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

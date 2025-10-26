@@ -298,6 +298,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'media-cdn2.greatbritishchefs.com',
+        port: '',
+        pathname: '/**',
+      },
       // TheMealDB API
       {
         protocol: 'https',

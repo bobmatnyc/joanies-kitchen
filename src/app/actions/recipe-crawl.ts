@@ -159,21 +159,19 @@ export async function convertUrlToRecipe(url: string): Promise<{
   try {
     console.log(`[Convert] Extracting recipe from: ${url}`);
 
-    // Fetch webpage content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)',
-      },
-    });
+    // Use Firecrawl for robust scraping (handles JS-rendered pages)
+    const { scrapeRecipePage } = await import('@/lib/firecrawl');
+    const scrapeResult = await scrapeRecipePage(url);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
+    // Use markdown content (cleaner than HTML for AI extraction)
+    const content = scrapeResult.markdown || scrapeResult.html || '';
+
+    if (!content) {
+      throw new Error(scrapeResult.error || 'No content extracted from page');
     }
 
-    const html = await response.text();
-
-    // Limit HTML size to prevent token limits
-    const limitedHtml = html.substring(0, 50000);
+    // Limit content size to prevent token limits
+    const limitedContent = content.substring(0, 50000);
 
     // Use Claude via OpenRouter to extract recipe
     const openrouter = getOpenRouterClient();
@@ -183,10 +181,10 @@ export async function convertUrlToRecipe(url: string): Promise<{
       messages: [
         {
           role: 'user',
-          content: `Extract the recipe from this HTML. Return ONLY valid JSON with no markdown formatting, code blocks, or extra text.
+          content: `Extract the recipe from this content. Return ONLY valid JSON with no markdown formatting, code blocks, or extra text.
 
-HTML Content:
-${limitedHtml}
+Recipe Content:
+${limitedContent}
 
 Required JSON format:
 {
@@ -216,10 +214,10 @@ Important:
       temperature: 0.1,
     });
 
-    const content = completion.choices[0].message.content || '{}';
+    const aiResponse = completion.choices[0].message.content || '{}';
 
     // Remove markdown code blocks if present
-    const cleanContent = content
+    const cleanContent = aiResponse
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
