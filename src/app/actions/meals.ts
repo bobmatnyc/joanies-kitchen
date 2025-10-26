@@ -1,6 +1,6 @@
 'use server';
 
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -234,7 +234,12 @@ export async function getMealById(id: unknown) {
     const [meal] = await db
       .select()
       .from(meals)
-      .where(and(eq(meals.id, validatedId), eq(meals.user_id, userId)));
+      .where(
+        and(
+          eq(meals.id, validatedId),
+          or(eq(meals.user_id, userId), eq(meals.is_public, true))
+        )
+      );
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
@@ -280,7 +285,12 @@ export async function getMealBySlug(slug: string) {
     const [meal] = await db
       .select()
       .from(meals)
-      .where(and(eq(meals.slug, slug), eq(meals.user_id, userId)));
+      .where(
+        and(
+          eq(meals.slug, slug),
+          or(eq(meals.user_id, userId), eq(meals.is_public, true))
+        )
+      );
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };

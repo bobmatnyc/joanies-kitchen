@@ -18,10 +18,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const chef = chefResult.chef;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const canonicalUrl = `${baseUrl}/chef/${slug}`;
 
   return {
     title: `${chef.display_name || chef.name} | Joanie's Kitchen`,
     description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${chef.display_name || chef.name} | Joanie's Kitchen`,
+      description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
+      url: canonicalUrl,
+      type: 'profile',
+      images: chef.profile_image_url ? [
+        {
+          url: chef.profile_image_url,
+          width: 1200,
+          height: 630,
+          alt: `${chef.display_name || chef.name} - Chef Profile`,
+        }
+      ] : undefined,
+    },
   };
 }
 
