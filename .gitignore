@@ -181,7 +181,53 @@ wheels/
 # Image Generation
 venv-image-gen/
 scripts/image-gen/.env
+scripts/image-gen/venv/
+scripts/image-gen/__pycache__/
 tmp/ingredient-images/
 tmp/image-gen-tests/
 tmp/ingredient-batch.txt
 tmp/top-10-ingredients.txt
+
+# One-off utility scripts (analysis, migrations, fixes)
+# Keep essential scripts but ignore temporary analysis/fix scripts
+scripts/add-*.ts
+scripts/analyze-*.ts
+scripts/check-*.ts
+scripts/cleanup-*.ts
+scripts/fix-*.ts
+scripts/migrate-*.ts
+scripts/test-*.ts
+scripts/verify-*.ts
+scripts/update-*.ts
+scripts/remove-*.ts
+scripts/consolidate-*.ts
+scripts/batch-*.ts
+scripts/scrape-*.ts
+scripts/import-*.ts
+scripts/extract-*.ts
+scripts/populate-*.ts
+scripts/seed-*.ts
+scripts/manual-*.ts
+
+# Script artifacts and data files
+scripts/*.json
+scripts/*.txt
+scripts/*.csv
+scripts/*.log
+scripts/data-acquisition/
+scripts/post-launch/
+scripts/seed-users/
+
+# Temporary build and deployment artifacts
+tmp/
+!tmp/.gitkeep
+logs/
+!logs/.gitkeep
+
+# Batch import artifacts
+tmp/batch-import-*.log
+tmp/*-summary.md
+tmp/*-instructions.md
+tmp/build-artifacts/
+tmp/BEFORE_AFTER_COMPARISON.md
+tmp/CATEGORIZATION_DELIVERY_SUMMARY.md
