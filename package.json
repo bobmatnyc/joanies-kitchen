@@ -200,7 +200,8 @@
     "qa:day1": "tsx scripts/hide-incomplete-recipes.ts && tsx scripts/verify-searchable-recipes.ts && tsx scripts/generate-launch-qa-report.ts",
     "qa:fix-flagged": "tsx scripts/fix-flagged-recipes.ts",
     "qa:verify-flagged": "tsx scripts/verify-fix-flagged.ts",
-    "qa:show-fixed": "tsx scripts/show-fixed-ingredients.ts"
+    "qa:show-fixed": "tsx scripts/show-fixed-ingredients.ts",
+    "test:integration": "vitest --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.7",
