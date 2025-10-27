@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { recipes, chefs } from '@/lib/db/schema';
+import { recipes } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { convertUrlToRecipe } from './recipe-crawl';
 import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
@@ -51,7 +51,6 @@ export async function batchImportChefRecipe(recipeUrl: RecipeURL, chefId: string
     servings: extracted.servings || null,
     images: JSON.stringify(extracted.images || []),
     source: recipeUrl.url,
-    recipe_license: null,
     is_public: true,
     is_system_recipe: true,
     created_at: new Date(),
