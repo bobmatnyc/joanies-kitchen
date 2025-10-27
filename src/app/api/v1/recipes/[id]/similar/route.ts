@@ -7,8 +7,7 @@
  * Authorization: Scope-based permissions
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { ZodError } from 'zod';
+import type { NextRequest } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
@@ -18,6 +17,14 @@ import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { eq, isNull, or } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
+import {
+  apiSuccess,
+  apiError,
+  apiNotFound,
+  getRequiredParam,
+  parseQueryParams,
+  handleActionResult,
+} from '@/lib/api';
 
 /**
  * GET /api/v1/recipes/:id/similar
@@ -51,81 +58,36 @@ export const GET = requireScopes(
   [SCOPES.READ_RECIPES],
   async (request: NextRequest, authContext, context: RouteContext) => {
     try {
-      // Extract recipe ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
-      const id = params?.id as string;
+      // Extract recipe ID and parse query parameters
+      const idResult = await getRequiredParam(context, 'id');
+      if ('error' in idResult) return idResult.error;
 
-      if (!id) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Recipe ID is required',
-          },
-          { status: 400 }
-        );
-      }
+      const { data: id } = idResult;
 
-      // Parse and validate query parameters
-      const searchParams = request.nextUrl.searchParams;
-      const queryParams: Record<string, any> = {};
+      const parsed = parseQueryParams(request, similarRecipesQuerySchema);
+      if ('error' in parsed) return parsed.error;
 
-      searchParams.forEach((value, key) => {
-        queryParams[key] = value;
-      });
-
-      let validatedQuery: SimilarRecipesQuery;
-      try {
-        validatedQuery = similarRecipesQuerySchema.parse(queryParams);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Invalid query parameters',
-              details: error.errors,
-            },
-            { status: 400 }
-          );
-        }
-        throw error;
-      }
+      const { data: validatedQuery } = parsed;
 
       // Fetch the source recipe
       const sourceRecipeResult = await getRecipe(id);
+      const recipeCheck = handleActionResult(sourceRecipeResult);
+      if ('error' in recipeCheck) return recipeCheck.error;
 
-      if (!sourceRecipeResult.success || !sourceRecipeResult.data) {
-        const statusCode = sourceRecipeResult.error === 'Recipe not found' ? 404 :
-                          sourceRecipeResult.error === 'Access denied' ? 403 : 500;
-
-        return NextResponse.json(
-          {
-            success: false,
-            error: sourceRecipeResult.error || 'Failed to fetch recipe',
-          },
-          { status: statusCode }
-        );
-      }
-
-      const sourceRecipe = sourceRecipeResult.data;
+      const sourceRecipe = recipeCheck.data;
 
       // Get the recipe's embedding
       const embedding = await getRecipeEmbedding(sourceRecipe.id);
 
       if (!embedding) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'No embedding available for this recipe. Semantic search not possible.',
-          },
-          { status: 404 }
-        );
+        return apiNotFound('No embedding available for this recipe. Semantic search not possible');
       }
 
-      // Find similar recipes using vector similarity
+      // Find similar recipes using vector similarity (defaults guaranteed by schema)
       const similarResults = await findSimilarRecipes(
         embedding.embedding,
-        validatedQuery.limit + 1, // +1 to exclude source recipe
-        validatedQuery.minSimilarity
+        validatedQuery.limit! + 1, // +1 to exclude source recipe
+        validatedQuery.minSimilarity!
       );
 
       // Filter out the source recipe and recipes user doesn't have access to
@@ -137,12 +99,9 @@ export const GET = requireScopes(
         .filter((recipeId) => recipeId !== sourceRecipe.id); // Exclude source recipe
 
       if (similarRecipeIds.length === 0) {
-        return NextResponse.json({
-          success: true,
-          data: {
-            sourceRecipe,
-            similarRecipes: [],
-          },
+        return apiSuccess({
+          sourceRecipe,
+          similarRecipes: [],
         });
       }
 
@@ -195,28 +154,19 @@ export const GET = requireScopes(
         })
       );
 
-      // Filter out null values and sort by similarity
+      // Filter out null values and sort by similarity (limit guaranteed by schema)
       const filteredSimilarRecipes = allSimilarRecipes
         .filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== null)
         .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, validatedQuery.limit);
+        .slice(0, validatedQuery.limit!);
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          sourceRecipe,
-          similarRecipes: filteredSimilarRecipes,
-        },
+      return apiSuccess({
+        sourceRecipe,
+        similarRecipes: filteredSimilarRecipes,
       });
     } catch (error) {
       console.error('Error finding similar recipes:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Internal server error',
-        },
-        { status: 500 }
-      );
+      return apiError('Internal server error');
     }
   }
 );

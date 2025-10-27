@@ -8,16 +8,25 @@
  * Authorization: Scope-based permissions
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
-import { ZodError } from 'zod';
+import type { NextRequest } from 'next/server';
 import { createRecipe, getRecipes, searchRecipes } from '@/app/actions/recipes';
-import { requireAuth, requireScopes, SCOPES } from '@/lib/api-auth';
+import { requireScopes, SCOPES } from '@/lib/api-auth';
 import {
   createRecipeSchema,
   listRecipesQuerySchema,
   type CreateRecipeInput,
   type ListRecipesQuery,
 } from '@/lib/validations/recipe-api';
+import {
+  apiSuccess,
+  apiSuccessPaginated,
+  apiError,
+  parseQueryParams,
+  parseJsonBody,
+  applyFilters,
+  applySorting,
+  applyPagination,
+} from '@/lib/api';
 
 /**
  * GET /api/v1/recipes
@@ -59,168 +68,47 @@ import {
 export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequest, auth) => {
   try {
     // Parse and validate query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const queryParams: Record<string, any> = {};
+    const parsed = parseQueryParams(request, listRecipesQuerySchema);
+    if ('error' in parsed) return parsed.error;
 
-    // Extract all query parameters
-    searchParams.forEach((value, key) => {
-      queryParams[key] = value;
-    });
+    const { data: validatedQuery } = parsed;
 
-    // Validate query parameters
-    let validatedQuery: ListRecipesQuery;
-    try {
-      validatedQuery = listRecipesQuerySchema.parse(queryParams);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid query parameters',
-            details: error.errors,
-          },
-          { status: 400 }
+    // Fetch recipes (search or regular listing)
+    const result = validatedQuery.search
+      ? await searchRecipes(validatedQuery.search)
+      : await getRecipes(
+          validatedQuery.tags ? validatedQuery.tags.split(',').map((t) => t.trim()) : undefined
         );
-      }
-      throw error;
-    }
-
-    // If search query is provided, use search function
-    if (validatedQuery.search) {
-      const result = await searchRecipes(validatedQuery.search);
-
-      if (!result.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: result.error || 'Failed to search recipes',
-          },
-          { status: 500 }
-        );
-      }
-
-      // Apply additional filters manually for search results
-      let filteredRecipes = result.data || [];
-
-      // Filter by cuisine
-      if (validatedQuery.cuisine) {
-        filteredRecipes = filteredRecipes.filter(
-          (recipe) => recipe.cuisine?.toLowerCase() === validatedQuery.cuisine?.toLowerCase()
-        );
-      }
-
-      // Filter by difficulty
-      if (validatedQuery.difficulty) {
-        filteredRecipes = filteredRecipes.filter(
-          (recipe) => recipe.difficulty === validatedQuery.difficulty
-        );
-      }
-
-      // Filter by public status
-      if (validatedQuery.isPublic !== undefined) {
-        filteredRecipes = filteredRecipes.filter(
-          (recipe) => recipe.is_public === validatedQuery.isPublic
-        );
-      }
-
-      // Apply sorting
-      filteredRecipes.sort((a, b) => {
-        const aValue = a[validatedQuery.sortBy] || '';
-        const bValue = b[validatedQuery.sortBy] || '';
-        const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-        return validatedQuery.order === 'asc' ? comparison : -comparison;
-      });
-
-      // Apply pagination
-      const total = filteredRecipes.length;
-      const startIndex = (validatedQuery.page - 1) * validatedQuery.limit;
-      const endIndex = startIndex + validatedQuery.limit;
-      const paginatedRecipes = filteredRecipes.slice(startIndex, endIndex);
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          recipes: paginatedRecipes,
-          pagination: {
-            page: validatedQuery.page,
-            limit: validatedQuery.limit,
-            total,
-            totalPages: Math.ceil(total / validatedQuery.limit),
-            hasMore: endIndex < total,
-          },
-        },
-      });
-    }
-
-    // Parse tags if provided
-    const tags = validatedQuery.tags ? validatedQuery.tags.split(',').map((t) => t.trim()) : undefined;
-
-    // Use getRecipes with tag filtering
-    const result = await getRecipes(tags);
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error || 'Failed to fetch recipes',
-        },
-        { status: 500 }
-      );
+      return apiError(result.error || 'Failed to fetch recipes', 500);
     }
 
     let recipes = result.data || [];
 
-    // Apply additional filters
-    if (validatedQuery.cuisine) {
-      recipes = recipes.filter(
-        (recipe) => recipe.cuisine?.toLowerCase() === validatedQuery.cuisine?.toLowerCase()
-      );
-    }
+    // Build filter criteria
+    const filters: Record<string, unknown> = {};
+    if (validatedQuery.cuisine) filters.cuisine = validatedQuery.cuisine;
+    if (validatedQuery.difficulty) filters.difficulty = validatedQuery.difficulty;
+    if (validatedQuery.isPublic !== undefined) filters.is_public = validatedQuery.isPublic;
 
-    if (validatedQuery.difficulty) {
-      recipes = recipes.filter((recipe) => recipe.difficulty === validatedQuery.difficulty);
-    }
+    // Apply filters
+    recipes = applyFilters(recipes, filters);
 
-    if (validatedQuery.isPublic !== undefined) {
-      recipes = recipes.filter((recipe) => recipe.is_public === validatedQuery.isPublic);
-    }
+    // Apply sorting (defaults guaranteed by schema)
+    recipes = applySorting(recipes, validatedQuery.sortBy!, validatedQuery.order!);
 
-    // Apply sorting
-    recipes.sort((a, b) => {
-      const aValue = a[validatedQuery.sortBy] || '';
-      const bValue = b[validatedQuery.sortBy] || '';
-      const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      return validatedQuery.order === 'asc' ? comparison : -comparison;
-    });
+    // Apply pagination (defaults guaranteed by schema)
+    const { items: paginatedRecipes, total } = applyPagination(
+      recipes,
+      validatedQuery.page!,
+      validatedQuery.limit!
+    );
 
-    // Apply pagination
-    const total = recipes.length;
-    const startIndex = (validatedQuery.page - 1) * validatedQuery.limit;
-    const endIndex = startIndex + validatedQuery.limit;
-    const paginatedRecipes = recipes.slice(startIndex, endIndex);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        recipes: paginatedRecipes,
-        pagination: {
-          page: validatedQuery.page,
-          limit: validatedQuery.limit,
-          total,
-          totalPages: Math.ceil(total / validatedQuery.limit),
-          hasMore: endIndex < total,
-        },
-      },
-    });
+    return apiSuccessPaginated(paginatedRecipes, validatedQuery.page!, validatedQuery.limit!, total);
   } catch (error) {
     console.error('Error fetching recipes:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
-      { status: 500 }
-    );
+    return apiError('Internal server error');
   }
 });
 
@@ -264,56 +152,23 @@ export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequ
  */
 export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRequest, auth) => {
   try {
-    // Parse request body
-    const body = await request.json();
+    // Parse and validate request body
+    const parsed = await parseJsonBody(request, createRecipeSchema);
+    if ('error' in parsed) return parsed.error;
 
-    // Validate request body
-    let validatedData: CreateRecipeInput;
-    try {
-      validatedData = createRecipeSchema.parse(body);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid request body',
-            details: error.errors,
-          },
-          { status: 400 }
-        );
-      }
-      throw error;
-    }
+    const { data: validatedData } = parsed;
 
     // Create recipe using server action
     // Cast to any to work around type mismatch between our schema and internal types
     const result = await createRecipe(validatedData as any);
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error || 'Failed to create recipe',
-        },
-        { status: 500 }
-      );
+      return apiError(result.error || 'Failed to create recipe', 500);
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: result.data,
-      },
-      { status: 201 }
-    );
+    return apiSuccess(result.data, 201);
   } catch (error) {
     console.error('Error creating recipe:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
-      { status: 500 }
-    );
+    return apiError('Internal server error');
   }
 });
