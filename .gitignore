@@ -231,3 +231,6 @@ tmp/*-instructions.md
 tmp/build-artifacts/
 tmp/BEFORE_AFTER_COMPARISON.md
 tmp/CATEGORIZATION_DELIVERY_SUMMARY.md
+
+# Images (migrated to Vercel Blob Storage - October 26, 2025)
+public/images/**
