@@ -125,8 +125,7 @@ $RECYCLE.BIN/
 .claude-mpm/logs/
 .claude-mpm/sessions/
 .claude-mpm/tmp/
-.claude/cache/
-.claude/sessions/
+.claude/
 .conda/
 .coverage
 .coverage.*
@@ -234,3 +233,7 @@ tmp/CATEGORIZATION_DELIVERY_SUMMARY.md
 
 # Images (migrated to Vercel Blob Storage - October 26, 2025)
 public/images/**
+
+# Added by Claude MPM /mpm-init
+.claude/cache/
+.claude/sessions/
