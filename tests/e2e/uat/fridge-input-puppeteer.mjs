@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,14 +21,14 @@ const consoleMessages = [];
 const networkRequests = [];
 const pageErrors = [];
 
-console.log('\n' + '='.repeat(80));
+console.log(`\n${'='.repeat(80)}`);
 console.log('FRIDGE INPUT COMPONENT UAT - PUPPETEER');
-console.log('='.repeat(80) + '\n');
+console.log(`${'='.repeat(80)}\n`);
 
 async function runTests() {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
   const page = await browser.newPage();
@@ -41,7 +41,7 @@ async function runTests() {
     const entry = {
       type: msg.type(),
       text: msg.text(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     consoleMessages.push(entry);
     console.log(`[CONSOLE ${msg.type().toUpperCase()}] ${msg.text()}`);
@@ -52,7 +52,7 @@ async function runTests() {
     networkRequests.push({
       method: request.method(),
       url: request.url(),
-      resourceType: request.resourceType()
+      resourceType: request.resourceType(),
     });
   });
 
@@ -61,7 +61,7 @@ async function runTests() {
     pageErrors.push({
       message: error.message,
       stack: error.stack,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     console.error(`[PAGE ERROR] ${error.message}`);
   });
@@ -88,20 +88,19 @@ async function runTests() {
 
     // Generate summary report
     generateSummaryReport();
-
   } catch (error) {
     console.error('\n❌ TEST SUITE ERROR:', error.message);
     console.error(error.stack);
   } finally {
     await browser.close();
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${'='.repeat(80)}`);
     console.log('TEST SUITE COMPLETE');
     console.log('='.repeat(80));
   }
 }
 
 async function test1PageLoad(page) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('TEST 1: Page Load and Component Visibility');
   console.log('='.repeat(80));
 
@@ -111,7 +110,7 @@ async function test1PageLoad(page) {
   // Take screenshot
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'homepage-initial-load.png'),
-    fullPage: true
+    fullPage: true,
   });
   console.log('✓ Screenshot saved: homepage-initial-load.png');
 
@@ -120,18 +119,18 @@ async function test1PageLoad(page) {
   console.log(`Page loaded, body length: ${bodyLength} chars`);
 
   // Count input fields
-  const inputCount = await page.$$eval('input', inputs => inputs.length);
+  const inputCount = await page.$$eval('input', (inputs) => inputs.length);
   console.log(`Total input fields found: ${inputCount}`);
 
   // Analyze input fields
-  const inputInfo = await page.$$eval('input', inputs => {
-    return inputs.map(input => ({
+  const inputInfo = await page.$$eval('input', (inputs) => {
+    return inputs.map((input) => ({
       type: input.getAttribute('type'),
       placeholder: input.getAttribute('placeholder'),
       name: input.getAttribute('name'),
       id: input.getAttribute('id'),
       className: input.getAttribute('class'),
-      visible: input.offsetParent !== null
+      visible: input.offsetParent !== null,
     }));
   });
 
@@ -146,7 +145,7 @@ async function test1PageLoad(page) {
     const keywords = ['fridge', 'ingredient', 'search'];
     const results = {};
 
-    keywords.forEach(keyword => {
+    keywords.forEach((keyword) => {
       const selector = `[class*="${keyword}"], [id*="${keyword}"]`;
       results[keyword] = document.querySelectorAll(selector).length;
     });
@@ -163,7 +162,7 @@ async function test1PageLoad(page) {
 }
 
 async function test2InputInteraction(page) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('TEST 2: Input Field Interaction');
   console.log('='.repeat(80));
 
@@ -171,7 +170,7 @@ async function test2InputInteraction(page) {
   await page.waitForTimeout(2000);
 
   // Clear console messages for this test
-  const errorsBefore = consoleMessages.filter(m => m.type === 'error').length;
+  const errorsBefore = consoleMessages.filter((m) => m.type === 'error').length;
 
   // Find text inputs
   const textInputs = await page.$$('input[type="text"], input[type="search"], input:not([type])');
@@ -181,7 +180,7 @@ async function test2InputInteraction(page) {
     const firstInput = textInputs[0];
 
     // Check visibility
-    const isVisible = await firstInput.evaluate(el => {
+    const isVisible = await firstInput.evaluate((el) => {
       return el.offsetParent !== null && window.getComputedStyle(el).visibility !== 'hidden';
     });
 
@@ -189,7 +188,7 @@ async function test2InputInteraction(page) {
       console.log('✓ First input is visible');
 
       // Get placeholder
-      const placeholder = await firstInput.evaluate(el => el.getAttribute('placeholder'));
+      const placeholder = await firstInput.evaluate((el) => el.getAttribute('placeholder'));
       console.log(`Input placeholder: "${placeholder}"`);
 
       // Click and type
@@ -201,7 +200,7 @@ async function test2InputInteraction(page) {
       await page.waitForTimeout(1000);
 
       // Verify value
-      const value = await firstInput.evaluate(el => el.value);
+      const value = await firstInput.evaluate((el) => el.value);
       console.log(`Input value after typing: "${value}"`);
 
       if (value === 'chicken') {
@@ -213,41 +212,40 @@ async function test2InputInteraction(page) {
       // Take screenshot
       await page.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'fridge-input-typing.png'),
-        fullPage: true
+        fullPage: true,
       });
       console.log('✓ Screenshot saved: fridge-input-typing.png');
 
       // Check for errors
-      const errorsAfter = consoleMessages.filter(m => m.type === 'error').length;
+      const errorsAfter = consoleMessages.filter((m) => m.type === 'error').length;
       const newErrors = errorsAfter - errorsBefore;
       console.log(`Console errors during typing: ${newErrors}`);
 
       if (newErrors > 0) {
         console.log('Errors:');
         consoleMessages
-          .filter(m => m.type === 'error')
+          .filter((m) => m.type === 'error')
           .slice(-newErrors)
           .forEach((err, i) => console.log(`  ${i + 1}. ${err.text}`));
       }
-
     } else {
       console.log('❌ First input is not visible');
       await page.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'fridge-input-no-visible-field.png'),
-        fullPage: true
+        fullPage: true,
       });
     }
   } else {
     console.log('❌ ERROR: No text input fields found on page');
     await page.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'fridge-input-no-field.png'),
-      fullPage: true
+      fullPage: true,
     });
   }
 }
 
 async function test3Autocomplete(page) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('TEST 3: Autocomplete Behavior');
   console.log('='.repeat(80));
 
@@ -260,7 +258,7 @@ async function test3Autocomplete(page) {
 
   if (textInputs.length > 0) {
     const firstInput = textInputs[0];
-    const isVisible = await firstInput.evaluate(el => el.offsetParent !== null);
+    const isVisible = await firstInput.evaluate((el) => el.offsetParent !== null);
 
     if (isVisible) {
       await firstInput.click();
@@ -276,19 +274,19 @@ async function test3Autocomplete(page) {
         '[class*="dropdown"]',
         '[class*="suggestions"]',
         '[class*="results"]',
-        'ul[class*="list"]'
+        'ul[class*="list"]',
       ];
 
       let dropdownFound = false;
       for (const selector of dropdownSelectors) {
         const elements = await page.$$(selector);
         if (elements.length > 0) {
-          const isVisible = await elements[0].evaluate(el => {
+          const isVisible = await elements[0].evaluate((el) => {
             return el.offsetParent !== null && window.getComputedStyle(el).display !== 'none';
           });
 
           if (isVisible) {
-            const text = await elements[0].evaluate(el => el.textContent);
+            const text = await elements[0].evaluate((el) => el.textContent);
             console.log(`✓ Autocomplete dropdown found: ${selector}`);
             console.log(`  Content preview: ${text.substring(0, 100)}`);
             dropdownFound = true;
@@ -302,13 +300,14 @@ async function test3Autocomplete(page) {
       }
 
       // Check for API requests
-      const requestsAfter = networkRequests.length;
+      const _requestsAfter = networkRequests.length;
       const newRequests = networkRequests.slice(requestsBefore);
-      const apiRequests = newRequests.filter(req =>
-        req.url.includes('/api') ||
-        req.url.includes('ingredient') ||
-        req.url.includes('search') ||
-        req.url.includes('autocomplete')
+      const apiRequests = newRequests.filter(
+        (req) =>
+          req.url.includes('/api') ||
+          req.url.includes('ingredient') ||
+          req.url.includes('search') ||
+          req.url.includes('autocomplete')
       );
 
       console.log(`API/Search requests made: ${apiRequests.length}`);
@@ -322,7 +321,7 @@ async function test3Autocomplete(page) {
       // Take screenshot
       await page.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'fridge-input-autocomplete.png'),
-        fullPage: true
+        fullPage: true,
       });
       console.log('✓ Screenshot saved: fridge-input-autocomplete.png');
     }
@@ -330,7 +329,7 @@ async function test3Autocomplete(page) {
 }
 
 async function test4SearchExecution(page) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('TEST 4: Search Execution');
   console.log('='.repeat(80));
 
@@ -341,7 +340,7 @@ async function test4SearchExecution(page) {
 
   if (textInputs.length > 0) {
     const firstInput = textInputs[0];
-    const isVisible = await firstInput.evaluate(el => el.offsetParent !== null);
+    const isVisible = await firstInput.evaluate((el) => el.offsetParent !== null);
 
     if (isVisible) {
       await firstInput.click();
@@ -353,7 +352,7 @@ async function test4SearchExecution(page) {
       const buttonSelectors = [
         'button[type="submit"]',
         'button[aria-label*="search" i]',
-        'button[class*="search"]'
+        'button[class*="search"]',
       ];
 
       let searchButton = null;
@@ -361,7 +360,7 @@ async function test4SearchExecution(page) {
         const buttons = await page.$$(selector);
         if (buttons.length > 0) {
           searchButton = buttons[0];
-          const buttonText = await searchButton.evaluate(el => el.textContent);
+          const buttonText = await searchButton.evaluate((el) => el.textContent);
           console.log(`Found search button: "${buttonText}" (${selector})`);
           break;
         }
@@ -392,15 +391,10 @@ async function test4SearchExecution(page) {
         console.log('No URL change - checking for dynamic results...');
 
         const resultsCount = await page.evaluate(() => {
-          const selectors = [
-            '[class*="result"]',
-            '[class*="recipe"]',
-            'article',
-            'main li'
-          ];
+          const selectors = ['[class*="result"]', '[class*="recipe"]', 'article', 'main li'];
 
           let total = 0;
-          selectors.forEach(selector => {
+          selectors.forEach((selector) => {
             total += document.querySelectorAll(selector).length;
           });
           return total;
@@ -415,14 +409,11 @@ async function test4SearchExecution(page) {
 
       // Check for error messages
       const errorMessages = await page.evaluate(() => {
-        const selectors = [
-          '[role="alert"]',
-          '[class*="error"]'
-        ];
+        const selectors = ['[role="alert"]', '[class*="error"]'];
 
         const messages = [];
-        selectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach(el => {
+        selectors.forEach((selector) => {
+          document.querySelectorAll(selector).forEach((el) => {
             if (el.textContent.trim()) {
               messages.push(el.textContent.trim());
             }
@@ -439,15 +430,15 @@ async function test4SearchExecution(page) {
       // Take screenshot
       await page.screenshot({
         path: path.join(SCREENSHOTS_DIR, 'fridge-input-search.png'),
-        fullPage: true
+        fullPage: true,
       });
       console.log('✓ Screenshot saved: fridge-input-search.png');
     }
   }
 }
 
-async function test5Analysis(page) {
-  console.log('\n' + '='.repeat(80));
+async function test5Analysis(_page) {
+  console.log(`\n${'='.repeat(80)}`);
   console.log('TEST 5: Console and Network Analysis');
   console.log('='.repeat(80));
 
@@ -455,10 +446,10 @@ async function test5Analysis(page) {
   console.log('\n=== Console Messages Summary ===');
 
   const messagesByType = {
-    log: consoleMessages.filter(m => m.type === 'log'),
-    error: consoleMessages.filter(m => m.type === 'error'),
-    warning: consoleMessages.filter(m => m.type === 'warning'),
-    info: consoleMessages.filter(m => m.type === 'info')
+    log: consoleMessages.filter((m) => m.type === 'log'),
+    error: consoleMessages.filter((m) => m.type === 'error'),
+    warning: consoleMessages.filter((m) => m.type === 'warning'),
+    info: consoleMessages.filter((m) => m.type === 'info'),
   };
 
   console.log(`Total console messages: ${consoleMessages.length}`);
@@ -507,8 +498,8 @@ async function test5Analysis(page) {
   });
 
   // XHR/Fetch requests
-  const xhrRequests = networkRequests.filter(req =>
-    req.resourceType === 'xhr' || req.resourceType === 'fetch'
+  const xhrRequests = networkRequests.filter(
+    (req) => req.resourceType === 'xhr' || req.resourceType === 'fetch'
   );
 
   if (xhrRequests.length > 0) {
@@ -522,7 +513,7 @@ async function test5Analysis(page) {
 }
 
 function generateSummaryReport() {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('UAT TEST SUMMARY REPORT');
   console.log('='.repeat(80));
 
@@ -530,11 +521,11 @@ function generateSummaryReport() {
     'Test Date': new Date().toISOString(),
     'URL Tested': BASE_URL,
     'Screenshots Generated': fs.readdirSync(SCREENSHOTS_DIR).length,
-    'Console Errors': consoleMessages.filter(m => m.type === 'error').length,
-    'Console Warnings': consoleMessages.filter(m => m.type === 'warning').length,
+    'Console Errors': consoleMessages.filter((m) => m.type === 'error').length,
+    'Console Warnings': consoleMessages.filter((m) => m.type === 'warning').length,
     'Page Errors': pageErrors.length,
     'Total Network Requests': networkRequests.length,
-    'API Requests': networkRequests.filter(r => r.url.includes('/api')).length
+    'API Requests': networkRequests.filter((r) => r.url.includes('/api')).length,
   };
 
   console.log('\nKey Metrics:');
@@ -552,18 +543,25 @@ function generateSummaryReport() {
 
   // Save report to JSON
   const reportPath = path.join(SCREENSHOTS_DIR, 'test-report.json');
-  fs.writeFileSync(reportPath, JSON.stringify({
-    ...report,
-    consoleMessages,
-    pageErrors,
-    networkRequests
-  }, null, 2));
+  fs.writeFileSync(
+    reportPath,
+    JSON.stringify(
+      {
+        ...report,
+        consoleMessages,
+        pageErrors,
+        networkRequests,
+      },
+      null,
+      2
+    )
+  );
 
   console.log(`\n✓ Full test report saved: ${reportPath}`);
 }
 
 // Run tests
-runTests().catch(error => {
+runTests().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

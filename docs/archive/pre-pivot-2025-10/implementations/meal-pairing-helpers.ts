@@ -7,7 +7,7 @@
  * @version 0.65.0
  */
 
-import { Recipe } from '@/lib/db/schema';
+import type { Recipe } from '@/lib/db/schema';
 
 // ============================================================================
 // Type Definitions
@@ -18,19 +18,37 @@ export type SweetnessLevel = 'light' | 'moderate' | 'rich';
 export type ServingTemperature = 'hot' | 'cold' | 'room';
 
 export const VALID_TEXTURES = [
-  'crispy', 'creamy', 'crunchy', 'soft',
-  'flaky', 'smooth', 'tender', 'chewy',
-  'silky', 'velvety', 'airy', 'dense'
+  'crispy',
+  'creamy',
+  'crunchy',
+  'soft',
+  'flaky',
+  'smooth',
+  'tender',
+  'chewy',
+  'silky',
+  'velvety',
+  'airy',
+  'dense',
 ] as const;
 
 export const VALID_FLAVORS = [
-  'umami', 'sweet', 'salty', 'bitter',
-  'sour', 'spicy', 'savory', 'tangy',
-  'earthy', 'smoky', 'herbal', 'citrus'
+  'umami',
+  'sweet',
+  'salty',
+  'bitter',
+  'sour',
+  'spicy',
+  'savory',
+  'tangy',
+  'earthy',
+  'smoky',
+  'herbal',
+  'citrus',
 ] as const;
 
-export type Texture = typeof VALID_TEXTURES[number];
-export type Flavor = typeof VALID_FLAVORS[number];
+export type Texture = (typeof VALID_TEXTURES)[number];
+export type Flavor = (typeof VALID_FLAVORS)[number];
 
 export interface PairingMetadata {
   weight_score: PairingScore;
@@ -170,9 +188,9 @@ export function hasAcidFatBalance(main: Recipe, side: Recipe): boolean {
 export function countUniqueTextures(recipes: Recipe[]): number {
   const allTextures = new Set<Texture>();
 
-  recipes.forEach(recipe => {
+  recipes.forEach((recipe) => {
     const textures = parseTextures(recipe);
-    textures.forEach(t => allTextures.add(t));
+    textures.forEach((t) => allTextures.add(t));
   });
 
   return allTextures.size;
@@ -186,8 +204,7 @@ export function hasTextureConflict(recipe1: Recipe, recipe2: Recipe): boolean {
   const textures2 = parseTextures(recipe2);
 
   // Check for complete overlap (bad)
-  return textures1.some(t => textures2.includes(t)) &&
-         textures1.length === textures2.length;
+  return textures1.some((t) => textures2.includes(t)) && textures1.length === textures2.length;
 }
 
 /**
@@ -195,9 +212,7 @@ export function hasTextureConflict(recipe1: Recipe, recipe2: Recipe): boolean {
  * Ideal: Hot → Cold → Hot → Cold
  */
 export function getTemperatureProgression(courses: Recipe[]): ServingTemperature[] {
-  return courses
-    .map(c => c.serving_temperature)
-    .filter((t): t is ServingTemperature => !!t);
+  return courses.map((c) => c.serving_temperature).filter((t): t is ServingTemperature => !!t);
 }
 
 /**
@@ -281,7 +296,7 @@ export function calculateMealCompatibility(
     acidFatBalance: acidFatBalanced,
     textureVariety,
     temperatureVariety: tempVariety,
-    issues
+    issues,
   };
 }
 
@@ -322,7 +337,7 @@ export function buildSideQueryConditions(main: Recipe) {
 export function buildAppetizerQueryConditions() {
   return {
     weight_score_max: 2,
-    serving_temperature: ['hot', 'cold'] // Not room temp
+    serving_temperature: ['hot', 'cold'], // Not room temp
   };
 }
 
@@ -331,17 +346,18 @@ export function buildAppetizerQueryConditions() {
  * Should provide sweet closure without overwhelming
  */
 export function buildDessertQueryConditions(mainCourses: Recipe[]) {
-  const avgRichness = mainCourses
-    .map(r => r.richness_score)
-    .filter(isValidScore)
-    .reduce((sum, val) => sum + val, 0) / mainCourses.length;
+  const avgRichness =
+    mainCourses
+      .map((r) => r.richness_score)
+      .filter(isValidScore)
+      .reduce((sum, val) => sum + val, 0) / mainCourses.length;
 
   // If main courses were rich, prefer lighter dessert
   const targetSweetness = avgRichness >= 4 ? 'light' : 'moderate';
 
   return {
     sweetness_level: [targetSweetness],
-    serving_temperature: ['cold', 'room'] // Typically not hot
+    serving_temperature: ['cold', 'room'], // Typically not hot
   };
 }
 
@@ -366,7 +382,7 @@ export function getTemperatureEmoji(temp: ServingTemperature | null | undefined)
   const emojis: Record<ServingTemperature, string> = {
     hot: '🔥',
     cold: '❄️',
-    room: '🌡️'
+    room: '🌡️',
   };
   return emojis[temp];
 }
