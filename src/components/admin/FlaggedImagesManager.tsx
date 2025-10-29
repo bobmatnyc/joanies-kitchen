@@ -4,7 +4,7 @@ import { AlertCircle, RefreshCw, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import {
   getFlaggedRecipes,
   regenerateAllFlaggedImages,
@@ -35,7 +35,7 @@ export function FlaggedImagesManager() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const loadFlaggedRecipes = async () => {
+  const loadFlaggedRecipes = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -51,7 +51,7 @@ export function FlaggedImagesManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadFlaggedRecipes();
