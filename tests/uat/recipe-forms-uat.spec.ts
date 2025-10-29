@@ -9,9 +9,9 @@
  * - Detailed Form: http://localhost:3002/recipes/new (tab: "Detailed Form")
  */
 
-import { test, expect, Page } from '@playwright/test';
-import path from 'path';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { expect, test } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:3002';
 const SCREENSHOTS_DIR = path.join(__dirname, '../../tmp/uat-screenshots');
@@ -29,7 +29,9 @@ test.describe('UAT: Recipe Creation Forms - Business Requirements', () => {
   });
 
   test.describe('UAT Scenario 1: AI Upload Form - Text/Markdown Upload', () => {
-    test('should display AI Upload tab as default and show clear instructions', async ({ page }) => {
+    test('should display AI Upload tab as default and show clear instructions', async ({
+      page,
+    }) => {
       // Verify default tab is AI Upload
       const aiTab = page.locator('button[role="tab"]:has-text("AI Upload (Quick)")');
       await expect(aiTab).toHaveAttribute('data-state', 'active');
@@ -39,7 +41,10 @@ test.describe('UAT: Recipe Creation Forms - Business Requirements', () => {
       await expect(infoBox).toBeVisible();
 
       // Screenshot
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01-ai-upload-default.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '01-ai-upload-default.png'),
+        fullPage: true,
+      });
     });
 
     test('should successfully parse and create recipe from text', async ({ page }) => {
@@ -67,7 +72,10 @@ Instructions:
       const textarea = page.locator('textarea[placeholder*="Paste your recipe here"]');
       await textarea.fill(testRecipe);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02-ai-upload-text-entered.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '02-ai-upload-text-entered.png'),
+        fullPage: true,
+      });
 
       // Click parse button
       const parseButton = page.locator('button:has-text("Parse & Create Recipe")');
@@ -76,20 +84,34 @@ Instructions:
 
       // Wait for AI processing
       await expect(page.locator('text=Parsing with AI')).toBeVisible({ timeout: 5000 });
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03-ai-upload-processing.png'), fullPage: true });
-
-      // Wait for success or error (30 second timeout for AI)
-      await page.waitForSelector('text=Recipe parsed successfully', { timeout: 30000 }).catch(async (e) => {
-        // Capture error state if it fails
-        await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '04-ai-upload-error.png'), fullPage: true });
-        throw e;
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '03-ai-upload-processing.png'),
+        fullPage: true,
       });
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05-ai-upload-success.png'), fullPage: true });
+      // Wait for success or error (30 second timeout for AI)
+      await page
+        .waitForSelector('text=Recipe parsed successfully', { timeout: 30000 })
+        .catch(async (e) => {
+          // Capture error state if it fails
+          await page.screenshot({
+            path: path.join(SCREENSHOTS_DIR, '04-ai-upload-error.png'),
+            fullPage: true,
+          });
+          throw e;
+        });
+
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '05-ai-upload-success.png'),
+        fullPage: true,
+      });
 
       // Verify redirect to recipe page
       await page.waitForURL(/\/recipes\/[a-z0-9-]+/, { timeout: 10000 });
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '06-ai-upload-recipe-created.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '06-ai-upload-recipe-created.png'),
+        fullPage: true,
+      });
     });
 
     test('should validate empty text submission', async ({ page }) => {
@@ -98,7 +120,10 @@ Instructions:
       // Button should be disabled when textarea is empty
       await expect(parseButton).toBeDisabled();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07-ai-upload-validation-empty.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '07-ai-upload-validation-empty.png'),
+        fullPage: true,
+      });
     });
 
     test('should provide helpful placeholder text and examples', async ({ page }) => {
@@ -110,7 +135,10 @@ Instructions:
       expect(placeholder).toContain('Ingredients');
       expect(placeholder).toContain('Instructions');
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-ai-upload-placeholder.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '08-ai-upload-placeholder.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -128,7 +156,10 @@ Instructions:
       // Verify helpful text
       await expect(page.locator('text=Supports most recipe websites')).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09-ai-upload-url-tab.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '09-ai-upload-url-tab.png'),
+        fullPage: true,
+      });
     });
 
     test('should validate URL format', async ({ page }) => {
@@ -147,7 +178,10 @@ Instructions:
       // Button should be enabled (browser validates on submit)
       await expect(importButton).toBeEnabled();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-ai-upload-url-validation.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '10-ai-upload-url-validation.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -167,7 +201,10 @@ Instructions:
       await expect(page.locator('label:has-text("Cuisine")')).toBeVisible();
       await expect(page.locator('label:has-text("Difficulty")')).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '11-detailed-form-layout.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '11-detailed-form-layout.png'),
+        fullPage: true,
+      });
     });
 
     test('should create recipe with minimum required fields', async ({ page }) => {
@@ -186,7 +223,10 @@ Instructions:
       const instructionInputs = page.locator('input[placeholder*="Describe this step"]');
       await instructionInputs.first().fill('Test instruction step 1');
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '12-detailed-form-minimum-filled.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '12-detailed-form-minimum-filled.png'),
+        fullPage: true,
+      });
 
       // Submit form
       const submitButton = page.locator('button:has-text("Create Recipe")');
@@ -194,7 +234,10 @@ Instructions:
 
       // Wait for success and redirect
       await page.waitForURL(/\/recipes\/[a-z0-9-]+/, { timeout: 10000 });
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '13-detailed-form-recipe-created.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '13-detailed-form-recipe-created.png'),
+        fullPage: true,
+      });
     });
 
     test('should validate required field: Recipe Name', async ({ page }) => {
@@ -202,14 +245,20 @@ Instructions:
       await page.waitForTimeout(500);
 
       // Leave name empty, fill other required fields
-      await page.locator('input[placeholder*="e.g., 2 cups flour"]').first().fill('Test ingredient');
+      await page
+        .locator('input[placeholder*="e.g., 2 cups flour"]')
+        .first()
+        .fill('Test ingredient');
       await page.locator('input[placeholder*="Describe this step"]').first().fill('Test step');
 
       // Submit button should be disabled
       const submitButton = page.locator('button:has-text("Create Recipe")');
       await expect(submitButton).toBeDisabled();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '14-detailed-form-validation-name.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '14-detailed-form-validation-name.png'),
+        fullPage: true,
+      });
     });
 
     test('should validate required field: Ingredients', async ({ page }) => {
@@ -225,7 +274,10 @@ Instructions:
 
       // Should show error toast
       await page.waitForSelector('text=Please add at least one ingredient', { timeout: 3000 });
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '15-detailed-form-validation-ingredients.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '15-detailed-form-validation-ingredients.png'),
+        fullPage: true,
+      });
     });
 
     test('should validate required field: Instructions', async ({ page }) => {
@@ -234,14 +286,20 @@ Instructions:
 
       // Fill name and ingredient, leave instruction empty
       await page.locator('input#name').fill('Test Recipe');
-      await page.locator('input[placeholder*="e.g., 2 cups flour"]').first().fill('Test ingredient');
+      await page
+        .locator('input[placeholder*="e.g., 2 cups flour"]')
+        .first()
+        .fill('Test ingredient');
 
       const submitButton = page.locator('button:has-text("Create Recipe")');
       await submitButton.click();
 
       // Should show error toast
       await page.waitForSelector('text=Please add at least one instruction', { timeout: 3000 });
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '16-detailed-form-validation-instructions.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '16-detailed-form-validation-instructions.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -260,7 +318,10 @@ Instructions:
       const newCount = await page.locator('input[placeholder*="e.g., 2 cups flour"]').count();
       expect(newCount).toBe(initialCount + 1);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '17-detailed-form-add-ingredient.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '17-detailed-form-add-ingredient.png'),
+        fullPage: true,
+      });
 
       // Fill in multiple ingredients
       const ingredientInputs = page.locator('input[placeholder*="e.g., 2 cups flour"]');
@@ -268,14 +329,19 @@ Instructions:
       await ingredientInputs.nth(1).fill('1 cup sugar');
 
       // Remove second ingredient
-      const removeButtons = page.locator('button[aria-label=""]').filter({ has: page.locator('svg.lucide-x') });
+      const removeButtons = page
+        .locator('button[aria-label=""]')
+        .filter({ has: page.locator('svg.lucide-x') });
       await removeButtons.nth(1).click();
 
       // Verify count decreased
       const finalCount = await page.locator('input[placeholder*="e.g., 2 cups flour"]').count();
       expect(finalCount).toBe(initialCount);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '18-detailed-form-remove-ingredient.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '18-detailed-form-remove-ingredient.png'),
+        fullPage: true,
+      });
     });
 
     test('should add and remove instructions dynamically', async ({ page }) => {
@@ -295,7 +361,10 @@ Instructions:
       const newCount = await page.locator('input[placeholder*="Describe this step"]').count();
       expect(newCount).toBe(initialCount + 1);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '19-detailed-form-add-instruction.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '19-detailed-form-add-instruction.png'),
+        fullPage: true,
+      });
 
       // Verify step numbers update correctly
       const stepNumbers = page.locator('div.flex-shrink-0:has-text(".")');
@@ -311,12 +380,18 @@ Instructions:
       await page.waitForTimeout(500);
 
       // Find remove button for first ingredient
-      const removeButton = page.locator('button').filter({ has: page.locator('svg.lucide-x') }).first();
+      const removeButton = page
+        .locator('button')
+        .filter({ has: page.locator('svg.lucide-x') })
+        .first();
 
       // Should be disabled when only one ingredient exists
       await expect(removeButton).toBeDisabled();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '20-detailed-form-prevent-remove-last.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '20-detailed-form-prevent-remove-last.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -335,7 +410,10 @@ Instructions:
       await expect(page.locator('input#cookTime')).toHaveValue('30');
       await expect(page.locator('input#servings')).toHaveValue('6');
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '21-detailed-form-time-servings.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '21-detailed-form-time-servings.png'),
+        fullPage: true,
+      });
     });
 
     test('should select difficulty levels', async ({ page }) => {
@@ -351,7 +429,10 @@ Instructions:
       await expect(page.locator('text=Medium')).toBeVisible();
       await expect(page.locator('text=Hard')).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '22-detailed-form-difficulty-options.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '22-detailed-form-difficulty-options.png'),
+        fullPage: true,
+      });
 
       // Select "Hard"
       await page.locator('text=Hard').click();
@@ -359,7 +440,10 @@ Instructions:
       // Verify selection
       await expect(page.locator('button#difficulty')).toContainText('Hard');
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '23-detailed-form-difficulty-selected.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '23-detailed-form-difficulty-selected.png'),
+        fullPage: true,
+      });
     });
 
     test('should accept cuisine input', async ({ page }) => {
@@ -372,7 +456,10 @@ Instructions:
       // Verify value
       await expect(page.locator('input#cuisine')).toHaveValue('Italian');
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '24-detailed-form-cuisine.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '24-detailed-form-cuisine.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -388,7 +475,10 @@ Instructions:
       const value = await page.locator('input#name').inputValue();
       expect(value.length).toBe(200);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '25-detailed-form-long-name.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '25-detailed-form-long-name.png'),
+        fullPage: true,
+      });
     });
 
     test('should handle special characters in inputs', async ({ page }) => {
@@ -401,7 +491,10 @@ Instructions:
       // Verify input accepted
       await expect(page.locator('input#name')).toHaveValue(specialChars);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '26-detailed-form-special-chars.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '26-detailed-form-special-chars.png'),
+        fullPage: true,
+      });
     });
 
     test('should handle many ingredients (20+)', async ({ page }) => {
@@ -417,7 +510,10 @@ Instructions:
       const count = await page.locator('input[placeholder*="e.g., 2 cups flour"]').count();
       expect(count).toBeGreaterThanOrEqual(20);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '27-detailed-form-many-ingredients.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '27-detailed-form-many-ingredients.png'),
+        fullPage: true,
+      });
     });
 
     test('should handle many instructions (15+)', async ({ page }) => {
@@ -436,7 +532,10 @@ Instructions:
       const count = await page.locator('input[placeholder*="Describe this step"]').count();
       expect(count).toBeGreaterThanOrEqual(15);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '28-detailed-form-many-instructions.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '28-detailed-form-many-instructions.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -450,7 +549,10 @@ Instructions:
       await page.locator('button[role="tab"]:has-text("Detailed Form")').click();
       await page.waitForTimeout(500);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '29-form-switch-to-detailed.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '29-form-switch-to-detailed.png'),
+        fullPage: true,
+      });
 
       // Switch back to AI Upload
       await page.locator('button[role="tab"]:has-text("AI Upload (Quick)")').click();
@@ -460,7 +562,10 @@ Instructions:
       const textarea = page.locator('textarea[placeholder*="Paste your recipe here"]');
       await expect(textarea).toHaveValue(testText);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '30-form-switch-data-preserved.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '30-form-switch-data-preserved.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -474,7 +579,10 @@ Instructions:
       const backButton = page.locator('text=Back to Recipes');
       await expect(backButton).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '31-ux-visual-hierarchy.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '31-ux-visual-hierarchy.png'),
+        fullPage: true,
+      });
     });
 
     test('should have accessible labels for all inputs', async ({ page }) => {
@@ -482,15 +590,18 @@ Instructions:
       await page.waitForTimeout(500);
 
       // Verify all inputs have labels
-      const nameInput = page.locator('input#name');
+      const _nameInput = page.locator('input#name');
       const nameLabel = page.locator('label[for="name"]');
       await expect(nameLabel).toBeVisible();
 
-      const descInput = page.locator('input#description');
+      const _descInput = page.locator('input#description');
       const descLabel = page.locator('label[for="description"]');
       await expect(descLabel).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '32-ux-accessible-labels.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '32-ux-accessible-labels.png'),
+        fullPage: true,
+      });
     });
 
     test('should have clear button states', async ({ page }) => {
@@ -502,7 +613,10 @@ Instructions:
       await page.locator('textarea[placeholder*="Paste your recipe here"]').fill('Test');
       await expect(aiButton).toBeEnabled();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '33-ux-button-states.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '33-ux-button-states.png'),
+        fullPage: true,
+      });
     });
 
     test('should have responsive layout on mobile viewport', async ({ page }) => {
@@ -513,7 +627,10 @@ Instructions:
       await expect(page.locator('h1:has-text("Create New Recipe")')).toBeVisible();
       await expect(page.locator('button[role="tab"]').first()).toBeVisible();
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '34-ux-mobile-viewport.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '34-ux-mobile-viewport.png'),
+        fullPage: true,
+      });
     });
   });
 
@@ -530,7 +647,10 @@ Instructions:
       const loadingText = page.locator('text=Parsing with AI');
       await expect(loadingText).toBeVisible({ timeout: 2000 });
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '35-performance-loading-state.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '35-performance-loading-state.png'),
+        fullPage: true,
+      });
     });
 
     test('should measure form submission performance', async ({ page }) => {
@@ -539,8 +659,14 @@ Instructions:
 
       // Fill minimum required fields
       await page.locator('input#name').fill('Performance Test Recipe');
-      await page.locator('input[placeholder*="e.g., 2 cups flour"]').first().fill('Test ingredient');
-      await page.locator('input[placeholder*="Describe this step"]').first().fill('Test instruction');
+      await page
+        .locator('input[placeholder*="e.g., 2 cups flour"]')
+        .first()
+        .fill('Test ingredient');
+      await page
+        .locator('input[placeholder*="Describe this step"]')
+        .first()
+        .fill('Test instruction');
 
       // Measure submission time
       const startTime = Date.now();
@@ -556,7 +682,10 @@ Instructions:
       // Assert reasonable submission time (< 3 seconds)
       expect(submitTime).toBeLessThan(3000);
 
-      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '36-performance-submission.png'), fullPage: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS_DIR, '36-performance-submission.png'),
+        fullPage: true,
+      });
     });
   });
 });
@@ -592,13 +721,19 @@ test.describe('UAT: Post-Submission Verification', () => {
     await page.locator('button:has-text("Add Step")').click();
     await page.locator('input[placeholder*="Describe this step"]').nth(1).fill(instruction2);
 
-    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '37-post-submit-filled-form.png'), fullPage: true });
+    await page.screenshot({
+      path: path.join(SCREENSHOTS_DIR, '37-post-submit-filled-form.png'),
+      fullPage: true,
+    });
 
     // Submit
     await page.locator('button:has-text("Create Recipe")').click();
     await page.waitForURL(/\/recipes\/[a-z0-9-]+/, { timeout: 10000 });
 
-    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '38-post-submit-recipe-page.png'), fullPage: true });
+    await page.screenshot({
+      path: path.join(SCREENSHOTS_DIR, '38-post-submit-recipe-page.png'),
+      fullPage: true,
+    });
 
     // Verify recipe name displayed
     await expect(page.locator(`text=${recipeName}`)).toBeVisible();

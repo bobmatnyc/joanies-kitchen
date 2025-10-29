@@ -7,9 +7,9 @@
 
 const BASE_URL = 'http://localhost:3002';
 
-console.log('\n' + '='.repeat(80));
+console.log(`\n${'='.repeat(80)}`);
 console.log('FRIDGE INPUT COMPONENT UAT - BASIC TEST');
-console.log('='.repeat(80) + '\n');
+console.log(`${'='.repeat(80)}\n`);
 
 async function runBasicTests() {
   console.log('TEST: Homepage Accessibility and HTML Structure\n');
@@ -65,7 +65,7 @@ async function runBasicTests() {
     const keywords = ['fridge', 'ingredient', 'search'];
     const keywordResults = {};
 
-    keywords.forEach(keyword => {
+    keywords.forEach((keyword) => {
       const regex = new RegExp(keyword, 'gi');
       const matches = html.match(regex) || [];
       keywordResults[keyword] = matches.length;
@@ -110,7 +110,7 @@ async function runBasicTests() {
     const errorKeywords = ['error', 'failed', 'not found', '404', '500'];
     let errorsFound = false;
 
-    errorKeywords.forEach(keyword => {
+    errorKeywords.forEach((keyword) => {
       const regex = new RegExp(keyword, 'gi');
       const matches = html.match(regex) || [];
       if (matches.length > 0) {
@@ -124,25 +124,33 @@ async function runBasicTests() {
     }
 
     // Test 9: Summary and recommendations
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${'='.repeat(80)}`);
     console.log('TEST SUMMARY');
     console.log('='.repeat(80));
 
     const hasInputs = inputMatches.length > 0;
-    const hasFridgeKeywords = Object.values(keywordResults).some(v => v > 0);
+    const hasFridgeKeywords = Object.values(keywordResults).some((v) => v > 0);
     const hasInteractiveElements = buttonMatches.length > 0 || formMatches.length > 0;
 
     console.log('\nFindings:');
     console.log(`  ✓ Homepage accessible: YES`);
     console.log(`  ✓ HTML content loaded: YES (${html.length} chars)`);
-    console.log(`  ${hasInputs ? '✓' : '✗'} Input fields present: ${hasInputs ? 'YES' : 'NO'} (${inputMatches.length})`);
-    console.log(`  ${hasFridgeKeywords ? '✓' : '✗'} Fridge/search keywords: ${hasFridgeKeywords ? 'YES' : 'NO'}`);
-    console.log(`  ${hasInteractiveElements ? '✓' : '✗'} Interactive elements: ${hasInteractiveElements ? 'YES' : 'NO'}`);
+    console.log(
+      `  ${hasInputs ? '✓' : '✗'} Input fields present: ${hasInputs ? 'YES' : 'NO'} (${inputMatches.length})`
+    );
+    console.log(
+      `  ${hasFridgeKeywords ? '✓' : '✗'} Fridge/search keywords: ${hasFridgeKeywords ? 'YES' : 'NO'}`
+    );
+    console.log(
+      `  ${hasInteractiveElements ? '✓' : '✗'} Interactive elements: ${hasInteractiveElements ? 'YES' : 'NO'}`
+    );
     console.log(`  ${hasReact ? '✓' : '✗'} Next.js/React setup: ${hasReact ? 'YES' : 'NO'}`);
 
     console.log('\nNext Steps for Full UAT:');
     if (!hasInputs) {
-      console.log('  ❌ BLOCKER: No input fields found. The FridgeInput component may not be rendering.');
+      console.log(
+        '  ❌ BLOCKER: No input fields found. The FridgeInput component may not be rendering.'
+      );
       console.log('  → Check if component is imported and used in the homepage');
       console.log('  → Verify no JavaScript errors preventing rendering');
     } else if (!hasFridgeKeywords) {
@@ -157,8 +165,9 @@ async function runBasicTests() {
     }
 
     console.log('\nTo run full browser tests:');
-    console.log('  npx playwright test tests/e2e/uat/fridge-input-simple.spec.ts --project=webkit-desktop');
-
+    console.log(
+      '  npx playwright test tests/e2e/uat/fridge-input-simple.spec.ts --project=webkit-desktop'
+    );
   } catch (error) {
     console.error('\n❌ ERROR:', error.message);
     console.error(error.stack);
@@ -166,7 +175,7 @@ async function runBasicTests() {
 }
 
 // Run tests
-runBasicTests().catch(error => {
+runBasicTests().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

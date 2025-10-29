@@ -1,4 +1,4 @@
-import { test, expect, ConsoleMessage } from '@playwright/test';
+import { type ConsoleMessage, test } from '@playwright/test';
 
 const consoleMessages: ConsoleMessage[] = [];
 const networkRequests: any[] = [];
@@ -22,7 +22,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
       networkRequests.push({
         method: request.method(),
         url: request.url(),
-        resourceType: request.resourceType()
+        resourceType: request.resourceType(),
       });
     });
 
@@ -47,7 +47,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
     // Take initial screenshot
     await page.screenshot({
       path: 'tests/e2e/uat/screenshots/homepage-initial-load.png',
-      fullPage: true
+      fullPage: true,
     });
 
     // Get page HTML to inspect
@@ -65,19 +65,23 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         placeholder: input.getAttribute('placeholder'),
         name: input.getAttribute('name'),
         id: input.getAttribute('id'),
-        visible: input.offsetParent !== null
+        visible: input instanceof HTMLElement ? input.offsetParent !== null : false,
       }));
     });
 
     console.log('Input fields on page:');
     inputTypes.forEach((input, i) => {
-      console.log(`  ${i + 1}. Type: ${input.type}, Placeholder: "${input.placeholder}", ID: ${input.id}, Visible: ${input.visible}`);
+      console.log(
+        `  ${i + 1}. Type: ${input.type}, Placeholder: "${input.placeholder}", ID: ${input.id}, Visible: ${input.visible}`
+      );
     });
 
     // Look for FridgeInput-related elements
     const fridgeKeywords = ['fridge', 'ingredient', 'search'];
     for (const keyword of fridgeKeywords) {
-      const elements = await page.locator(`[class*="${keyword}"], [id*="${keyword}"], input[placeholder*="${keyword}" i]`).count();
+      const elements = await page
+        .locator(`[class*="${keyword}"], [id*="${keyword}"], input[placeholder*="${keyword}" i]`)
+        .count();
       if (elements > 0) {
         console.log(`Found ${elements} elements with keyword "${keyword}"`);
       }
@@ -128,11 +132,11 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         // Take screenshot
         await page.screenshot({
           path: 'tests/e2e/uat/screenshots/fridge-input-typing.png',
-          fullPage: true
+          fullPage: true,
         });
 
         // Check for console errors during typing
-        const errors = consoleMessages.filter(msg => msg.type() === 'error');
+        const errors = consoleMessages.filter((msg) => msg.type() === 'error');
         console.log(`Console errors during typing: ${errors.length}`);
         if (errors.length > 0) {
           console.log('Errors:');
@@ -142,14 +146,14 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         console.log('✗ First input not visible');
         await page.screenshot({
           path: 'tests/e2e/uat/screenshots/fridge-input-no-visible-field.png',
-          fullPage: true
+          fullPage: true,
         });
       }
     } else {
       console.log('✗ ERROR: No text input fields found on page');
       await page.screenshot({
         path: 'tests/e2e/uat/screenshots/fridge-input-no-field.png',
-        fullPage: true
+        fullPage: true,
       });
     }
   });
@@ -186,7 +190,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
           '[class*="suggestions"]',
           '[class*="results"]',
           'ul[class*="list"]',
-          'div[class*="options"]'
+          'div[class*="options"]',
         ];
 
         let dropdownFound = false;
@@ -211,11 +215,12 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         }
 
         // Check for API requests
-        const apiRequests = networkRequests.filter(req =>
-          req.url.includes('/api') ||
-          req.url.includes('ingredient') ||
-          req.url.includes('search') ||
-          req.url.includes('autocomplete')
+        const apiRequests = networkRequests.filter(
+          (req) =>
+            req.url.includes('/api') ||
+            req.url.includes('ingredient') ||
+            req.url.includes('search') ||
+            req.url.includes('autocomplete')
         );
 
         console.log(`API/Search requests made: ${apiRequests.length}`);
@@ -229,7 +234,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         // Take screenshot
         await page.screenshot({
           path: 'tests/e2e/uat/screenshots/fridge-input-autocomplete.png',
-          fullPage: true
+          fullPage: true,
         });
       }
     }
@@ -262,7 +267,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
           'button:has-text("Find")',
           'button[aria-label*="search" i]',
           'button[class*="search"]',
-          'button:near(input)'
+          'button:near(input)',
         ];
 
         let searchButton = null;
@@ -306,7 +311,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
             '[class*="recipe"]',
             '[data-testid*="result"]',
             'article',
-            'main li'
+            'main li',
           ];
 
           let resultsFound = false;
@@ -328,7 +333,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
           '[role="alert"]',
           '[class*="error"]',
           'text=/error/i',
-          'text=/failed/i'
+          'text=/failed/i',
         ];
 
         for (const selector of errorSelectors) {
@@ -342,7 +347,7 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
         // Take screenshot
         await page.screenshot({
           path: 'tests/e2e/uat/screenshots/fridge-input-search.png',
-          fullPage: true
+          fullPage: true,
         });
       }
     }
@@ -378,10 +383,10 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
     // Analyze console messages
     console.log('\n=== Console Messages Summary ===');
     const messagesByType = {
-      log: consoleMessages.filter(m => m.type() === 'log'),
-      error: consoleMessages.filter(m => m.type() === 'error'),
-      warning: consoleMessages.filter(m => m.type() === 'warning'),
-      info: consoleMessages.filter(m => m.type() === 'info')
+      log: consoleMessages.filter((m) => m.type() === 'log'),
+      error: consoleMessages.filter((m) => m.type() === 'error'),
+      warning: consoleMessages.filter((m) => m.type() === 'warning'),
+      info: consoleMessages.filter((m) => m.type() === 'info'),
     };
 
     console.log(`Total console messages: ${consoleMessages.length}`);
@@ -422,8 +427,8 @@ test.describe('FridgeInput Component UAT - No Auth', () => {
     });
 
     // XHR/Fetch requests
-    const xhrRequests = networkRequests.filter(req =>
-      req.resourceType === 'xhr' || req.resourceType === 'fetch'
+    const xhrRequests = networkRequests.filter(
+      (req) => req.resourceType === 'xhr' || req.resourceType === 'fetch'
     );
 
     if (xhrRequests.length > 0) {

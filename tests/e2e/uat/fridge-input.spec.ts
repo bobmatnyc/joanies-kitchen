@@ -1,4 +1,4 @@
-import { test, expect, ConsoleMessage } from '@playwright/test';
+import { type ConsoleMessage, expect, test } from '@playwright/test';
 
 test.describe('FridgeInput Component UAT', () => {
   const BASE_URL = 'http://localhost:3002';
@@ -17,7 +17,7 @@ test.describe('FridgeInput Component UAT', () => {
       networkRequests.push({
         method: request.method(),
         url: request.url(),
-        resourceType: request.resourceType()
+        resourceType: request.resourceType(),
       });
     });
 
@@ -35,16 +35,24 @@ test.describe('FridgeInput Component UAT', () => {
     await page.waitForTimeout(2000); // Wait for any dynamic content
 
     // Take initial screenshot
-    await page.screenshot({ path: 'tests/e2e/uat/screenshots/homepage-initial-load.png', fullPage: true });
+    await page.screenshot({
+      path: 'tests/e2e/uat/screenshots/homepage-initial-load.png',
+      fullPage: true,
+    });
 
     // Check if FridgeInput component exists
-    const fridgeInput = page.locator('input[type="text"]').filter({ hasText: '' }).first();
-    const searchInput = page.locator('input[placeholder*="ingredient"], input[placeholder*="search"], input[placeholder*="fridge"]').first();
+    const _fridgeInput = page.locator('input[type="text"]').filter({ hasText: '' }).first();
+    const _searchInput = page
+      .locator(
+        'input[placeholder*="ingredient"], input[placeholder*="search"], input[placeholder*="fridge"]'
+      )
+      .first();
 
     // Try to find the input field
-    const inputField = await page.locator('input[type="text"]').count() > 0
-      ? page.locator('input[type="text"]').first()
-      : null;
+    const inputField =
+      (await page.locator('input[type="text"]').count()) > 0
+        ? page.locator('input[type="text"]').first()
+        : null;
 
     if (inputField) {
       const isVisible = await inputField.isVisible();
@@ -78,7 +86,7 @@ test.describe('FridgeInput Component UAT', () => {
       'input[placeholder*="search"]',
       'input[placeholder*="fridge"]',
       'input[type="text"]',
-      'input[type="search"]'
+      'input[type="search"]',
     ];
 
     let inputField = null;
@@ -106,15 +114,21 @@ test.describe('FridgeInput Component UAT', () => {
       expect(inputValue).toBe('chicken');
 
       // Take screenshot
-      await page.screenshot({ path: 'tests/e2e/uat/screenshots/fridge-input-typing.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/uat/screenshots/fridge-input-typing.png',
+        fullPage: true,
+      });
 
       // Check for console errors
-      const errors = consoleMessages.filter(msg => msg.type() === 'error');
+      const errors = consoleMessages.filter((msg) => msg.type() === 'error');
       console.log(`Console errors found: ${errors.length}`);
-      errors.forEach(err => console.error(`Error: ${err.text()}`));
+      errors.forEach((err) => console.error(`Error: ${err.text()}`));
     } else {
       console.log('ERROR: No search input field found on page');
-      await page.screenshot({ path: 'tests/e2e/uat/screenshots/fridge-input-no-field.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/uat/screenshots/fridge-input-no-field.png',
+        fullPage: true,
+      });
       throw new Error('Search input field not found');
     }
   });
@@ -131,7 +145,7 @@ test.describe('FridgeInput Component UAT', () => {
     // Find input field
     const inputField = page.locator('input[type="text"]').first();
 
-    if (await inputField.count() > 0) {
+    if ((await inputField.count()) > 0) {
       // Type "chick" and wait for debounce
       await inputField.click();
       await inputField.fill('chick');
@@ -144,7 +158,7 @@ test.describe('FridgeInput Component UAT', () => {
         '[class*="dropdown"]',
         '[class*="suggestions"]',
         'ul[class*="result"]',
-        'div[class*="result"]'
+        'div[class*="result"]',
       ];
 
       let dropdownFound = false;
@@ -162,18 +176,20 @@ test.describe('FridgeInput Component UAT', () => {
       }
 
       // Check for API requests
-      const apiRequests = networkRequests.filter(req =>
-        req.url.includes('api') ||
-        req.url.includes('ingredient') ||
-        req.url.includes('search')
+      const apiRequests = networkRequests.filter(
+        (req) =>
+          req.url.includes('api') || req.url.includes('ingredient') || req.url.includes('search')
       );
       console.log(`API requests made: ${apiRequests.length}`);
-      apiRequests.forEach(req => {
+      apiRequests.forEach((req) => {
         console.log(`  ${req.method} ${req.url}`);
       });
 
       // Take screenshot
-      await page.screenshot({ path: 'tests/e2e/uat/screenshots/fridge-input-autocomplete.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/uat/screenshots/fridge-input-autocomplete.png',
+        fullPage: true,
+      });
     }
   });
 
@@ -185,7 +201,7 @@ test.describe('FridgeInput Component UAT', () => {
 
     const inputField = page.locator('input[type="text"]').first();
 
-    if (await inputField.count() > 0) {
+    if ((await inputField.count()) > 0) {
       // Type search term
       await inputField.click();
       await inputField.fill('chicken');
@@ -197,7 +213,7 @@ test.describe('FridgeInput Component UAT', () => {
         'button:has-text("Search")',
         'button:has-text("Find")',
         'button[class*="search"]',
-        'button[aria-label*="search"]'
+        'button[aria-label*="search"]',
       ];
 
       let searchButton = null;
@@ -237,7 +253,7 @@ test.describe('FridgeInput Component UAT', () => {
           '[class*="recipe"]',
           '[data-testid*="result"]',
           'article',
-          'li'
+          'li',
         ];
 
         for (const selector of resultsSelectors) {
@@ -249,14 +265,17 @@ test.describe('FridgeInput Component UAT', () => {
       }
 
       // Take screenshot
-      await page.screenshot({ path: 'tests/e2e/uat/screenshots/fridge-input-search.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/uat/screenshots/fridge-input-search.png',
+        fullPage: true,
+      });
 
       // Check for error messages
       const errorSelectors = [
         '[role="alert"]',
         '[class*="error"]',
         'text=/error/i',
-        'text=/failed/i'
+        'text=/failed/i',
       ];
 
       for (const selector of errorSelectors) {
@@ -280,7 +299,7 @@ test.describe('FridgeInput Component UAT', () => {
 
     // Interact with the page
     const inputField = page.locator('input[type="text"]').first();
-    if (await inputField.count() > 0) {
+    if ((await inputField.count()) > 0) {
       await inputField.click();
       await inputField.fill('test');
       await page.waitForTimeout(500);
@@ -291,10 +310,10 @@ test.describe('FridgeInput Component UAT', () => {
     // Analyze console messages
     console.log('\n=== Console Message Summary ===');
     const messagesByType = {
-      log: consoleMessages.filter(m => m.type() === 'log'),
-      error: consoleMessages.filter(m => m.type() === 'error'),
-      warning: consoleMessages.filter(m => m.type() === 'warning'),
-      info: consoleMessages.filter(m => m.type() === 'info')
+      log: consoleMessages.filter((m) => m.type() === 'log'),
+      error: consoleMessages.filter((m) => m.type() === 'error'),
+      warning: consoleMessages.filter((m) => m.type() === 'warning'),
+      info: consoleMessages.filter((m) => m.type() === 'info'),
     };
 
     console.log(`Total messages: ${consoleMessages.length}`);
@@ -329,8 +348,8 @@ test.describe('FridgeInput Component UAT', () => {
     console.log('Requests by type:', requestsByType);
 
     // XHR/Fetch requests
-    const xhrRequests = networkRequests.filter(req =>
-      req.resourceType === 'xhr' || req.resourceType === 'fetch'
+    const xhrRequests = networkRequests.filter(
+      (req) => req.resourceType === 'xhr' || req.resourceType === 'fetch'
     );
     console.log('\n=== XHR/Fetch Requests ===');
     xhrRequests.forEach((req, i) => {
