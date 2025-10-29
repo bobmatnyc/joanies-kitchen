@@ -1,15 +1,20 @@
 'use client';
 
-import { ChefHat, Clock, GitFork, Heart, Star, Users, Bookmark } from 'lucide-react';
+import { Bookmark, ChefHat, Clock, GitFork, Heart, Star, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
-import { categorizeTag, categorizeTags, getCategoryColor, type TagCategory } from '@/lib/tag-ontology';
+import {
+  categorizeTag,
+  categorizeTags,
+  getCategoryColor,
+  type TagCategory,
+} from '@/lib/tag-ontology';
 import { getTagLabel, normalizeTagToId } from '@/lib/tags';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
@@ -50,20 +55,23 @@ export function RecipeCard({
 
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
-  // Use themed placeholder if no image available
-  const displayImage = images[0] || recipe.image_url || getPlaceholderImage(tags);
+  // Prioritize working external URLs (http/https) over local paths
+  const workingImages = images.filter(img =>
+    img.startsWith('http://') || img.startsWith('https://')
+  );
+  const displayImage = workingImages[0] || recipe.image_url || images[0] || getPlaceholderImage(tags);
 
   // Check if image is external (not from our domain or known CDNs)
-  const isExternalImage = Boolean(displayImage && (
-    displayImage.startsWith('http') &&
-    !displayImage.includes('vercel') &&
-    !displayImage.includes('unsplash.com') &&
-    !displayImage.includes('themealdb.com')
-  ));
+  const isExternalImage = Boolean(
+    displayImage?.startsWith('http') &&
+      !displayImage.includes('vercel') &&
+      !displayImage.includes('unsplash.com') &&
+      !displayImage.includes('themealdb.com')
+  );
 
   // Categorize tags using the ontology system
   const categorizedTags = categorizeTags(tags);
-  const categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
+  const _categoryEntries = Object.entries(categorizedTags) as [TagCategory, string[]][];
 
   // State for expandable tags
   const [showAllTags, setShowAllTags] = useState(false);
@@ -71,9 +79,11 @@ export function RecipeCard({
   // Primary tags (always visible): Main Ingredient, Dietary
   // Exclude Difficulty (internal) and Cuisine (shown at bottom)
   const primaryTags = [
-    ...(categorizedTags['Main Ingredient'] || []).slice(0, 2),  // Up to 2 main ingredients
-    ...(categorizedTags.Dietary || []).slice(0, 1),             // 1 dietary preference
-  ].filter(Boolean).slice(0, 3); // Max 3 primary tags
+    ...(categorizedTags['Main Ingredient'] || []).slice(0, 2), // Up to 2 main ingredients
+    ...(categorizedTags.Dietary || []).slice(0, 1), // 1 dietary preference
+  ]
+    .filter(Boolean)
+    .slice(0, 3); // Max 3 primary tags
 
   // Other tags (collapsible): Everything else, excluding Difficulty and Cuisine
   const otherTags = [
@@ -83,11 +93,13 @@ export function RecipeCard({
     ...(categorizedTags.Season || []),
     ...(categorizedTags.Time || []),
     ...(categorizedTags.Other || []),
-  ].filter(tag => {
-    // Exclude Difficulty and Cuisine tags
-    const tagId = normalizeTagToId(tag);
-    return !tagId.startsWith('difficulty.') && !tagId.startsWith('cuisine.');
-  }).slice(0, 10); // Max 10 other tags
+  ]
+    .filter((tag) => {
+      // Exclude Difficulty and Cuisine tags
+      const tagId = normalizeTagToId(tag);
+      return !tagId.startsWith('difficulty.') && !tagId.startsWith('cuisine.');
+    })
+    .slice(0, 10); // Max 10 other tags
 
   // Check if recipe is top-rated (4.5+ rating)
   const systemRating = parseFloat(recipe.system_rating || '0') || 0;
