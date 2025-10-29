@@ -16,16 +16,39 @@ function safeParseArray(value: string | string[] | null | undefined): string[] {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) {
-      // Handle legacy object format: [{item: "...", quantity: "..."}]
+      // Handle object formats
       if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
         return parsed.map((obj: any) => {
-          // If it's an object with item and quantity, convert to string
+          // Handle legacy {item, quantity} format
           if ('item' in obj && 'quantity' in obj) {
-            // Format: "quantity item" (e.g., "4 Eggs")
             return `${obj.quantity} ${obj.item}`.trim();
           }
-          // Otherwise, stringify the object
-          return String(obj);
+
+          // Handle structured {name, quantity, unit, notes, preparation} format
+          if ('name' in obj) {
+            const parts: string[] = [];
+
+            // Add quantity and unit
+            if (obj.quantity) parts.push(obj.quantity);
+            if (obj.unit) parts.push(obj.unit);
+
+            // Add ingredient name
+            parts.push(obj.name);
+
+            // Add preparation and notes
+            const suffixes: string[] = [];
+            if (obj.preparation) suffixes.push(obj.preparation);
+            if (obj.notes) suffixes.push(obj.notes);
+
+            if (suffixes.length > 0) {
+              return `${parts.join(' ')}, ${suffixes.join(', ')}`;
+            }
+
+            return parts.join(' ');
+          }
+
+          // Fallback to JSON stringify for debugging
+          return JSON.stringify(obj);
         });
       }
       return parsed;
@@ -44,7 +67,7 @@ function safeParseArray(value: string | string[] | null | undefined): string[] {
 }
 
 // Helper function to safely parse JSON with fallback
-function safeJsonParse(value: string | any[], fallback: any[] = []): any[] {
+function _safeJsonParse(value: string | any[], fallback: any[] = []): any[] {
   if (Array.isArray(value)) {
     return value;
   }
