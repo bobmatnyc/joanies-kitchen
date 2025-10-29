@@ -57,11 +57,7 @@ export function ensureUniqueSlug(baseSlug: string, existingSlugs: string[]): str
  * @param created_at - Creation date
  * @returns Generated slug
  */
-export function regenerateMealSlug(
-  name: string,
-  id: string,
-  created_at: Date | string
-): string {
+export function regenerateMealSlug(name: string, id: string, created_at: Date | string): string {
   // Try to generate from name first
   const slug = generateMealSlug(name, created_at);
 

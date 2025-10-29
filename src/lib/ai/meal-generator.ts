@@ -4,9 +4,9 @@
  * High-level functions for meal generation using the centralized prompt store
  */
 
-import { getOpenRouterClient } from './openrouter-server';
-import { renderPromptById, getPrompt, type PromptRenderOptions } from './prompts';
 import { z } from 'zod';
+import { getOpenRouterClient } from './openrouter-server';
+import { getPrompt, renderPromptById } from './prompts';
 
 // ============================================================================
 // Response Schemas
@@ -71,9 +71,7 @@ export async function generateCompleteMeal(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -127,9 +125,7 @@ export async function generateComplementarySides(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -189,9 +185,7 @@ export async function generateThemedMeal(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -267,9 +261,7 @@ export async function generateDietaryMeal(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -337,9 +329,7 @@ export async function generateSeasonalMeal(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -405,9 +395,7 @@ export async function generateBudgetMeal(params: {
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -465,9 +453,7 @@ export async function callPrompt<T = any>(
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
     response_format:
-      rendered.config.responseFormat === 'json_object'
-        ? { type: 'json_object' }
-        : undefined,
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;

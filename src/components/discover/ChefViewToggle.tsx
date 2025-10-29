@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Grid, Map } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ChefGrid } from '@/components/chef/ChefGrid';
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { ChefGrid } from '@/components/chef/ChefGrid';
+import { Button } from '@/components/ui/button';
 
 // Dynamically import the map component to avoid SSR issues
 const ChefLocationMap = dynamic(

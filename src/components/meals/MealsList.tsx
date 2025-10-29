@@ -1,14 +1,14 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { Plus, Utensils } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
-import type { Meal } from '@/lib/db/schema';
-import { getGuestMeals, type GuestMeal } from '@/lib/utils/guest-meals';
-import { MealCard } from './MealCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import type { Meal } from '@/lib/db/schema';
+import { type GuestMeal, getGuestMeals } from '@/lib/utils/guest-meals';
+import { MealCard } from './MealCard';
 import { GuestMealBanner } from './SignInToSaveDialog';
 
 interface MealsListProps {
@@ -28,9 +28,10 @@ export function MealsList({ initialMeals = [], mealType, isPublicView = false }:
       const guestMeals = getGuestMeals();
 
       // Filter by meal type if specified
-      const filteredMeals = mealType && mealType !== 'all'
-        ? guestMeals.filter((meal) => meal.meal_type === mealType)
-        : guestMeals;
+      const filteredMeals =
+        mealType && mealType !== 'all'
+          ? guestMeals.filter((meal) => meal.meal_type === mealType)
+          : guestMeals;
 
       setMeals(filteredMeals);
       setIsLoading(false);

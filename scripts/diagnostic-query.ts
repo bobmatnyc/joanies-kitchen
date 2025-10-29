@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import * as dotenv from 'dotenv';
+
 dotenv.config({ path: '.env.local' });
 
 import { sql } from 'drizzle-orm';
@@ -7,7 +8,7 @@ import { db } from '@/lib/db';
 
 async function runDiagnostics() {
   console.log('📊 Database Diagnostic Report\n');
-  console.log('=' .repeat(80) + '\n');
+  console.log(`${'='.repeat(80)}\n`);
 
   // Count recipes
   const recipeCount = await db.execute(sql`SELECT COUNT(*) as count FROM recipes`);
@@ -68,21 +69,21 @@ async function runDiagnostics() {
 
   // Check for extraction logs
   console.log('\n📁 Checking for extraction logs...\n');
-  const fs = await import('fs/promises');
-  const path = await import('path');
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
   const tmpDir = path.join(process.cwd(), 'tmp');
 
   try {
     const files = await fs.readdir(tmpDir);
-    const extractionFiles = files.filter(f => f.includes('ingredient-extraction'));
+    const extractionFiles = files.filter((f) => f.includes('ingredient-extraction'));
 
     if (extractionFiles.length > 0) {
       console.log('Found extraction files:');
-      extractionFiles.forEach(f => console.log(`  - ${f}`));
+      extractionFiles.forEach((f) => console.log(`  - ${f}`));
     } else {
       console.log('⚠️  No extraction log files found in tmp/');
     }
-  } catch (error) {
+  } catch (_error) {
     console.log('⚠️  tmp/ directory does not exist');
   }
 

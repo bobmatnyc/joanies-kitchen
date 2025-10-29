@@ -29,9 +29,7 @@ export function IngredientList({
   if (ingredients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
-        <p className="text-lg text-gray-500 dark:text-gray-400 text-center">
-          No ingredients found
-        </p>
+        <p className="text-lg text-gray-500 dark:text-gray-400 text-center">No ingredients found</p>
         <p className="mt-2 text-sm text-gray-400 dark:text-gray-500 text-center max-w-md">
           Try adjusting your filters or search terms
         </p>

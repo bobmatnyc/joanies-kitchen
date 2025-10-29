@@ -6,10 +6,10 @@
 
 'use server';
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { classifyRecipeInstructions } from '@/lib/ai/instruction-classifier';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 import type { InstructionMetadata } from '@/types/instruction-metadata';
 
 /**

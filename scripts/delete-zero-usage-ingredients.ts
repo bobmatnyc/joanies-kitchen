@@ -17,11 +17,11 @@
  *   npx tsx scripts/delete-zero-usage-ingredients.ts            # Execute
  */
 
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { cleanup, db } from './db-with-transactions';
 import { ingredients, recipeIngredients } from '../src/lib/db/ingredients-schema';
+import { cleanup, db } from './db-with-transactions';
 
 // ============================================================================
 // TYPES
@@ -66,10 +66,7 @@ interface DeletionReport {
 // CONFIGURATION
 // ============================================================================
 
-const CONSOLIDATION_FILE = path.join(
-  process.cwd(),
-  'tmp/semantic-consolidation-decisions.json'
-);
+const CONSOLIDATION_FILE = path.join(process.cwd(), 'tmp/semantic-consolidation-decisions.json');
 const BACKUP_DIR = path.join(process.cwd(), 'tmp');
 const REPORT_DIR = path.join(process.cwd(), 'tmp');
 
@@ -95,18 +92,14 @@ async function loadConsolidationDecisions(): Promise<ConsolidationDecision[]> {
  */
 function filterZeroUsageGroups(decisions: ConsolidationDecision[]): ConsolidationDecision[] {
   return decisions.filter(
-    (d) =>
-      d.action === 'needs_review' &&
-      d.reason.includes('All variants have 0 usage')
+    (d) => d.action === 'needs_review' && d.reason.includes('All variants have 0 usage')
   );
 }
 
 /**
  * Get all ingredient IDs from zero-usage groups
  */
-async function getIngredientIdsFromGroups(
-  groups: ConsolidationDecision[]
-): Promise<string[]> {
+async function getIngredientIdsFromGroups(groups: ConsolidationDecision[]): Promise<string[]> {
   const groupNames = groups.map((g) => g.group);
 
   console.log(`\nQuerying ingredients for ${groupNames.length} groups...`);
@@ -129,9 +122,7 @@ async function getIngredientIdsFromGroups(
 /**
  * Verify zero usage by querying recipe_ingredients table
  */
-async function verifyZeroUsage(
-  ingredientIds: string[]
-): Promise<{
+async function verifyZeroUsage(ingredientIds: string[]): Promise<{
   verified: IngredientToDelete[];
   discrepancies: DeletionReport['verification_discrepancies'];
 }> {
@@ -176,7 +167,7 @@ async function verifyZeroUsage(
       // Discrepancy detected - DO NOT DELETE
       console.warn(
         `⚠️  Discrepancy: ${ingredient.display_name} (${ingredient.id}) - ` +
-        `stored: ${ingredient.usage_count}, actual: ${actualUsage}`
+          `stored: ${ingredient.usage_count}, actual: ${actualUsage}`
       );
 
       discrepancies.push({
@@ -194,20 +185,11 @@ async function verifyZeroUsage(
 /**
  * Create backup of ingredients to be deleted
  */
-async function createBackup(
-  ingredientsToDelete: IngredientToDelete[]
-): Promise<string> {
+async function createBackup(ingredientsToDelete: IngredientToDelete[]): Promise<string> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFile = path.join(
-    BACKUP_DIR,
-    `ingredient-deletion-backup-${timestamp}.json`
-  );
+  const backupFile = path.join(BACKUP_DIR, `ingredient-deletion-backup-${timestamp}.json`);
 
-  await fs.writeFile(
-    backupFile,
-    JSON.stringify(ingredientsToDelete, null, 2),
-    'utf-8'
-  );
+  await fs.writeFile(backupFile, JSON.stringify(ingredientsToDelete, null, 2), 'utf-8');
 
   console.log(`\n✅ Backup created: ${backupFile}`);
   return backupFile;
@@ -231,10 +213,7 @@ async function deleteIngredients(ingredientIds: string[]): Promise<void> {
  */
 async function saveDeletionReport(report: DeletionReport): Promise<string> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const reportFile = path.join(
-    REPORT_DIR,
-    `ingredient-deletion-report-${timestamp}.json`
-  );
+  const reportFile = path.join(REPORT_DIR, `ingredient-deletion-report-${timestamp}.json`);
 
   await fs.writeFile(reportFile, JSON.stringify(report, null, 2), 'utf-8');
 
@@ -250,7 +229,7 @@ function printSummary(
   discrepancies: DeletionReport['verification_discrepancies'],
   dryRun: boolean
 ): void {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('DELETION SUMMARY');
   console.log('='.repeat(80));
 
@@ -285,13 +264,11 @@ function printSummary(
     console.log('\n⚠️  DISCREPANCIES FOUND (NOT DELETED):');
     console.log('-'.repeat(80));
     discrepancies.forEach((d) => {
-      console.log(
-        `  - ${d.ingredient_name}: stored=${d.stored_usage}, actual=${d.actual_usage}`
-      );
+      console.log(`  - ${d.ingredient_name}: stored=${d.stored_usage}, actual=${d.actual_usage}`);
     });
   }
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
 }
 
 // ============================================================================

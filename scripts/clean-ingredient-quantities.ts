@@ -42,7 +42,7 @@ function extractQuantity(name: string): {
   cleanName: string;
 } {
   // Pattern 1: "(1/4 stick) butter"
-  const pattern1 = /^\(([0-9\/\-\s]+)\s+([a-zA-Z]+)\)\s+(.+)$/;
+  const pattern1 = /^\(([0-9/\-\s]+)\s+([a-zA-Z]+)\)\s+(.+)$/;
   const match1 = name.match(pattern1);
 
   if (match1) {
@@ -54,7 +54,7 @@ function extractQuantity(name: string): {
   }
 
   // Pattern 2: "(10-ounce) bag pearl onions, peeled"
-  const pattern2 = /^\(([0-9\-]+)\-([a-zA-Z]+)\)\s+(.+)$/;
+  const pattern2 = /^\(([0-9-]+)-([a-zA-Z]+)\)\s+(.+)$/;
   const match2 = name.match(pattern2);
 
   if (match2) {
@@ -66,7 +66,7 @@ function extractQuantity(name: string): {
   }
 
   // Pattern 3: "(4 3/4- to 5-pound) large end of..." - complex quantity
-  const pattern3 = /^\([0-9\s\/\-]+(to|or)\s+[0-9\-]+([a-zA-Z]+)\)\s+(.+)$/;
+  const pattern3 = /^\([0-9\s/-]+(to|or)\s+[0-9-]+([a-zA-Z]+)\)\s+(.+)$/;
   const match3 = name.match(pattern3);
 
   if (match3) {

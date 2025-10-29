@@ -50,7 +50,7 @@ export function CollectionCard({
   }
 
   const hasCoverImages = recipeImages.length > 0;
-  const showCoverImage = collection.cover_image_url || hasCoverImages;
+  const _showCoverImage = collection.cover_image_url || hasCoverImages;
 
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">

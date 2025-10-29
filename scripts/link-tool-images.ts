@@ -1,14 +1,15 @@
 #!/usr/bin/env tsx
+
 /**
  * Link Tool Images to Database
  * Populates imageUrl field for all tools based on existing files
  */
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { tools } from '../src/lib/db/schema.js';
-import { eq } from 'drizzle-orm';
-import { existsSync } from 'fs';
-import { join } from 'path';
 
 async function linkToolImages() {
   console.log('\n🔗 Linking Tool Images to Database\n');
@@ -37,10 +38,7 @@ async function linkToolImages() {
 
     // Update database
     try {
-      await db
-        .update(tools)
-        .set({ image_url: imageUrl })
-        .where(eq(tools.id, tool.id));
+      await db.update(tools).set({ image_url: imageUrl }).where(eq(tools.id, tool.id));
 
       console.log(`✅ ${tool.name.padEnd(35)} → ${imageUrl}`);
       linked++;
@@ -50,7 +48,7 @@ async function linkToolImages() {
     }
   }
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log(`\n📊 Summary:`);
   console.log(`   Successfully linked: ${linked}/${allTools.length}`);
   console.log(`   Missing files: ${missing}/${allTools.length}`);

@@ -7,7 +7,7 @@
  * - Related tags for suggestions
  */
 
-import { TagCategory, type TagId, TAG_IDS } from './tag-ids';
+import { TAG_IDS, TagCategory, type TagId } from './tag-ids';
 
 /**
  * Tag node in the hierarchy
@@ -392,7 +392,7 @@ export const TAG_HIERARCHY: Record<TagId, TagNode> = {
   [TAG_IDS.MEAL_TYPE.APPETIZER]: {
     id: TAG_IDS.MEAL_TYPE.APPETIZER,
     category: TagCategory.MealType,
-    synonyms: ['appetizer', 'starter', 'hors d\'oeuvre'],
+    synonyms: ['appetizer', 'starter', "hors d'oeuvre"],
     relatedTags: [TAG_IDS.CHARACTERISTICS.PARTY_FOOD],
     popularity: 75,
   },
@@ -1398,7 +1398,7 @@ export const TAG_HIERARCHY: Record<TagId, TagNode> = {
     id: TAG_IDS.SEASON.VALENTINES,
     category: TagCategory.Season,
     parent: TAG_IDS.SEASON.HOLIDAY,
-    synonyms: ['valentines', 'valentine\'s day'],
+    synonyms: ['valentines', "valentine's day"],
     relatedTags: [TAG_IDS.MEAL_TYPE.DESSERT, TAG_IDS.CHARACTERISTICS.ELEGANT],
     popularity: 50,
   },
@@ -1664,7 +1664,7 @@ export function getChildTags(tagId: TagId): TagNode[] {
   if (!node || !node.children) return [];
 
   return node.children
-    .map(childId => TAG_HIERARCHY[childId])
+    .map((childId) => TAG_HIERARCHY[childId])
     .filter((child): child is TagNode => !!child);
 }
 
@@ -1686,7 +1686,7 @@ export function getRelatedTagNodes(tagId: TagId): TagNode[] {
   if (!node || !node.relatedTags) return [];
 
   return node.relatedTags
-    .map(relatedId => TAG_HIERARCHY[relatedId])
+    .map((relatedId) => TAG_HIERARCHY[relatedId])
     .filter((tag): tag is TagNode => !!tag);
 }
 
@@ -1705,7 +1705,7 @@ export function findTagIdBySynonym(synonym: string): TagId | null {
   const normalized = synonym.toLowerCase().trim();
 
   for (const [tagId, node] of Object.entries(TAG_HIERARCHY)) {
-    if (node.synonyms?.some(s => s.toLowerCase() === normalized)) {
+    if (node.synonyms?.some((s) => s.toLowerCase() === normalized)) {
       return tagId as TagId;
     }
   }

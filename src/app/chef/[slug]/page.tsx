@@ -3,9 +3,9 @@ import { notFound } from 'next/navigation';
 import { FaXTwitter } from 'react-icons/fa6';
 import { getChefBySlug } from '@/app/actions/chefs';
 import { ChefAvatar } from '@/components/chef/ChefAvatar';
+import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 import { RecipeList } from '@/components/recipe/RecipeList';
 import { Badge } from '@/components/ui/badge';
-import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -32,14 +32,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
       url: canonicalUrl,
       type: 'profile',
-      images: chef.profile_image_url ? [
-        {
-          url: chef.profile_image_url,
-          width: 1200,
-          height: 630,
-          alt: `${chef.display_name || chef.name} - Chef Profile`,
-        }
-      ] : undefined,
+      images: chef.profile_image_url
+        ? [
+            {
+              url: chef.profile_image_url,
+              width: 1200,
+              height: 630,
+              alt: `${chef.display_name || chef.name} - Chef Profile`,
+            },
+          ]
+        : undefined,
     },
   };
 }

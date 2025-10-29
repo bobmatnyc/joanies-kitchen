@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Investigate Orphaned Recipes
  *
@@ -6,21 +7,19 @@
  * via the chef_recipes junction table.
  */
 
-import { db } from '../src/lib/db';
-import { chefSchema } from '../src/lib/db';
-import { eq, isNull, like, sql, and } from 'drizzle-orm';
+import { like, sql } from 'drizzle-orm';
+import { chefSchema, db } from '../src/lib/db';
 
 const { chefs, chefRecipes } = chefSchema;
+
 import { recipes } from '../src/lib/db/schema';
 
 async function investigateOrphanedRecipes() {
   console.log('🔍 Investigating Orphaned Recipes\n');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   // 1. Check total recipes in database
-  const totalRecipesResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipes);
+  const totalRecipesResult = await db.select({ count: sql<number>`count(*)::int` }).from(recipes);
   const totalRecipes = totalRecipesResult[0]?.count || 0;
   console.log(`\nTotal recipes in database: ${totalRecipes}`);
 
@@ -40,7 +39,7 @@ async function investigateOrphanedRecipes() {
   console.log(`Recipes in chef_recipes junction table: ${recipesInJunction}`);
 
   // 4. Look for recipes from sustainability-focused chefs by source field
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('Searching for recipes by chef name in source field:\n');
 
   const chefNames = [
@@ -81,7 +80,7 @@ async function investigateOrphanedRecipes() {
   }
 
   // 5. Check if recipes were imported recently (last 24 hours)
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('Recent recipe imports (last 24 hours):\n');
 
   const recentRecipesResult = await db
@@ -116,7 +115,7 @@ async function investigateOrphanedRecipes() {
   }
 
   // 6. List all chefs in database
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('All chefs in database:\n');
 
   const allChefs = await db
@@ -132,7 +131,7 @@ async function investigateOrphanedRecipes() {
     console.log(`   - ${chef.name} (${chef.slug}) - recipe_count: ${chef.recipe_count}`);
   });
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('✅ Investigation Complete\n');
 
   process.exit(0);

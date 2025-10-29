@@ -111,7 +111,9 @@ async function generateLaunchQAReport() {
     console.error('   Run: pnpm qa:hide-incomplete');
     process.exit(1);
   }
-  const hideIncompleteReport = JSON.parse(fs.readFileSync(hideIncompletePath, 'utf-8')) as HideIncompleteReport;
+  const _hideIncompleteReport = JSON.parse(
+    fs.readFileSync(hideIncompletePath, 'utf-8')
+  ) as HideIncompleteReport;
 
   // Load searchable recipes report
   console.log('📋 Loading searchable recipes report...');
@@ -121,7 +123,9 @@ async function generateLaunchQAReport() {
     console.error('   Run: pnpm qa:verify-searchable');
     process.exit(1);
   }
-  const searchableReport = JSON.parse(fs.readFileSync(searchablePath, 'utf-8')) as SearchableRecipesReport;
+  const searchableReport = JSON.parse(
+    fs.readFileSync(searchablePath, 'utf-8')
+  ) as SearchableRecipesReport;
 
   console.log('✅ All reports loaded\n');
 
@@ -137,7 +141,8 @@ async function generateLaunchQAReport() {
   // Determine launch approval
   const allChecksPassed = searchableReport.launch_ready;
   const approved = allChecksPassed && searchablePercentage >= 90;
-  const riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = searchablePercentage >= 95 ? 'LOW' : searchablePercentage >= 90 ? 'MEDIUM' : 'HIGH';
+  const riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' =
+    searchablePercentage >= 95 ? 'LOW' : searchablePercentage >= 90 ? 'MEDIUM' : 'HIGH';
 
   const rationale: string[] = [];
   if (searchablePercentage >= 95) {
@@ -145,7 +150,9 @@ async function generateLaunchQAReport() {
   } else if (searchablePercentage >= 90) {
     rationale.push(`${searchablePercentage.toFixed(2)}% validation rate meets industry standard`);
   } else {
-    rationale.push(`${searchablePercentage.toFixed(2)}% validation rate below industry standard (90%)`);
+    rationale.push(
+      `${searchablePercentage.toFixed(2)}% validation rate below industry standard (90%)`
+    );
   }
 
   if (hiddenRecipes > 0) {
@@ -153,7 +160,9 @@ async function generateLaunchQAReport() {
   }
 
   rationale.push('Post-launch fix plan documented for edge cases');
-  rationale.push(`Risk: ${riskLevel} - ${allChecksPassed ? 'All critical systems validated' : 'Some validation issues found'}`);
+  rationale.push(
+    `Risk: ${riskLevel} - ${allChecksPassed ? 'All critical systems validated' : 'Some validation issues found'}`
+  );
 
   // Generate report
   const report: LaunchQAReport = {
@@ -209,7 +218,9 @@ async function generateLaunchQAReport() {
 
   console.log('📈 Key Metrics:');
   console.log(`  Total Recipes:       ${totalRecipes.toLocaleString()}`);
-  console.log(`  Searchable:          ${searchableRecipes.toLocaleString()} (${searchablePercentage.toFixed(2)}%)`);
+  console.log(
+    `  Searchable:          ${searchableRecipes.toLocaleString()} (${searchablePercentage.toFixed(2)}%)`
+  );
   console.log(`  Hidden:              ${hiddenRecipes.toLocaleString()}`);
   console.log(`  Flagged:             ${flaggedRecipes.toLocaleString()}`);
   console.log(`  Quality Grade:       ${qualityGrade}\n`);
@@ -219,7 +230,7 @@ async function generateLaunchQAReport() {
     console.log('  ✅ All checks passed');
   } else {
     console.log('  ⚠️  Some checks failed:');
-    searchableReport.issues_found.forEach(issue => {
+    searchableReport.issues_found.forEach((issue) => {
       console.log(`     - ${issue}`);
     });
   }
@@ -229,7 +240,7 @@ async function generateLaunchQAReport() {
   console.log(`  Risk Level: ${riskLevel}\n`);
 
   console.log('Rationale:');
-  rationale.forEach(r => console.log(`  - ${r}`));
+  rationale.forEach((r) => console.log(`  - ${r}`));
 
   console.log('\n📁 Reports Generated:');
   console.log(`  ✓ ${jsonPath}`);
@@ -270,7 +281,7 @@ ${report.metrics.searchable_percentage < 90 ? '- ⚠️ Below industry standard 
 - ${report.metrics.searchable_percentage >= 95 ? '✅' : '⚠️'} All searchable recipes validated
 - ✅ QA tracking infrastructure complete
 
-${report.validation.issues_found.length > 0 ? `\n### Issues Found\n${report.validation.issues_found.map(i => `- ⚠️ ${i}`).join('\n')}` : ''}
+${report.validation.issues_found.length > 0 ? `\n### Issues Found\n${report.validation.issues_found.map((i) => `- ⚠️ ${i}`).join('\n')}` : ''}
 
 ## Launch Recommendation
 **${report.launch_recommendation.approved ? '✅ APPROVED' : '⚠️ NOT APPROVED'} FOR OCTOBER 27 LAUNCH**
@@ -278,15 +289,15 @@ ${report.validation.issues_found.length > 0 ? `\n### Issues Found\n${report.vali
 **Risk Level**: ${report.launch_recommendation.risk_level}
 
 ### Rationale
-${report.launch_recommendation.rationale.map(r => `- ${r}`).join('\n')}
+${report.launch_recommendation.rationale.map((r) => `- ${r}`).join('\n')}
 
 ## Post-Launch Action Items
 
 ### Week 1-2
-${report.post_launch_tasks.week_1_2.map(t => `- [ ] ${t}`).join('\n')}
+${report.post_launch_tasks.week_1_2.map((t) => `- [ ] ${t}`).join('\n')}
 
 ### Week 3-4
-${report.post_launch_tasks.week_3_4.map(t => `- [ ] ${t}`).join('\n')}
+${report.post_launch_tasks.week_3_4.map((t) => `- [ ] ${t}`).join('\n')}
 
 ---
 

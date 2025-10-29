@@ -6,13 +6,13 @@
  * This script generates embeddings for the 3 recipes we just created.
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { eq } from 'drizzle-orm';
-import { db } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
 import { generateRecipeEmbedding } from '../src/lib/ai/embeddings';
+import { db } from '../src/lib/db';
 import { saveRecipeEmbedding } from '../src/lib/db/embeddings';
+import { recipes } from '../src/lib/db/schema';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -23,7 +23,7 @@ const RECIPE_NAMES = [
 ];
 
 async function main() {
-  console.log('🔧 Generating embeddings for Joanie\'s Sunday Lunch recipes\n');
+  console.log("🔧 Generating embeddings for Joanie's Sunday Lunch recipes\n");
 
   for (const recipeName of RECIPE_NAMES) {
     try {
@@ -47,7 +47,12 @@ async function main() {
 
       // Save to database
       console.log('  Saving to database...');
-      await saveRecipeEmbedding(recipe.id, result.embedding, result.embeddingText, result.modelName);
+      await saveRecipeEmbedding(
+        recipe.id,
+        result.embedding,
+        result.embeddingText,
+        result.modelName
+      );
 
       console.log(`✅ Successfully generated embedding for: ${recipeName}`);
       console.log(`   Embedding dimension: ${result.embedding.length}`);

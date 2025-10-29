@@ -6,15 +6,11 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
 async function main() {
-  const [lidia] = await db
-    .select()
-    .from(chefs)
-    .where(eq(chefs.slug, 'lidia-bastianich'))
-    .limit(1);
+  const [lidia] = await db.select().from(chefs).where(eq(chefs.slug, 'lidia-bastianich')).limit(1);
 
   if (!lidia) {
     console.error('❌ Lidia not found');
@@ -53,7 +49,9 @@ async function main() {
     }
   });
 
-  console.log('\n' + '='.repeat(80) + '\n');
+  console.log(`\n${'='.repeat(80)}\n`);
 }
 
-main().then(() => process.exit(0)).catch(console.error);
+main()
+  .then(() => process.exit(0))
+  .catch(console.error);

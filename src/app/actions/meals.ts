@@ -1,10 +1,11 @@
 'use server';
 
-import { and, desc, eq, or } from 'drizzle-orm';
+import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
+  ingredients,
   mealRecipes,
   meals,
   mealTemplates,
@@ -224,22 +225,21 @@ export async function getPublicMeals(params?: unknown) {
 export async function getMealById(id: unknown) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
 
     // Validate ID
     const { id: validatedId } = validateInput(mealIdSchema, { id });
 
+    // Build query conditions based on authentication status
+    // - Authenticated users: Show their own meals OR public meals
+    // - Unauthenticated users: Show only public meals
+    const whereConditions = userId
+      ? and(eq(meals.id, validatedId), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
+      : and(eq(meals.id, validatedId), eq(meals.is_public, true));
+
     const [meal] = await db
       .select()
       .from(meals)
-      .where(
-        and(
-          eq(meals.id, validatedId),
-          or(eq(meals.user_id, userId), eq(meals.is_public, true))
-        )
-      );
+      .where(whereConditions);
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
@@ -278,19 +278,18 @@ export async function getMealById(id: unknown) {
 export async function getMealBySlug(slug: string) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
+
+    // Build query conditions based on authentication status
+    // - Authenticated users: Show their own meals OR public meals
+    // - Unauthenticated users: Show only public meals
+    const whereConditions = userId
+      ? and(eq(meals.slug, slug), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
+      : and(eq(meals.slug, slug), eq(meals.is_public, true));
 
     const [meal] = await db
       .select()
       .from(meals)
-      .where(
-        and(
-          eq(meals.slug, slug),
-          or(eq(meals.user_id, userId), eq(meals.is_public, true))
-        )
-      );
+      .where(whereConditions);
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
@@ -504,6 +503,27 @@ export async function generateShoppingList(data: unknown) {
     // Advanced consolidation with unit conversion and fuzzy matching
     const consolidatedItems = consolidateShoppingListItems(rawItems);
 
+    // Filter out non-purchaseable ingredients
+    const ingredientNames = consolidatedItems.map(item => item.name.toLowerCase());
+
+    // Query which items are non-purchaseable
+    const nonPurchaseableIngredients = await db
+      .select({ name: ingredients.name })
+      .from(ingredients)
+      .where(
+        and(
+          sql`LOWER(${ingredients.name}) IN (${sql.join(ingredientNames.map(n => sql`${n}`), sql`, `)})`,
+          eq(ingredients.is_purchaseable, false)
+        )
+      );
+
+    // Filter out non-purchaseable items
+    const purchaseableItems = consolidatedItems.filter(item =>
+      !nonPurchaseableIngredients.some(ni =>
+        ni.name.toLowerCase() === item.name.toLowerCase()
+      )
+    );
+
     // Create shopping list
     const [newShoppingList] = await db
       .insert(shoppingLists)
@@ -511,7 +531,7 @@ export async function generateShoppingList(data: unknown) {
         user_id: userId,
         meal_id: mealId,
         name: `${meal.name} - Shopping List`,
-        items: JSON.stringify(consolidatedItems),
+        items: JSON.stringify(purchaseableItems),
         status: 'draft',
       })
       .returning();

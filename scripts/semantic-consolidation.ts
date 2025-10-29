@@ -11,8 +11,8 @@
  * Usage: tsx scripts/semantic-consolidation.ts
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { DuplicateGroup, IngredientVariant } from './analyze-ingredient-duplicates';
 
 interface SemanticAnalysis {
@@ -102,9 +102,9 @@ function arePluralVariants(variants: IngredientVariant[]): boolean {
 
   for (let i = 1; i < names.length; i++) {
     const variant = names[i];
-    if (variant === base + 's') continue;
-    if (variant === base + 'es') continue;
-    if (base.endsWith('y') && variant === base.slice(0, -1) + 'ies') continue;
+    if (variant === `${base}s`) continue;
+    if (variant === `${base}es`) continue;
+    if (base.endsWith('y') && variant === `${base.slice(0, -1)}ies`) continue;
     return false;
   }
 
@@ -141,11 +141,7 @@ function areZeroUsageDuplicates(variants: IngredientVariant[]): boolean {
 /**
  * Semantic comparison using local Ollama LLM (HTTP API)
  */
-async function semanticCompare(
-  ing1: string,
-  ing2: string,
-  retries = 1
-): Promise<SemanticAnalysis> {
+async function semanticCompare(ing1: string, ing2: string, retries = 1): Promise<SemanticAnalysis> {
   const prompt = `Are these two ingredients the same thing? Answer ONLY with valid JSON.
 
 Ingredient 1: "${ing1}"
@@ -273,10 +269,7 @@ async function analyzeGroupWithSemantics(group: DuplicateGroup): Promise<Consoli
           `🤔 Ambiguous plural case (${(wordOverlap * 100).toFixed(0)}% overlap): "${variants[0].display_name}" vs "${variants[1].display_name}"`
         );
 
-        const semantic = await semanticCompare(
-          variants[0].display_name,
-          variants[1].display_name
-        );
+        const semantic = await semanticCompare(variants[0].display_name, variants[1].display_name);
 
         if (semantic.similar && semantic.confidence >= 0.7) {
           const sorted = [...variants].sort((a, b) => b.usage_count - a.usage_count);
@@ -322,7 +315,9 @@ async function analyzeGroupWithSemantics(group: DuplicateGroup): Promise<Consoli
       canonical_category: selectCanonicalCategory(variants),
       duplicates_to_merge: duplicates.map((v) => v.id),
       reason: 'Plural/singular variants of same ingredient (rule-based)',
-      aliases: variants.map((v) => v.display_name).filter((n) => n !== selectCanonicalName(variants)),
+      aliases: variants
+        .map((v) => v.display_name)
+        .filter((n) => n !== selectCanonicalName(variants)),
       confidence: 'high',
     };
   }
@@ -341,7 +336,9 @@ async function analyzeGroupWithSemantics(group: DuplicateGroup): Promise<Consoli
       canonical_category: selectCanonicalCategory(variants),
       duplicates_to_merge: duplicates.map((v) => v.id),
       reason: 'Punctuation/spelling variants of same ingredient (rule-based)',
-      aliases: variants.map((v) => v.display_name).filter((n) => n !== selectCanonicalName(variants)),
+      aliases: variants
+        .map((v) => v.display_name)
+        .filter((n) => n !== selectCanonicalName(variants)),
       confidence: 'high',
     };
   }
@@ -386,7 +383,9 @@ async function analyzeGroupWithSemantics(group: DuplicateGroup): Promise<Consoli
         canonical_category: selectCanonicalCategory(variants),
         duplicates_to_merge: duplicates.map((v) => v.id),
         reason: `Semantically equivalent (LLM: ${semantic.reason})`,
-        aliases: variants.map((v) => v.display_name).filter((n) => n !== selectCanonicalName(variants)),
+        aliases: variants
+          .map((v) => v.display_name)
+          .filter((n) => n !== selectCanonicalName(variants)),
         confidence: semantic.confidence >= 0.85 ? 'high' : 'medium',
         semantic_validation: semantic,
       };
@@ -431,7 +430,7 @@ async function main() {
     if (!response.ok) {
       throw new Error('Ollama API not responding');
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ Error: Ollama is not running or not installed!');
     console.error('   Start Ollama: ollama serve');
     console.error('   Install model: ollama pull mistral\n');
@@ -467,11 +466,13 @@ async function main() {
 
     // Progress indicator every 10 items
     if ((i + 1) % 10 === 0 || i === duplicates.length - 1) {
-      const progress = ((i + 1) / duplicates.length * 100).toFixed(1);
+      const progress = (((i + 1) / duplicates.length) * 100).toFixed(1);
       const elapsed = (Date.now() - startTime) / 1000;
       const rate = (i + 1) / elapsed;
       const remaining = (duplicates.length - i - 1) / rate;
-      console.log(`Progress: ${i + 1}/${duplicates.length} (${progress}%) - ETA: ${Math.ceil(remaining / 60)}m`);
+      console.log(
+        `Progress: ${i + 1}/${duplicates.length} (${progress}%) - ETA: ${Math.ceil(remaining / 60)}m`
+      );
     }
   }
 

@@ -75,9 +75,7 @@ export function RecipeEngagementStats({
             <span>
               {stat.count} {stat.count === 1 ? stat.singular : stat.label.toLowerCase()}
             </span>
-            {index < stats.length - 1 && (
-              <span className="ml-4 text-muted-foreground/50">•</span>
-            )}
+            {index < stats.length - 1 && <span className="ml-4 text-muted-foreground/50">•</span>}
           </div>
         ))}
       </div>
@@ -86,15 +84,11 @@ export function RecipeEngagementStats({
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-        Community Engagement
-      </h3>
+      <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Community Engagement</h3>
       <div className="grid grid-cols-3 gap-4">
         {stats.map((stat) => (
           <div key={stat.label} className="text-center">
-            <div className={`text-2xl font-bold ${stat.color}`}>
-              {stat.count}
-            </div>
+            <div className={`text-2xl font-bold ${stat.color}`}>{stat.count}</div>
             <div className="text-xs text-muted-foreground">
               <span className="mr-1">{stat.icon}</span>
               {stat.label}

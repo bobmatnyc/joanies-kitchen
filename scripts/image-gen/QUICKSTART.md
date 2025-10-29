@@ -1,6 +1,6 @@
 # Image Generation Quick Start
 
-**5-minute guide to generating recipe images on your M4 Max**
+**5-minute guide to generating recipe and meal images on your M4 Max**
 
 ## Step 1: Setup (One-time, ~5 minutes)
 
@@ -159,6 +159,55 @@ python scripts/image-gen/recipe_image_generator.py \
 # Total time: ~2 minutes (20 recipes × 2 images × 3s)
 # Output: 40 professional food photos
 ```
+
+## NEW: Meal Image Generation
+
+Generate overhead photography for complete meals (collections of recipes):
+
+### Quick Test
+
+```bash
+# Test meal image generator
+bash scripts/image-gen/test_meal_generator.sh
+```
+
+### Generate Meal Images (TypeScript + Python)
+
+```bash
+# Dry run (preview only)
+npm run tsx scripts/generate-meal-images-sd.ts
+
+# Generate and save to database
+APPLY_CHANGES=true npm run tsx scripts/generate-meal-images-sd.ts
+
+# Process specific number
+APPLY_CHANGES=true LIMIT=20 npm run tsx scripts/generate-meal-images-sd.ts
+```
+
+### How Meal Generation Works
+
+1. **Queries Database**: Finds meals without images
+2. **Fetches Courses**: Gets all recipes in the meal (appetizer, main, sides, dessert)
+3. **Builds Prompt**: Creates overhead flat-lay photography description
+4. **Generates**: Calls Python SD XL (30-40s per image)
+5. **Uploads**: Stores on Vercel Blob CDN
+6. **Updates**: Saves image_url to meals table
+
+### Performance Comparison
+
+| Feature | Recipe Images | Meal Images |
+|---------|--------------|-------------|
+| **Time** | 2-5s | 30-40s |
+| **Script** | Python only | TypeScript + Python |
+| **Quality** | 1024x1024 | 1024x1024 |
+| **Style** | Single dish | Multiple dishes overhead |
+| **Database** | Optional | Integrated |
+
+### Meal Image Documentation
+
+- **Quick Start**: This file
+- **Full Guide**: `scripts/image-gen/MEAL_IMAGE_GENERATION.md`
+- **Test Script**: `scripts/image-gen/test_meal_generator.sh`
 
 ---
 

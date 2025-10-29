@@ -344,13 +344,14 @@ export const TAG_IDS = {
  * Extract all tag IDs as a union type
  * Useful for type-safe tag validation
  */
-export type KnownTagId = typeof TAG_IDS[keyof typeof TAG_IDS][keyof typeof TAG_IDS[keyof typeof TAG_IDS]];
+export type KnownTagId =
+  (typeof TAG_IDS)[keyof typeof TAG_IDS][keyof (typeof TAG_IDS)[keyof typeof TAG_IDS]];
 
 /**
  * Type guard to check if a tag ID is valid
  */
 export function isKnownTagId(tagId: string): tagId is KnownTagId {
-  const allTagIds = Object.values(TAG_IDS).flatMap(category => Object.values(category));
+  const allTagIds = Object.values(TAG_IDS).flatMap((category) => Object.values(category));
   return allTagIds.includes(tagId as any);
 }
 

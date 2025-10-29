@@ -1,6 +1,6 @@
+import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { recipes } from '../src/lib/db/schema.js';
-import { sql } from 'drizzle-orm';
 
 async function findBrokenImages() {
   console.log('🔍 Searching for recipes with example.com images...\n');

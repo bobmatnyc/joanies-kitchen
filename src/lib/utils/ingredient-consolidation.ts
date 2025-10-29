@@ -9,6 +9,11 @@
  */
 
 import type { ShoppingListItem } from '@/lib/db/schema';
+import {
+  normalizeIngredientName as normalizeForShopping,
+  extractUsageNotes,
+  consolidateUsageNotes,
+} from '@/lib/utils/ingredient-normalizer';
 
 // ============================================================================
 // Unit Conversion Tables
@@ -86,7 +91,10 @@ const COUNT_UNITS = new Set([
 // Unit Conversion Functions
 // ============================================================================
 
-export function convertToBaseUnit(quantity: number, unit: string): { baseQuantity: number; baseUnit: string } {
+export function convertToBaseUnit(
+  quantity: number,
+  unit: string
+): { baseQuantity: number; baseUnit: string } {
   const normalizedUnit = unit.toLowerCase().trim();
 
   // Volume conversions
@@ -215,7 +223,7 @@ export function normalizeIngredientName(name: string): string {
 
   // Simple singularization (not perfect but good enough)
   if (normalized.endsWith('ies')) {
-    normalized = normalized.slice(0, -3) + 'y';
+    normalized = `${normalized.slice(0, -3)}y`;
   } else if (normalized.endsWith('es')) {
     normalized = normalized.slice(0, -2);
   } else if (normalized.endsWith('s') && !normalized.endsWith('ss')) {
@@ -279,6 +287,7 @@ export interface ParsedIngredient {
   unit: string;
   name: string;
   original: string;
+  isToTaste?: boolean;
 }
 
 /**
@@ -292,30 +301,55 @@ export interface ParsedIngredient {
 export function parseIngredientString(ingredient: string): ParsedIngredient | null {
   const trimmed = ingredient.trim();
 
+  // Check for "to taste" or similar qualifiers FIRST
+  const toTastePattern = /\b(to taste|as needed|for seasoning|if desired|to season)\b/i;
+  const isToTaste = toTastePattern.test(trimmed);
+
+  // Strip the qualifier from the text for further parsing
+  let text = trimmed;
+  if (isToTaste) {
+    text = text.replace(toTastePattern, '').trim();
+    // Clean up any trailing commas or "and"
+    text = text.replace(/,?\s*and?\s*$/, '').trim();
+  }
+
   // Pattern 1: "quantity unit name" (e.g., "2 cups milk")
   const pattern1 = /^(\d+(?:\.\d+)?|\d+\/\d+|\d+-\d+)\s+([a-zA-Z]+)\s+(.+)$/;
-  const match1 = trimmed.match(pattern1);
+  const match1 = text.match(pattern1);
   if (match1) {
     const [, qtyStr, unit, name] = match1;
     const quantity = parseQuantity(qtyStr);
-    return { quantity, unit: unit.toLowerCase(), name: name.trim(), original: ingredient };
+    return {
+      quantity: isToTaste ? 0 : quantity,
+      unit: unit.toLowerCase(),
+      name: name.trim(),
+      original: ingredient,
+      isToTaste,
+    };
   }
 
   // Pattern 2: "quantity name" (e.g., "2 onions")
   const pattern2 = /^(\d+(?:\.\d+)?|\d+\/\d+|\d+-\d+)\s+(.+)$/;
-  const match2 = trimmed.match(pattern2);
+  const match2 = text.match(pattern2);
   if (match2) {
     const [, qtyStr, name] = match2;
     const quantity = parseQuantity(qtyStr);
-    return { quantity, unit: 'pieces', name: name.trim(), original: ingredient };
+    return {
+      quantity: isToTaste ? 0 : quantity,
+      unit: 'pieces',
+      name: name.trim(),
+      original: ingredient,
+      isToTaste,
+    };
   }
 
   // Pattern 3: No quantity (e.g., "salt to taste")
   return {
     quantity: 0,
     unit: '',
-    name: trimmed,
+    name: text,
     original: ingredient,
+    isToTaste,
   };
 }
 
@@ -340,18 +374,24 @@ function parseQuantity(qtyStr: string): number {
  * - Combines items with same name (after normalization)
  * - Converts units to common base
  * - Sums quantities
+ * - Consolidates usage notes
  */
 export function consolidateShoppingListItems(items: ShoppingListItem[]): ShoppingListItem[] {
-  const consolidated = new Map<string, ShoppingListItem>();
+  const consolidated = new Map<
+    string,
+    ShoppingListItem & { originalNames?: string[]; usageNotes?: (string | null)[] }
+  >();
 
   for (const item of items) {
-    const normalizedName = normalizeIngredientName(item.name);
+    // Use the new normalization that handles usage notes
+    const normalizedName = normalizeForShopping(item.name);
+    const usageNote = extractUsageNotes(item.name);
 
     // Check if similar item already exists
     let matchedKey: string | null = null;
     let highestSimilarity = 0;
 
-    for (const [key, existingItem] of consolidated.entries()) {
+    for (const [key, _existingItem] of consolidated.entries()) {
       const similarity = calculateIngredientSimilarity(normalizedName, key);
       if (similarity > 0.85 && similarity > highestSimilarity) {
         highestSimilarity = similarity;
@@ -378,30 +418,57 @@ export function consolidateShoppingListItems(items: ShoppingListItem[]): Shoppin
         const combinedBase = existingBase + newBase;
         const { quantity, unit } = convertFromBaseUnit(combinedBase, existingBaseUnit);
 
+        // Preserve isToTaste flag - if either item is "to taste", mark the result as such
+        const isToTaste = existing.isToTaste || item.isToTaste;
+
+        // Consolidate usage notes
+        const existingNotes = existing.usageNotes || [];
+        const combinedNotes = [...existingNotes, usageNote];
+        const consolidatedNote = consolidateUsageNotes(combinedNotes);
+
         consolidated.set(matchedKey, {
           ...existing,
-          quantity,
+          name: normalizedName, // Use normalized name for display
+          quantity: isToTaste ? 0 : quantity, // Zero out quantity if "to taste"
           unit,
           from_recipes: [...new Set([...existing.from_recipes, ...item.from_recipes])],
           estimated_price: (existing.estimated_price || 0) + (item.estimated_price || 0),
+          isToTaste,
+          originalNames: [...(existing.originalNames || []), item.name],
+          usageNotes: combinedNotes,
+          notes: consolidatedNote || existing.notes, // Add consolidated usage notes to notes field
         });
       } else {
         // Units not compatible - keep separate
-        consolidated.set(normalizedName, item);
+        consolidated.set(normalizedName, {
+          ...item,
+          name: normalizedName,
+          originalNames: [item.name],
+          usageNotes: [usageNote],
+        });
       }
     } else {
       // New item
-      consolidated.set(normalizedName, { ...item });
+      consolidated.set(normalizedName, {
+        ...item,
+        name: normalizedName, // Use normalized name for display
+        originalNames: [item.name],
+        usageNotes: [usageNote],
+        notes: usageNote || item.notes, // Include usage note in notes field if present
+      });
     }
   }
 
-  return Array.from(consolidated.values());
+  // Remove temporary tracking fields before returning
+  return Array.from(consolidated.values()).map(({ originalNames, usageNotes, ...item }) => item);
 }
 
 /**
  * Group shopping list items by category with smart ordering
  */
-export function groupAndSortByCategory(items: ShoppingListItem[]): Record<string, ShoppingListItem[]> {
+export function groupAndSortByCategory(
+  items: ShoppingListItem[]
+): Record<string, ShoppingListItem[]> {
   const CATEGORY_ORDER = [
     'produce',
     'proteins',

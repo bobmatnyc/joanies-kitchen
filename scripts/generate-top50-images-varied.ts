@@ -3,11 +3,10 @@
  * Each category gets contextually appropriate backgrounds and settings
  */
 
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { put } from '@vercel/blob';
-import { eq, isNotNull, or, sql } from 'drizzle-orm';
-import { desc } from 'drizzle-orm';
+import { config } from 'dotenv';
+import { desc, eq, or, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
@@ -25,17 +24,21 @@ const BACKGROUND_PROMPTS = {
   beef: 'rustic wooden table in a cozy steakhouse, warm candlelight, elegant plating',
   chicken: 'bright modern kitchen with marble countertops, natural daylight, fresh herbs nearby',
   lamb: 'elegant fine dining table with wine glasses, soft romantic lighting, upscale restaurant ambiance',
-  pasta: 'traditional Italian trattoria setting with checkered tablecloth, rustic wooden table, Tuscan atmosphere',
-  seafood: 'coastal restaurant with ocean view in background, natural light, nautical elements, fresh and light setting',
+  pasta:
+    'traditional Italian trattoria setting with checkered tablecloth, rustic wooden table, Tuscan atmosphere',
+  seafood:
+    'coastal restaurant with ocean view in background, natural light, nautical elements, fresh and light setting',
   pork: 'farmhouse kitchen setting with rustic charm, wooden cutting board, country-style ambiance',
-  'other-proteins': 'contemporary minimalist kitchen, clean white background, professional food photography lighting',
+  'other-proteins':
+    'contemporary minimalist kitchen, clean white background, professional food photography lighting',
   vegetables: 'farm-to-table restaurant setting, bright natural light, garden-fresh aesthetic',
   salads: 'sunny outdoor patio dining, fresh garden background, bright and airy setting',
   grains: 'wholesome family dinner table, warm lighting, homestyle setting',
   potatoes: 'rustic country kitchen, cast iron cookware visible, warm homey atmosphere',
   bread: 'artisan bakery setting, flour-dusted surface, warm lighting from oven glow',
   cakes: 'elegant dessert display in French patisserie, soft lighting, pristine white background',
-  cookies: 'cozy home kitchen, cooling rack on marble counter, afternoon light streaming through window',
+  cookies:
+    'cozy home kitchen, cooling rack on marble counter, afternoon light streaming through window',
   pies: 'country kitchen setting, vintage pie dish, warm autumn lighting',
   puddings: 'upscale dessert presentation, fine china, sophisticated restaurant setting',
   frozen: 'modern ice cream parlor, colorful background, bright cheerful lighting',
@@ -53,9 +56,7 @@ function determineCategory(tags: string | null): keyof typeof BACKGROUND_PROMPTS
     // Check for specific categories
     if (normalizedTags.some((t: string) => ['beef', 'steak', 'roast'].some((k) => t.includes(k))))
       return 'beef';
-    if (
-      normalizedTags.some((t: string) => ['chicken', 'poultry'].some((k) => t.includes(k)))
-    )
+    if (normalizedTags.some((t: string) => ['chicken', 'poultry'].some((k) => t.includes(k))))
       return 'chicken';
     if (normalizedTags.some((t: string) => t.includes('lamb'))) return 'lamb';
     if (
@@ -89,13 +90,21 @@ function determineCategory(tags: string | null): keyof typeof BACKGROUND_PROMPTS
     if (normalizedTags.some((t: string) => t.includes('cookie'))) return 'cookies';
     if (normalizedTags.some((t: string) => ['pie', 'tart'].some((k) => t.includes(k))))
       return 'pies';
-    if (normalizedTags.some((t: string) => ['pudding', 'custard', 'mousse'].some((k) => t.includes(k))))
+    if (
+      normalizedTags.some((t: string) =>
+        ['pudding', 'custard', 'mousse'].some((k) => t.includes(k))
+      )
+    )
       return 'puddings';
-    if (normalizedTags.some((t: string) => ['ice cream', 'sorbet', 'frozen'].some((k) => t.includes(k))))
+    if (
+      normalizedTags.some((t: string) =>
+        ['ice cream', 'sorbet', 'frozen'].some((k) => t.includes(k))
+      )
+    )
       return 'frozen';
 
     return 'generic';
-  } catch (error) {
+  } catch (_error) {
     return 'generic';
   }
 }
@@ -235,10 +244,7 @@ async function main() {
     })
     .from(recipes)
     .where(
-      or(
-        sql`${recipes.system_rating} IS NOT NULL`,
-        sql`${recipes.avg_user_rating} IS NOT NULL`
-      )
+      or(sql`${recipes.system_rating} IS NOT NULL`, sql`${recipes.avg_user_rating} IS NOT NULL`)
     )
     .orderBy(
       desc(

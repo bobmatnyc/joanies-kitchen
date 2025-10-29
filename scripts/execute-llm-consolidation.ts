@@ -11,11 +11,11 @@
  * Usage: tsx scripts/execute-llm-consolidation.ts [--dry-run] [--skip-backup]
  */
 
-import { db, cleanup } from './db-with-transactions';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { eq, inArray } from 'drizzle-orm';
 import { ingredients, recipeIngredients } from '../src/lib/db/ingredients-schema';
-import { eq, inArray, sql } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
+import { cleanup, db } from './db-with-transactions';
 import type { ConsolidationDecision } from './llm-ingredient-consolidation';
 
 interface ExecutionStats {
@@ -101,7 +101,9 @@ async function executeConsolidation(decisions: ConsolidationDecision[]): Promise
   };
 
   // Filter for merge decisions only
-  const mergeDecisions = decisions.filter((d) => d.action === 'merge' && d.canonical_id && d.duplicates_to_merge);
+  const mergeDecisions = decisions.filter(
+    (d) => d.action === 'merge' && d.canonical_id && d.duplicates_to_merge
+  );
 
   console.log(`🔄 Executing ${mergeDecisions.length} merge operations...\n`);
 
@@ -122,12 +124,14 @@ async function executeConsolidation(decisions: ConsolidationDecision[]): Promise
       }
 
       console.log(`\n📌 Merging: ${decision.canonical_name} [${decision.canonical_category}]`);
-      console.log(`   Consolidating ${duplicateIds.length} duplicates into canonical ID: ${canonicalId.slice(0, 8)}...`);
+      console.log(
+        `   Consolidating ${duplicateIds.length} duplicates into canonical ID: ${canonicalId.slice(0, 8)}...`
+      );
 
       if (!isDryRun) {
         await db.transaction(async (tx) => {
           // Step 1: Update recipe_ingredients to point to canonical
-          const updateResult = await tx
+          const _updateResult = await tx
             .update(recipeIngredients)
             .set({ ingredient_id: canonicalId })
             .where(inArray(recipeIngredients.ingredient_id, duplicateIds));
@@ -137,12 +141,15 @@ async function executeConsolidation(decisions: ConsolidationDecision[]): Promise
           console.log(`   ✓ Updated recipe_ingredients to point to canonical`);
 
           // Step 2: Update canonical ingredient with correct metadata
-          const aliasesJson = decision.aliases && decision.aliases.length > 0 ? JSON.stringify(decision.aliases) : null;
+          const aliasesJson =
+            decision.aliases && decision.aliases.length > 0
+              ? JSON.stringify(decision.aliases)
+              : null;
 
           await tx
             .update(ingredients)
             .set({
-              name: decision.canonical_name!.toLowerCase(),
+              name: decision.canonical_name?.toLowerCase(),
               display_name: decision.canonical_name!,
               category: decision.canonical_category,
               aliases: aliasesJson,
@@ -171,7 +178,9 @@ async function executeConsolidation(decisions: ConsolidationDecision[]): Promise
 
       // Progress indicator
       if (stats.mergeSuccesses % 10 === 0) {
-        console.log(`\n📊 Progress: ${stats.mergeSuccesses}/${mergeDecisions.length} merges completed`);
+        console.log(
+          `\n📊 Progress: ${stats.mergeSuccesses}/${mergeDecisions.length} merges completed`
+        );
       }
     } catch (error) {
       stats.mergeFailed++;

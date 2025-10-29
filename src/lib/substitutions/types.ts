@@ -124,7 +124,10 @@ export interface StaticSubstitutionEntry {
   category: string;
 
   /** Array of substitution options */
-  substitutions: Omit<IngredientSubstitution, 'original_ingredient' | 'source' | 'is_user_available'>[];
+  substitutions: Omit<
+    IngredientSubstitution,
+    'original_ingredient' | 'source' | 'is_user_available'
+  >[];
 }
 
 /**

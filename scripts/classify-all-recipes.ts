@@ -8,10 +8,13 @@
  * Dry run: DRY_RUN=true pnpm tsx scripts/classify-all-recipes.ts
  */
 
+import { eq, isNull } from 'drizzle-orm';
+import {
+  classifyRecipeInstructions,
+  estimateClassificationCost,
+} from '@/lib/ai/instruction-classifier';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { isNull, eq } from 'drizzle-orm';
-import { classifyRecipeInstructions, estimateClassificationCost } from '@/lib/ai/instruction-classifier';
 
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || '100', 10);
 const REQUESTS_PER_MINUTE = 15; // Gemini free tier limit
@@ -88,7 +91,9 @@ async function classifyAllRecipes() {
       const instructions = JSON.parse(recipe.instructions) as string[];
 
       if (instructions.length === 0) {
-        console.log(`⚠️  [${i + 1}/${unclassified.length}] Skipping "${recipe.name}" - no instructions`);
+        console.log(
+          `⚠️  [${i + 1}/${unclassified.length}] Skipping "${recipe.name}" - no instructions`
+        );
         continue;
       }
 

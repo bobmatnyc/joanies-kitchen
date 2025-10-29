@@ -6,13 +6,13 @@
  * Helps users find recipes that use aging/wilting ingredients before they go bad
  */
 
+import { AlertCircle, Carrot, Drumstick, Flower, Leaf } from 'lucide-react';
 import Link from 'next/link';
-import { Leaf, Carrot, Drumstick, Flower, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Rescue Ingredients | Joanie\'s Kitchen',
-  description: 'What to do with ingredients about to go bad. Find recipes for wilting greens, aging vegetables, leftover proteins, and excess herbs.',
+  title: "Rescue Ingredients | Joanie's Kitchen",
+  description:
+    'What to do with ingredients about to go bad. Find recipes for wilting greens, aging vegetables, leftover proteins, and excess herbs.',
 };
 
 const ingredientCategories = [
@@ -62,7 +62,6 @@ export default function RescuePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-jk-cream via-white to-green-50/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-
         {/* Page Header */}
         <div className="text-center mb-12">
           <AlertCircle className="h-14 w-14 text-jk-tomato mx-auto mb-4" />
@@ -78,15 +77,13 @@ export default function RescuePage() {
         {/* FIFO Principle Callout */}
         <div className="bg-gradient-to-r from-jk-sage/10 to-green-100/50 rounded-2xl p-8 mb-12 border-2 border-jk-sage/30">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-heading text-jk-olive mb-3">
-              📦 FIFO Principle
-            </h2>
+            <h2 className="text-2xl font-heading text-jk-olive mb-3">📦 FIFO Principle</h2>
             <p className="text-lg text-jk-charcoal/80 font-body leading-relaxed mb-3">
               <strong>First In, First Out</strong> — Joanie's golden rule for zero waste.
             </p>
             <p className="text-base text-jk-charcoal/70 leading-relaxed">
-              Check your fridge regularly. The oldest ingredients should be used first. This page helps you
-              find recipes that work with what's aging, wilting, or about to expire.
+              Check your fridge regularly. The oldest ingredients should be used first. This page
+              helps you find recipes that work with what's aging, wilting, or about to expire.
             </p>
           </div>
         </div>
@@ -100,12 +97,10 @@ export default function RescuePage() {
             {ingredientCategories.map((category) => {
               const IconComponent = category.icon;
               return (
-                <Link
-                  key={category.slug}
-                  href={`/rescue/${category.slug}`}
-                  className="group"
-                >
-                  <div className={`bg-gradient-to-br ${category.color} p-8 rounded-2xl border-2 ${category.borderColor} hover:shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
+                <Link key={category.slug} href={`/rescue/${category.slug}`} className="group">
+                  <div
+                    className={`bg-gradient-to-br ${category.color} p-8 rounded-2xl border-2 ${category.borderColor} hover:shadow-lg transition-all duration-200 hover:scale-[1.02]`}
+                  >
                     <div className="flex items-start gap-4">
                       <div className={`${category.iconColor} flex-shrink-0`}>
                         <IconComponent className="h-12 w-12" />
@@ -202,7 +197,6 @@ export default function RescuePage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

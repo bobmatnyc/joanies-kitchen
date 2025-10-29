@@ -14,9 +14,10 @@ import { InventoryMatchSection } from './InventoryMatchSection';
  */
 export function RecipeDetailPageExample({ recipe }: { recipe: any }) {
   // Parse ingredients if stored as JSON string
-  const ingredients = typeof recipe.ingredients === 'string'
-    ? JSON.parse(recipe.ingredients)
-    : recipe.ingredients || [];
+  const ingredients =
+    typeof recipe.ingredients === 'string'
+      ? JSON.parse(recipe.ingredients)
+      : recipe.ingredients || [];
 
   return (
     <div className="space-y-6">
@@ -24,10 +25,7 @@ export function RecipeDetailPageExample({ recipe }: { recipe: any }) {
       <h1>{recipe.name}</h1>
 
       {/* Inventory Match Section */}
-      <InventoryMatchSection
-        recipeId={recipe.id}
-        ingredients={ingredients}
-      />
+      <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} />
 
       {/* Rest of recipe content: instructions, etc. */}
     </div>
@@ -65,11 +63,7 @@ export function RecipeCardWithMatchExample({ recipe }: { recipe: any }) {
       <img src={recipe.image_url} alt={recipe.name} />
 
       {/* Compact version for cards */}
-      <InventoryMatchSection
-        recipeId={recipe.id}
-        ingredients={ingredients}
-        className="text-sm"
-      />
+      <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} className="text-sm" />
 
       <button>View Recipe</button>
     </div>
@@ -94,7 +88,7 @@ export async function RecipePageFullExample({ slug }: { slug: string }) {
       '4 large eggs',
       '100g Pecorino Romano cheese',
       'Black pepper',
-      'Salt'
+      'Salt',
     ]),
   };
 
@@ -109,10 +103,7 @@ export async function RecipePageFullExample({ slug }: { slug: string }) {
 
       {/* Inventory Match - Prominent placement near top */}
       <section className="mb-8">
-        <InventoryMatchSection
-          recipeId={recipe.id}
-          ingredients={ingredients}
-        />
+        <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} />
       </section>
 
       {/* Ingredients List */}
@@ -145,12 +136,7 @@ export function ConditionalExample({ recipe }: { recipe: any }) {
     return null;
   }
 
-  return (
-    <InventoryMatchSection
-      recipeId={recipe.id}
-      ingredients={ingredients}
-    />
-  );
+  return <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} />;
 }
 
 /**

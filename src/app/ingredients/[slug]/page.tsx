@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation';
+import { ArrowLeft, BookOpen, ExternalLink, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Package, ExternalLink, BookOpen } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import { getIngredientBySlug } from '@/app/actions/ingredients';
 import { JoanieComment } from '@/components/recipe/JoanieComment';
 import { Button } from '@/components/ui/button';
@@ -28,23 +28,29 @@ export async function generateMetadata({ params }: IngredientPageProps) {
 
   return {
     title: `${ingredient.display_name} | Ingredient Guide | Joanie's Kitchen`,
-    description: ingredient.description || `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes using this ingredient.`,
+    description:
+      ingredient.description ||
+      `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes using this ingredient.`,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
       title: `${ingredient.display_name} | Ingredient Guide`,
-      description: ingredient.description || `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes.`,
+      description:
+        ingredient.description ||
+        `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes.`,
       url: canonicalUrl,
       type: 'article',
-      images: ingredient.image_url ? [
-        {
-          url: ingredient.image_url,
-          width: 1200,
-          height: 630,
-          alt: ingredient.display_name,
-        }
-      ] : undefined,
+      images: ingredient.image_url
+        ? [
+            {
+              url: ingredient.image_url,
+              width: 1200,
+              height: 630,
+              alt: ingredient.display_name,
+            },
+          ]
+        : undefined,
     },
     keywords: [
       ingredient.display_name,
@@ -175,7 +181,10 @@ export default async function IngredientPage({ params }: IngredientPageProps) {
                 </div>
 
                 {/* Action Button */}
-                <Link href={`/fridge?ingredient=${encodeURIComponent(ingredient.name)}`} className="block">
+                <Link
+                  href={`/fridge?ingredient=${encodeURIComponent(ingredient.name)}`}
+                  className="block"
+                >
                   <Button className="w-full" variant="default">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Find Recipes with {ingredient.display_name}

@@ -18,10 +18,10 @@
 
 import 'dotenv/config';
 import { put } from '@vercel/blob';
-import { eq, or, isNull } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
-import { recipes, meals, mealRecipes } from '@/lib/db/schema';
+import { mealRecipes, meals, recipes } from '@/lib/db/schema';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -60,7 +60,11 @@ interface RecipeImageResult {
 /**
  * Generate a contextual prompt for food photography
  */
-function generateImagePrompt(recipeName: string, cuisine: string | null, description: string | null): string {
+function generateImagePrompt(
+  recipeName: string,
+  cuisine: string | null,
+  description: string | null
+): string {
   const cuisineKey = cuisine?.toLowerCase() || 'default';
   const background = BACKGROUND_PROMPTS[cuisineKey] || BACKGROUND_PROMPTS.default;
 
@@ -74,7 +78,11 @@ function generateImagePrompt(recipeName: string, cuisine: string | null, descrip
     categoryBackground = BACKGROUND_PROMPTS.salad;
   } else if (nameLower.includes('bread') || nameLower.includes('roll')) {
     categoryBackground = BACKGROUND_PROMPTS.bread;
-  } else if (nameLower.includes('cake') || nameLower.includes('pie') || nameLower.includes('cookie')) {
+  } else if (
+    nameLower.includes('cake') ||
+    nameLower.includes('pie') ||
+    nameLower.includes('cookie')
+  ) {
     categoryBackground = BACKGROUND_PROMPTS.dessert;
   }
 
@@ -92,7 +100,12 @@ Ultra-realistic, magazine-quality food photography.`;
 /**
  * Generate AI image using DALL-E 3
  */
-async function generateAIImage(recipeName: string, cuisine: string | null, description: string | null, retryCount = 0): Promise<string> {
+async function generateAIImage(
+  recipeName: string,
+  cuisine: string | null,
+  description: string | null,
+  retryCount = 0
+): Promise<string> {
   const prompt = generateImagePrompt(recipeName, cuisine, description);
 
   console.log(`   📝 Prompt: "${prompt.substring(0, 100)}..."`);
@@ -117,8 +130,10 @@ async function generateAIImage(recipeName: string, cuisine: string | null, descr
     return imageUrl;
   } catch (error: any) {
     if (retryCount < MAX_RETRIES && error?.status === 429) {
-      console.log(`   ⏳ Rate limited, retrying in ${RETRY_DELAY/1000}s... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      console.log(
+        `   ⏳ Rate limited, retrying in ${RETRY_DELAY / 1000}s... (attempt ${retryCount + 1}/${MAX_RETRIES})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
       return generateAIImage(recipeName, cuisine, description, retryCount + 1);
     }
     console.error(`   ❌ AI generation failed:`, error?.message || error);
@@ -143,7 +158,10 @@ async function uploadToBlob(imageUrl: string, recipeName: string): Promise<strin
 
     console.log(`   ☁️  Uploading to Vercel Blob...`);
 
-    const safeFileName = recipeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50);
+    const safeFileName = recipeName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .substring(0, 50);
     const filename = `recipes/ai/meal-${safeFileName}-${Date.now()}.png`;
 
     const blob = await put(filename, buffer, {
@@ -174,13 +192,13 @@ function needsImage(recipe: any): { needs: boolean; reason?: string } {
     }
 
     // Check if images are broken/invalid URLs
-    const validImages = imageArray.filter((url: string) => url && url.startsWith('http'));
+    const validImages = imageArray.filter((url: string) => url?.startsWith('http'));
     if (validImages.length === 0) {
       return { needs: true, reason: 'has broken image URLs' };
     }
 
     return { needs: false };
-  } catch (e) {
+  } catch (_e) {
     return { needs: true, reason: 'has malformed images JSON' };
   }
 }
@@ -227,9 +245,9 @@ async function processRecipe(recipe: any): Promise<RecipeImageResult> {
       try {
         const parsed = JSON.parse(recipe.images);
         if (Array.isArray(parsed)) {
-          existingImages = parsed.filter((url: string) => url && url.startsWith('http'));
+          existingImages = parsed.filter((url: string) => url?.startsWith('http'));
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore parse errors
       }
     }
@@ -250,8 +268,8 @@ async function processRecipe(recipe: any): Promise<RecipeImageResult> {
     result.imageUrl = blobUrl;
 
     // Rate limiting delay
-    console.log(`   ⏳ Waiting ${RATE_LIMIT_DELAY/1000}s before next request...`);
-    await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+    console.log(`   ⏳ Waiting ${RATE_LIMIT_DELAY / 1000}s before next request...`);
+    await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY));
 
     return result;
   } catch (error: any) {
@@ -287,10 +305,7 @@ async function main() {
     const tomatoSoupRecipes = await db
       .select()
       .from(recipes)
-      .where(or(
-        eq(recipes.name, 'Roasted Tomato Soup'),
-        eq(recipes.name, 'roasted tomato soup')
-      ))
+      .where(or(eq(recipes.name, 'Roasted Tomato Soup'), eq(recipes.name, 'roasted tomato soup')))
       .limit(10);
 
     if (tomatoSoupRecipes.length === 0) {
@@ -333,7 +348,7 @@ async function main() {
     // Step 3: Get all recipes from these meals
     console.log('\n📋 Step 3: Getting all recipes from these meals...');
 
-    const mealIds = mealsWithSoup.map(m => m.meal.id);
+    const mealIds = mealsWithSoup.map((m) => m.meal.id);
 
     const allMealRecipesData = await db
       .select({
@@ -344,7 +359,7 @@ async function main() {
       .from(mealRecipes)
       .innerJoin(recipes, eq(mealRecipes.recipe_id, recipes.id))
       .innerJoin(meals, eq(mealRecipes.meal_id, meals.id))
-      .where(or(...mealIds.map(id => eq(mealRecipes.meal_id, id))));
+      .where(or(...mealIds.map((id) => eq(mealRecipes.meal_id, id))));
 
     console.log(`✅ Found ${allMealRecipesData.length} total recipe entries across all meals`);
 
@@ -358,7 +373,7 @@ async function main() {
       if (!recipeToMealsMap.has(data.recipe.id)) {
         recipeToMealsMap.set(data.recipe.id, []);
       }
-      recipeToMealsMap.get(data.recipe.id)!.push(data.meal.name);
+      recipeToMealsMap.get(data.recipe.id)?.push(data.meal.name);
     }
 
     const recipesToProcess = Array.from(uniqueRecipes.values());
@@ -375,9 +390,11 @@ async function main() {
     });
 
     // Step 4: Filter recipes that need images
-    const recipesNeedingImages = recipesToProcess.filter(r => needsImage(r).needs);
+    const recipesNeedingImages = recipesToProcess.filter((r) => needsImage(r).needs);
 
-    console.log(`\n🎯 Recipes needing images: ${recipesNeedingImages.length} of ${recipesToProcess.length}`);
+    console.log(
+      `\n🎯 Recipes needing images: ${recipesNeedingImages.length} of ${recipesToProcess.length}`
+    );
 
     if (recipesNeedingImages.length === 0) {
       console.log('\n✅ All recipes already have images! Nothing to do.');
@@ -386,8 +403,12 @@ async function main() {
 
     // Step 5: Process each recipe
     console.log(`\n🚀 Step 4: Generating images for ${recipesNeedingImages.length} recipes...`);
-    console.log(`⏰ Estimated time: ~${(recipesNeedingImages.length * RATE_LIMIT_DELAY / 1000 / 60).toFixed(1)} minutes`);
-    console.log(`💰 Estimated cost: $${(recipesNeedingImages.length * 0.04).toFixed(2)} (DALL-E 3 @ $0.04/image)\n`);
+    console.log(
+      `⏰ Estimated time: ~${((recipesNeedingImages.length * RATE_LIMIT_DELAY) / 1000 / 60).toFixed(1)} minutes`
+    );
+    console.log(
+      `💰 Estimated cost: $${(recipesNeedingImages.length * 0.04).toFixed(2)} (DALL-E 3 @ $0.04/image)\n`
+    );
 
     const results: RecipeImageResult[] = [];
 
@@ -400,13 +421,13 @@ async function main() {
     }
 
     // Step 6: Generate summary report
-    console.log('\n\n' + '═'.repeat(80));
+    console.log(`\n\n${'═'.repeat(80)}`);
     console.log('📊 SUMMARY REPORT');
     console.log('═'.repeat(80));
 
-    const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success && !r.skipped);
-    const skipped = results.filter(r => r.skipped);
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success && !r.skipped);
+    const skipped = results.filter((r) => r.skipped);
 
     console.log(`\n✅ Successfully generated: ${successful.length}`);
     console.log(`❌ Failed: ${failed.length}`);
@@ -431,7 +452,6 @@ async function main() {
 
     console.log(`\n💰 Total cost: $${(successful.length * 0.04).toFixed(2)}`);
     console.log('\n✅ Script completed!\n');
-
   } catch (error) {
     console.error('\n❌ Script failed:', error);
     throw error;

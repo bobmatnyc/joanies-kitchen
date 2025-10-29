@@ -12,7 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { recipes, recipeSources } from './schema';
+import { recipeSources, recipes } from './schema';
 
 // Chefs table - Famous chefs/creators (no login required)
 export const chefs = pgTable(

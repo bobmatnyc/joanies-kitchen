@@ -26,20 +26,19 @@ async function imageAudit() {
   console.log('DATABASE STATISTICS:');
   console.log('─'.repeat(80));
   console.log(`  Total Recipes:        ${totalRecipes.toLocaleString()}`);
-  console.log(`  With Images:          ${withImages.toLocaleString()} (${((withImages/totalRecipes)*100).toFixed(1)}%)`);
-  console.log(`  Without Images:       ${(totalRecipes - withImages).toLocaleString()} (${(((totalRecipes - withImages)/totalRecipes)*100).toFixed(1)}%)`);
+  console.log(
+    `  With Images:          ${withImages.toLocaleString()} (${((withImages / totalRecipes) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `  Without Images:       ${(totalRecipes - withImages).toLocaleString()} (${(((totalRecipes - withImages) / totalRecipes) * 100).toFixed(1)}%)`
+  );
   console.log('');
 
   // 2. Check for problematic patterns
   console.log('BROKEN IMAGE PATTERNS CHECK:');
   console.log('─'.repeat(80));
 
-  const patterns = [
-    'example.com',
-    'placeholder',
-    'dummy',
-    'localhost',
-  ];
+  const patterns = ['example.com', 'placeholder', 'dummy', 'localhost'];
 
   let totalProblematic = 0;
 
@@ -50,7 +49,7 @@ async function imageAudit() {
       FROM recipes
       WHERE images::text LIKE ${query}
     `);
-    
+
     const count = Number(result.rows[0].count);
     const status = count === 0 ? '✅' : '❌';
     console.log(`  ${status} ${pattern.padEnd(15)} ${count} recipe(s)`);
@@ -61,7 +60,7 @@ async function imageAudit() {
   // 3. Roasted Tomato Soup Verification
   console.log('TARGET RECIPE VERIFICATION:');
   console.log('─'.repeat(80));
-  
+
   const soupResult = await db.execute(sql`
     SELECT name, slug, images
     FROM recipes
@@ -74,25 +73,24 @@ async function imageAudit() {
     console.log(`  Recipe Name:    ${soup.name}`);
     console.log(`  Recipe Slug:    ${soup.slug}`);
     console.log(`  Images:`);
-    
+
     const images = soup.images;
     let imageArray = [];
-    
+
     if (typeof images === 'string') {
       try {
         imageArray = JSON.parse(images);
-      } catch (e) {
+      } catch (_e) {
         imageArray = [images];
       }
     } else if (Array.isArray(images)) {
       imageArray = images;
     }
-    
+
     if (imageArray.length > 0) {
       imageArray.forEach((img, idx) => {
-        const isBroken = img.includes('example.com') || 
-                        img.includes('placeholder') || 
-                        img.includes('dummy');
+        const isBroken =
+          img.includes('example.com') || img.includes('placeholder') || img.includes('dummy');
         const status = isBroken ? '❌ BROKEN' : '✅ VALID';
         console.log(`    ${idx + 1}. ${status}`);
         console.log(`       ${img}`);
@@ -113,7 +111,7 @@ async function imageAudit() {
   console.log(`  Total Recipes Checked:         ${totalRecipes.toLocaleString()}`);
   console.log(`  Recipes with Broken Images:    ${totalProblematic}`);
   console.log('');
-  
+
   if (totalProblematic === 0) {
     console.log('  ✅ SUCCESS: No broken images found!');
     console.log('  ✅ The Roasted Tomato Soup fix is still in place.');

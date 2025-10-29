@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Rollback Normalization Script
  *
@@ -13,8 +14,8 @@
  * @module scripts/rollback-normalization
  */
 
-import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
+import { db } from '../src/lib/db';
 
 // ============================================================================
 // CLI ARGUMENTS
@@ -121,7 +122,7 @@ async function verifyBackup(tableName: string): Promise<boolean> {
     const count = result.rows[0]?.count || 0;
     console.log(`✅ Backup table "${tableName}" verified (${count} rows)\n`);
     return true;
-  } catch (error) {
+  } catch (_error) {
     console.error(`❌ Backup table "${tableName}" does not exist or is invalid.\n`);
     return false;
   }
@@ -268,7 +269,7 @@ async function main() {
     // Execute rollback
     console.log('\n⚠️  EXECUTING ROLLBACK...\n');
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (_tx) => {
       await executeRollback(backupTable);
     });
 

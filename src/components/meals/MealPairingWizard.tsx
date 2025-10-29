@@ -1,15 +1,15 @@
 'use client';
 
-import { Loader2, ChefHat, Settings, Sparkles, Check, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChefHat, Loader2, Settings, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import type { MealPlan, MealPairingMode } from '@/types';
 import { toast } from '@/lib/toast';
+import type { MealPairingMode, MealPlan } from '@/types';
 import { MealPlanDisplay } from './MealPlanDisplay';
 
 interface MealPairingWizardProps {
@@ -32,7 +32,7 @@ interface FormData {
 
 export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('mode');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [_isGenerating, setIsGenerating] = useState(false);
   const [generatedMeal, setGeneratedMeal] = useState<MealPlan | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
@@ -226,7 +226,9 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <Icon className={`w-6 h-6 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <Icon
+                        className={`w-6 h-6 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
+                      />
                       <div className="flex-1">
                         <h3 className="font-semibold mb-1">{mode.title}</h3>
                         <p className="text-sm text-muted-foreground">{mode.description}</p>
@@ -311,7 +313,9 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                     id="dietary"
                     value={dietaryInput}
                     onChange={(e) => setDietaryInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addDietaryRestriction())}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' && (e.preventDefault(), addDietaryRestriction())
+                    }
                     placeholder="e.g., vegetarian, gluten-free"
                   />
                   <Button type="button" onClick={addDietaryRestriction} variant="outline">
@@ -320,7 +324,12 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.dietaryRestrictions.map((item) => (
-                    <Badge key={item} variant="secondary" className="cursor-pointer" onClick={() => removeDietaryRestriction(item)}>
+                    <Badge
+                      key={item}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => removeDietaryRestriction(item)}
+                    >
                       {item} ×
                     </Badge>
                   ))}
@@ -344,7 +353,12 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.availableIngredients.map((item) => (
-                    <Badge key={item} variant="secondary" className="cursor-pointer" onClick={() => removeIngredient(item)}>
+                    <Badge
+                      key={item}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => removeIngredient(item)}
+                    >
                       {item} ×
                     </Badge>
                   ))}
@@ -361,7 +375,9 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                     min="30"
                     max="300"
                     value={formData.timeLimit}
-                    onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 120 })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, timeLimit: parseInt(e.target.value, 10) || 120 })
+                    }
                   />
                 </div>
                 <div>
@@ -372,7 +388,9 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
                     min="1"
                     max="12"
                     value={formData.servings}
-                    onChange={(e) => setFormData({ ...formData, servings: parseInt(e.target.value) || 4 })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, servings: parseInt(e.target.value, 10) || 4 })
+                    }
                   />
                 </div>
               </div>

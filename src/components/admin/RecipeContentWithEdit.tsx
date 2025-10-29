@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { Edit } from 'lucide-react';
+import { useState } from 'react';
+import { IngredientsList } from '@/components/recipe/IngredientsList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { IngredientsList } from '@/components/recipe/IngredientsList';
+import { useAdminEditMode } from './AdminEditMode';
+import { ImageEditor } from './ImageEditor';
 import { IngredientEditor } from './IngredientEditor';
 import { InstructionEditor } from './InstructionEditor';
-import { ImageEditor } from './ImageEditor';
-import { useAdminEditMode } from './AdminEditMode';
 
 interface RecipeContentWithEditProps {
   recipe: {
@@ -102,7 +102,7 @@ export function RecipeContentWithEdit({ recipe, isAdmin }: RecipeContentWithEdit
           </div>
         </CardHeader>
         <CardContent>
-          <ol className="space-y-4" role="list">
+          <ol className="space-y-4">
             {recipe.instructions.map((instruction: string, index: number) => (
               <li key={index} className="flex gap-3">
                 <span className="font-semibold text-primary flex-shrink-0 min-w-[1.5rem]">

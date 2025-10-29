@@ -12,7 +12,8 @@ import type { PromptTemplate } from './types';
 export const RECIPE_IMPROVEMENT_ANALYZER: PromptTemplate = {
   id: 'recipe-improvement-analyzer',
   name: 'Recipe Improvement Analyzer',
-  description: 'Analyze a recipe and suggest practical improvements for flavor, technique, or nutrition',
+  description:
+    'Analyze a recipe and suggest practical improvements for flavor, technique, or nutrition',
   version: '1.0.0',
   category: 'analysis',
   systemPrompt: `You are a professional chef instructor and recipe developer with expertise in:
@@ -101,7 +102,8 @@ Return as JSON:
 export const RECIPE_VARIATION_GENERATOR: PromptTemplate = {
   id: 'recipe-variation-generator',
   name: 'Recipe Variation Generator',
-  description: 'Generate creative variations of a recipe (different cuisines, dietary versions, seasonal adaptations)',
+  description:
+    'Generate creative variations of a recipe (different cuisines, dietary versions, seasonal adaptations)',
   version: '1.0.0',
   category: 'recipe',
   systemPrompt: `You are a creative chef who specializes in recipe adaptation and fusion cuisine.
@@ -157,7 +159,15 @@ Variation types to consider:
 - technique-swap: Same dish, different cooking method
 - upscale-version: Restaurant-quality refinement
 - budget-version: More affordable ingredients/methods`,
-  variables: ['recipeName', 'cuisine', 'technique', 'keyIngredients', 'dietaryBase', 'variationTypes', 'count'],
+  variables: [
+    'recipeName',
+    'cuisine',
+    'technique',
+    'keyIngredients',
+    'dietaryBase',
+    'variationTypes',
+    'count',
+  ],
   modelSuggestions: [
     {
       model: 'google/gemini-2.0-flash-exp:free',
@@ -186,7 +196,8 @@ Variation types to consider:
 export const MISSING_INGREDIENT_IDENTIFIER: PromptTemplate = {
   id: 'missing-ingredient-identifier',
   name: 'Missing Ingredient Identifier',
-  description: 'Analyze a recipe and identify likely missing ingredients, seasonings, or components',
+  description:
+    'Analyze a recipe and identify likely missing ingredients, seasonings, or components',
   version: '1.0.0',
   category: 'analysis',
   systemPrompt: `You are a professional recipe editor and test kitchen chef.
@@ -273,7 +284,8 @@ Focus on GENUINE gaps, not:
 export const COOKING_DIFFICULTY_ESTIMATOR: PromptTemplate = {
   id: 'cooking-difficulty-estimator',
   name: 'Cooking Difficulty Estimator',
-  description: 'Accurately estimate the true difficulty level of a recipe based on techniques, timing, and skill requirements',
+  description:
+    'Accurately estimate the true difficulty level of a recipe based on techniques, timing, and skill requirements',
   version: '1.0.0',
   category: 'analysis',
   systemPrompt: `You are a culinary instructor who teaches cooks from beginner to advanced levels.
@@ -332,7 +344,15 @@ Return as JSON:
     "suggestions to make it more approachable for beginners"
   ]
 }`,
-  variables: ['recipeName', 'currentDifficulty', 'ingredients', 'instructions', 'prepTime', 'cookTime', 'equipment'],
+  variables: [
+    'recipeName',
+    'currentDifficulty',
+    'ingredients',
+    'instructions',
+    'prepTime',
+    'cookTime',
+    'equipment',
+  ],
   modelSuggestions: [
     {
       model: 'anthropic/claude-3.5-sonnet',
@@ -361,7 +381,8 @@ Return as JSON:
 export const RECIPE_SCALING_OPTIMIZER: PromptTemplate = {
   id: 'recipe-scaling-optimizer',
   name: 'Recipe Scaling Optimizer',
-  description: 'Intelligently scale recipes up or down while adjusting for non-linear scaling factors',
+  description:
+    'Intelligently scale recipes up or down while adjusting for non-linear scaling factors',
   version: '1.0.0',
   category: 'analysis',
   systemPrompt: `You are a professional chef and recipe developer who understands:
@@ -434,7 +455,14 @@ Non-linear scaling considerations:
 - Cooking times: Don't scale linearly (especially baking)
 - Equipment: May need multiple pans or larger vessels
 - Yields: Sometimes better to make multiple batches`,
-  variables: ['recipeName', 'originalServings', 'targetServings', 'ingredients', 'instructions', 'equipment'],
+  variables: [
+    'recipeName',
+    'originalServings',
+    'targetServings',
+    'ingredients',
+    'instructions',
+    'equipment',
+  ],
   modelSuggestions: [
     {
       model: 'anthropic/claude-3.5-sonnet',

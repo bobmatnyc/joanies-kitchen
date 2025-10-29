@@ -1,7 +1,7 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
-import { eq } from 'drizzle-orm';
-import { readFileSync, writeFileSync } from 'fs';
 
 // Load ontology specification
 const ONTOLOGY_SPEC = `
@@ -48,9 +48,7 @@ interface Classification {
   reasoning: string;
 }
 
-async function classifyWithAI(
-  ingredient: IngredientToClassify
-): Promise<Classification> {
+async function classifyWithAI(ingredient: IngredientToClassify): Promise<Classification> {
   const prompt = `Given this ingredient ontology:
 
 ${ONTOLOGY_SPEC}
@@ -78,7 +76,7 @@ Classify: ${ingredient.display_name}`;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -122,7 +120,11 @@ function fallbackClassification(ingredient: IngredientToClassify): Classificatio
   const nameLower = ingredient.display_name.toLowerCase();
 
   // Alcohol
-  if (nameLower.match(/vodka|gin|rum|whiskey|bourbon|tequila|brandy|cognac|vermouth|bitters|liqueur|schnapps/)) {
+  if (
+    nameLower.match(
+      /vodka|gin|rum|whiskey|bourbon|tequila|brandy|cognac|vermouth|bitters|liqueur|schnapps/
+    )
+  ) {
     return {
       type: 'PANTRY_STAPLES',
       subtype: 'beverages_alcoholic',
@@ -214,15 +216,12 @@ async function main() {
     // Rate limit: ~1 request per second
     if (processed % 10 === 0) {
       console.log(`\nProgress: ${processed}/${otherIngredients.length} (${updated} updated)\n`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
   // Save results
-  writeFileSync(
-    'tmp/refined-classification-results.json',
-    JSON.stringify(results, null, 2)
-  );
+  writeFileSync('tmp/refined-classification-results.json', JSON.stringify(results, null, 2));
 
   // Generate summary
   const typeCounts: Record<string, number> = {};
@@ -234,7 +233,7 @@ async function main() {
     subtypeCounts[`${type}/${subtype}`] = (subtypeCounts[`${type}/${subtype}`] || 0) + 1;
   }
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('REFINED CLASSIFICATION SUMMARY');
   console.log('='.repeat(60));
   console.log(`Total processed: ${processed}`);

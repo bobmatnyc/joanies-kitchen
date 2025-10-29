@@ -19,7 +19,9 @@ async function applyMigration() {
     console.log('✓ Added slug column');
 
     // Create index
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS "meals_slug_idx" ON "meals" USING btree ("slug")`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS "meals_slug_idx" ON "meals" USING btree ("slug")`
+    );
     console.log('✓ Created slug index');
 
     // Note: We'll add the unique constraint AFTER backfilling

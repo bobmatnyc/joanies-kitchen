@@ -20,13 +20,13 @@
  *   pnpm tsx scripts/qa-derive-missing-ingredients.ts --min-confidence 0.85
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import cliProgress from 'cli-progress';
+import { inArray } from 'drizzle-orm';
+import ollama from 'ollama';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { sql, eq, inArray } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
-import cliProgress from 'cli-progress';
-import ollama from 'ollama';
 import { parseJsonResponse, sleep } from './lib/qa-helpers';
 
 interface DerivedIngredient {
@@ -74,7 +74,7 @@ interface Checkpoint {
 }
 
 const MODEL = 'qwen2.5-coder:7b-instruct';
-const DEFAULT_MIN_CONFIDENCE = 0.90;
+const DEFAULT_MIN_CONFIDENCE = 0.9;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 const CHECKPOINT_INTERVAL = 100;
@@ -109,10 +109,12 @@ Return the JSON array now:`;
   try {
     const response = await ollama.chat({
       model: MODEL,
-      messages: [{
-        role: 'user',
-        content: prompt,
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
       format: 'json',
       options: {
         temperature: 0.1,
@@ -143,16 +145,16 @@ Return the JSON array now:`;
     }
 
     // Validate and normalize response
-    const ingredients: DerivedIngredient[] = ingredientArray.filter(item =>
-      typeof item === 'object' &&
-      item.ingredient &&
-      typeof item.ingredient === 'string'
-    ).map(item => ({
-      ingredient: item.ingredient.toLowerCase().trim(),
-      amount: item.amount ? String(item.amount).trim() : '',
-      unit: item.unit ? String(item.unit).toLowerCase().trim() : '',
-      optional: item.optional === true,
-    }));
+    const ingredients: DerivedIngredient[] = ingredientArray
+      .filter(
+        (item) => typeof item === 'object' && item.ingredient && typeof item.ingredient === 'string'
+      )
+      .map((item) => ({
+        ingredient: item.ingredient.toLowerCase().trim(),
+        amount: item.amount ? String(item.amount).trim() : '',
+        unit: item.unit ? String(item.unit).toLowerCase().trim() : '',
+        optional: item.optional === true,
+      }));
 
     return { ingredients };
   } catch (error) {
@@ -206,11 +208,11 @@ function calculateConfidence(
   }
 
   // Check if quantities are specified
-  const withQuantities = derivedIngredients.filter(i => i.amount && i.amount !== '').length;
+  const withQuantities = derivedIngredients.filter((i) => i.amount && i.amount !== '').length;
   const quantityRate = withQuantities / derivedIngredients.length;
   if (quantityRate < 0.7) {
     notes.push(`Low quantity specification rate: ${(quantityRate * 100).toFixed(0)}%`);
-    score *= (0.8 + quantityRate * 0.2); // Reduce score if few quantities
+    score *= 0.8 + quantityRate * 0.2; // Reduce score if few quantities
   }
 
   // Bonus for reasonable ingredient count (5-20 typical)
@@ -246,7 +248,7 @@ async function deriveMissingIngredients() {
   console.log(`🤖 Using model: ${MODEL}\n`);
 
   // Parse command line arguments
-  const minConfidenceArg = process.argv.find(arg => arg.startsWith('--min-confidence='));
+  const minConfidenceArg = process.argv.find((arg) => arg.startsWith('--min-confidence='));
   const minConfidence = minConfidenceArg
     ? parseFloat(minConfidenceArg.split('=')[1])
     : DEFAULT_MIN_CONFIDENCE;
@@ -256,7 +258,7 @@ async function deriveMissingIngredients() {
   // Check Ollama availability
   try {
     await ollama.list();
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ Error: Ollama is not running or not accessible');
     console.error('   Please start Ollama with: ollama serve');
     process.exit(1);
@@ -300,14 +302,15 @@ async function deriveMissingIngredients() {
   }
 
   // Fetch recipes with missing ingredients
-  const candidateRecipes = await db.select({
-    id: recipes.id,
-    name: recipes.name,
-    ingredients: recipes.ingredients,
-    instructions: recipes.instructions,
-  }).from(recipes).where(
-    inArray(recipes.id, missingIngredientsIds)
-  );
+  const candidateRecipes = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      ingredients: recipes.ingredients,
+      instructions: recipes.instructions,
+    })
+    .from(recipes)
+    .where(inArray(recipes.id, missingIngredientsIds));
 
   console.log(`🔄 Processing ${candidateRecipes.length - startIndex} recipes\n`);
 
@@ -329,7 +332,8 @@ async function deriveMissingIngredients() {
 
   // Progress bar
   const progressBar = new cliProgress.SingleBar({
-    format: 'Deriving |{bar}| {percentage}% | {value}/{total} | High Conf: {highConf} | Errors: {errors}',
+    format:
+      'Deriving |{bar}| {percentage}% | {value}/{total} | High Conf: {highConf} | Errors: {errors}',
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true,
@@ -348,9 +352,9 @@ async function deriveMissingIngredients() {
     try {
       const parsed = JSON.parse(recipe.ingredients);
       if (Array.isArray(parsed)) {
-        originalIngredients = parsed.filter(ing => typeof ing === 'string' && ing.trim() !== '');
+        originalIngredients = parsed.filter((ing) => typeof ing === 'string' && ing.trim() !== '');
       }
-    } catch (error) {
+    } catch (_error) {
       // Already flagged in Phase 1
     }
 
@@ -359,9 +363,9 @@ async function deriveMissingIngredients() {
     try {
       const parsed = JSON.parse(recipe.instructions);
       if (Array.isArray(parsed)) {
-        instructionsArray = parsed.filter(inst => typeof inst === 'string' && inst.trim() !== '');
+        instructionsArray = parsed.filter((inst) => typeof inst === 'string' && inst.trim() !== '');
       }
-    } catch (error) {
+    } catch (_error) {
       errorCount++;
       progressBar.update(i - startIndex + 1, { highConf: highConfCount, errors: errorCount });
       continue;
@@ -374,10 +378,7 @@ async function deriveMissingIngredients() {
     }
 
     // Derive ingredients using LLM
-    const derivation = await deriveIngredientsWithQuantities(
-      recipe.name,
-      instructionsArray
-    );
+    const derivation = await deriveIngredientsWithQuantities(recipe.name, instructionsArray);
 
     if (derivation.error) {
       errorCount++;
@@ -419,10 +420,10 @@ async function deriveMissingIngredients() {
       results.push(result);
 
       // Categorize by confidence
-      if (score >= 0.90) {
+      if (score >= 0.9) {
         report.statistics.high_confidence++;
         highConfCount++;
-      } else if (score >= 0.70) {
+      } else if (score >= 0.7) {
         report.statistics.medium_confidence++;
       } else {
         report.statistics.low_confidence++;
@@ -444,7 +445,7 @@ async function deriveMissingIngredients() {
   progressBar.stop();
 
   // Filter high confidence results
-  report.high_confidence_results = results.filter(r => r.confidence >= minConfidence);
+  report.high_confidence_results = results.filter((r) => r.confidence >= minConfidence);
   report.all_results = results;
   report.processed = results.length;
 
@@ -467,12 +468,20 @@ async function deriveMissingIngredients() {
   console.log(`Min Confidence:          ${minConfidence.toFixed(2)}`);
   console.log('');
   console.log('Confidence Distribution:');
-  console.log(`  🟢 High (≥0.90):       ${report.statistics.high_confidence.toLocaleString()} (${((report.statistics.high_confidence / report.processed) * 100).toFixed(2)}%)`);
-  console.log(`  🟡 Medium (0.70-0.89): ${report.statistics.medium_confidence.toLocaleString()} (${((report.statistics.medium_confidence / report.processed) * 100).toFixed(2)}%)`);
-  console.log(`  🔴 Low (<0.70):        ${report.statistics.low_confidence.toLocaleString()} (${((report.statistics.low_confidence / report.processed) * 100).toFixed(2)}%)`);
+  console.log(
+    `  🟢 High (≥0.90):       ${report.statistics.high_confidence.toLocaleString()} (${((report.statistics.high_confidence / report.processed) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `  🟡 Medium (0.70-0.89): ${report.statistics.medium_confidence.toLocaleString()} (${((report.statistics.medium_confidence / report.processed) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `  🔴 Low (<0.70):        ${report.statistics.low_confidence.toLocaleString()} (${((report.statistics.low_confidence / report.processed) * 100).toFixed(2)}%)`
+  );
   console.log(`  ❌ Errors:             ${report.statistics.errors.toLocaleString()}`);
   console.log('');
-  console.log(`📦 Ready for DB Update:  ${report.high_confidence_results.length.toLocaleString()} recipes (≥${minConfidence.toFixed(2)} confidence)`);
+  console.log(
+    `📦 Ready for DB Update:  ${report.high_confidence_results.length.toLocaleString()} recipes (≥${minConfidence.toFixed(2)} confidence)`
+  );
   console.log('─'.repeat(60));
   console.log(`\n✅ Report saved to: ${reportPath}\n`);
 

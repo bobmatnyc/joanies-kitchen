@@ -31,11 +31,7 @@ export interface TagLabel {
  * Helper to create tag label with English and placeholders for other languages
  * This makes it easy to add translations later
  */
-function createLabel(
-  id: TagId,
-  en: string,
-  description?: string
-): TagLabel {
+function createLabel(id: TagId, en: string, description?: string): TagLabel {
   return {
     id,
     label: {
@@ -84,23 +80,55 @@ export const TAG_LABELS: Partial<Record<TagId, TagLabel>> = {
   ),
 
   // ==================== CUISINE (Selected examples) ====================
-  'cuisine.italian': createLabel('cuisine.italian', 'Italian', 'Italian cuisine and cooking traditions'),
-  'cuisine.italian.sicilian': createLabel('cuisine.italian.sicilian', 'Sicilian', 'Sicilian regional Italian cuisine'),
-  'cuisine.italian.tuscan': createLabel('cuisine.italian.tuscan', 'Tuscan', 'Tuscan regional Italian cuisine'),
+  'cuisine.italian': createLabel(
+    'cuisine.italian',
+    'Italian',
+    'Italian cuisine and cooking traditions'
+  ),
+  'cuisine.italian.sicilian': createLabel(
+    'cuisine.italian.sicilian',
+    'Sicilian',
+    'Sicilian regional Italian cuisine'
+  ),
+  'cuisine.italian.tuscan': createLabel(
+    'cuisine.italian.tuscan',
+    'Tuscan',
+    'Tuscan regional Italian cuisine'
+  ),
   'cuisine.mexican': createLabel('cuisine.mexican', 'Mexican', 'Mexican cuisine and traditions'),
-  'cuisine.chinese': createLabel('cuisine.chinese', 'Chinese', 'Chinese cuisine and cooking styles'),
-  'cuisine.japanese': createLabel('cuisine.japanese', 'Japanese', 'Japanese cuisine and traditions'),
+  'cuisine.chinese': createLabel(
+    'cuisine.chinese',
+    'Chinese',
+    'Chinese cuisine and cooking styles'
+  ),
+  'cuisine.japanese': createLabel(
+    'cuisine.japanese',
+    'Japanese',
+    'Japanese cuisine and traditions'
+  ),
   'cuisine.indian': createLabel('cuisine.indian', 'Indian', 'Indian cuisine and spices'),
-  'cuisine.french': createLabel('cuisine.french', 'French', 'French cuisine and cooking techniques'),
+  'cuisine.french': createLabel(
+    'cuisine.french',
+    'French',
+    'French cuisine and cooking techniques'
+  ),
   'cuisine.thai': createLabel('cuisine.thai', 'Thai', 'Thai cuisine with bold flavors'),
-  'cuisine.mediterranean': createLabel('cuisine.mediterranean', 'Mediterranean', 'Mediterranean regional cuisine'),
+  'cuisine.mediterranean': createLabel(
+    'cuisine.mediterranean',
+    'Mediterranean',
+    'Mediterranean regional cuisine'
+  ),
   'cuisine.american': createLabel('cuisine.american', 'American', 'American cuisine'),
   'cuisine.korean': createLabel('cuisine.korean', 'Korean', 'Korean cuisine'),
   'cuisine.vietnamese': createLabel('cuisine.vietnamese', 'Vietnamese', 'Vietnamese cuisine'),
 
   // ==================== MEAL TYPE ====================
   'mealType.breakfast': createLabel('mealType.breakfast', 'Breakfast', 'Morning meal recipes'),
-  'mealType.brunch': createLabel('mealType.brunch', 'Brunch', 'Late morning combination of breakfast and lunch'),
+  'mealType.brunch': createLabel(
+    'mealType.brunch',
+    'Brunch',
+    'Late morning combination of breakfast and lunch'
+  ),
   'mealType.lunch': createLabel('mealType.lunch', 'Lunch', 'Midday meal recipes'),
   'mealType.dinner': createLabel('mealType.dinner', 'Dinner', 'Evening main meal recipes'),
   'mealType.snack': createLabel('mealType.snack', 'Snack', 'Light snacks and appetizers'),
@@ -135,13 +163,29 @@ export const TAG_LABELS: Partial<Record<TagId, TagLabel>> = {
 
   // ==================== DIETARY ====================
   'dietary.vegetarian': createLabel('dietary.vegetarian', 'Vegetarian', 'No meat or fish'),
-  'dietary.vegetarian.vegan': createLabel('dietary.vegetarian.vegan', 'Vegan', 'No animal products'),
-  'dietary.glutenFree': createLabel('dietary.glutenFree', 'Gluten-Free', 'No wheat, barley, or rye'),
+  'dietary.vegetarian.vegan': createLabel(
+    'dietary.vegetarian.vegan',
+    'Vegan',
+    'No animal products'
+  ),
+  'dietary.glutenFree': createLabel(
+    'dietary.glutenFree',
+    'Gluten-Free',
+    'No wheat, barley, or rye'
+  ),
   'dietary.dairyFree': createLabel('dietary.dairyFree', 'Dairy-Free', 'No milk products'),
   'dietary.nutFree': createLabel('dietary.nutFree', 'Nut-Free', 'No nuts or nut products'),
   'dietary.lowCarb': createLabel('dietary.lowCarb', 'Low-Carb', 'Reduced carbohydrate content'),
-  'dietary.lowCarb.keto': createLabel('dietary.lowCarb.keto', 'Keto', 'Ketogenic diet (high fat, low carb)'),
-  'dietary.paleo': createLabel('dietary.paleo', 'Paleo', 'Paleolithic diet (whole foods, no grains)'),
+  'dietary.lowCarb.keto': createLabel(
+    'dietary.lowCarb.keto',
+    'Keto',
+    'Ketogenic diet (high fat, low carb)'
+  ),
+  'dietary.paleo': createLabel(
+    'dietary.paleo',
+    'Paleo',
+    'Paleolithic diet (whole foods, no grains)'
+  ),
   'dietary.whole30': createLabel('dietary.whole30', 'Whole30', 'Whole30 compliant'),
   'dietary.highProtein': createLabel('dietary.highProtein', 'High-Protein', 'Protein-rich recipes'),
   'dietary.lowFat': createLabel('dietary.lowFat', 'Low-Fat', 'Reduced fat content'),
@@ -149,33 +193,117 @@ export const TAG_LABELS: Partial<Record<TagId, TagLabel>> = {
   'dietary.sugarFree': createLabel('dietary.sugarFree', 'Sugar-Free', 'No added sugar'),
 
   // ==================== COOKING METHOD (Selected) ====================
-  'cookingMethod.dryHeat.baking': createLabel('cookingMethod.dryHeat.baking', 'Baking', 'Cooked in an oven'),
-  'cookingMethod.dryHeat.roasting': createLabel('cookingMethod.dryHeat.roasting', 'Roasting', 'High-heat dry cooking'),
-  'cookingMethod.dryHeat.grilling': createLabel('cookingMethod.dryHeat.grilling', 'Grilling', 'Cooked on a grill'),
-  'cookingMethod.moistHeat.boiling': createLabel('cookingMethod.moistHeat.boiling', 'Boiling', 'Boiled in water'),
-  'cookingMethod.moistHeat.steaming': createLabel('cookingMethod.moistHeat.steaming', 'Steaming', 'Cooked with steam'),
-  'cookingMethod.fatBased.frying': createLabel('cookingMethod.fatBased.frying', 'Frying', 'Fried in oil'),
-  'cookingMethod.fatBased.sauteing': createLabel('cookingMethod.fatBased.sauteing', 'Sautéing', 'Quick-cooked in a pan'),
-  'cookingMethod.fatBased.stirFrying': createLabel('cookingMethod.fatBased.stirFrying', 'Stir-Frying', 'Quick-cooked in a wok'),
-  'cookingMethod.slowCooker': createLabel('cookingMethod.slowCooker', 'Slow Cooker', 'Slow cooker recipes'),
-  'cookingMethod.instantPot': createLabel('cookingMethod.instantPot', 'Instant Pot', 'Pressure cooker recipes'),
+  'cookingMethod.dryHeat.baking': createLabel(
+    'cookingMethod.dryHeat.baking',
+    'Baking',
+    'Cooked in an oven'
+  ),
+  'cookingMethod.dryHeat.roasting': createLabel(
+    'cookingMethod.dryHeat.roasting',
+    'Roasting',
+    'High-heat dry cooking'
+  ),
+  'cookingMethod.dryHeat.grilling': createLabel(
+    'cookingMethod.dryHeat.grilling',
+    'Grilling',
+    'Cooked on a grill'
+  ),
+  'cookingMethod.moistHeat.boiling': createLabel(
+    'cookingMethod.moistHeat.boiling',
+    'Boiling',
+    'Boiled in water'
+  ),
+  'cookingMethod.moistHeat.steaming': createLabel(
+    'cookingMethod.moistHeat.steaming',
+    'Steaming',
+    'Cooked with steam'
+  ),
+  'cookingMethod.fatBased.frying': createLabel(
+    'cookingMethod.fatBased.frying',
+    'Frying',
+    'Fried in oil'
+  ),
+  'cookingMethod.fatBased.sauteing': createLabel(
+    'cookingMethod.fatBased.sauteing',
+    'Sautéing',
+    'Quick-cooked in a pan'
+  ),
+  'cookingMethod.fatBased.stirFrying': createLabel(
+    'cookingMethod.fatBased.stirFrying',
+    'Stir-Frying',
+    'Quick-cooked in a wok'
+  ),
+  'cookingMethod.slowCooker': createLabel(
+    'cookingMethod.slowCooker',
+    'Slow Cooker',
+    'Slow cooker recipes'
+  ),
+  'cookingMethod.instantPot': createLabel(
+    'cookingMethod.instantPot',
+    'Instant Pot',
+    'Pressure cooker recipes'
+  ),
   'cookingMethod.airFryer': createLabel('cookingMethod.airFryer', 'Air Fryer', 'Air fryer recipes'),
   'cookingMethod.noCook': createLabel('cookingMethod.noCook', 'No-Cook', 'No cooking required'),
 
   // ==================== MAIN INGREDIENT (Selected) ====================
-  'mainIngredient.protein.chicken': createLabel('mainIngredient.protein.chicken', 'Chicken', 'Chicken-based recipes'),
-  'mainIngredient.protein.beef': createLabel('mainIngredient.protein.beef', 'Beef', 'Beef-based recipes'),
-  'mainIngredient.protein.pork': createLabel('mainIngredient.protein.pork', 'Pork', 'Pork-based recipes'),
-  'mainIngredient.protein.seafood': createLabel('mainIngredient.protein.seafood', 'Seafood', 'Seafood and shellfish'),
+  'mainIngredient.protein.chicken': createLabel(
+    'mainIngredient.protein.chicken',
+    'Chicken',
+    'Chicken-based recipes'
+  ),
+  'mainIngredient.protein.beef': createLabel(
+    'mainIngredient.protein.beef',
+    'Beef',
+    'Beef-based recipes'
+  ),
+  'mainIngredient.protein.pork': createLabel(
+    'mainIngredient.protein.pork',
+    'Pork',
+    'Pork-based recipes'
+  ),
+  'mainIngredient.protein.seafood': createLabel(
+    'mainIngredient.protein.seafood',
+    'Seafood',
+    'Seafood and shellfish'
+  ),
   'mainIngredient.protein.fish': createLabel('mainIngredient.protein.fish', 'Fish', 'Fish recipes'),
-  'mainIngredient.protein.tofu': createLabel('mainIngredient.protein.tofu', 'Tofu', 'Tofu-based recipes'),
-  'mainIngredient.grain.rice': createLabel('mainIngredient.grain.rice', 'Rice', 'Rice-based dishes'),
+  'mainIngredient.protein.tofu': createLabel(
+    'mainIngredient.protein.tofu',
+    'Tofu',
+    'Tofu-based recipes'
+  ),
+  'mainIngredient.grain.rice': createLabel(
+    'mainIngredient.grain.rice',
+    'Rice',
+    'Rice-based dishes'
+  ),
   'mainIngredient.grain.pasta': createLabel('mainIngredient.grain.pasta', 'Pasta', 'Pasta dishes'),
-  'mainIngredient.legume.beans': createLabel('mainIngredient.legume.beans', 'Beans', 'Bean recipes'),
-  'mainIngredient.legume.lentils': createLabel('mainIngredient.legume.lentils', 'Lentils', 'Lentil recipes'),
-  'mainIngredient.vegetable': createLabel('mainIngredient.vegetable', 'Vegetables', 'Vegetable-focused recipes'),
-  'mainIngredient.vegetable.potatoes': createLabel('mainIngredient.vegetable.potatoes', 'Potatoes', 'Potato dishes'),
-  'mainIngredient.dairy.cheese': createLabel('mainIngredient.dairy.cheese', 'Cheese', 'Cheese-based recipes'),
+  'mainIngredient.legume.beans': createLabel(
+    'mainIngredient.legume.beans',
+    'Beans',
+    'Bean recipes'
+  ),
+  'mainIngredient.legume.lentils': createLabel(
+    'mainIngredient.legume.lentils',
+    'Lentils',
+    'Lentil recipes'
+  ),
+  'mainIngredient.vegetable': createLabel(
+    'mainIngredient.vegetable',
+    'Vegetables',
+    'Vegetable-focused recipes'
+  ),
+  'mainIngredient.vegetable.potatoes': createLabel(
+    'mainIngredient.vegetable.potatoes',
+    'Potatoes',
+    'Potato dishes'
+  ),
+  'mainIngredient.dairy.cheese': createLabel(
+    'mainIngredient.dairy.cheese',
+    'Cheese',
+    'Cheese-based recipes'
+  ),
   'mainIngredient.eggs': createLabel('mainIngredient.eggs', 'Eggs', 'Egg dishes'),
   'mainIngredient.fruit': createLabel('mainIngredient.fruit', 'Fruit', 'Fruit-based recipes'),
 
@@ -184,37 +312,97 @@ export const TAG_LABELS: Partial<Record<TagId, TagLabel>> = {
   'season.summer': createLabel('season.summer', 'Summer', 'Summer seasonal recipes'),
   'season.fall': createLabel('season.fall', 'Fall', 'Autumn harvest recipes'),
   'season.winter': createLabel('season.winter', 'Winter', 'Winter comfort food'),
-  'season.holiday.thanksgiving': createLabel('season.holiday.thanksgiving', 'Thanksgiving', 'Thanksgiving recipes'),
-  'season.holiday.christmas': createLabel('season.holiday.christmas', 'Christmas', 'Christmas recipes'),
-  'season.holiday.halloween': createLabel('season.holiday.halloween', 'Halloween', 'Halloween treats'),
+  'season.holiday.thanksgiving': createLabel(
+    'season.holiday.thanksgiving',
+    'Thanksgiving',
+    'Thanksgiving recipes'
+  ),
+  'season.holiday.christmas': createLabel(
+    'season.holiday.christmas',
+    'Christmas',
+    'Christmas recipes'
+  ),
+  'season.holiday.halloween': createLabel(
+    'season.holiday.halloween',
+    'Halloween',
+    'Halloween treats'
+  ),
 
   // ==================== PLANNING ====================
   'planning.quick': createLabel('planning.quick', 'Quick', 'Fast recipes (under 30 min)'),
-  'planning.makeAhead': createLabel('planning.makeAhead', 'Make-Ahead', 'Can be prepared in advance'),
-  'planning.freezerFriendly': createLabel('planning.freezerFriendly', 'Freezer-Friendly', 'Can be frozen'),
+  'planning.makeAhead': createLabel(
+    'planning.makeAhead',
+    'Make-Ahead',
+    'Can be prepared in advance'
+  ),
+  'planning.freezerFriendly': createLabel(
+    'planning.freezerFriendly',
+    'Freezer-Friendly',
+    'Can be frozen'
+  ),
   'planning.mealPrep': createLabel('planning.mealPrep', 'Meal Prep', 'Great for meal prepping'),
-  'planning.leftoverFriendly': createLabel('planning.leftoverFriendly', 'Leftover-Friendly', 'Reheats well'),
+  'planning.leftoverFriendly': createLabel(
+    'planning.leftoverFriendly',
+    'Leftover-Friendly',
+    'Reheats well'
+  ),
   'planning.onePot': createLabel('planning.onePot', 'One-Pot', 'One pot meal'),
   'planning.onePan': createLabel('planning.onePan', 'One-Pan', 'One pan meal'),
   'planning.sheetPan': createLabel('planning.sheetPan', 'Sheet Pan', 'Sheet pan dinner'),
-  'planning.overnight': createLabel('planning.overnight', 'Overnight', 'Requires overnight preparation'),
+  'planning.overnight': createLabel(
+    'planning.overnight',
+    'Overnight',
+    'Requires overnight preparation'
+  ),
 
   // ==================== CHARACTERISTICS ====================
-  'characteristics.comfortFood': createLabel('characteristics.comfortFood', 'Comfort Food', 'Cozy and comforting'),
-  'characteristics.kidFriendly': createLabel('characteristics.kidFriendly', 'Kid-Friendly', 'Kids love it'),
-  'characteristics.crowdPleaser': createLabel('characteristics.crowdPleaser', 'Crowd-Pleaser', 'Perfect for groups'),
-  'characteristics.budgetFriendly': createLabel('characteristics.budgetFriendly', 'Budget-Friendly', 'Affordable ingredients'),
-  'characteristics.healthy': createLabel('characteristics.healthy', 'Healthy', 'Nutritious and wholesome'),
+  'characteristics.comfortFood': createLabel(
+    'characteristics.comfortFood',
+    'Comfort Food',
+    'Cozy and comforting'
+  ),
+  'characteristics.kidFriendly': createLabel(
+    'characteristics.kidFriendly',
+    'Kid-Friendly',
+    'Kids love it'
+  ),
+  'characteristics.crowdPleaser': createLabel(
+    'characteristics.crowdPleaser',
+    'Crowd-Pleaser',
+    'Perfect for groups'
+  ),
+  'characteristics.budgetFriendly': createLabel(
+    'characteristics.budgetFriendly',
+    'Budget-Friendly',
+    'Affordable ingredients'
+  ),
+  'characteristics.healthy': createLabel(
+    'characteristics.healthy',
+    'Healthy',
+    'Nutritious and wholesome'
+  ),
   'characteristics.light': createLabel('characteristics.light', 'Light', 'Light and refreshing'),
-  'characteristics.hearty': createLabel('characteristics.hearty', 'Hearty', 'Filling and substantial'),
+  'characteristics.hearty': createLabel(
+    'characteristics.hearty',
+    'Hearty',
+    'Filling and substantial'
+  ),
   'characteristics.spicy': createLabel('characteristics.spicy', 'Spicy', 'Has heat and spice'),
   'characteristics.sweet': createLabel('characteristics.sweet', 'Sweet', 'Sweet flavors'),
   'characteristics.savory': createLabel('characteristics.savory', 'Savory', 'Savory flavors'),
   'characteristics.crispy': createLabel('characteristics.crispy', 'Crispy', 'Crispy texture'),
   'characteristics.creamy': createLabel('characteristics.creamy', 'Creamy', 'Rich and creamy'),
   'characteristics.fresh': createLabel('characteristics.fresh', 'Fresh', 'Fresh ingredients'),
-  'characteristics.gourmet': createLabel('characteristics.gourmet', 'Gourmet', 'Restaurant-quality'),
-  'characteristics.elegant': createLabel('characteristics.elegant', 'Elegant', 'Refined and sophisticated'),
+  'characteristics.gourmet': createLabel(
+    'characteristics.gourmet',
+    'Gourmet',
+    'Restaurant-quality'
+  ),
+  'characteristics.elegant': createLabel(
+    'characteristics.elegant',
+    'Elegant',
+    'Refined and sophisticated'
+  ),
 };
 
 /**
@@ -230,8 +418,8 @@ export function getTagLabel(tagId: TagId, locale: Locale = 'en'): string {
 
     // Handle common patterns
     const patterns: [RegExp, string][] = [
-      [/free$/i, ' Free'],  // soyfree → soy Free, glutenfree → gluten Free
-      [/based$/i, ' Based'],  // plantbased → plant Based
+      [/free$/i, ' Free'], // soyfree → soy Free, glutenfree → gluten Free
+      [/based$/i, ' Based'], // plantbased → plant Based
     ];
 
     let formatted = lastPart;
@@ -241,13 +429,13 @@ export function getTagLabel(tagId: TagId, locale: Locale = 'en'): string {
 
     // Convert camelCase to spaces (e.g., "glutenFree" → "gluten Free")
     formatted = formatted
-      .replace(/([A-Z])/g, ' $1')  // Add space before capital letters
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .trim();
 
     // Capitalize each word
     return formatted
-      .split(/[\s-]+/)  // Split on spaces or hyphens
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .split(/[\s-]+/) // Split on spaces or hyphens
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 

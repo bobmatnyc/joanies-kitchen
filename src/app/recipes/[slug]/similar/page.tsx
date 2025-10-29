@@ -111,7 +111,9 @@ export default function SimilarRecipesPage({ params }: SimilarRecipesPageProps) 
   }
 
   // Build back URL - use slug if available, otherwise ID
-  const backUrl = sourceRecipe.slug ? `/recipes/${sourceRecipe.slug}` : `/recipes/${sourceRecipe.id}`;
+  const backUrl = sourceRecipe.slug
+    ? `/recipes/${sourceRecipe.slug}`
+    : `/recipes/${sourceRecipe.id}`;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

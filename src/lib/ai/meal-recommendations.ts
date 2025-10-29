@@ -9,9 +9,9 @@
  * Uses Claude 3.5 Sonnet or GPT-4o-mini via OpenRouter for intelligent matching
  */
 
+import { desc, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { recipes, type Recipe } from '@/lib/db/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { type Recipe, recipes } from '@/lib/db/schema';
 import { getOpenRouterClient } from './openrouter-server';
 
 interface RecommendationResult {
@@ -225,10 +225,7 @@ function getSideTerms(analysis: {
 /**
  * Get dessert search terms based on meal analysis
  */
-function getDessertTerms(analysis: {
-  cuisine: string;
-  flavorProfile: string;
-}): string[] {
+function getDessertTerms(analysis: { cuisine: string; flavorProfile: string }): string[] {
   const terms: string[] = ['dessert', 'sweet'];
 
   // Add cuisine-specific terms

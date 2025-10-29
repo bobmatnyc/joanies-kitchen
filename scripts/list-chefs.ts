@@ -7,7 +7,9 @@ async function main() {
   console.log(`Total chefs: ${allChefs.length}\n`);
 
   for (const chef of allChefs) {
-    console.log(`- ${chef.slug} (${chef.name || chef.display_name}) - Recipes: ${chef.recipe_count || 0}`);
+    console.log(
+      `- ${chef.slug} (${chef.name || chef.display_name}) - Recipes: ${chef.recipe_count || 0}`
+    );
   }
 }
 

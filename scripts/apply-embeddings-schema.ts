@@ -17,8 +17,8 @@
  *   npx tsx scripts/apply-embeddings-schema.ts --execute      # Apply changes
  */
 
-import * as dotenv from 'dotenv';
 import * as path from 'node:path';
+import * as dotenv from 'dotenv';
 import { sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 
@@ -50,7 +50,7 @@ async function checkTableExists(tableName: string): Promise<boolean> {
       );
     `);
     return result.rows[0]?.exists === true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -65,7 +65,7 @@ async function checkIndexExists(indexName: string): Promise<boolean> {
       );
     `);
     return result.rows[0]?.exists === true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -108,8 +108,14 @@ async function main() {
   const chefsEmbeddingsExists = await checkTableExists('chefs_embeddings');
 
   log('\n📊 Current State:', colors.cyan);
-  log(`  meals_embeddings table: ${mealsEmbeddingsExists ? '✅ EXISTS' : '❌ MISSING'}`, mealsEmbeddingsExists ? colors.green : colors.yellow);
-  log(`  chefs_embeddings table: ${chefsEmbeddingsExists ? '✅ EXISTS' : '❌ MISSING'}`, chefsEmbeddingsExists ? colors.green : colors.yellow);
+  log(
+    `  meals_embeddings table: ${mealsEmbeddingsExists ? '✅ EXISTS' : '❌ MISSING'}`,
+    mealsEmbeddingsExists ? colors.green : colors.yellow
+  );
+  log(
+    `  chefs_embeddings table: ${chefsEmbeddingsExists ? '✅ EXISTS' : '❌ MISSING'}`,
+    chefsEmbeddingsExists ? colors.green : colors.yellow
+  );
 
   if (mealsEmbeddingsExists && chefsEmbeddingsExists) {
     log('\n✅ All tables already exist. No migration needed.', colors.green);
@@ -119,11 +125,20 @@ async function main() {
     const mealsHnswExists = await checkIndexExists('meals_embeddings_embedding_idx');
     const chefsHnswExists = await checkIndexExists('chefs_embeddings_embedding_idx');
 
-    log(`  meals HNSW index: ${mealsHnswExists ? '✅ EXISTS' : '❌ MISSING'}`, mealsHnswExists ? colors.green : colors.yellow);
-    log(`  chefs HNSW index: ${chefsHnswExists ? '✅ EXISTS' : '❌ MISSING'}`, chefsHnswExists ? colors.green : colors.yellow);
+    log(
+      `  meals HNSW index: ${mealsHnswExists ? '✅ EXISTS' : '❌ MISSING'}`,
+      mealsHnswExists ? colors.green : colors.yellow
+    );
+    log(
+      `  chefs HNSW index: ${chefsHnswExists ? '✅ EXISTS' : '❌ MISSING'}`,
+      chefsHnswExists ? colors.green : colors.yellow
+    );
 
     if (!mealsHnswExists || !chefsHnswExists) {
-      log('\n⚠️  HNSW indexes missing. Consider creating them for better performance.', colors.yellow);
+      log(
+        '\n⚠️  HNSW indexes missing. Consider creating them for better performance.',
+        colors.yellow
+      );
       log('   See: scripts/create-hnsw-index.ts', colors.blue);
     }
 

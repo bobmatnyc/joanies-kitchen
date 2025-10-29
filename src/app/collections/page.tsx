@@ -1,9 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
-import { getPublicCollections, getUserCollections } from '@/app/actions/collections';
+import { getPublicCollections } from '@/app/actions/collections';
 import { CollectionCard } from '@/components/collections/CollectionCard';
-import { Button } from '@/components/ui/button';
 
 export const metadata = {
   title: "Collections - Joanie's Kitchen",

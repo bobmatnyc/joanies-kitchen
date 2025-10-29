@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 const analysis = JSON.parse(fs.readFileSync('tmp/hidden-recipes-analysis.json', 'utf-8'));
 const categoryB = analysis.byCategory.categoryB;
@@ -18,7 +18,7 @@ categoryB.forEach((recipe: any) => {
     const domain = new URL(urlStr).hostname.replace('www.', '');
     if (!bySource[domain]) bySource[domain] = [];
     bySource[domain].push(recipe);
-  } catch (error) {
+  } catch (_error) {
     // Invalid URL, group as 'invalid-url'
     if (!bySource['invalid-url']) bySource['invalid-url'] = [];
     bySource['invalid-url'].push(recipe);
@@ -32,8 +32,11 @@ const sortedSources = Object.entries(bySource)
 
 console.log('📊 Top 15 Sources for Category B Recipes (179 total):\n');
 sortedSources.forEach(([source, recipes]) => {
-  const avgIngredients = recipes.reduce((sum: number, r: any) => sum + r.ingredientCount, 0) / recipes.length;
-  console.log(`${recipes.length.toString().padStart(3)} recipes - ${source} (avg ${avgIngredients.toFixed(1)} ingredients)`);
+  const avgIngredients =
+    recipes.reduce((sum: number, r: any) => sum + r.ingredientCount, 0) / recipes.length;
+  console.log(
+    `${recipes.length.toString().padStart(3)} recipes - ${source} (avg ${avgIngredients.toFixed(1)} ingredients)`
+  );
 });
 
 // Prioritize by ingredient count
@@ -50,7 +53,9 @@ console.log(`Tier 3 (5-7 ingredients): ${tiers.tier3.length} recipes - LOW PRIOR
 
 console.log('\n\n🎯 TIER 1 - HIGH PRIORITY RECIPES (12+ ingredients):\n');
 tiers.tier1.slice(0, 20).forEach((r: any, i: number) => {
-  const sourceShort = r.source ? r.source.split('/')[2]?.replace('www.', '') || r.source : 'no-source';
+  const sourceShort = r.source
+    ? r.source.split('/')[2]?.replace('www.', '') || r.source
+    : 'no-source';
   console.log(`${(i + 1).toString().padStart(2)}. ${r.name}`);
   console.log(`    ${r.ingredientCount} ingredients - ${sourceShort}`);
 });
@@ -86,7 +91,9 @@ const prioritized = {
   sourceDistribution: sortedSources.map(([source, recipes]) => ({
     source,
     count: recipes.length,
-    avgIngredients: (recipes.reduce((sum: number, r: any) => sum + r.ingredientCount, 0) / recipes.length).toFixed(1),
+    avgIngredients: (
+      recipes.reduce((sum: number, r: any) => sum + r.ingredientCount, 0) / recipes.length
+    ).toFixed(1),
   })),
 };
 

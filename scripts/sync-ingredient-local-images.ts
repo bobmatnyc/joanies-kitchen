@@ -1,14 +1,15 @@
 #!/usr/bin/env tsx
+
 /**
  * Sync Ingredient Images to Local Files
  * Maps ingredients using Unsplash URLs to local PNG files where available
  */
 
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { eq, like } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
-import { eq, like } from 'drizzle-orm';
-import { readdirSync } from 'fs';
-import { join } from 'path';
 
 async function syncIngredientImages() {
   console.log('\n🔄 Syncing Ingredient Images to Local Files\n');
@@ -38,11 +39,11 @@ async function syncIngredientImages() {
     const baseName = ingredient.name.toLowerCase();
 
     // Variation 1: Hyphens (e.g., "almond-milk.png")
-    const hyphenFilename = baseName.replace(/\s+/g, '-') + '.png';
+    const hyphenFilename = `${baseName.replace(/\s+/g, '-')}.png`;
     // Variation 2: Underscores (e.g., "almond_milk.png") - MOST COMMON
-    const underscoreFilename = baseName.replace(/\s+/g, '_') + '.png';
+    const underscoreFilename = `${baseName.replace(/\s+/g, '_')}.png`;
     // Variation 3: No spaces (e.g., "almondmilk.png")
-    const noSpaceFilename = baseName.replace(/\s+/g, '') + '.png';
+    const noSpaceFilename = `${baseName.replace(/\s+/g, '')}.png`;
 
     let matchedFilename: string | null = null;
 
@@ -75,7 +76,7 @@ async function syncIngredientImages() {
     }
   }
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log(`\n📊 Sync Results:`);
   console.log(`   Total Unsplash ingredients: ${unsplashIngredients.length}`);
   console.log(`   Matched to local files: ${matched}`);

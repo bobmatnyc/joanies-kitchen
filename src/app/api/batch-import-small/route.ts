@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Batch Import Small] Starting import of ${urls.length} URLs for ${chefName || 'Unknown Chef'}`);
+    console.log(
+      `[Batch Import Small] Starting import of ${urls.length} URLs for ${chefName || 'Unknown Chef'}`
+    );
 
     const results: any[] = [];
     let successCount = 0;
@@ -59,7 +61,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Batch Import Small] Batch complete! Success: ${successCount}, Failed: ${failCount}`);
+    console.log(
+      `[Batch Import Small] Batch complete! Success: ${successCount}, Failed: ${failCount}`
+    );
 
     return NextResponse.json({
       success: true,

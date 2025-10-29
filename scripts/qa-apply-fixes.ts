@@ -24,12 +24,12 @@
  *   pnpm tsx scripts/qa-apply-fixes.ts --backup-only      # Only create backup
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import cliProgress from 'cli-progress';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
-import cliProgress from 'cli-progress';
 
 interface DerivedIngredient {
   ingredient: string;
@@ -88,7 +88,7 @@ interface ApplyLog {
   }>;
 }
 
-const DEFAULT_MIN_CONFIDENCE = 0.90;
+const DEFAULT_MIN_CONFIDENCE = 0.9;
 
 function formatIngredientForDisplay(ing: DerivedIngredient): string {
   const parts = [];
@@ -147,10 +147,12 @@ async function applyFixes() {
   const backupOnly = process.argv.includes('--backup-only');
 
   console.log('🔧 Phase 4: Apply QA Fixes\n');
-  console.log(`Mode: ${isDryRun ? '🟡 DRY-RUN (no changes)' : '🟢 APPLY (will modify database)'}\n`);
+  console.log(
+    `Mode: ${isDryRun ? '🟡 DRY-RUN (no changes)' : '🟢 APPLY (will modify database)'}\n`
+  );
 
   // Parse command line arguments
-  const minConfidenceArg = process.argv.find(arg => arg.startsWith('--min-confidence='));
+  const minConfidenceArg = process.argv.find((arg) => arg.startsWith('--min-confidence='));
   const minConfidence = minConfidenceArg
     ? parseFloat(minConfidenceArg.split('=')[1])
     : DEFAULT_MIN_CONFIDENCE;
@@ -175,10 +177,12 @@ async function applyFixes() {
   const allFixes: DerivationResult[] = derivedReport.all_results || [];
 
   // Filter by confidence threshold
-  const highConfidenceFixes = allFixes.filter(fix => fix.confidence >= minConfidence);
+  const highConfidenceFixes = allFixes.filter((fix) => fix.confidence >= minConfidence);
 
   console.log(`📋 Total fixes available: ${allFixes.length}`);
-  console.log(`✅ High confidence fixes (≥${minConfidence.toFixed(2)}): ${highConfidenceFixes.length}\n`);
+  console.log(
+    `✅ High confidence fixes (≥${minConfidence.toFixed(2)}): ${highConfidenceFixes.length}\n`
+  );
 
   if (highConfidenceFixes.length === 0) {
     console.log('⚠️  No high confidence fixes to apply. Exiting.');
@@ -200,7 +204,7 @@ async function applyFixes() {
 
   // Create backup if applying for real
   if (!isDryRun) {
-    const recipeIds = highConfidenceFixes.map(fix => fix.recipe_id);
+    const recipeIds = highConfidenceFixes.map((fix) => fix.recipe_id);
     log.backup_path = await createBackup(recipeIds);
     log.backup_created = true;
 
@@ -246,7 +250,9 @@ async function applyFixes() {
         console.log(`  Ingredients before: ${fix.original_ingredients.length}`);
         console.log(`  Ingredients after:  ${fix.derived_ingredients.length}`);
         console.log(`  Confidence:         ${fix.confidence.toFixed(2)}`);
-        console.log(`  Sample ingredients: ${ingredientsArray.slice(0, 3).join(', ')}${ingredientsArray.length > 3 ? '...' : ''}`);
+        console.log(
+          `  Sample ingredients: ${ingredientsArray.slice(0, 3).join(', ')}${ingredientsArray.length > 3 ? '...' : ''}`
+        );
 
         log.fixes.push({
           recipe_id: fix.recipe_id,

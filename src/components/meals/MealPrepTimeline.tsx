@@ -16,7 +16,11 @@ interface MealPrepTimelineProps {
 
 const STEP_TYPE_CONFIG = {
   start: { icon: ChefHat, color: 'bg-blue-100 text-blue-800 border-blue-300', label: 'Start' },
-  prep: { icon: UtensilsCrossed, color: 'bg-purple-100 text-purple-800 border-purple-300', label: 'Prep' },
+  prep: {
+    icon: UtensilsCrossed,
+    color: 'bg-purple-100 text-purple-800 border-purple-300',
+    label: 'Prep',
+  },
   cook: { icon: Flame, color: 'bg-orange-100 text-orange-800 border-orange-300', label: 'Cook' },
   rest: { icon: Clock, color: 'bg-gray-100 text-gray-800 border-gray-300', label: 'Rest' },
   serve: { icon: ChefHat, color: 'bg-green-100 text-green-800 border-green-300', label: 'Serve' },
@@ -172,23 +176,35 @@ export function MealPrepTimeline({ mealId, mealName }: MealPrepTimelineProps) {
                         <div className="flex-1 space-y-2">
                           {/* Time and badges */}
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="bg-jk-sage/20 text-jk-olive font-ui font-semibold">
+                            <Badge
+                              variant="outline"
+                              className="bg-jk-sage/20 text-jk-olive font-ui font-semibold"
+                            >
                               {step.time}
                             </Badge>
                             <Badge variant="outline" className={`${stepConfig.color} font-ui`}>
                               <Icon className="w-3 h-3 mr-1" />
                               {stepConfig.label}
                             </Badge>
-                            <Badge variant="outline" className={`${priorityConfig.color} font-ui text-xs`}>
+                            <Badge
+                              variant="outline"
+                              className={`${priorityConfig.color} font-ui text-xs`}
+                            >
                               {priorityConfig.label}
                             </Badge>
                             {step.equipment && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-ui text-xs">
+                              <Badge
+                                variant="outline"
+                                className="bg-blue-50 text-blue-700 border-blue-200 font-ui text-xs"
+                              >
                                 {step.equipment}
                               </Badge>
                             )}
                             {step.canParallelize && (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-ui text-xs">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 text-green-700 border-green-200 font-ui text-xs"
+                              >
                                 Can parallelize
                               </Badge>
                             )}
@@ -196,8 +212,12 @@ export function MealPrepTimeline({ mealId, mealName }: MealPrepTimelineProps) {
 
                           {/* Action */}
                           <div>
-                            <p className="font-heading text-jk-olive font-semibold">{step.action}</p>
-                            <p className="text-sm text-jk-charcoal/70 font-body">{step.recipeName}</p>
+                            <p className="font-heading text-jk-olive font-semibold">
+                              {step.action}
+                            </p>
+                            <p className="text-sm text-jk-charcoal/70 font-body">
+                              {step.recipeName}
+                            </p>
                           </div>
 
                           {/* Duration */}
@@ -230,7 +250,10 @@ export function MealPrepTimeline({ mealId, mealName }: MealPrepTimelineProps) {
             <li>• Prep ingredients during cooking time when possible</li>
             <li>• Keep your workspace organized for efficient multitasking</li>
             {timeline.summary.ovenConflicts > 0 && (
-              <li>• Consider using multiple oven racks or adjusting start times to avoid oven conflicts</li>
+              <li>
+                • Consider using multiple oven racks or adjusting start times to avoid oven
+                conflicts
+              </li>
             )}
             {timeline.summary.parallelTasks > 5 && (
               <li>• This meal has many parallel tasks - consider asking for help!</li>

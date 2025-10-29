@@ -1,7 +1,7 @@
+import * as fs from 'node:fs';
+import { inArray } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { inArray } from 'drizzle-orm';
-import * as fs from 'fs';
 
 /**
  * Process Categories C and D
@@ -31,7 +31,7 @@ async function processCategoriesCD() {
   }
 
   // Update to 'removed' status
-  const result = await db
+  const _result = await db
     .update(recipes)
     .set({
       qa_status: 'removed',

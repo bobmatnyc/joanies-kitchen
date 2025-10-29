@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ingredients } from '@/lib/db/ingredients-schema';
-import { eq, and, sql, desc } from 'drizzle-orm';
 
 /**
  * GET /api/ingredients/ontology
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const typeFilter = searchParams.get('type');
     const subtypeFilter = searchParams.get('subtype');
     const includeIngredients = searchParams.get('include_ingredients') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
 
     // Build filter conditions
     const conditions = [];
@@ -78,10 +78,12 @@ export async function GET(request: NextRequest) {
           usage_count: ingredients.usage_count,
         })
         .from(ingredients)
-        .where(and(
-          typeFilter ? eq(ingredients.type, typeFilter) : undefined,
-          eq(ingredients.subtype, subtypeFilter)
-        ))
+        .where(
+          and(
+            typeFilter ? eq(ingredients.type, typeFilter) : undefined,
+            eq(ingredients.subtype, subtypeFilter)
+          )
+        )
         .orderBy(desc(ingredients.usage_count))
         .limit(limit);
 
@@ -98,9 +100,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching ontology:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch ingredient ontology' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch ingredient ontology' }, { status: 500 });
   }
 }

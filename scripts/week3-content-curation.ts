@@ -13,17 +13,17 @@
  * Run with: npx tsx scripts/week3-content-curation.ts --execute
  */
 
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { sql, eq } from 'drizzle-orm';
 
 // Waste reduction tag types from ROADMAP.md
 type WasteReductionTag =
-  | 'waste_reduction'     // Uses aging ingredients, scraps, leftovers
-  | 'flexible'            // Accepts substitutions easily
-  | 'one_pot'            // Minimal cleanup
-  | 'seasonal'           // Uses seasonal produce
-  | 'resourceful'        // Embodies Joanie's approach
+  | 'waste_reduction' // Uses aging ingredients, scraps, leftovers
+  | 'flexible' // Accepts substitutions easily
+  | 'one_pot' // Minimal cleanup
+  | 'seasonal' // Uses seasonal produce
+  | 'resourceful' // Embodies Joanie's approach
   | 'scrap_utilization'; // Explicitly uses scraps/peels/stems
 
 interface ResourcefulnessAnalysis {
@@ -35,39 +35,103 @@ interface ResourcefulnessAnalysis {
 
 // Common pantry staples - recipes using mostly these score higher
 const COMMON_STAPLES = [
-  'salt', 'pepper', 'oil', 'olive oil', 'vegetable oil', 'butter',
-  'flour', 'sugar', 'eggs', 'milk', 'onion', 'garlic',
-  'rice', 'pasta', 'bread', 'tomato', 'potato', 'carrot',
-  'chicken', 'beef', 'pork', 'fish', 'beans', 'lentils',
-  'cheese', 'yogurt', 'soy sauce', 'vinegar', 'lemon',
-  'herbs', 'spices', 'broth', 'stock'
+  'salt',
+  'pepper',
+  'oil',
+  'olive oil',
+  'vegetable oil',
+  'butter',
+  'flour',
+  'sugar',
+  'eggs',
+  'milk',
+  'onion',
+  'garlic',
+  'rice',
+  'pasta',
+  'bread',
+  'tomato',
+  'potato',
+  'carrot',
+  'chicken',
+  'beef',
+  'pork',
+  'fish',
+  'beans',
+  'lentils',
+  'cheese',
+  'yogurt',
+  'soy sauce',
+  'vinegar',
+  'lemon',
+  'herbs',
+  'spices',
+  'broth',
+  'stock',
 ];
 
 // Keywords indicating flexibility/substitution tolerance
 const FLEXIBLE_KEYWORDS = [
-  'or', 'substitute', 'alternative', 'optional', 'any',
-  'whatever you have', 'leftovers', 'scraps', 'your choice'
+  'or',
+  'substitute',
+  'alternative',
+  'optional',
+  'any',
+  'whatever you have',
+  'leftovers',
+  'scraps',
+  'your choice',
 ];
 
 // Keywords indicating waste reduction
 const WASTE_KEYWORDS = [
-  'wilting', 'leftover', 'scrap', 'peel', 'stem', 'top',
-  'aging', 'old', 'excess', 'extra', 'compost', 'save',
-  'bones', 'carcass', 'ends', 'trimmings'
+  'wilting',
+  'leftover',
+  'scrap',
+  'peel',
+  'stem',
+  'top',
+  'aging',
+  'old',
+  'excess',
+  'extra',
+  'compost',
+  'save',
+  'bones',
+  'carcass',
+  'ends',
+  'trimmings',
 ];
 
 // One-pot indicators
 const ONE_POT_KEYWORDS = [
-  'one pot', 'one-pot', 'single pot', 'sheet pan',
-  'one pan', 'one-pan', 'slow cooker', 'instant pot',
-  'dutch oven', 'casserole', 'skillet'
+  'one pot',
+  'one-pot',
+  'single pot',
+  'sheet pan',
+  'one pan',
+  'one-pan',
+  'slow cooker',
+  'instant pot',
+  'dutch oven',
+  'casserole',
+  'skillet',
 ];
 
 // Seasonal indicators
 const SEASONAL_KEYWORDS = [
-  'seasonal', 'fresh', 'local', 'farm', 'garden',
-  'summer', 'winter', 'spring', 'fall', 'autumn',
-  'harvest', 'farmers market'
+  'seasonal',
+  'fresh',
+  'local',
+  'farm',
+  'garden',
+  'summer',
+  'winter',
+  'spring',
+  'fall',
+  'autumn',
+  'harvest',
+  'farmers market',
 ];
 
 /**
@@ -78,7 +142,7 @@ function parseIngredients(ingredientsJson: string | null): string[] {
   try {
     const parsed = JSON.parse(ingredientsJson);
     if (Array.isArray(parsed)) {
-      return parsed.map(i => typeof i === 'string' ? i : i.ingredient || '');
+      return parsed.map((i) => (typeof i === 'string' ? i : i.ingredient || ''));
     }
     return [];
   } catch {
@@ -91,7 +155,7 @@ function parseIngredients(ingredientsJson: string | null): string[] {
  */
 function isCommonStaple(ingredient: string): boolean {
   const lower = ingredient.toLowerCase();
-  return COMMON_STAPLES.some(staple => lower.includes(staple));
+  return COMMON_STAPLES.some((staple) => lower.includes(staple));
 }
 
 /**
@@ -99,7 +163,7 @@ function isCommonStaple(ingredient: string): boolean {
  */
 function hasFlexibilityIndicators(text: string): boolean {
   const lower = text.toLowerCase();
-  return FLEXIBLE_KEYWORDS.some(keyword => lower.includes(keyword));
+  return FLEXIBLE_KEYWORDS.some((keyword) => lower.includes(keyword));
 }
 
 /**
@@ -107,7 +171,7 @@ function hasFlexibilityIndicators(text: string): boolean {
  */
 function hasWasteReductionIndicators(text: string): boolean {
   const lower = text.toLowerCase();
-  return WASTE_KEYWORDS.some(keyword => lower.includes(keyword));
+  return WASTE_KEYWORDS.some((keyword) => lower.includes(keyword));
 }
 
 /**
@@ -115,7 +179,7 @@ function hasWasteReductionIndicators(text: string): boolean {
  */
 function isOnePot(instructions: string, name: string): boolean {
   const combined = `${name} ${instructions}`.toLowerCase();
-  return ONE_POT_KEYWORDS.some(keyword => combined.includes(keyword));
+  return ONE_POT_KEYWORDS.some((keyword) => combined.includes(keyword));
 }
 
 /**
@@ -123,7 +187,7 @@ function isOnePot(instructions: string, name: string): boolean {
  */
 function isSeasonal(description: string, name: string): boolean {
   const combined = `${name} ${description}`.toLowerCase();
-  return SEASONAL_KEYWORDS.some(keyword => combined.includes(keyword));
+  return SEASONAL_KEYWORDS.some((keyword) => combined.includes(keyword));
 }
 
 /**
@@ -151,7 +215,7 @@ function extractScrapNotes(instructions: string, description: string): string | 
     scrapPhrases.push('Perfect way to use leftovers');
   }
 
-  return scrapPhrases.length > 0 ? scrapPhrases.join('. ') + '.' : null;
+  return scrapPhrases.length > 0 ? `${scrapPhrases.join('. ')}.` : null;
 }
 
 /**
@@ -177,7 +241,7 @@ function generateEnvironmentalNotes(
     notes.push('Uses common pantry staples, reducing need for specialty shopping trips');
   }
 
-  return notes.length > 0 ? notes.join('. ') + '.' : null;
+  return notes.length > 0 ? `${notes.join('. ')}.` : null;
 }
 
 /**
@@ -264,14 +328,17 @@ function analyzeRecipe(recipe: any): ResourcefulnessAnalysis {
   }
 
   // Generate notes
-  const scrapNotes = hasWasteReduction ? extractScrapNotes(recipe.instructions || '', recipe.description || '') : null;
-  const environmentalNotes = tags.length > 0 ? generateEnvironmentalNotes(tags, ingredientCount, stapleCount) : null;
+  const scrapNotes = hasWasteReduction
+    ? extractScrapNotes(recipe.instructions || '', recipe.description || '')
+    : null;
+  const environmentalNotes =
+    tags.length > 0 ? generateEnvironmentalNotes(tags, ingredientCount, stapleCount) : null;
 
   return {
     score,
     tags: [...new Set(tags)], // Remove duplicates
     scrapNotes,
-    environmentalNotes
+    environmentalNotes,
   };
 }
 
@@ -282,7 +349,9 @@ async function main() {
   const dryRun = !process.argv.includes('--execute');
 
   console.log('🌱 Week 3: Content Curation - Recipe Audit\n');
-  console.log(`Mode: ${dryRun ? '🔍 DRY RUN (preview only)' : '✍️  EXECUTE (will update database)'}\n`);
+  console.log(
+    `Mode: ${dryRun ? '🔍 DRY RUN (preview only)' : '✍️  EXECUTE (will update database)'}\n`
+  );
 
   // Fetch all recipes
   console.log('📊 Fetching recipes...');
@@ -291,24 +360,30 @@ async function main() {
 
   // Analyze recipes
   console.log('🔬 Analyzing recipes...');
-  const analyzed = allRecipes.map(recipe => ({
+  const analyzed = allRecipes.map((recipe) => ({
     id: recipe.id,
     name: recipe.name,
-    analysis: analyzeRecipe(recipe)
+    analysis: analyzeRecipe(recipe),
   }));
 
   // Generate statistics
-  const scoreDistribution = analyzed.reduce((acc, { analysis }) => {
-    acc[analysis.score] = (acc[analysis.score] || 0) + 1;
-    return acc;
-  }, {} as Record<number, number>);
+  const scoreDistribution = analyzed.reduce(
+    (acc, { analysis }) => {
+      acc[analysis.score] = (acc[analysis.score] || 0) + 1;
+      return acc;
+    },
+    {} as Record<number, number>
+  );
 
-  const tagDistribution = analyzed.reduce((acc, { analysis }) => {
-    analysis.tags.forEach(tag => {
-      acc[tag] = (acc[tag] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
+  const tagDistribution = analyzed.reduce(
+    (acc, { analysis }) => {
+      analysis.tags.forEach((tag) => {
+        acc[tag] = (acc[tag] || 0) + 1;
+      });
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   console.log('\n📈 Resourcefulness Score Distribution:');
   for (let i = 5; i >= 1; i--) {
@@ -325,19 +400,19 @@ async function main() {
       console.log(`  ${tag.padEnd(20)}: ${count.toString().padStart(4)}`);
     });
 
-  const withScrapNotes = analyzed.filter(a => a.analysis.scrapNotes).length;
-  const withEnvironmentalNotes = analyzed.filter(a => a.analysis.environmentalNotes).length;
+  const withScrapNotes = analyzed.filter((a) => a.analysis.scrapNotes).length;
+  const withEnvironmentalNotes = analyzed.filter((a) => a.analysis.environmentalNotes).length;
 
   console.log(`\n📝 Generated Content:`);
   console.log(`  Scrap utilization notes: ${withScrapNotes.toString().padStart(4)}`);
   console.log(`  Environmental notes:     ${withEnvironmentalNotes.toString().padStart(4)}`);
 
   // Show sample high-scoring recipes
-  const topRecipes = analyzed
-    .filter(a => a.analysis.score >= 4)
-    .slice(0, 10);
+  const topRecipes = analyzed.filter((a) => a.analysis.score >= 4).slice(0, 10);
 
-  console.log(`\n✨ Sample High-Scoring Recipes (Top 10 of ${analyzed.filter(a => a.analysis.score >= 4).length}):`);
+  console.log(
+    `\n✨ Sample High-Scoring Recipes (Top 10 of ${analyzed.filter((a) => a.analysis.score >= 4).length}):`
+  );
   topRecipes.forEach(({ name, analysis }, i) => {
     const stars = '⭐'.repeat(analysis.score);
     const tags = analysis.tags.join(', ');
@@ -384,7 +459,7 @@ async function main() {
   console.log(`   Errors: ${errors}`);
 
   // Show final distribution of scores >= 4 (for homepage)
-  const homepageReady = analyzed.filter(a => a.analysis.score >= 4).length;
+  const homepageReady = analyzed.filter((a) => a.analysis.score >= 4).length;
   console.log(`\n🏠 Homepage-ready recipes (score >= 4): ${homepageReady}`);
 }
 

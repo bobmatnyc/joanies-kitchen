@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Package, Wrench, ArrowRight } from 'lucide-react';
+import { ArrowRight, Package, Wrench } from 'lucide-react';
 import Link from 'next/link';
-import { IngredientFilters } from '@/components/ingredient/IngredientFilters';
-import { IngredientList } from '@/components/ingredient/IngredientList';
+import { useEffect, useState } from 'react';
 import {
   getAllIngredients,
   getIngredientCategories,
   type SortOption,
 } from '@/app/actions/ingredients';
+import { IngredientFilters } from '@/components/ingredient/IngredientFilters';
+import { IngredientList } from '@/components/ingredient/IngredientList';
 import type { IngredientWithStats } from '@/lib/db/ingredients-schema';
 
 /**
@@ -30,7 +30,9 @@ import type { IngredientWithStats } from '@/lib/db/ingredients-schema';
  */
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState<IngredientWithStats[]>([]);
-  const [categories, setCategories] = useState<Array<{ category: string | null; count: number }>>([]);
+  const [categories, setCategories] = useState<Array<{ category: string | null; count: number }>>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

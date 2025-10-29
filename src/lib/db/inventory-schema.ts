@@ -1,5 +1,4 @@
 import {
-  boolean,
   decimal,
   index,
   integer,
@@ -49,12 +48,12 @@ export const storageLocationEnum = pgEnum('storage_location', [
  * Tracks freshness and usage state
  */
 export const inventoryStatusEnum = pgEnum('inventory_status', [
-  'fresh',        // Recently added, well within expiry
-  'use_soon',     // Approaching expiry (within 3-7 days)
-  'expiring',     // Very close to expiry (within 1-2 days)
-  'expired',      // Past expiry date
-  'used',         // Successfully used/consumed
-  'wasted',       // Discarded/wasted
+  'fresh', // Recently added, well within expiry
+  'use_soon', // Approaching expiry (within 3-7 days)
+  'expiring', // Very close to expiry (within 1-2 days)
+  'expired', // Past expiry date
+  'used', // Successfully used/consumed
+  'wasted', // Discarded/wasted
 ]);
 
 /**
@@ -62,11 +61,11 @@ export const inventoryStatusEnum = pgEnum('inventory_status', [
  * Tracks how items are actually consumed
  */
 export const usageActionEnum = pgEnum('usage_action', [
-  'cooked',       // Used in cooking (possibly with recipe)
-  'eaten_raw',    // Consumed without cooking
-  'composted',    // Composted (eco-friendly disposal)
-  'trashed',      // Thrown away
-  'donated',      // Donated to food bank/charity
+  'cooked', // Used in cooking (possibly with recipe)
+  'eaten_raw', // Consumed without cooking
+  'composted', // Composted (eco-friendly disposal)
+  'trashed', // Thrown away
+  'donated', // Donated to food bank/charity
 ]);
 
 /**
@@ -74,12 +73,12 @@ export const usageActionEnum = pgEnum('usage_action', [
  * Helps identify root causes of food waste
  */
 export const wasteOutcomeEnum = pgEnum('waste_outcome', [
-  'expired',              // Passed expiration date
-  'spoiled',              // Went bad before expiry
-  'forgot_about_it',      // Lost in back of fridge
-  'bought_too_much',      // Over-purchased
-  'overcooked',           // Cooking mistake
-  'other',                // Other reasons
+  'expired', // Passed expiration date
+  'spoiled', // Went bad before expiry
+  'forgot_about_it', // Lost in back of fridge
+  'bought_too_much', // Over-purchased
+  'overcooked', // Cooking mistake
+  'other', // Other reasons
 ]);
 
 // ============================================================================
@@ -185,8 +184,7 @@ export const inventoryUsageLog = pgTable(
       .notNull()
       .references(() => inventoryItems.id, { onDelete: 'cascade' }),
 
-    recipe_id: text('recipe_id')
-      .references(() => recipes.id, { onDelete: 'set null' }), // Optional recipe reference
+    recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'set null' }), // Optional recipe reference
 
     // Usage Information
     action: usageActionEnum('action').notNull(),
@@ -244,8 +242,9 @@ export const wasteTracking = pgTable(
       .references(() => ingredients.id, { onDelete: 'cascade' }),
 
     // Optional Inventory Reference
-    inventory_item_id: uuid('inventory_item_id')
-      .references(() => inventoryItems.id, { onDelete: 'set null' }), // May be null if not tracked in inventory
+    inventory_item_id: uuid('inventory_item_id').references(() => inventoryItems.id, {
+      onDelete: 'set null',
+    }), // May be null if not tracked in inventory
 
     // Waste Classification
     outcome: wasteOutcomeEnum('outcome').notNull(),
@@ -283,16 +282,16 @@ export const wasteTracking = pgTable(
 // ============================================================================
 
 // Storage Location
-export type StorageLocation = typeof storageLocationEnum.enumValues[number];
+export type StorageLocation = (typeof storageLocationEnum.enumValues)[number];
 
 // Inventory Status
-export type InventoryStatus = typeof inventoryStatusEnum.enumValues[number];
+export type InventoryStatus = (typeof inventoryStatusEnum.enumValues)[number];
 
 // Usage Action
-export type UsageAction = typeof usageActionEnum.enumValues[number];
+export type UsageAction = (typeof usageActionEnum.enumValues)[number];
 
 // Waste Outcome
-export type WasteOutcome = typeof wasteOutcomeEnum.enumValues[number];
+export type WasteOutcome = (typeof wasteOutcomeEnum.enumValues)[number];
 
 // Inventory Items
 export type InventoryItem = typeof inventoryItems.$inferSelect;

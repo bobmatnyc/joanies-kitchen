@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help'),
   title: {
     default: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
-    template: "%s | Joanie's Kitchen"
+    template: "%s | Joanie's Kitchen",
   },
   description:
     "Transform what's in your fridge into delicious meals. AI-powered recipe matching finds recipes you can make right now with smart substitutions for missing ingredients. Join the zero-waste cooking movement.",
@@ -91,7 +91,8 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: "Joanie's Kitchen",
     title: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
-    description: "Transform what's in your fridge into delicious meals. Stop food waste. Start cooking smart.",
+    description:
+      "Transform what's in your fridge into delicious meals. Stop food waste. Start cooking smart.",
     url: '/',
     images: [
       {
@@ -106,7 +107,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "Joanie's Kitchen | Zero Food Waste Cooking",
-    description: "Cook from your fridge. Waste nothing. Smart substitutions for every ingredient.",
+    description: 'Cook from your fridge. Waste nothing. Smart substitutions for every ingredient.',
     images: ['/og-image.png'],
   },
   alternates: {

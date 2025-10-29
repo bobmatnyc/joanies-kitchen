@@ -9,11 +9,11 @@
  * Run Command: pnpm qa:hide-incomplete
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { inArray } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
+import { inArray } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 interface QAStructureReport {
   timestamp: string;
@@ -58,10 +58,11 @@ async function hideIncompleteRecipes() {
   // Hide recipes with missing instructions
   console.log(`🚫 Hiding ${missingInstructions.length} recipes with missing instructions...`);
 
-  const missingInstructionsIds = missingInstructions.map(r => r.id);
+  const missingInstructionsIds = missingInstructions.map((r) => r.id);
 
   if (missingInstructionsIds.length > 0) {
-    await db.update(recipes)
+    await db
+      .update(recipes)
       .set({
         qa_status: 'needs_review',
         qa_notes: 'Missing instructions - hidden from search until fixed',
@@ -71,7 +72,7 @@ async function hideIncompleteRecipes() {
       .where(inArray(recipes.id, missingInstructionsIds));
 
     // Log progress
-    missingInstructions.slice(0, 5).forEach(recipe => {
+    missingInstructions.slice(0, 5).forEach((recipe) => {
       console.log(`  ✓ Updated recipe: "${recipe.name}"`);
     });
     if (missingInstructions.length > 5) {
@@ -82,10 +83,11 @@ async function hideIncompleteRecipes() {
   // Flag recipes with missing ingredients
   console.log(`⚠️  Flagging ${missingIngredients.length} recipes with missing ingredients...`);
 
-  const missingIngredientsIds = missingIngredients.map(r => r.id);
+  const missingIngredientsIds = missingIngredients.map((r) => r.id);
 
   if (missingIngredientsIds.length > 0) {
-    await db.update(recipes)
+    await db
+      .update(recipes)
       .set({
         qa_status: 'flagged',
         qa_notes: 'Missing ingredient list - flagged for post-launch fix',
@@ -96,7 +98,7 @@ async function hideIncompleteRecipes() {
       .where(inArray(recipes.id, missingIngredientsIds));
 
     // Log progress
-    missingIngredients.slice(0, 5).forEach(recipe => {
+    missingIngredients.slice(0, 5).forEach((recipe) => {
       console.log(`  ✓ Flagged recipe: "${recipe.name}"`);
     });
     if (missingIngredients.length > 5) {

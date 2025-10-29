@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import { GripVertical, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { formatInstructionsWithLLM, updateRecipeInstructions } from '@/app/actions/admin-edit';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
 
 interface InstructionEditorProps {
   recipeId: string;
@@ -74,7 +81,10 @@ export function InstructionEditor({
     setFormatting(true);
     try {
       // First save current state
-      const saveResult = await updateRecipeInstructions(recipeId, instructions.filter(inst => inst.trim()));
+      const saveResult = await updateRecipeInstructions(
+        recipeId,
+        instructions.filter((inst) => inst.trim())
+      );
 
       if (!saveResult.success) {
         toast.error(saveResult.error || 'Failed to save instructions before formatting');
@@ -102,7 +112,7 @@ export function InstructionEditor({
     setSaving(true);
     try {
       // Filter out empty instructions
-      const validInstructions = instructions.filter(inst => inst.trim());
+      const validInstructions = instructions.filter((inst) => inst.trim());
 
       if (validInstructions.length === 0) {
         toast.error('Please add at least one instruction step');

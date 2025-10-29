@@ -93,7 +93,7 @@ export async function generateMealPrepTimeline(
     for (const { mealRecipe, recipe } of sortedRecipes) {
       const prepTime = recipe.prep_time || 0;
       const cookTime = recipe.cook_time || 0;
-      const totalTime = prepTime + cookTime;
+      const _totalTime = prepTime + cookTime;
 
       // Determine equipment needs
       const equipment = detectEquipment(recipe.instructions);
@@ -217,7 +217,11 @@ function formatDuration(minutes: number): string {
   return `${hours} hour${hours > 1 ? 's' : ''} ${mins} min`;
 }
 
-function detectEquipment(instructionsJson: string | null): { type: string; oven: boolean; stove: boolean } {
+function detectEquipment(instructionsJson: string | null): {
+  type: string;
+  oven: boolean;
+  stove: boolean;
+} {
   if (!instructionsJson) return { type: 'none', oven: false, stove: false };
 
   try {
@@ -225,7 +229,11 @@ function detectEquipment(instructionsJson: string | null): { type: string; oven:
     const text = instructions.join(' ').toLowerCase();
 
     const oven = text.includes('oven') || text.includes('bake') || text.includes('roast');
-    const stove = text.includes('stove') || text.includes('pan') || text.includes('sauté') || text.includes('boil');
+    const stove =
+      text.includes('stove') ||
+      text.includes('pan') ||
+      text.includes('sauté') ||
+      text.includes('boil');
 
     if (oven && stove) return { type: 'oven+stove', oven: true, stove: true };
     if (oven) return { type: 'oven', oven: true, stove: false };
@@ -286,7 +294,7 @@ function checkTimeOverlap(step1: TimelineStep, step2: TimelineStep): boolean {
   const start2 = step2.absoluteMinutes;
   const end2 = start2 + step2.duration;
 
-  return (start1 < end2 && end1 > start2);
+  return start1 < end2 && end1 > start2;
 }
 
 function groupStepsByTime(steps: TimelineStep[]): Record<string, TimelineStep[]> {

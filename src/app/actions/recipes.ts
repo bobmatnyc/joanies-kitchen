@@ -675,7 +675,15 @@ export interface PaginatedRecipeResponse {
 
 // Category types for Top 50 filtering
 export type RecipeCategory = 'mains' | 'sides' | 'desserts' | 'appetizers' | 'all';
-export type MainsSubcategory = 'beef' | 'chicken' | 'lamb' | 'pasta' | 'seafood' | 'pork' | 'vegetarian' | 'vegan';
+export type MainsSubcategory =
+  | 'beef'
+  | 'chicken'
+  | 'lamb'
+  | 'pasta'
+  | 'seafood'
+  | 'pork'
+  | 'vegetarian'
+  | 'vegan';
 export type SidesSubcategory = 'vegetables' | 'salads' | 'grains' | 'potatoes' | 'bread';
 export type DessertsSubcategory = 'cakes' | 'cookies' | 'pies' | 'puddings' | 'frozen';
 export type AppetizersSubcategory = 'dips' | 'finger-foods' | 'cheese' | 'meat' | 'vegetable';
@@ -708,7 +716,7 @@ const CATEGORY_TAG_MAPPING = {
   },
   appetizers: {
     dips: ['dip', 'dips', 'hummus', 'guacamole', 'salsa'],
-    'finger-foods': ['finger food', 'appetizer', 'hors d\'oeuvre', 'canape'],
+    'finger-foods': ['finger food', 'appetizer', "hors d'oeuvre", 'canape'],
     cheese: ['cheese board', 'cheese platter', 'brie', 'charcuterie'],
     meat: ['meatball', 'wing', 'wings', 'skewer'],
     vegetable: ['crudite', 'veggie platter', 'stuffed mushroom'],
@@ -730,10 +738,9 @@ function recipeMatchesCategory(
     const normalizedTags = tags.map((t: string) => t.toLowerCase());
 
     if (subcategory && CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING]) {
-      const subcatTags =
-        CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING][
-          subcategory as keyof (typeof CATEGORY_TAG_MAPPING)[keyof typeof CATEGORY_TAG_MAPPING]
-        ] as string[] | undefined;
+      const subcatTags = CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING][
+        subcategory as keyof (typeof CATEGORY_TAG_MAPPING)[keyof typeof CATEGORY_TAG_MAPPING]
+      ] as string[] | undefined;
       return (
         (Array.isArray(subcatTags) &&
           subcatTags.some((tag: string) => normalizedTags.some((t) => t.includes(tag)))) ||
@@ -742,14 +749,13 @@ function recipeMatchesCategory(
     }
 
     // Check if recipe matches any tag in the category
-    const categoryMapping =
-      CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING];
+    const categoryMapping = CATEGORY_TAG_MAPPING[category as keyof typeof CATEGORY_TAG_MAPPING];
     if (!categoryMapping) return false;
 
     return Object.values(categoryMapping).some((subcatTags) =>
       subcatTags.some((tag) => normalizedTags.some((t) => t.includes(tag)))
     );
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -832,12 +838,7 @@ export async function getResourcefulRecipes({
     const resourcefulRecipes = await db
       .select()
       .from(recipes)
-      .where(
-        and(
-          eq(recipes.is_public, true),
-          sql`${recipes.resourcefulness_score} >= ${minScore}`
-        )
-      )
+      .where(and(eq(recipes.is_public, true), sql`${recipes.resourcefulness_score} >= ${minScore}`))
       .orderBy(
         desc(recipes.resourcefulness_score),
         desc(
@@ -858,6 +859,186 @@ export async function getResourcefulRecipes({
     return resourcefulRecipes;
   } catch (error) {
     console.error('Failed to fetch resourceful recipes:', error);
+    return [];
+  }
+}
+
+// Get recipes of the day - one from each category (appetizer, main, side, dessert)
+// Uses current date as seed for deterministic selection (same recipes all day)
+// Now uses meal pairing algorithms to select complementary recipes
+export async function getRecipesOfTheDay() {
+  try {
+    // Get current date as seed (YYYY-MM-DD format)
+    const today = new Date();
+    const dateSeed = today.toISOString().split('T')[0];
+
+    // Convert date to numeric seed for consistent random selection
+    const numericSeed = dateSeed.split('-').join('');
+    const seed = parseInt(numericSeed, 10);
+
+    // Step 1: Select a main course using date-based deterministic selection
+    const mainCourseConditions = ['dinner', 'main-course', 'lunch', 'main'].map((tag) =>
+      or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`))
+    ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+
+    const mainCandidates = await db
+      .select()
+      .from(recipes)
+      .where(
+        and(
+          eq(recipes.is_public, true),
+          isNull(recipes.deleted_at),
+          sql`(${recipes.image_url} IS NOT NULL OR ${recipes.images} IS NOT NULL)`,
+          or(...mainCourseConditions)
+        )
+      )
+      .orderBy(desc(recipes.system_rating), desc(recipes.created_at))
+      .limit(30); // Get pool of top mains for variety
+
+    if (mainCandidates.length === 0) {
+      console.warn('No main courses found for recipes of the day');
+      return [];
+    }
+
+    // Select main using seeded selection (deterministic)
+    const mainIndex = seed % mainCandidates.length;
+    const selectedMain = mainCandidates[mainIndex];
+
+    // Step 2: Use semantic search to find complementary recipes
+    // Import the semantic search function
+    const { semanticSearchRecipes } = await import('./semantic-search');
+
+    // Build search queries for complementary recipes
+    // Extract cuisine and key characteristics from main dish
+    const mainCuisine = selectedMain.cuisine || '';
+    const mainTags = selectedMain.tags ? JSON.parse(selectedMain.tags) : [];
+    const mainDescription = selectedMain.description || '';
+
+    // Search for complementary appetizer (light, acidic, stimulating)
+    const appetizerQuery = `light appetizer starter ${mainCuisine} acidic fresh`;
+    const appetizerResult = await semanticSearchRecipes(appetizerQuery, {
+      limit: 20,
+      minSimilarity: 0.3,
+      includePrivate: false,
+    });
+
+    const appetizerCandidates = appetizerResult.success
+      ? appetizerResult.recipes.filter(
+          (r) =>
+            r.id !== selectedMain.id &&
+            (r.image_url || r.images) &&
+            r.tags?.includes('appetizer')
+        )
+      : [];
+
+    // Search for complementary side (vegetables, texture contrast)
+    const sideQuery = `side dish vegetables ${mainCuisine} crisp light`;
+    const sideResult = await semanticSearchRecipes(sideQuery, {
+      limit: 20,
+      minSimilarity: 0.3,
+      includePrivate: false,
+    });
+
+    const sideCandidates = sideResult.success
+      ? sideResult.recipes.filter(
+          (r) =>
+            r.id !== selectedMain.id &&
+            (r.image_url || r.images) &&
+            (r.tags?.includes('side') || r.tags?.includes('side-dish'))
+        )
+      : [];
+
+    // Search for complementary dessert (sweet conclusion)
+    const dessertQuery = `dessert sweet ${mainCuisine} light pastry`;
+    const dessertResult = await semanticSearchRecipes(dessertQuery, {
+      limit: 20,
+      minSimilarity: 0.3,
+      includePrivate: false,
+    });
+
+    const dessertCandidates = dessertResult.success
+      ? dessertResult.recipes.filter(
+          (r) => r.id !== selectedMain.id && (r.image_url || r.images) && r.tags?.includes('dessert')
+        )
+      : [];
+
+    // Step 3: Select from candidates using seeded selection (deterministic)
+    const recipesOfTheDay: Recipe[] = [];
+
+    // Always include the main
+    recipesOfTheDay.push(selectedMain);
+
+    // Select appetizer (if available)
+    if (appetizerCandidates.length > 0) {
+      const appetizerIndex = (seed + 1) % appetizerCandidates.length;
+      recipesOfTheDay.unshift(appetizerCandidates[appetizerIndex]); // Add at beginning
+    }
+
+    // Select side (if available)
+    if (sideCandidates.length > 0) {
+      const sideIndex = (seed + 2) % sideCandidates.length;
+      recipesOfTheDay.push(sideCandidates[sideIndex]);
+    }
+
+    // Select dessert (if available)
+    if (dessertCandidates.length > 0) {
+      const dessertIndex = (seed + 3) % dessertCandidates.length;
+      recipesOfTheDay.push(dessertCandidates[dessertIndex]);
+    }
+
+    // Fallback: If we don't have all 4 courses, fill with tag-based selection
+    if (recipesOfTheDay.length < 4) {
+      const missingCategories = [
+        { name: 'appetizer', tags: ['appetizer', 'starter', 'snack'], included: false },
+        { name: 'main', tags: ['dinner', 'main-course', 'lunch', 'main'], included: true },
+        { name: 'side', tags: ['side', 'side dish', 'side-dish'], included: false },
+        { name: 'dessert', tags: ['dessert', 'sweet', 'pastry'], included: false },
+      ];
+
+      // Check which categories we already have
+      recipesOfTheDay.forEach((recipe) => {
+        const recipeTags = recipe.tags ? JSON.parse(recipe.tags) : [];
+        missingCategories.forEach((cat) => {
+          if (cat.tags.some((tag) => recipeTags.includes(tag))) {
+            cat.included = true;
+          }
+        });
+      });
+
+      // Fill missing categories with tag-based selection
+      for (const category of missingCategories) {
+        if (!category.included && recipesOfTheDay.length < 4) {
+          const tagConditions = category.tags
+            .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
+            .filter(
+              (condition): condition is NonNullable<typeof condition> => condition !== undefined
+            );
+
+          const categoryRecipes = await db
+            .select()
+            .from(recipes)
+            .where(
+              and(
+                eq(recipes.is_public, true),
+                isNull(recipes.deleted_at),
+                sql`(${recipes.image_url} IS NOT NULL OR ${recipes.images} IS NOT NULL)`,
+                or(...tagConditions)
+              )
+            )
+            .orderBy(desc(recipes.system_rating), desc(recipes.created_at))
+            .limit(10);
+
+          if (categoryRecipes.length > 0) {
+            const index = (seed + recipesOfTheDay.length) % categoryRecipes.length;
+            recipesOfTheDay.push(categoryRecipes[index]);
+          }
+        }
+      }
+    }
+
+    return recipesOfTheDay;
+  } catch (error) {
+    console.error('Failed to fetch recipes of the day:', error);
     return [];
   }
 }

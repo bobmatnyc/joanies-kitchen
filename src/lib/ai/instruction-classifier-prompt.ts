@@ -285,9 +285,7 @@ Recipe Context:
 `
     : '';
 
-  const instructionsList = instructions
-    .map((inst, idx) => `${idx + 1}. "${inst}"`)
-    .join('\n');
+  const instructionsList = instructions.map((inst, idx) => `${idx + 1}. "${inst}"`).join('\n');
 
   return `Analyze these ${instructions.length} cooking instruction steps from a single recipe and classify each one.
 
@@ -407,9 +405,10 @@ export const SKILL_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 /**
  * Validates a classification response for basic correctness
  */
-export function validateClassification(
-  classification: InstructionClassification
-): { valid: boolean; errors: string[] } {
+export function validateClassification(classification: InstructionClassification): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   // Check work type
@@ -439,10 +438,7 @@ export function validateClassification(
   }
 
   // Check confidence
-  if (
-    classification.confidence < 0 ||
-    classification.confidence > 1
-  ) {
+  if (classification.confidence < 0 || classification.confidence > 1) {
     errors.push('Confidence must be between 0.0 and 1.0');
   }
 

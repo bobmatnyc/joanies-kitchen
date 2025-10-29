@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Query ingredients from database for image generation
  *
@@ -8,15 +9,15 @@
  *   ts-node scripts/image-gen/query_ingredients.ts --category vegetables
  */
 
-import { drizzle } from 'drizzle-orm/neon-http';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { neon } from '@neondatabase/serverless';
-import { eq, isNull, and, desc, sql } from 'drizzle-orm';
-import { ingredients } from '@/lib/db/schema';
-import * as fs from 'fs';
-import * as path from 'path';
-
 // Load environment variables
 import dotenv from 'dotenv';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { ingredients } from '@/lib/db/schema';
+
 dotenv.config({ path: '.env.local' });
 
 const connectionString = process.env.DATABASE_URL;
@@ -37,16 +38,16 @@ interface QueryOptions {
 }
 
 async function queryIngredients(options: QueryOptions = {}) {
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('Ingredient Image Generation Query');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log();
 
   const {
     limit = 10,
     noImages = false,
     category,
-    outputFile = 'tmp/ingredient-batch.txt'
+    outputFile = 'tmp/ingredient-batch.txt',
   } = options;
 
   // Build query conditions
@@ -67,9 +68,7 @@ async function queryIngredients(options: QueryOptions = {}) {
   console.log(`  Category filter: ${category || 'none'}`);
   console.log();
 
-  const whereClause = conditions.length > 0
-    ? and(...conditions)
-    : undefined;
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const results = await db
     .select({
@@ -94,7 +93,7 @@ async function queryIngredients(options: QueryOptions = {}) {
 
   // Display results
   console.log('Top ingredients:');
-  console.log('-' .repeat(60));
+  console.log('-'.repeat(60));
 
   results.forEach((ing, index) => {
     const hasImage = ing.image_url ? '✓' : '✗';
@@ -114,12 +113,12 @@ async function queryIngredients(options: QueryOptions = {}) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const batchContent = results.map(ing => ing.name).join('\n');
+  const batchContent = results.map((ing) => ing.name).join('\n');
   fs.writeFileSync(outputPath, batchContent, 'utf-8');
 
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('✓ Batch file created!');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log();
   console.log(`Output file: ${outputPath}`);
   console.log(`Ingredients: ${results.length}`);

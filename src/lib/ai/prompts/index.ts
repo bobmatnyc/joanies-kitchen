@@ -5,19 +5,19 @@
  * validation, and helper functions.
  */
 
-import type {
-  PromptTemplate,
-  RenderedPrompt,
-  PromptRenderOptions,
-  PromptValidationResult,
-  PromptStoreMetadata,
-  PromptCategory,
-} from './types';
-import { mealGenerationPrompts } from './meal-generation';
-import { recipeAnalysisPrompts } from './recipe-analysis';
-import { nutritionalEstimationPrompts } from './nutritional-estimation';
-import { mealPairingPrompts } from './meal-pairing';
 import { ingredientSubstitutionPrompts } from './ingredient-substitution';
+import { mealGenerationPrompts } from './meal-generation';
+import { mealPairingPrompts } from './meal-pairing';
+import { nutritionalEstimationPrompts } from './nutritional-estimation';
+import { recipeAnalysisPrompts } from './recipe-analysis';
+import type {
+  PromptCategory,
+  PromptRenderOptions,
+  PromptStoreMetadata,
+  PromptTemplate,
+  PromptValidationResult,
+  RenderedPrompt,
+} from './types';
 
 /**
  * Central prompt store registry
@@ -64,9 +64,7 @@ export function getPromptsByCategory(category: PromptCategory): PromptTemplate[]
  * Search prompts by tags
  */
 export function searchPromptsByTag(tag: string): PromptTemplate[] {
-  return Object.values(promptStore).filter(
-    (prompt) => prompt.tags?.includes(tag.toLowerCase())
-  );
+  return Object.values(promptStore).filter((prompt) => prompt.tags?.includes(tag.toLowerCase()));
 }
 
 /**
@@ -110,10 +108,7 @@ export function validatePromptVariables(
   }
 
   // Check for extraneous variables (not an error, just a warning)
-  const allValidVars = new Set([
-    ...template.variables,
-    ...(template.optionalVariables || []),
-  ]);
+  const allValidVars = new Set([...template.variables, ...(template.optionalVariables || [])]);
   for (const providedVar of Object.keys(variables)) {
     if (!allValidVars.has(providedVar)) {
       warnings.push(`Unused variable provided: ${providedVar}`);
@@ -141,9 +136,7 @@ export function renderPrompt(
   // Validate variables
   const validation = validatePromptVariables(template, variables);
   if (!validation.valid) {
-    throw new Error(
-      `Invalid prompt variables: ${validation.errors.join(', ')}`
-    );
+    throw new Error(`Invalid prompt variables: ${validation.errors.join(', ')}`);
   }
 
   // Render user prompt with variable substitution
@@ -158,9 +151,7 @@ export function renderPrompt(
   // Check for unreplaced variables (indicates missing required variables)
   const unreplacedVars = userPrompt.match(/\{\{(\w+)\}\}/g);
   if (unreplacedVars) {
-    throw new Error(
-      `Unreplaced variables in prompt: ${unreplacedVars.join(', ')}`
-    );
+    throw new Error(`Unreplaced variables in prompt: ${unreplacedVars.join(', ')}`);
   }
 
   // Determine model (use override or default to first suggestion)
@@ -185,10 +176,7 @@ export function renderPrompt(
 /**
  * Helper function to render a prompt by ID
  */
-export function renderPromptById(
-  promptId: string,
-  options: PromptRenderOptions
-): RenderedPrompt {
+export function renderPromptById(promptId: string, options: PromptRenderOptions): RenderedPrompt {
   const template = getPrompt(promptId);
   if (!template) {
     throw new Error(`Prompt not found: ${promptId}`);
@@ -247,13 +235,13 @@ export function getFallbackModels(promptId: string): string[] {
     .map((s) => s.model);
 }
 
+export * from './ingredient-substitution';
+export * from './meal-generation';
+export * from './meal-pairing';
+export * from './nutritional-estimation';
+export * from './recipe-analysis';
 // Re-export everything for convenience
 export * from './types';
-export * from './meal-generation';
-export * from './recipe-analysis';
-export * from './nutritional-estimation';
-export * from './meal-pairing';
-export * from './ingredient-substitution';
 
 // Export metadata for documentation
 export const PROMPT_STORE_VERSION = '1.0.0';

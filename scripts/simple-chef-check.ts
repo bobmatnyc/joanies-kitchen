@@ -1,5 +1,5 @@
-import { db } from '../src/lib/db/index.js';
 import { sql } from 'drizzle-orm';
+import { db } from '../src/lib/db/index.js';
 
 async function checkChefRecipes() {
   console.log('🔍 Analyzing Chef-Recipe Assignments\n');
@@ -29,7 +29,7 @@ async function checkChefRecipes() {
     const name = String(row.name).padEnd(35);
     const count = String(row.recipe_count).padStart(5);
     console.log(`${status} ${name} ${count} recipes`);
-    
+
     if (row.recipe_count > 0) {
       chefsWithRecipes++;
     } else {

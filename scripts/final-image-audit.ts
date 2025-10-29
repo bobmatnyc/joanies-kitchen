@@ -23,7 +23,9 @@ async function finalImageAudit() {
       AND images::text != 'null'
   `);
   const withImages = Number(withImagesResult.rows[0].count);
-  console.log(`Recipes with Images: ${withImages.toLocaleString()} (${((withImages/totalRecipes)*100).toFixed(1)}%)`);
+  console.log(
+    `Recipes with Images: ${withImages.toLocaleString()} (${((withImages / totalRecipes) * 100).toFixed(1)}%)`
+  );
   console.log('');
 
   // 3. Check for problematic patterns
@@ -47,7 +49,7 @@ async function finalImageAudit() {
       WHERE images::text LIKE ${query}
       LIMIT 5
     `);
-    
+
     if (result.rows.length > 0) {
       console.log(`\n❌ Found ${result.rows.length} recipe(s) with ${name}:`);
       for (const row of result.rows) {
@@ -57,7 +59,7 @@ async function finalImageAudit() {
       totalProblematic += result.rows.length;
     }
   }
-  
+
   if (totalProblematic === 0) {
     console.log('✅ No broken image patterns found!');
   }
@@ -66,7 +68,7 @@ async function finalImageAudit() {
   // 4. Verify Roasted Tomato Soup specifically
   console.log('ROASTED TOMATO SOUP STATUS:');
   console.log('-'.repeat(80));
-  
+
   const soupResult = await db.execute(sql`
     SELECT name, slug, images, updated_at
     FROM recipes
@@ -77,8 +79,8 @@ async function finalImageAudit() {
   if (soupResult.rows.length > 0) {
     const soup = soupResult.rows[0];
     const images = soup.images as string[];
-    const hasExampleDotCom = images.some(img => img.includes('example.com'));
-    
+    const hasExampleDotCom = images.some((img) => img.includes('example.com'));
+
     console.log(`Recipe: ${soup.name}`);
     console.log(`Status: ${hasExampleDotCom ? '❌ BROKEN' : '✅ FIXED'}`);
     console.log(`Images: ${JSON.stringify(images, null, 2)}`);

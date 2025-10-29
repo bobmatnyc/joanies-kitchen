@@ -1,8 +1,8 @@
 'use server';
 
-import { semanticSearchRecipes, type RecipeWithSimilarity } from './semantic-search';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { deduplicateAcrossCourses } from '@/lib/meals/recipe-classification';
+import { type RecipeWithSimilarity, semanticSearchRecipes } from './semantic-search';
 
 /**
  * Smart Meal Suggestions
@@ -220,17 +220,13 @@ async function enhanceRecipes(
     let score = recipe.similarity || 0.5;
 
     // Cuisine matching
-    const cuisineMatch = params.cuisine
-      ? calculateCuisineMatch(recipe, params.cuisine)
-      : 1.0;
+    const cuisineMatch = params.cuisine ? calculateCuisineMatch(recipe, params.cuisine) : 1.0;
     if (cuisineMatch > 0.8 && params.cuisine) {
       badges.push('Perfect Cuisine Match');
     }
 
     // Budget analysis (basic - can be enhanced with LLM price estimation)
-    const budgetMatch = params.budget?.max
-      ? calculateBudgetMatch(recipe, params.budget.max)
-      : 1.0;
+    const budgetMatch = params.budget?.max ? calculateBudgetMatch(recipe, params.budget.max) : 1.0;
     if (budgetMatch > 0.8) {
       badges.push('Budget-Friendly');
     }
@@ -293,7 +289,18 @@ function calculateCuisineMatch(recipe: RecipeWithSimilarity, targetCuisine: stri
   // Parse tags for cuisine keywords
   const tags = parseTags(recipe.tags);
   const tagCuisines = tags.filter((tag) =>
-    ['italian', 'mexican', 'asian', 'chinese', 'japanese', 'thai', 'indian', 'french', 'greek', 'mediterranean'].includes(tag.toLowerCase())
+    [
+      'italian',
+      'mexican',
+      'asian',
+      'chinese',
+      'japanese',
+      'thai',
+      'indian',
+      'french',
+      'greek',
+      'mediterranean',
+    ].includes(tag.toLowerCase())
   );
 
   // Direct match
@@ -343,7 +350,16 @@ function calculateNutritionalMatch(
 
   // Balance vegetables
   if (goals.balanceVegetables) {
-    const vegetableKeywords = ['tomato', 'onion', 'carrot', 'broccoli', 'spinach', 'lettuce', 'pepper', 'vegetable'];
+    const vegetableKeywords = [
+      'tomato',
+      'onion',
+      'carrot',
+      'broccoli',
+      'spinach',
+      'lettuce',
+      'pepper',
+      'vegetable',
+    ];
     const vegetableCount = ingredients.filter((ing) =>
       vegetableKeywords.some((kw) => ing.toLowerCase().includes(kw))
     ).length;
@@ -395,15 +411,37 @@ function filterByDietaryRestrictions(
 
       // Vegetarian check
       if (dietary.vegetarian) {
-        const meatKeywords = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'seafood', 'meat'];
+        const meatKeywords = [
+          'chicken',
+          'beef',
+          'pork',
+          'lamb',
+          'turkey',
+          'fish',
+          'seafood',
+          'meat',
+        ];
         if (meatKeywords.some((kw) => text.includes(kw))) return false;
       }
 
       // Vegan check (includes vegetarian restrictions)
       if (dietary.vegan) {
         const animalKeywords = [
-          'chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'seafood', 'meat',
-          'milk', 'cheese', 'butter', 'cream', 'egg', 'honey', 'yogurt',
+          'chicken',
+          'beef',
+          'pork',
+          'lamb',
+          'turkey',
+          'fish',
+          'seafood',
+          'meat',
+          'milk',
+          'cheese',
+          'butter',
+          'cream',
+          'egg',
+          'honey',
+          'yogurt',
         ];
         if (animalKeywords.some((kw) => text.includes(kw))) return false;
       }
@@ -446,25 +484,41 @@ function getDietaryWarnings(
   const ingredients = parseIngredients(recipe.ingredients).join(' ').toLowerCase();
 
   if (dietary.vegetarian || dietary.vegan) {
-    if (ingredients.includes('chicken') || ingredients.includes('beef') || ingredients.includes('pork')) {
+    if (
+      ingredients.includes('chicken') ||
+      ingredients.includes('beef') ||
+      ingredients.includes('pork')
+    ) {
       warnings.push('Contains meat');
     }
   }
 
   if (dietary.vegan) {
-    if (ingredients.includes('milk') || ingredients.includes('cheese') || ingredients.includes('egg')) {
+    if (
+      ingredients.includes('milk') ||
+      ingredients.includes('cheese') ||
+      ingredients.includes('egg')
+    ) {
       warnings.push('Contains dairy/eggs');
     }
   }
 
   if (dietary.glutenFree) {
-    if (ingredients.includes('flour') || ingredients.includes('bread') || ingredients.includes('pasta')) {
+    if (
+      ingredients.includes('flour') ||
+      ingredients.includes('bread') ||
+      ingredients.includes('pasta')
+    ) {
       warnings.push('Contains gluten');
     }
   }
 
   if (dietary.nutFree) {
-    if (ingredients.includes('nut') || ingredients.includes('almond') || ingredients.includes('peanut')) {
+    if (
+      ingredients.includes('nut') ||
+      ingredients.includes('almond') ||
+      ingredients.includes('peanut')
+    ) {
       warnings.push('Contains nuts');
     }
   }
@@ -499,9 +553,14 @@ function parseTags(tagsJson: string | null): string[] {
 // ============================================================================
 
 export async function estimateRecipePrice(
-  recipeId: string,
+  _recipeId: string,
   ingredients: string[]
-): Promise<{ success: boolean; estimatedCost?: number; breakdown?: Record<string, number>; error?: string }> {
+): Promise<{
+  success: boolean;
+  estimatedCost?: number;
+  breakdown?: Record<string, number>;
+  error?: string;
+}> {
   try {
     const client = getOpenRouterClient();
 
@@ -521,7 +580,10 @@ Respond in this JSON format:
     const completion = await client.chat.completions.create({
       model: 'google/gemini-2.0-flash-exp:free',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that estimates grocery prices accurately.' },
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that estimates grocery prices accurately.',
+        },
         { role: 'user', content: prompt },
       ],
       response_format: { type: 'json_object' },

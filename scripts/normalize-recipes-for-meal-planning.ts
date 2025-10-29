@@ -12,16 +12,11 @@
  */
 
 import 'dotenv/config';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '../src/lib/db';
 import {
   ingredients,
-  type NewIngredient,
-  type NewRecipeIngredient,
-  type NewRecipeTask,
-  type NewRecipeTool,
-  type NewTool,
   recipeIngredients,
   recipes,
   recipeTasks,

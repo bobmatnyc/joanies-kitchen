@@ -29,13 +29,10 @@ export const LICENSE_DISPLAY_NAMES: Record<RecipeLicense, string> = {
  * Detailed explanations of what each license allows
  */
 export const LICENSE_DESCRIPTIONS: Record<RecipeLicense, string> = {
-  PUBLIC_DOMAIN:
-    'No copyright restrictions. Free to use for any purpose without attribution.',
+  PUBLIC_DOMAIN: 'No copyright restrictions. Free to use for any purpose without attribution.',
   CC_BY: 'Free to use with attribution. Can be used commercially and modified.',
-  CC_BY_SA:
-    'Free to use with attribution. Derivative works must use the same license.',
-  CC_BY_NC:
-    'Free for non-commercial use with attribution. Cannot be used commercially.',
+  CC_BY_SA: 'Free to use with attribution. Derivative works must use the same license.',
+  CC_BY_NC: 'Free for non-commercial use with attribution. Cannot be used commercially.',
   CC_BY_NC_SA:
     'Free for non-commercial use with attribution. Derivatives must use the same license.',
   EDUCATIONAL_USE: 'Restricted to educational purposes only. Cannot be used commercially.',
@@ -185,10 +182,7 @@ export function getCreativeCommonsUrl(license: RecipeLicense): string | null {
 /**
  * Check if two licenses are compatible for recipe remixing/combining
  */
-export function areLicensesCompatible(
-  license1: RecipeLicense,
-  license2: RecipeLicense
-): boolean {
+export function areLicensesCompatible(license1: RecipeLicense, license2: RecipeLicense): boolean {
   // Same license is always compatible
   if (license1 === license2) {
     return true;

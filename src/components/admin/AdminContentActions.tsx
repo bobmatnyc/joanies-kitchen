@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { Edit3, FileEdit, Flag, MoreVertical, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  flagContentForCleanup,
+  flagImageForRegeneration,
+  softDeleteRecipe,
+} from '@/app/actions/admin-content';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,11 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  flagImageForRegeneration,
-  flagContentForCleanup,
-  softDeleteRecipe,
-} from '@/app/actions/admin-content';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAdminEditMode } from './AdminEditMode';
 
 interface AdminContentActionsProps {
@@ -105,7 +105,7 @@ export function AdminContentActions({ recipeId, recipeName }: AdminContentAction
           <div className="flex flex-col gap-1">
             {/* Edit Mode Toggle */}
             <Button
-              variant={editMode ? "secondary" : "ghost"}
+              variant={editMode ? 'secondary' : 'ghost'}
               onClick={() => {
                 toggleEditMode();
                 setOpen(false);
@@ -182,8 +182,8 @@ export function AdminContentActions({ recipeId, recipeName }: AdminContentAction
           <AlertDialogHeader>
             <AlertDialogTitle>Soft Delete Recipe</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide <strong>&quot;{recipeName}&quot;</strong> from all views but keep it in the
-              database. It can be restored later by admin.
+              This will hide <strong>&quot;{recipeName}&quot;</strong> from all views but keep it in
+              the database. It can be restored later by admin.
               <br />
               <br />
               This action does NOT permanently delete the recipe.

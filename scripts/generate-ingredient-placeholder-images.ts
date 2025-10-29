@@ -47,7 +47,7 @@ const CATEGORY_IMAGE_MAPPING: Record<string, string> = {
  * Get appropriate placeholder image for a category
  */
 function getPlaceholderForCategory(category: string | null): string | null {
-  if (!category) return CATEGORY_IMAGE_MAPPING['other'];
+  if (!category) return CATEGORY_IMAGE_MAPPING.other;
 
   // Exact match
   if (CATEGORY_IMAGE_MAPPING[category]) {
@@ -57,28 +57,28 @@ function getPlaceholderForCategory(category: string | null): string | null {
   // Fuzzy matching for similar categories
   const normalized = category.toLowerCase();
 
-  if (normalized.includes('vegetable')) return CATEGORY_IMAGE_MAPPING['vegetables'];
-  if (normalized.includes('fruit')) return CATEGORY_IMAGE_MAPPING['fruits'];
+  if (normalized.includes('vegetable')) return CATEGORY_IMAGE_MAPPING.vegetables;
+  if (normalized.includes('fruit')) return CATEGORY_IMAGE_MAPPING.fruits;
   if (normalized.includes('protein') || normalized.includes('meat'))
-    return CATEGORY_IMAGE_MAPPING['proteins'];
+    return CATEGORY_IMAGE_MAPPING.proteins;
   if (normalized.includes('dairy') || normalized.includes('cheese'))
-    return CATEGORY_IMAGE_MAPPING['dairy'];
+    return CATEGORY_IMAGE_MAPPING.dairy;
   if (normalized.includes('grain') || normalized.includes('flour'))
-    return CATEGORY_IMAGE_MAPPING['grains'];
+    return CATEGORY_IMAGE_MAPPING.grains;
   if (normalized.includes('spice') || normalized.includes('seasoning'))
-    return CATEGORY_IMAGE_MAPPING['spices'];
-  if (normalized.includes('herb')) return CATEGORY_IMAGE_MAPPING['herbs'];
-  if (normalized.includes('oil')) return CATEGORY_IMAGE_MAPPING['oils'];
+    return CATEGORY_IMAGE_MAPPING.spices;
+  if (normalized.includes('herb')) return CATEGORY_IMAGE_MAPPING.herbs;
+  if (normalized.includes('oil')) return CATEGORY_IMAGE_MAPPING.oils;
   if (normalized.includes('sweet') || normalized.includes('sugar'))
-    return CATEGORY_IMAGE_MAPPING['sweeteners'];
-  if (normalized.includes('nut')) return CATEGORY_IMAGE_MAPPING['nuts'];
+    return CATEGORY_IMAGE_MAPPING.sweeteners;
+  if (normalized.includes('nut')) return CATEGORY_IMAGE_MAPPING.nuts;
   if (normalized.includes('seafood') || normalized.includes('fish'))
-    return CATEGORY_IMAGE_MAPPING['seafood'];
+    return CATEGORY_IMAGE_MAPPING.seafood;
   if (normalized.includes('drink') || normalized.includes('beverage'))
-    return CATEGORY_IMAGE_MAPPING['beverages'];
+    return CATEGORY_IMAGE_MAPPING.beverages;
 
   // Default fallback
-  return CATEGORY_IMAGE_MAPPING['other'];
+  return CATEGORY_IMAGE_MAPPING.other;
 }
 
 async function generatePlaceholderImages() {
@@ -141,7 +141,7 @@ async function generatePlaceholderImages() {
     if (!imageGroups.has(imageUrl)) {
       imageGroups.set(imageUrl, []);
     }
-    imageGroups.get(imageUrl)!.push(ing.id);
+    imageGroups.get(imageUrl)?.push(ing.id);
   }
 
   console.log(`Grouped ${ingredients.length} ingredients into ${imageGroups.size} image batches\n`);

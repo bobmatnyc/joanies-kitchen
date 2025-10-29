@@ -1,19 +1,20 @@
-import { Metadata } from 'next';
-import Link from 'next/link';
 import {
-  ChefHat,
-  Refrigerator,
-  Sparkles,
   ArrowRight,
   CheckCircle2,
+  ChefHat,
+  Leaf,
+  Refrigerator,
   Search,
   ShoppingBag,
-  Leaf
+  Sparkles,
 } from 'lucide-react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'How It Works | Joanie\'s Kitchen',
-  description: 'Learn how Joanie\'s Kitchen helps you reduce food waste by transforming fridge ingredients into delicious zero-waste recipes.',
+  title: "How It Works | Joanie's Kitchen",
+  description:
+    "Learn how Joanie's Kitchen helps you reduce food waste by transforming fridge ingredients into delicious zero-waste recipes.",
 };
 
 export default function HowItWorksPage() {
@@ -23,12 +24,10 @@ export default function HowItWorksPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
           <Sparkles className="h-16 w-16 text-jk-olive mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-heading text-jk-olive mb-4">
-            How It Works
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-heading text-jk-olive mb-4">How It Works</h1>
           <p className="text-xl text-jk-charcoal/80 font-body max-w-3xl mx-auto leading-relaxed">
-            Transform your fridge into a zero-waste kitchen in three simple steps.
-            No waste, no guilt, just delicious resourceful cooking.
+            Transform your fridge into a zero-waste kitchen in three simple steps. No waste, no
+            guilt, just delicious resourceful cooking.
           </p>
         </div>
 
@@ -46,9 +45,8 @@ export default function HowItWorksPage() {
               Tell Us What You Have
             </h2>
             <p className="text-jk-charcoal/70 font-body leading-relaxed text-center">
-              Open your fridge and enter the ingredients you have on hand.
-              Include those aging vegetables, leftover proteins, or wilting herbs
-              you're not sure what to do with.
+              Open your fridge and enter the ingredients you have on hand. Include those aging
+              vegetables, leftover proteins, or wilting herbs you're not sure what to do with.
             </p>
           </div>
 
@@ -64,9 +62,8 @@ export default function HowItWorksPage() {
               Get Smart Matches
             </h2>
             <p className="text-jk-charcoal/70 font-body leading-relaxed text-center">
-              Our system searches through thousands of recipes to find the best
-              matches for your ingredients. We prioritize recipes where you already
-              have most of what you need.
+              Our system searches through thousands of recipes to find the best matches for your
+              ingredients. We prioritize recipes where you already have most of what you need.
             </p>
           </div>
 
@@ -82,18 +79,16 @@ export default function HowItWorksPage() {
               Cook & Save Waste
             </h2>
             <p className="text-jk-charcoal/70 font-body leading-relaxed text-center">
-              Choose a recipe and start cooking! Each recipe includes smart
-              substitutions for missing ingredients, so you can make the most
-              of what you have without extra shopping trips.
+              Choose a recipe and start cooking! Each recipe includes smart substitutions for
+              missing ingredients, so you can make the most of what you have without extra shopping
+              trips.
             </p>
           </div>
         </div>
 
         {/* Real Example Section */}
         <div className="bg-gradient-to-br from-jk-olive/5 to-jk-sage/10 rounded-3xl p-8 md:p-12 mb-16 border-2 border-jk-olive/20">
-          <h2 className="text-3xl font-heading text-jk-olive mb-8 text-center">
-            See It In Action
-          </h2>
+          <h2 className="text-3xl font-heading text-jk-olive mb-8 text-center">See It In Action</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {/* Left: Input Example */}
@@ -186,12 +181,10 @@ export default function HowItWorksPage() {
                   <Leaf className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-heading text-jk-olive mb-2">
-                    Zero-Waste Focus
-                  </h3>
+                  <h3 className="text-xl font-heading text-jk-olive mb-2">Zero-Waste Focus</h3>
                   <p className="text-jk-charcoal/70 font-body leading-relaxed">
-                    Every recipe is curated with resourcefulness in mind. We help you
-                    use every ingredient, reduce waste, and save money.
+                    Every recipe is curated with resourcefulness in mind. We help you use every
+                    ingredient, reduce waste, and save money.
                   </p>
                 </div>
               </div>
@@ -204,12 +197,10 @@ export default function HowItWorksPage() {
                   <Sparkles className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-heading text-jk-olive mb-2">
-                    Smart Substitutions
-                  </h3>
+                  <h3 className="text-xl font-heading text-jk-olive mb-2">Smart Substitutions</h3>
                   <p className="text-jk-charcoal/70 font-body leading-relaxed">
-                    Missing an ingredient? Get instant suggestions for substitutes
-                    you likely already have in your pantry.
+                    Missing an ingredient? Get instant suggestions for substitutes you likely
+                    already have in your pantry.
                   </p>
                 </div>
               </div>
@@ -222,12 +213,10 @@ export default function HowItWorksPage() {
                   <Search className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-heading text-jk-olive mb-2">
-                    Flexible Matching
-                  </h3>
+                  <h3 className="text-xl font-heading text-jk-olive mb-2">Flexible Matching</h3>
                   <p className="text-jk-charcoal/70 font-body leading-relaxed">
-                    Don't have all the ingredients? No problem. We'll still show you
-                    recipes you can make with what you have.
+                    Don't have all the ingredients? No problem. We'll still show you recipes you can
+                    make with what you have.
                   </p>
                 </div>
               </div>
@@ -240,12 +229,10 @@ export default function HowItWorksPage() {
                   <ShoppingBag className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-heading text-jk-olive mb-2">
-                    Reduce Shopping Trips
-                  </h3>
+                  <h3 className="text-xl font-heading text-jk-olive mb-2">Reduce Shopping Trips</h3>
                   <p className="text-jk-charcoal/70 font-body leading-relaxed">
-                    Cook with what you have instead of buying specialty ingredients
-                    you'll only use once.
+                    Cook with what you have instead of buying specialty ingredients you'll only use
+                    once.
                   </p>
                 </div>
               </div>
@@ -255,12 +242,10 @@ export default function HowItWorksPage() {
 
         {/* Philosophy Connection */}
         <div className="bg-gradient-to-br from-jk-clay/10 to-jk-sage/10 rounded-3xl p-8 md:p-12 text-center">
-          <h2 className="text-3xl font-heading text-jk-olive mb-4">
-            Rooted in Resourcefulness
-          </h2>
+          <h2 className="text-3xl font-heading text-jk-olive mb-4">Rooted in Resourcefulness</h2>
           <p className="text-lg text-jk-charcoal/80 font-body max-w-3xl mx-auto leading-relaxed mb-6">
-            This approach comes from decades of cooking wisdom: work with what you have,
-            waste nothing, and let resourcefulness guide your creativity in the kitchen.
+            This approach comes from decades of cooking wisdom: work with what you have, waste
+            nothing, and let resourcefulness guide your creativity in the kitchen.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

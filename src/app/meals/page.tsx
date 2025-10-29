@@ -21,7 +21,9 @@ export default async function MealsPage({ searchParams }: PageProps) {
 
   // Fetch public meals (shared by users)
   let initialMeals: any[] = [];
-  const result = await getPublicMeals(mealType !== 'all' ? { mealType: mealType as any } : undefined);
+  const result = await getPublicMeals(
+    mealType !== 'all' ? { mealType: mealType as any } : undefined
+  );
   if (result.success && result.data) {
     initialMeals = result.data;
   }

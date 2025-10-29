@@ -2,11 +2,11 @@
 
 import { eq, isNotNull, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { isAdmin } from '@/lib/admin-client';
 import { auth } from '@/lib/auth';
+import { invalidateRecipeById } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { isAdmin } from '@/lib/admin-client';
-import { invalidateRecipeById } from '@/lib/cache';
 
 /**
  * Admin Server Actions for Recipe Content Management
@@ -54,13 +54,13 @@ export async function flagImageForRegeneration(recipeId: string): Promise<Action
 
     return {
       success: true,
-      message: 'Image flagged for regeneration'
+      message: 'Image flagged for regeneration',
     };
   } catch (error) {
     console.error('[Admin] Failed to flag image:', error);
     return {
       success: false,
-      error: 'Failed to flag image for regeneration'
+      error: 'Failed to flag image for regeneration',
     };
   }
 }
@@ -96,30 +96,24 @@ export async function flagContentForCleanup(
     }
 
     // Update recipe with flags
-    await db
-      .update(recipes)
-      .set(updates)
-      .where(eq(recipes.id, recipeId));
+    await db.update(recipes).set(updates).where(eq(recipes.id, recipeId));
 
     // Invalidate cache
     invalidateRecipeById(recipeId);
     revalidatePath(`/recipes/${recipeId}`);
     revalidatePath('/recipes');
 
-    const flaggedItems =
-      type === 'both'
-        ? 'ingredients and instructions'
-        : type;
+    const flaggedItems = type === 'both' ? 'ingredients and instructions' : type;
 
     return {
       success: true,
-      message: `${flaggedItems} flagged for cleanup`
+      message: `${flaggedItems} flagged for cleanup`,
     };
   } catch (error) {
     console.error('[Admin] Failed to flag content:', error);
     return {
       success: false,
-      error: 'Failed to flag content for cleanup'
+      error: 'Failed to flag content for cleanup',
     };
   }
 }
@@ -153,13 +147,13 @@ export async function clearContentFlags(recipeId: string): Promise<ActionResult>
 
     return {
       success: true,
-      message: 'Content flags cleared'
+      message: 'Content flags cleared',
     };
   } catch (error) {
     console.error('[Admin] Failed to clear flags:', error);
     return {
       success: false,
-      error: 'Failed to clear content flags'
+      error: 'Failed to clear content flags',
     };
   }
 }
@@ -195,13 +189,13 @@ export async function softDeleteRecipe(recipeId: string): Promise<ActionResult> 
 
     return {
       success: true,
-      message: 'Recipe soft deleted (hidden from view)'
+      message: 'Recipe soft deleted (hidden from view)',
     };
   } catch (error) {
     console.error('[Admin] Failed to soft delete recipe:', error);
     return {
       success: false,
-      error: 'Failed to soft delete recipe'
+      error: 'Failed to soft delete recipe',
     };
   }
 }
@@ -236,13 +230,13 @@ export async function restoreRecipe(recipeId: string): Promise<ActionResult> {
 
     return {
       success: true,
-      message: 'Recipe restored successfully'
+      message: 'Recipe restored successfully',
     };
   } catch (error) {
     console.error('[Admin] Failed to restore recipe:', error);
     return {
       success: false,
-      error: 'Failed to restore recipe'
+      error: 'Failed to restore recipe',
     };
   }
 }
@@ -272,13 +266,13 @@ export async function getFlaggedRecipes() {
 
     return {
       success: true,
-      data: flaggedRecipes
+      data: flaggedRecipes,
     };
   } catch (error) {
     console.error('[Admin] Failed to get flagged recipes:', error);
     return {
       success: false,
-      error: 'Failed to get flagged recipes'
+      error: 'Failed to get flagged recipes',
     };
   }
 }
@@ -296,20 +290,17 @@ export async function getDeletedRecipes() {
     }
 
     // Get all soft-deleted recipes
-    const deletedRecipes = await db
-      .select()
-      .from(recipes)
-      .where(isNotNull(recipes.deleted_at));
+    const deletedRecipes = await db.select().from(recipes).where(isNotNull(recipes.deleted_at));
 
     return {
       success: true,
-      data: deletedRecipes
+      data: deletedRecipes,
     };
   } catch (error) {
     console.error('[Admin] Failed to get deleted recipes:', error);
     return {
       success: false,
-      error: 'Failed to get deleted recipes'
+      error: 'Failed to get deleted recipes',
     };
   }
 }

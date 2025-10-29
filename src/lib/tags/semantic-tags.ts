@@ -35,7 +35,7 @@ export interface SemanticTag {
  */
 export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   // ==================== CUISINE TAGS ====================
-  'italian': {
+  italian: {
     id: 'italian',
     name: 'Italian',
     category: 'Cuisine',
@@ -47,7 +47,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     },
     popularity: 95,
   },
-  'sicilian': {
+  sicilian: {
     id: 'sicilian',
     name: 'Sicilian',
     category: 'Cuisine',
@@ -56,7 +56,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['italian', 'seafood', 'mediterranean'],
     popularity: 40,
   },
-  'mexican': {
+  mexican: {
     id: 'mexican',
     name: 'Mexican',
     category: 'Cuisine',
@@ -65,7 +65,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['latin-american', 'spicy', 'tacos'],
     popularity: 90,
   },
-  'chinese': {
+  chinese: {
     id: 'chinese',
     name: 'Chinese',
     category: 'Cuisine',
@@ -74,7 +74,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'stir-fried', 'rice'],
     popularity: 85,
   },
-  'japanese': {
+  japanese: {
     id: 'japanese',
     name: 'Japanese',
     category: 'Cuisine',
@@ -83,7 +83,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'seafood', 'rice'],
     popularity: 80,
   },
-  'indian': {
+  indian: {
     id: 'indian',
     name: 'Indian',
     category: 'Cuisine',
@@ -92,7 +92,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'spicy', 'vegetarian'],
     popularity: 85,
   },
-  'french': {
+  french: {
     id: 'french',
     name: 'French',
     category: 'Cuisine',
@@ -101,7 +101,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['european', 'baked'],
     popularity: 75,
   },
-  'thai': {
+  thai: {
     id: 'thai',
     name: 'Thai',
     category: 'Cuisine',
@@ -110,7 +110,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'spicy', 'curry'],
     popularity: 80,
   },
-  'mediterranean': {
+  mediterranean: {
     id: 'mediterranean',
     name: 'Mediterranean',
     category: 'Cuisine',
@@ -119,7 +119,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['greek', 'italian', 'healthy'],
     popularity: 85,
   },
-  'greek': {
+  greek: {
     id: 'greek',
     name: 'Greek',
     category: 'Cuisine',
@@ -128,7 +128,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['mediterranean', 'seafood', 'salad'],
     popularity: 70,
   },
-  'korean': {
+  korean: {
     id: 'korean',
     name: 'Korean',
     category: 'Cuisine',
@@ -137,7 +137,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'spicy', 'kimchi'],
     popularity: 75,
   },
-  'vietnamese': {
+  vietnamese: {
     id: 'vietnamese',
     name: 'Vietnamese',
     category: 'Cuisine',
@@ -146,7 +146,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['asian', 'healthy', 'noodles'],
     popularity: 65,
   },
-  'spanish': {
+  spanish: {
     id: 'spanish',
     name: 'Spanish',
     category: 'Cuisine',
@@ -166,7 +166,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== MEAL TYPE TAGS ====================
-  'breakfast': {
+  breakfast: {
     id: 'breakfast',
     name: 'Breakfast',
     category: 'Meal Type',
@@ -175,7 +175,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['eggs', 'quick', 'easy'],
     popularity: 90,
   },
-  'lunch': {
+  lunch: {
     id: 'lunch',
     name: 'Lunch',
     category: 'Meal Type',
@@ -184,7 +184,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['sandwich', 'salad', 'quick'],
     popularity: 85,
   },
-  'dinner': {
+  dinner: {
     id: 'dinner',
     name: 'Dinner',
     category: 'Meal Type',
@@ -193,7 +193,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['main-course', 'family'],
     popularity: 95,
   },
-  'snack': {
+  snack: {
     id: 'snack',
     name: 'Snack',
     category: 'Meal Type',
@@ -202,7 +202,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['quick', 'easy', 'party'],
     popularity: 80,
   },
-  'dessert': {
+  dessert: {
     id: 'dessert',
     name: 'Dessert',
     category: 'Meal Type',
@@ -211,7 +211,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['baked', 'chocolate', 'fruit'],
     popularity: 90,
   },
-  'brunch': {
+  brunch: {
     id: 'brunch',
     name: 'Brunch',
     category: 'Meal Type',
@@ -222,7 +222,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== DIETARY TAGS ====================
-  'vegetarian': {
+  vegetarian: {
     id: 'vegetarian',
     name: 'Vegetarian',
     category: 'Dietary',
@@ -234,7 +234,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     },
     popularity: 95,
   },
-  'vegan': {
+  vegan: {
     id: 'vegan',
     name: 'Vegan',
     category: 'Dietary',
@@ -264,7 +264,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['vegan', 'healthy'],
     popularity: 80,
   },
-  'keto': {
+  keto: {
     id: 'keto',
     name: 'Keto',
     category: 'Dietary',
@@ -282,7 +282,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['keto', 'healthy', 'high-protein'],
     popularity: 80,
   },
-  'paleo': {
+  paleo: {
     id: 'paleo',
     name: 'Paleo',
     category: 'Dietary',
@@ -291,7 +291,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['healthy', 'gluten-free', 'dairy-free'],
     popularity: 70,
   },
-  'whole30': {
+  whole30: {
     id: 'whole30',
     name: 'Whole30',
     category: 'Dietary',
@@ -311,7 +311,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== COOKING METHOD TAGS ====================
-  'baked': {
+  baked: {
     id: 'baked',
     name: 'Baked',
     category: 'Cooking Method',
@@ -320,7 +320,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['easy', 'dessert'],
     popularity: 90,
   },
-  'grilled': {
+  grilled: {
     id: 'grilled',
     name: 'Grilled',
     category: 'Cooking Method',
@@ -329,7 +329,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['summer', 'outdoor', 'meat'],
     popularity: 85,
   },
-  'fried': {
+  fried: {
     id: 'fried',
     name: 'Fried',
     category: 'Cooking Method',
@@ -385,7 +385,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== MAIN INGREDIENT TAGS ====================
-  'chicken': {
+  chicken: {
     id: 'chicken',
     name: 'Chicken',
     category: 'Main Ingredient',
@@ -394,7 +394,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['protein', 'meat'],
     popularity: 95,
   },
-  'beef': {
+  beef: {
     id: 'beef',
     name: 'Beef',
     category: 'Main Ingredient',
@@ -403,7 +403,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['protein', 'meat'],
     popularity: 90,
   },
-  'pork': {
+  pork: {
     id: 'pork',
     name: 'Pork',
     category: 'Main Ingredient',
@@ -412,7 +412,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['protein', 'meat'],
     popularity: 85,
   },
-  'seafood': {
+  seafood: {
     id: 'seafood',
     name: 'Seafood',
     category: 'Main Ingredient',
@@ -424,7 +424,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     },
     popularity: 85,
   },
-  'pasta': {
+  pasta: {
     id: 'pasta',
     name: 'Pasta',
     category: 'Main Ingredient',
@@ -433,7 +433,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['italian', 'dinner', 'carbs'],
     popularity: 95,
   },
-  'vegetables': {
+  vegetables: {
     id: 'vegetables',
     name: 'Vegetables',
     category: 'Main Ingredient',
@@ -444,7 +444,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== COURSE TAGS ====================
-  'salad': {
+  salad: {
     id: 'salad',
     name: 'Salad',
     category: 'Course',
@@ -453,7 +453,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['healthy', 'vegetables', 'lunch'],
     popularity: 85,
   },
-  'soup': {
+  soup: {
     id: 'soup',
     name: 'Soup',
     category: 'Course',
@@ -462,7 +462,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['comfort-food', 'winter', 'healthy'],
     popularity: 90,
   },
-  'sandwich': {
+  sandwich: {
     id: 'sandwich',
     name: 'Sandwich',
     category: 'Course',
@@ -471,7 +471,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['lunch', 'quick', 'bread'],
     popularity: 85,
   },
-  'pizza': {
+  pizza: {
     id: 'pizza',
     name: 'Pizza',
     category: 'Course',
@@ -482,7 +482,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== SEASON TAGS ====================
-  'summer': {
+  summer: {
     id: 'summer',
     name: 'Summer',
     category: 'Season',
@@ -491,7 +491,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['grilled', 'salad', 'fresh'],
     popularity: 80,
   },
-  'winter': {
+  winter: {
     id: 'winter',
     name: 'Winter',
     category: 'Season',
@@ -500,7 +500,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['soup', 'comfort-food', 'slow-cooked'],
     popularity: 75,
   },
-  'fall': {
+  fall: {
     id: 'fall',
     name: 'Fall',
     category: 'Season',
@@ -509,7 +509,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['pumpkin', 'squash', 'thanksgiving'],
     popularity: 70,
   },
-  'spring': {
+  spring: {
     id: 'spring',
     name: 'Spring',
     category: 'Season',
@@ -518,7 +518,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['vegetables', 'light', 'fresh'],
     popularity: 65,
   },
-  'holiday': {
+  holiday: {
     id: 'holiday',
     name: 'Holiday',
     category: 'Season',
@@ -527,7 +527,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['christmas', 'thanksgiving', 'special'],
     popularity: 75,
   },
-  'christmas': {
+  christmas: {
     id: 'christmas',
     name: 'Christmas',
     category: 'Season',
@@ -536,7 +536,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['holiday', 'winter', 'dessert'],
     popularity: 70,
   },
-  'thanksgiving': {
+  thanksgiving: {
     id: 'thanksgiving',
     name: 'Thanksgiving',
     category: 'Season',
@@ -547,7 +547,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== DIFFICULTY TAGS ====================
-  'easy': {
+  easy: {
     id: 'easy',
     name: 'Easy',
     category: 'Difficulty',
@@ -556,7 +556,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['quick', 'weeknight'],
     popularity: 95,
   },
-  'medium': {
+  medium: {
     id: 'medium',
     name: 'Medium',
     category: 'Difficulty',
@@ -565,7 +565,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: [],
     popularity: 75,
   },
-  'hard': {
+  hard: {
     id: 'hard',
     name: 'Hard',
     category: 'Difficulty',
@@ -576,7 +576,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
   },
 
   // ==================== TIME TAGS ====================
-  'quick': {
+  quick: {
     id: 'quick',
     name: 'Quick',
     category: 'Time',
@@ -594,7 +594,7 @@ export const SEMANTIC_TAGS: Record<string, SemanticTag> = {
     relatedTags: ['meal-prep', 'freezer'],
     popularity: 75,
   },
-  'overnight': {
+  overnight: {
     id: 'overnight',
     name: 'Overnight',
     category: 'Time',
@@ -619,8 +619,7 @@ export function getSemanticTag(query: string): SemanticTag | null {
   // Search by name or synonym
   const tag = Object.values(SEMANTIC_TAGS).find(
     (t) =>
-      t.name.toLowerCase() === normalized ||
-      t.synonyms?.some((s) => s.toLowerCase() === normalized)
+      t.name.toLowerCase() === normalized || t.synonyms?.some((s) => s.toLowerCase() === normalized)
   );
 
   return tag || null;

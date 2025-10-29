@@ -2,7 +2,6 @@
 
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { isNotNull } from 'drizzle-orm';
 
 interface CorruptionIssue {
   recipeId: string;
@@ -15,11 +14,11 @@ interface CorruptionIssue {
 
 async function detectCorruptedRecipes() {
   console.log('🔍 Scanning all recipes for data corruption...\n');
-  
+
   const allRecipes = await db.select().from(recipes);
 
   const issues: CorruptionIssue[] = [];
-  
+
   for (const recipe of allRecipes) {
     // Check 1: Corrupted ingredients
     if (!recipe.ingredients || recipe.ingredients === '[]') {
@@ -34,13 +33,15 @@ async function detectCorruptedRecipes() {
     } else {
       try {
         const ingredientsArray = JSON.parse(recipe.ingredients);
-        
+
         // Check for placeholder/invalid ingredients
-        if (ingredientsArray.length === 1 && 
-            (ingredientsArray[0] === '* *' || 
-             ingredientsArray[0] === '*' ||
-             ingredientsArray[0] === '' ||
-             ingredientsArray[0].trim() === '')) {
+        if (
+          ingredientsArray.length === 1 &&
+          (ingredientsArray[0] === '* *' ||
+            ingredientsArray[0] === '*' ||
+            ingredientsArray[0] === '' ||
+            ingredientsArray[0].trim() === '')
+        ) {
           issues.push({
             recipeId: recipe.id,
             recipeName: recipe.name,
@@ -50,7 +51,7 @@ async function detectCorruptedRecipes() {
             severity: 'critical',
           });
         }
-      } catch (e) {
+      } catch (_e) {
         issues.push({
           recipeId: recipe.id,
           recipeName: recipe.name,
@@ -87,9 +88,7 @@ async function detectCorruptedRecipes() {
     }
 
     // Check 4: Missing chef association for scraped recipes
-    if (recipe.source && 
-        recipe.source.includes('zerowastechef.com') && 
-        !recipe.chefId) {
+    if (recipe.source?.includes('zerowastechef.com') && !recipe.chefId) {
       issues.push({
         recipeId: recipe.id,
         recipeName: recipe.name,
@@ -101,9 +100,7 @@ async function detectCorruptedRecipes() {
     }
 
     // Check 5: Missing is_public for scraped recipes
-    if (recipe.source && 
-        !recipe.userId && 
-        recipe.isPublic === null) {
+    if (recipe.source && !recipe.userId && recipe.isPublic === null) {
       issues.push({
         recipeId: recipe.id,
         recipeName: recipe.name,
@@ -121,22 +118,31 @@ async function detectCorruptedRecipes() {
   console.log('======================================================================');
   console.log(`Total recipes scanned: ${allRecipes.length}`);
   console.log(`Issues found: ${issues.length}`);
-  console.log(`Recipes affected: ${new Set(issues.map(i => i.recipeId)).size}\n`);
+  console.log(`Recipes affected: ${new Set(issues.map((i) => i.recipeId)).size}\n`);
 
   // Group by severity
-  const critical = issues.filter(i => i.severity === 'critical');
-  const high = issues.filter(i => i.severity === 'high');
-  const medium = issues.filter(i => i.severity === 'medium');
+  const critical = issues.filter((i) => i.severity === 'critical');
+  const high = issues.filter((i) => i.severity === 'high');
+  const medium = issues.filter((i) => i.severity === 'medium');
 
-  console.log(`🔴 Critical: ${critical.length} issues (${new Set(critical.map(i => i.recipeId)).size} recipes)`);
-  console.log(`🟡 High: ${high.length} issues (${new Set(high.map(i => i.recipeId)).size} recipes)`);
-  console.log(`🟢 Medium: ${medium.length} issues (${new Set(medium.map(i => i.recipeId)).size} recipes)\n`);
+  console.log(
+    `🔴 Critical: ${critical.length} issues (${new Set(critical.map((i) => i.recipeId)).size} recipes)`
+  );
+  console.log(
+    `🟡 High: ${high.length} issues (${new Set(high.map((i) => i.recipeId)).size} recipes)`
+  );
+  console.log(
+    `🟢 Medium: ${medium.length} issues (${new Set(medium.map((i) => i.recipeId)).size} recipes)\n`
+  );
 
   // Group by issue type
-  const byType = issues.reduce((acc, issue) => {
-    acc[issue.issueType] = (acc[issue.issueType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const byType = issues.reduce(
+    (acc, issue) => {
+      acc[issue.issueType] = (acc[issue.issueType] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   console.log('Issue breakdown:');
   Object.entries(byType)
@@ -162,22 +168,26 @@ async function detectCorruptedRecipes() {
 
   // Save to file
   const reportPath = 'tmp/recipe-corruption-report.json';
-  const fs = await import('fs/promises');
+  const fs = await import('node:fs/promises');
   await fs.writeFile(
     reportPath,
-    JSON.stringify({
-      scanDate: new Date().toISOString(),
-      totalRecipes: allRecipes.length,
-      totalIssues: issues.length,
-      recipesAffected: new Set(issues.map(i => i.recipeId)).size,
-      summary: { critical: critical.length, high: high.length, medium: medium.length },
-      issuesByType: byType,
-      issues: issues,
-    }, null, 2)
+    JSON.stringify(
+      {
+        scanDate: new Date().toISOString(),
+        totalRecipes: allRecipes.length,
+        totalIssues: issues.length,
+        recipesAffected: new Set(issues.map((i) => i.recipeId)).size,
+        summary: { critical: critical.length, high: high.length, medium: medium.length },
+        issuesByType: byType,
+        issues: issues,
+      },
+      null,
+      2
+    )
   );
 
   console.log(`\n📄 Full report saved to: ${reportPath}\n`);
-  
+
   process.exit(0);
 }
 

@@ -322,14 +322,7 @@ Return as JSON:
 }
 
 CRITICAL: Double-check that EVERY ingredient is compliant with ALL stated restrictions.`,
-  variables: [
-    'dietType',
-    'restrictions',
-    'allergies',
-    'nutritionalGoals',
-    'servings',
-    'mealType',
-  ],
+  variables: ['dietType', 'restrictions', 'allergies', 'nutritionalGoals', 'servings', 'mealType'],
   modelSuggestions: [
     {
       model: 'anthropic/claude-3.5-sonnet',

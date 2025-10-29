@@ -1,9 +1,9 @@
 'use client';
 
-import { Clock, Flame, Snowflake, Thermometer, ExternalLink, Info } from 'lucide-react';
+import { Clock, ExternalLink, Flame, Info, Snowflake, Thermometer } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MealPlanCourse } from '@/types';
 
 interface CourseCardProps {

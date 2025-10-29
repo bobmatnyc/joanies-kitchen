@@ -1,13 +1,13 @@
 'use client';
 
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { categorizeTags, getCategoryColor, getCategoryIcon } from '@/lib/tag-ontology';
 import type { TagCategory } from '@/lib/tag-ontology';
+import { categorizeTags, getCategoryColor, getCategoryIcon } from '@/lib/tag-ontology';
+import { getTagLabel, type Locale, normalizeTagToId } from '@/lib/tags';
 import { getSemanticTag } from '@/lib/tags/semantic-tags';
-import { getTagLabel, normalizeTagToId, type Locale } from '@/lib/tags';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SemanticTagDisplayProps {
   tags: string[];
@@ -25,23 +25,23 @@ interface SemanticTagDisplayProps {
  * User-friendly category label mapping
  */
 const CATEGORY_LABELS: Record<string, string> = {
-  'Cuisine': 'Cuisine',
-  'Difficulty': 'Difficulty',
+  Cuisine: 'Cuisine',
+  Difficulty: 'Difficulty',
   'Meal Type': 'Meal Type',
   'Main Ingredient': 'Main Ingredient',
-  'Dietary': 'Dietary Preferences',
+  Dietary: 'Dietary Preferences',
   'Cooking Method': 'Cooking Method',
-  'Course': 'Course',
-  'Season': 'Season',
-  'Occasion': 'Occasion',
-  'Equipment': 'Equipment',
-  'Technique': 'Technique',
+  Course: 'Course',
+  Season: 'Season',
+  Occasion: 'Occasion',
+  Equipment: 'Equipment',
+  Technique: 'Technique',
   'Flavor Profile': 'Flavor Profile',
-  'Texture': 'Texture',
-  'Temperature': 'Temperature',
+  Texture: 'Texture',
+  Temperature: 'Temperature',
   'Prep Style': 'Prep Style',
-  'Time': 'Time',
-  'Other': 'Other Tags',
+  Time: 'Time',
+  Other: 'Other Tags',
 };
 
 /**
@@ -73,14 +73,14 @@ export function SemanticTagDisplay({
   }
 
   // Normalize tags to ID format (supports both old and new formats)
-  const normalizedTags = tags.map(tag => normalizeTagToId(tag));
+  const normalizedTags = tags.map((tag) => normalizeTagToId(tag));
 
   const categorizedTags = categorizeTags(normalizedTags);
 
   // Filter out excluded categories
   const filteredCategorizedTags = Object.fromEntries(
-    Object.entries(categorizedTags).filter(([category]) =>
-      !excludeCategories.includes(category as TagCategory)
+    Object.entries(categorizedTags).filter(
+      ([category]) => !excludeCategories.includes(category as TagCategory)
     )
   ) as Record<TagCategory, string[]>;
 
@@ -163,7 +163,9 @@ export function SemanticTagDisplay({
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground uppercase tracking-wide transition-colors"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
-                <span>{getCategoryLabel(category)} ({categoryTags.length})</span>
+                <span>
+                  {getCategoryLabel(category)} ({categoryTags.length})
+                </span>
               </button>
             </div>
           );
@@ -203,14 +205,11 @@ export function SemanticTagDisplay({
                       className={cn(
                         badgeSizeClasses[size],
                         getCategoryColor(category),
-                        onTagClick &&
-                          'cursor-pointer hover:opacity-80 transition-opacity'
+                        onTagClick && 'cursor-pointer hover:opacity-80 transition-opacity'
                       )}
                       onClick={onTagClick ? () => onTagClick(tagId) : undefined}
                     >
-                      <span className="capitalize">
-                        {label}
-                      </span>
+                      <span className="capitalize">{label}</span>
                     </Badge>
 
                     {/* Tooltip with description (only if descriptions enabled and tag has one) */}
@@ -252,7 +251,7 @@ export function CompactTagList({
   if (!tags || tags.length === 0) return null;
 
   // Normalize tags to ID format
-  const normalizedTags = tags.map(tag => normalizeTagToId(tag));
+  const normalizedTags = tags.map((tag) => normalizeTagToId(tag));
   const visibleTags = normalizedTags.slice(0, maxVisible);
   const remainingCount = normalizedTags.length - maxVisible;
 

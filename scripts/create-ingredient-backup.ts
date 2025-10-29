@@ -7,10 +7,14 @@
  * Usage: tsx scripts/create-ingredient-backup.ts
  */
 
-import { db, cleanup } from './db-with-transactions';
-import { ingredients, recipeIngredients, ingredientStatistics } from '../src/lib/db/ingredients-schema';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import {
+  ingredientStatistics,
+  ingredients,
+  recipeIngredients,
+} from '../src/lib/db/ingredients-schema';
+import { cleanup, db } from './db-with-transactions';
 
 interface BackupData {
   timestamp: string;

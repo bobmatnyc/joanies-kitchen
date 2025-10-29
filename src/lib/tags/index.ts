@@ -25,53 +25,58 @@
  * ```
  */
 
-// Export tag IDs and types
-export { TagCategory, TAG_IDS, type TagId, type KnownTagId } from './tag-ids';
-export {
-  getCategoryFromTagId,
-  isHierarchicalTag,
-  getParentTagId,
-  getTagIdsByCategory,
-  isKnownTagId,
-} from './tag-ids';
-
 // Export hierarchy
-export { TAG_HIERARCHY, type TagNode } from './tag-hierarchy';
 export {
-  getTagNode,
+  findTagIdBySynonym,
+  getAncestors,
   getChildTags,
+  getDescendants,
   getParentTag,
   getRelatedTagNodes,
+  getTagNode,
   getTagSynonyms,
-  findTagIdBySynonym,
-  isParentTag,
   isChildTag,
-  getAncestors,
-  getDescendants,
+  isParentTag,
+  TAG_HIERARCHY,
+  type TagNode,
 } from './tag-hierarchy';
-
-// Export localization
-export { TAG_LABELS, type TagLabel, type Locale } from './tag-localization';
+// Export tag IDs and types
 export {
-  getTagLabel,
-  getTagDescription,
-  hasTagLabel,
+  getCategoryFromTagId,
+  getParentTagId,
+  getTagIdsByCategory,
+  isHierarchicalTag,
+  isKnownTagId,
+  type KnownTagId,
+  TAG_IDS,
+  TagCategory,
+  type TagId,
+} from './tag-ids';
+// Export localization
+export {
   getAvailableLocales,
   getCurrentLocale,
+  getTagDescription,
+  getTagLabel,
+  hasTagLabel,
+  type Locale,
+  TAG_LABELS,
+  type TagLabel,
 } from './tag-localization';
-
 // Export migration utilities
-export { MigrationStrategy, type MigrationConfig, type MigrationReport } from './tag-migration';
 export {
-  normalizeTagToId,
-  normalizeTags,
-  tagIdToLegacy,
-  tagIdsToLegacy,
-  isNewFormat,
-  migrateTags,
   batchMigrateTags,
-  generateMigrationReport,
-  printMigrationReport,
   deduplicateTags,
+  generateMigrationReport,
+  isNewFormat,
+  type MigrationConfig,
+  type MigrationReport,
+  MigrationStrategy,
+  migrateTags,
+  normalizeTags,
+  normalizeTagToId,
+  printMigrationReport,
+  tagIdsToLegacy,
+  tagIdToLegacy,
   validateTagIds,
 } from './tag-migration';

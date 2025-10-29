@@ -13,14 +13,15 @@ import { Button } from '@/components/ui/button';
  */
 export default async function Top50Page() {
   // Fetch all data server-side in parallel
-  const [allRecipes, mainsRecipes, sidesRecipes, dessertsRecipes, appetizersRecipes, totalRecipes] = await Promise.all([
-    getTopRatedRecipes({ limit: 50, category: 'all' }),
-    getTopRatedRecipes({ limit: 50, category: 'mains' }),
-    getTopRatedRecipes({ limit: 50, category: 'sides' }),
-    getTopRatedRecipes({ limit: 50, category: 'desserts' }),
-    getTopRatedRecipes({ limit: 50, category: 'appetizers' }),
-    getTotalRecipeCount(),
-  ]);
+  const [allRecipes, mainsRecipes, sidesRecipes, dessertsRecipes, appetizersRecipes, totalRecipes] =
+    await Promise.all([
+      getTopRatedRecipes({ limit: 50, category: 'all' }),
+      getTopRatedRecipes({ limit: 50, category: 'mains' }),
+      getTopRatedRecipes({ limit: 50, category: 'sides' }),
+      getTopRatedRecipes({ limit: 50, category: 'desserts' }),
+      getTopRatedRecipes({ limit: 50, category: 'appetizers' }),
+      getTotalRecipeCount(),
+    ]);
 
   // Extract images from top recipes for animated background
   const backgroundImages = allRecipes
@@ -82,7 +83,9 @@ export default async function Top50Page() {
         <div className="stats-container container mx-auto px-4">
           <div className="stats-grid flex flex-wrap justify-center gap-8 text-center">
             <div className="stat-item">
-              <div className="stat-value text-3xl font-heading text-jk-olive">{allRecipes.length}</div>
+              <div className="stat-value text-3xl font-heading text-jk-olive">
+                {allRecipes.length}
+              </div>
               <div className="stat-label text-sm text-jk-charcoal/60 font-ui">Top Recipes</div>
             </div>
             <div className="stat-item">

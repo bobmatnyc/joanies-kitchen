@@ -5,10 +5,10 @@
  * vs how many are in the dedicated tools table.
  */
 
+import { inArray, sql } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
 import { tools } from '../src/lib/db/schema.js';
-import { sql, inArray } from 'drizzle-orm';
 
 // Tool IDs from src/app/actions/tools.ts
 const TOOL_IDS_IN_INGREDIENTS = [
@@ -86,7 +86,9 @@ async function main() {
   console.log('3. Top 10 most-used tools currently in ingredients table:');
   console.log('-'.repeat(60));
   toolsInIngredients.slice(0, 10).forEach((tool, idx) => {
-    console.log(`   ${(idx + 1).toString().padStart(2)}. ${tool.display_name.padEnd(30)} (used ${tool.usage_count || 0} times)`);
+    console.log(
+      `   ${(idx + 1).toString().padStart(2)}. ${tool.display_name.padEnd(30)} (used ${tool.usage_count || 0} times)`
+    );
   });
   console.log();
 
@@ -95,7 +97,10 @@ async function main() {
   const recipeIngredientsRefs = await db.execute(sql`
     SELECT COUNT(*) as count
     FROM recipe_ingredients
-    WHERE ingredient_id IN (${sql.join(TOOL_IDS_IN_INGREDIENTS.map(id => sql`${id}`), sql`, `)})
+    WHERE ingredient_id IN (${sql.join(
+      TOOL_IDS_IN_INGREDIENTS.map((id) => sql`${id}`),
+      sql`, `
+    )})
   `);
   const refCount = Number((recipeIngredientsRefs.rows[0] as any).count);
   console.log(`   Found ${refCount} recipe_ingredients entries referencing tools`);

@@ -7,16 +7,16 @@
 
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import type { Meal } from '@/lib/db/schema';
 import type { Chef } from '@/lib/db/chef-schema';
+import type { Meal } from '@/lib/db/schema';
+import { chefs } from './chef-schema';
 import {
-  type MealEmbedding,
   type ChefEmbedding,
-  mealsEmbeddings,
   chefsEmbeddings,
+  type MealEmbedding,
+  mealsEmbeddings,
 } from './embeddings-schema';
 import { meals } from './meals-schema';
-import { chefs } from './chef-schema';
 
 /**
  * Error class for embedding database operations
@@ -144,10 +144,14 @@ export async function deleteMealEmbedding(mealId: string): Promise<boolean> {
 
     return result.length > 0;
   } catch (error: any) {
-    throw new EmbeddingDatabaseError(`Failed to delete meal embedding: ${error.message}`, 'delete', {
-      mealId,
-      originalError: error,
-    });
+    throw new EmbeddingDatabaseError(
+      `Failed to delete meal embedding: ${error.message}`,
+      'delete',
+      {
+        mealId,
+        originalError: error,
+      }
+    );
   }
 }
 
@@ -356,10 +360,14 @@ export async function deleteChefEmbedding(chefId: string): Promise<boolean> {
 
     return result.length > 0;
   } catch (error: any) {
-    throw new EmbeddingDatabaseError(`Failed to delete chef embedding: ${error.message}`, 'delete', {
-      chefId,
-      originalError: error,
-    });
+    throw new EmbeddingDatabaseError(
+      `Failed to delete chef embedding: ${error.message}`,
+      'delete',
+      {
+        chefId,
+        originalError: error,
+      }
+    );
   }
 }
 

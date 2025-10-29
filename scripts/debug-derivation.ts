@@ -30,10 +30,12 @@ Return the JSON array now:`;
 
   const response = await ollama.chat({
     model: 'qwen2.5-coder:7b-instruct',
-    messages: [{
-      role: 'user',
-      content: prompt,
-    }],
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
     format: 'json',
     options: {
       temperature: 0.1,
@@ -43,7 +45,7 @@ Return the JSON array now:`;
 
   console.log('RAW RESPONSE:');
   console.log(response.message.content);
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
 
   try {
     const parsed = parseJsonResponse(response.message.content);
@@ -54,10 +56,8 @@ Return the JSON array now:`;
 
     if (Array.isArray(parsed)) {
       console.log('\nFILTERED INGREDIENTS:');
-      const ingredients = parsed.filter(item =>
-        typeof item === 'object' &&
-        item.ingredient &&
-        typeof item.ingredient === 'string'
+      const ingredients = parsed.filter(
+        (item) => typeof item === 'object' && item.ingredient && typeof item.ingredient === 'string'
       );
       console.log(JSON.stringify(ingredients, null, 2));
     }

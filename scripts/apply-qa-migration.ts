@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
+
 /**
  * Apply QA tracking fields migration directly to database
  * This script adds the necessary columns and indexes for recipe QA tracking
  */
 
-import { db } from '../src/lib/db/index.js';
 import { sql } from 'drizzle-orm';
+import { db } from '../src/lib/db/index.js';
 
 async function applyQAMigration() {
   console.log('🔄 Applying QA Tracking Fields Migration...\n');
@@ -15,7 +16,9 @@ async function applyQAMigration() {
     // Add QA tracking columns
     console.log('\n📝 Adding QA tracking columns to recipes table...');
 
-    await db.execute(sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS qa_status varchar(50) DEFAULT 'pending'`);
+    await db.execute(
+      sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS qa_status varchar(50) DEFAULT 'pending'`
+    );
     console.log('  ✅ qa_status (varchar 50, default: pending)');
 
     await db.execute(sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS qa_timestamp timestamp`);
@@ -42,7 +45,9 @@ async function applyQAMigration() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recipes_qa_status ON recipes(qa_status)`);
     console.log('  ✅ idx_recipes_qa_status');
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recipes_qa_timestamp ON recipes(qa_timestamp)`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS idx_recipes_qa_timestamp ON recipes(qa_timestamp)`
+    );
     console.log('  ✅ idx_recipes_qa_timestamp');
 
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recipes_qa_method ON recipes(qa_method)`);
@@ -59,7 +64,9 @@ async function applyQAMigration() {
 
     console.log('\n📊 QA Columns in Database:');
     result.rows.forEach((row: any) => {
-      console.log(`   - ${row.column_name.padEnd(25)} ${row.data_type.padEnd(20)} ${row.column_default || '(nullable)'}`);
+      console.log(
+        `   - ${row.column_name.padEnd(25)} ${row.data_type.padEnd(20)} ${row.column_default || '(nullable)'}`
+      );
     });
 
     // Count recipes with default status
@@ -74,7 +81,7 @@ async function applyQAMigration() {
       console.log(`   - ${row.qa_status || 'NULL'}: ${row.count} recipes`);
     });
 
-    console.log('\n' + '='.repeat(70));
+    console.log(`\n${'='.repeat(70)}`);
     console.log('✅ Migration completed successfully!\n');
     console.log('Next steps:');
     console.log('  1. Run test suite: pnpm qa:test');

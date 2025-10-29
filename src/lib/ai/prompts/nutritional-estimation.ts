@@ -12,7 +12,8 @@ import type { PromptTemplate } from './types';
 export const COMPREHENSIVE_NUTRITION_CALCULATOR: PromptTemplate = {
   id: 'comprehensive-nutrition-calculator',
   name: 'Comprehensive Nutrition Calculator',
-  description: 'Estimate detailed nutritional information for a recipe including macros, micros, and dietary flags',
+  description:
+    'Estimate detailed nutritional information for a recipe including macros, micros, and dietary flags',
   version: '1.0.0',
   category: 'nutrition',
   systemPrompt: `You are a registered dietitian and nutritionist with expertise in:
@@ -232,7 +233,8 @@ Common health goals to address:
 export const ALLERGEN_DETECTOR: PromptTemplate = {
   id: 'allergen-detector',
   name: 'Allergen Detector',
-  description: 'Comprehensively identify all allergens including hidden and cross-contamination risks',
+  description:
+    'Comprehensively identify all allergens including hidden and cross-contamination risks',
   version: '1.0.0',
   category: 'nutrition',
   systemPrompt: `You are a food safety specialist and allergen expert with knowledge of:
@@ -339,7 +341,8 @@ Be especially vigilant for:
 export const MACRO_FRIENDLY_OPTIMIZER: PromptTemplate = {
   id: 'macro-friendly-optimizer',
   name: 'Macro-Friendly Recipe Optimizer',
-  description: 'Modify recipes to hit specific macronutrient targets (high protein, low carb, etc.)',
+  description:
+    'Modify recipes to hit specific macronutrient targets (high protein, low carb, etc.)',
   version: '1.0.0',
   category: 'nutrition',
   systemPrompt: `You are a sports nutritionist and recipe developer who creates macro-optimized meals.

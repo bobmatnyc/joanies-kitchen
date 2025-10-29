@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 import 'dotenv/config';
-import { db } from '@/lib/db';
-import { recipes, mealRecipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { mealRecipes, recipes } from '@/lib/db/schema';
 
 async function main() {
   console.log('\n📸 Meal Recipe Images - Final Report');
@@ -41,7 +41,7 @@ async function main() {
         } else {
           console.log(`   ⚠️  Images array is empty`);
         }
-      } catch (e) {
+      } catch (_e) {
         console.log(`   ❌ Error parsing images`);
       }
     } else {

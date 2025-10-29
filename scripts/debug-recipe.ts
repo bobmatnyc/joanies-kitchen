@@ -12,9 +12,9 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { cleanup, db } from './db-with-transactions';
 import { recipeIngredients } from '../src/lib/db/ingredients-schema';
 import { recipes } from '../src/lib/db/schema';
+import { cleanup, db } from './db-with-transactions';
 
 interface DiagnosticIssue {
   severity: 'ERROR' | 'WARNING' | 'INFO';
@@ -64,22 +64,27 @@ async function debugRecipe(slug: string) {
       if (!ingredientsData) {
         issues.push({
           severity: 'ERROR',
-          message: 'Ingredients field is null or empty'
+          message: 'Ingredients field is null or empty',
         });
       } else if (!Array.isArray(ingredientsData)) {
         issues.push({
           severity: 'ERROR',
-          message: 'Ingredients field is not an array'
+          message: 'Ingredients field is not an array',
         });
       } else {
         console.log(`✅ Valid JSON (${ingredientsData.length} items)`);
 
         // Check for legacy object format
-        if (ingredientsData.length > 0 && typeof ingredientsData[0] === 'object' && ingredientsData[0] !== null) {
+        if (
+          ingredientsData.length > 0 &&
+          typeof ingredientsData[0] === 'object' &&
+          ingredientsData[0] !== null
+        ) {
           if ('item' in ingredientsData[0] && 'quantity' in ingredientsData[0]) {
             issues.push({
               severity: 'INFO',
-              message: 'Recipe uses legacy object format [{item, quantity}] - parseRecipe handles this automatically'
+              message:
+                'Recipe uses legacy object format [{item, quantity}] - parseRecipe handles this automatically',
             });
             console.log(`ℹ️  Legacy object format detected (handled by parseRecipe)`);
           }
@@ -88,14 +93,14 @@ async function debugRecipe(slug: string) {
         if (ingredientsData.length === 0) {
           issues.push({
             severity: 'WARNING',
-            message: 'Ingredients array is empty'
+            message: 'Ingredients array is empty',
           });
         }
       }
     } catch (error) {
       issues.push({
         severity: 'ERROR',
-        message: `Ingredients JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Ingredients JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
       console.log(`❌ Invalid JSON`);
     }
@@ -108,26 +113,26 @@ async function debugRecipe(slug: string) {
       if (!instructionsData) {
         issues.push({
           severity: 'ERROR',
-          message: 'Instructions field is null or empty'
+          message: 'Instructions field is null or empty',
         });
       } else if (!Array.isArray(instructionsData)) {
         issues.push({
           severity: 'ERROR',
-          message: 'Instructions field is not an array'
+          message: 'Instructions field is not an array',
         });
       } else {
         console.log(`✅ Valid JSON (${instructionsData.length} steps)`);
         if (instructionsData.length === 0) {
           issues.push({
             severity: 'WARNING',
-            message: 'Instructions array is empty'
+            message: 'Instructions array is empty',
           });
         }
       }
     } catch (error) {
       issues.push({
         severity: 'ERROR',
-        message: `Instructions JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Instructions JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
       console.log(`❌ Invalid JSON`);
     }
@@ -141,7 +146,7 @@ async function debugRecipe(slug: string) {
         if (!Array.isArray(imagesData)) {
           issues.push({
             severity: 'ERROR',
-            message: 'Images field is not an array'
+            message: 'Images field is not an array',
           });
         } else {
           console.log(`✅ Valid JSON (${imagesData.length} images)`);
@@ -150,13 +155,13 @@ async function debugRecipe(slug: string) {
         console.log(`ℹ️  No images field (null)`);
         issues.push({
           severity: 'INFO',
-          message: 'Images field is null'
+          message: 'Images field is null',
         });
       }
     } catch (error) {
       issues.push({
         severity: 'ERROR',
-        message: `Images JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Images JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
       console.log(`❌ Invalid JSON`);
     }
@@ -176,7 +181,7 @@ async function debugRecipe(slug: string) {
       if (!field.optional && (field.value === null || field.value === undefined)) {
         issues.push({
           severity: 'ERROR',
-          message: `Critical field "${field.name}" is null or undefined`
+          message: `Critical field "${field.name}" is null or undefined`,
         });
         console.log(`❌ ${field.name}: null/undefined`);
         criticalFieldsOk = false;
@@ -197,7 +202,7 @@ async function debugRecipe(slug: string) {
     if (linkedIngredients.length === 0) {
       issues.push({
         severity: 'WARNING',
-        message: 'No ingredients linked in recipe_ingredients table'
+        message: 'No ingredients linked in recipe_ingredients table',
       });
       console.log('⚠️  No linked ingredients found');
     } else {
@@ -214,7 +219,7 @@ async function debugRecipe(slug: string) {
           orphanedCount++;
           issues.push({
             severity: 'ERROR',
-            message: `Orphaned ingredient reference: ingredient_id ${link.ingredient_id} does not exist`
+            message: `Orphaned ingredient reference: ingredient_id ${link.ingredient_id} does not exist`,
           });
         }
       }
@@ -235,7 +240,7 @@ async function debugRecipe(slug: string) {
         if (!Array.isArray(tagsData)) {
           issues.push({
             severity: 'WARNING',
-            message: 'Tags field is not an array'
+            message: 'Tags field is not an array',
           });
         } else {
           console.log(`✅ Valid JSON (${tagsData.length} tags)`);
@@ -246,7 +251,7 @@ async function debugRecipe(slug: string) {
     } catch (error) {
       issues.push({
         severity: 'WARNING',
-        message: `Tags JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Tags JSON parse error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
       console.log(`❌ Invalid JSON`);
     }
@@ -260,9 +265,9 @@ async function debugRecipe(slug: string) {
     if (issues.length === 0) {
       console.log('✅ No issues found - recipe data appears valid!');
     } else {
-      const errors = issues.filter(i => i.severity === 'ERROR');
-      const warnings = issues.filter(i => i.severity === 'WARNING');
-      const info = issues.filter(i => i.severity === 'INFO');
+      const errors = issues.filter((i) => i.severity === 'ERROR');
+      const warnings = issues.filter((i) => i.severity === 'WARNING');
+      const info = issues.filter((i) => i.severity === 'INFO');
 
       console.log(`Issues found: ${issues.length}`);
       console.log(`  Errors:   ${errors.length}`);
@@ -296,7 +301,6 @@ async function debugRecipe(slug: string) {
     }
 
     console.log('='.repeat(70));
-
   } catch (error) {
     console.error('Fatal error during diagnostic:');
     console.error(error);

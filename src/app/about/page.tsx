@@ -110,8 +110,10 @@ export default function AboutPage() {
             </h3>
 
             <p>
-              This site helps you cook resourcefully with what you have. Browse 3,200+ flexible recipes where substitutions are encouraged, not exceptions. You'll find Joanie's personal favorites in{' '}
-              <strong className="text-jk-tomato">Joanie's Collection</strong> — seasonal, adaptable recipes tested in her own "nothing in the fridge" challenges.
+              This site helps you cook resourcefully with what you have. Browse 3,200+ flexible
+              recipes where substitutions are encouraged, not exceptions. You'll find Joanie's
+              personal favorites in <strong className="text-jk-tomato">Joanie's Collection</strong>{' '}
+              — seasonal, adaptable recipes tested in her own "nothing in the fridge" challenges.
             </p>
 
             <p>

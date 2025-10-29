@@ -13,9 +13,9 @@
  */
 
 import 'dotenv/config';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { neon } from '@neondatabase/serverless';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import OpenAI from 'openai';
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -26,26 +26,86 @@ const openai = new OpenAI({
 // Product-specific ingredient IDs (from analysis)
 const PRODUCT_INGREDIENTS = [
   { id: '6000e6bb-1f16-4a17-a6dd-aaf98517e743', name: 'cake mix', category: 'other', usage: 8 },
-  { id: 'a56cebec-48e2-4bfd-8c85-6d61b02170ba', name: 'bean soup mix', category: 'proteins', usage: 6 },
-  { id: '9479eb2a-1c19-4bb1-9e9d-5a307ebc789b', name: 'onion soup mix', category: 'condiments', usage: 6 },
+  {
+    id: 'a56cebec-48e2-4bfd-8c85-6d61b02170ba',
+    name: 'bean soup mix',
+    category: 'proteins',
+    usage: 6,
+  },
+  {
+    id: '9479eb2a-1c19-4bb1-9e9d-5a307ebc789b',
+    name: 'onion soup mix',
+    category: 'condiments',
+    usage: 6,
+  },
   { id: '148e32d5-0031-462e-863a-2c7ee4281688', name: 'pancake mix', category: 'grains', usage: 3 },
-  { id: '02444985-7830-44aa-b267-44dcb1eb336f', name: 'chili seasoning mix', category: 'condiments', usage: 2 },
-  { id: 'ffeb31d1-89bd-47e0-9931-5d283b93ae05', name: 'corn muffin mix', category: 'other', usage: 2 },
-  { id: '4241860a-44f6-420f-b34a-24339ab48828', name: 'taco seasoning mix', category: 'condiments', usage: 2 },
-  { id: '30e640fa-1402-4535-b7a5-baa3b685ceea', name: 'cornbread mix', category: 'other', usage: 1 },
+  {
+    id: '02444985-7830-44aa-b267-44dcb1eb336f',
+    name: 'chili seasoning mix',
+    category: 'condiments',
+    usage: 2,
+  },
+  {
+    id: 'ffeb31d1-89bd-47e0-9931-5d283b93ae05',
+    name: 'corn muffin mix',
+    category: 'other',
+    usage: 2,
+  },
+  {
+    id: '4241860a-44f6-420f-b34a-24339ab48828',
+    name: 'taco seasoning mix',
+    category: 'condiments',
+    usage: 2,
+  },
+  {
+    id: '30e640fa-1402-4535-b7a5-baa3b685ceea',
+    name: 'cornbread mix',
+    category: 'other',
+    usage: 1,
+  },
   { id: 'f10c19d9-a490-433c-bfd0-a3d0e46c66f3', name: 'biscuit mix', category: 'other', usage: 1 },
-  { id: '14518d7a-b685-440b-83d7-a749a0bea774', name: 'vegetable soup mix', category: 'other', usage: 1 },
+  {
+    id: '14518d7a-b685-440b-83d7-a749a0bea774',
+    name: 'vegetable soup mix',
+    category: 'other',
+    usage: 1,
+  },
 ];
 
 // Kitchen tool IDs (from analysis - high usage only)
 const KITCHEN_TOOLS = [
   { id: 'bf4491e6-e3ad-4bd1-9b7b-39ef4f2d7473', name: 'skewers', canonical: 'Skewer', usage: 9 },
-  { id: 'ac46cc71-0d63-4076-96bc-d53261c68e2a', name: 'bamboo skewers', canonical: 'Skewer', usage: 6 },
-  { id: '21644114-5795-491c-992e-6bf46ac13f7b', name: 'thermometer', canonical: 'Thermometer', usage: 6 },
-  { id: 'd60e504a-1412-424e-af29-98c9e2e1578f', name: 'cookie cutter', canonical: 'Star Cookie Cutter', usage: 3 },
-  { id: '1519b8c7-7d9d-4661-90ed-fb851e1dad78', name: 'cardboard round', canonical: 'Cardboard Round', usage: 2 },
+  {
+    id: 'ac46cc71-0d63-4076-96bc-d53261c68e2a',
+    name: 'bamboo skewers',
+    canonical: 'Skewer',
+    usage: 6,
+  },
+  {
+    id: '21644114-5795-491c-992e-6bf46ac13f7b',
+    name: 'thermometer',
+    canonical: 'Thermometer',
+    usage: 6,
+  },
+  {
+    id: 'd60e504a-1412-424e-af29-98c9e2e1578f',
+    name: 'cookie cutter',
+    canonical: 'Star Cookie Cutter',
+    usage: 3,
+  },
+  {
+    id: '1519b8c7-7d9d-4661-90ed-fb851e1dad78',
+    name: 'cardboard round',
+    canonical: 'Cardboard Round',
+    usage: 2,
+  },
   { id: '1310abfe-1cad-4618-871d-3d9c1400a9a0', name: 'spatula', canonical: 'Spatula', usage: 1 },
-  { id: '7d16e6c8-bc34-4e7e-86a1-8b228f52cd95', name: 'oven-roasting bag', canonical: 'Oven-roasting Bag', usage: 1 },
+  {
+    id: '7d16e6c8-bc34-4e7e-86a1-8b228f52cd95',
+    name: 'oven-roasting bag',
+    canonical: 'Oven-roasting Bag',
+    usage: 1,
+  },
 ];
 
 interface GenerationProgress {
@@ -132,7 +192,7 @@ async function uploadToVercelBlob(imageBuffer: Buffer, filename: string): Promis
   const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
     method: 'PUT',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'image/png',
       'x-content-type': 'image/png',
     },
@@ -302,15 +362,19 @@ async function processTool(
 async function main() {
   const dryRun = process.env.APPLY_CHANGES !== 'true';
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('🎨 PRODUCT AND TOOL IMAGE GENERATION (DALL-E 3)');
   console.log('='.repeat(70));
   console.log(`\n📊 Scope:`);
   console.log(`   - Products: ${PRODUCT_INGREDIENTS.length} items`);
   console.log(`   - Tools: ${KITCHEN_TOOLS.length} items`);
   console.log(`   - Total: ${PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length} images`);
-  console.log(`\n💰 Estimated Cost: $${(PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 0.04} - $${(PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 0.10}`);
-  console.log(`⏱️  Estimated Time: ${Math.ceil((PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 3 / 60)} minutes\n`);
+  console.log(
+    `\n💰 Estimated Cost: $${(PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 0.04} - $${(PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 0.1}`
+  );
+  console.log(
+    `⏱️  Estimated Time: ${Math.ceil(((PRODUCT_INGREDIENTS.length + KITCHEN_TOOLS.length) * 3) / 60)} minutes\n`
+  );
 
   if (dryRun) {
     console.log('🔍 DRY RUN MODE - No images will be generated or uploaded');
@@ -320,7 +384,7 @@ async function main() {
   }
 
   // Phase 1: Products
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('📦 PHASE 1: PRODUCT-SPECIFIC INGREDIENTS');
   console.log('='.repeat(70));
 
@@ -341,7 +405,7 @@ async function main() {
   }
 
   // Phase 2: Tools
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('🔧 PHASE 2: KITCHEN TOOLS');
   console.log('='.repeat(70));
 
@@ -362,7 +426,7 @@ async function main() {
   }
 
   // Final summary
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('✨ GENERATION COMPLETE');
   console.log('='.repeat(70));
   console.log(`\n📊 Products:`);
@@ -382,7 +446,7 @@ async function main() {
     });
   }
 
-  console.log('\n' + '='.repeat(70) + '\n');
+  console.log(`\n${'='.repeat(70)}\n`);
 }
 
 main().catch((error) => {

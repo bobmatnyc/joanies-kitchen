@@ -1,14 +1,15 @@
 #!/usr/bin/env tsx
+
 /**
  * Export ingredient names that still use Unsplash URLs
  * Creates a batch file for Stable Diffusion generation
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { like } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
-import { like } from 'drizzle-orm';
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
 
 async function exportUnsplashIngredients() {
   console.log('\n📋 Exporting Ingredients Using Unsplash URLs\n');
@@ -18,7 +19,7 @@ async function exportUnsplashIngredients() {
   const unsplashIngredients = await db
     .select({
       name: ingredients.name,
-      display_name: ingredients.display_name
+      display_name: ingredients.display_name,
     })
     .from(ingredients)
     .where(like(ingredients.image_url, 'https://images.unsplash.com%'))
@@ -28,7 +29,7 @@ async function exportUnsplashIngredients() {
 
   // Create batch file with ingredient names
   const outputPath = 'tmp/unsplash-ingredients-batch.txt';
-  const ingredientNames = unsplashIngredients.map(ing => ing.name).join('\n');
+  const ingredientNames = unsplashIngredients.map((ing) => ing.name).join('\n');
 
   // Ensure directory exists
   mkdirSync(dirname(outputPath), { recursive: true });

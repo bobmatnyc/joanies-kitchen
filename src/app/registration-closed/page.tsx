@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Lock } from 'lucide-react';
+import Link from 'next/link';
 
 /**
  * Registration Closed Page
@@ -40,7 +40,8 @@ export default function RegistrationClosedPage() {
 
             {/* Description */}
             <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-              We're currently in <strong>private alpha testing</strong> with a limited group of users. New registrations are temporarily closed while we refine the platform.
+              We're currently in <strong>private alpha testing</strong> with a limited group of
+              users. New registrations are temporarily closed while we refine the platform.
             </p>
 
             {/* Beta Launch Info */}
@@ -84,9 +85,7 @@ export default function RegistrationClosedPage() {
 
         {/* Feature Preview */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            What to expect in Beta:
-          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">What to expect in Beta:</p>
           <div className="flex flex-wrap gap-2 justify-center">
             <span className="inline-block bg-white dark:bg-gray-800 px-3 py-1 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
               4,644 Recipes

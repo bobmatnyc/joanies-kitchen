@@ -1,15 +1,13 @@
 #!/usr/bin/env tsx
+import { isNotNull } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { isNotNull } from 'drizzle-orm';
 
 async function findDoubleNumbered() {
   console.log('Searching for recipes with double numbering...\n');
 
   // Get recipes with chef_id (chef recipes)
-  const chefRecipes = await db.select().from(recipes)
-    .where(isNotNull(recipes.chef_id))
-    .limit(50);
+  const chefRecipes = await db.select().from(recipes).where(isNotNull(recipes.chef_id)).limit(50);
 
   console.log(`Found ${chefRecipes.length} chef recipes to check\n`);
 
@@ -41,7 +39,7 @@ async function findDoubleNumbered() {
           break;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip invalid JSON
     }
   }
@@ -50,9 +48,7 @@ async function findDoubleNumbered() {
 
   // Also check Nancy Silverton recipes specifically
   console.log('Checking Nancy Silverton recipes specifically...\n');
-  const nancyRecipes = await db.select().from(recipes)
-    .where(isNotNull(recipes.chef_id))
-    .limit(200); // Get more to find Nancy's
+  const nancyRecipes = await db.select().from(recipes).where(isNotNull(recipes.chef_id)).limit(200); // Get more to find Nancy's
 
   for (const recipe of nancyRecipes) {
     if (recipe.source?.includes('Nancy') || recipe.name.includes('Nancy')) {
@@ -60,11 +56,13 @@ async function findDoubleNumbered() {
       try {
         const instructions = JSON.parse(recipe.instructions);
         console.log('First instruction:', JSON.stringify(instructions[0]?.substring(0, 150)));
-      } catch (e) {
+      } catch (_e) {
         console.log('  (Invalid JSON)');
       }
     }
   }
 }
 
-findDoubleNumbered().then(() => process.exit(0)).catch(console.error);
+findDoubleNumbered()
+  .then(() => process.exit(0))
+  .catch(console.error);

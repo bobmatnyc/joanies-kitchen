@@ -53,6 +53,9 @@ export const ingredients = pgTable(
     type: varchar('type', { length: 50 }), // Ontology main type: FRESH_PRODUCE, PROTEINS, DAIRY_EGGS, PANTRY_STAPLES, BAKING_SPECIALTY
     subtype: varchar('subtype', { length: 100 }), // Ontology subtype: vegetables_leafy, meat_beef, cheese_soft, grains_rice, nuts_tree, etc.
 
+    // Shopping list support
+    is_purchaseable: boolean('is_purchaseable').notNull().default(true), // Whether item should appear in shopping lists (excludes water, ice, etc.)
+
     // Metadata
     common_units: text('common_units'), // JSON array: ['cup', 'tablespoon', 'piece', 'gram', 'ounce']
     aliases: text('aliases'), // JSON array: alternative names (e.g., ['scallion', 'spring onion'] for 'green onion')

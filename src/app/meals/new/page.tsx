@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import { MealBuilder } from '@/components/meals/MealBuilder';
 import { MealTemplateSelector } from '@/components/meals/MealTemplateSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { auth } from '@/lib/auth';
 
 function LoadingSkeleton() {
   return (

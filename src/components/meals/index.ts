@@ -7,7 +7,7 @@
  * @module components/meals
  */
 
-export { MealPairingWizard } from './MealPairingWizard';
-export { MealPlanDisplay } from './MealPlanDisplay';
 export { CourseCard } from './CourseCard';
 export { MealBalanceDashboard } from './MealBalanceDashboard';
+export { MealPairingWizard } from './MealPairingWizard';
+export { MealPlanDisplay } from './MealPlanDisplay';

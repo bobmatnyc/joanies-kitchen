@@ -15,9 +15,9 @@ import Image from 'next/image';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  getSmartMealSuggestions,
   type CourseSuggestions,
   type EnhancedRecipeSuggestion,
+  getSmartMealSuggestions,
   type MealSuggestionsParams,
 } from '@/app/actions/meal-suggestions';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,10 @@ export const EnhancedAiSuggestions = memo(function EnhancedAiSuggestions({
         description,
         tags,
         dietary: dietary && Object.keys(dietary).length > 0 ? dietary : undefined,
-        budget: preferBudgetFriendly || maxBudget < 50 ? { max: maxBudget, preferBudgetFriendly } : undefined,
+        budget:
+          preferBudgetFriendly || maxBudget < 50
+            ? { max: maxBudget, preferBudgetFriendly }
+            : undefined,
         nutrition: {
           balanceProtein,
           balanceVegetables,
@@ -117,7 +120,16 @@ export const EnhancedAiSuggestions = memo(function EnhancedAiSuggestions({
     } finally {
       setIsLoading(false);
     }
-  }, [description, tags, dietary, maxBudget, preferBudgetFriendly, preferSeasonal, balanceProtein, balanceVegetables]);
+  }, [
+    description,
+    tags,
+    dietary,
+    maxBudget,
+    preferBudgetFriendly,
+    preferSeasonal,
+    balanceProtein,
+    balanceVegetables,
+  ]);
 
   // Fetch suggestions when description or filters change (debounced)
   useEffect(() => {
@@ -148,8 +160,8 @@ export const EnhancedAiSuggestions = memo(function EnhancedAiSuggestions({
         </CardHeader>
         <CardContent>
           <p className="text-jk-charcoal/60 font-body text-center py-8">
-            Add a description to get AI-powered recipe suggestions with dietary filtering, budget awareness, and
-            nutritional balance
+            Add a description to get AI-powered recipe suggestions with dietary filtering, budget
+            awareness, and nutritional balance
           </p>
         </CardContent>
       </Card>
@@ -492,18 +504,21 @@ const EnhancedRecipeSuggestionCard = memo(function EnhancedRecipeSuggestionCard(
                 badgeColor = 'bg-green-100 text-green-800 border-green-300';
               } else if (badge.toLowerCase().includes('budget')) {
                 badgeColor = 'bg-blue-100 text-blue-800 border-blue-300';
-              } else if (badge.toLowerCase().includes('protein') || badge.toLowerCase().includes('vegetable')) {
+              } else if (
+                badge.toLowerCase().includes('protein') ||
+                badge.toLowerCase().includes('vegetable')
+              ) {
                 badgeColor = 'bg-purple-100 text-purple-800 border-purple-300';
               }
 
               return (
-                <Badge
-                  key={badge}
-                  variant="outline"
-                  className={`${badgeColor} text-xs font-ui`}
-                >
-                  {badge.toLowerCase().includes('seasonal') && <Leaf className="w-2.5 h-2.5 mr-1" />}
-                  {badge.toLowerCase().includes('budget') && <DollarSign className="w-2.5 h-2.5 mr-1" />}
+                <Badge key={badge} variant="outline" className={`${badgeColor} text-xs font-ui`}>
+                  {badge.toLowerCase().includes('seasonal') && (
+                    <Leaf className="w-2.5 h-2.5 mr-1" />
+                  )}
+                  {badge.toLowerCase().includes('budget') && (
+                    <DollarSign className="w-2.5 h-2.5 mr-1" />
+                  )}
                   {badge}
                 </Badge>
               );

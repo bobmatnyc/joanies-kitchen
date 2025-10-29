@@ -123,11 +123,7 @@ async function generateButternutSoupImage() {
 
   try {
     // Get current recipe
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, RECIPE_ID))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, RECIPE_ID)).limit(1);
 
     if (!recipe) {
       throw new Error('Recipe not found');
@@ -150,7 +146,7 @@ async function generateButternutSoupImage() {
     if (recipe.images) {
       try {
         existingImages = JSON.parse(recipe.images);
-      } catch (e) {
+      } catch (_e) {
         console.warn('⚠️  Could not parse existing images, will replace');
       }
     }

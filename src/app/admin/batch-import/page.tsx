@@ -161,38 +161,38 @@ const CHEF_RECIPES = {
 export default function BatchImportPage() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
-  
+
   async function handleBatchImport() {
     setImporting(true);
     setProgress([]);
-    
-    for (const [chefSlug, data] of Object.entries(CHEF_RECIPES)) {
-      setProgress(prev => [...prev, `Starting ${data.name}...`]);
-      
+
+    for (const [_chefSlug, data] of Object.entries(CHEF_RECIPES)) {
+      setProgress((prev) => [...prev, `Starting ${data.name}...`]);
+
       for (let i = 0; i < data.urls.length; i++) {
         const url = data.urls[i];
-        setProgress(prev => [...prev, `[${i + 1}/${data.urls.length}] ${url}...`]);
-        
+        setProgress((prev) => [...prev, `[${i + 1}/${data.urls.length}] ${url}...`]);
+
         try {
           const result = await convertUrlToRecipe(url);
           if (result.success) {
-            setProgress(prev => [...prev, `✅ SUCCESS: ${result.recipe?.name}`]);
+            setProgress((prev) => [...prev, `✅ SUCCESS: ${result.recipe?.name}`]);
           } else {
-            setProgress(prev => [...prev, `❌ FAILED: ${result.error}`]);
+            setProgress((prev) => [...prev, `❌ FAILED: ${result.error}`]);
           }
         } catch (error: any) {
-          setProgress(prev => [...prev, `❌ ERROR: ${error.message}`]);
+          setProgress((prev) => [...prev, `❌ ERROR: ${error.message}`]);
         }
-        
+
         // Rate limit: 2 seconds between requests
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
-    
-    setProgress(prev => [...prev, '🎉 Batch import complete!']);
+
+    setProgress((prev) => [...prev, '🎉 Batch import complete!']);
     setImporting(false);
   }
-  
+
   const totalRecipes = Object.values(CHEF_RECIPES).reduce((sum, chef) => sum + chef.urls.length, 0);
   const totalChefs = Object.keys(CHEF_RECIPES).length;
 

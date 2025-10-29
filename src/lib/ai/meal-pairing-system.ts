@@ -290,9 +290,10 @@ function enrichWithRecipeLinks(
 ): MealPlan {
   // Simple matching: look for recipe name similarity
   const findMatch = (courseName: string, candidates: RecipeSearchResult[]) => {
-    const match = candidates.find(c =>
-      c.name.toLowerCase().includes(courseName.toLowerCase()) ||
-      courseName.toLowerCase().includes(c.name.toLowerCase())
+    const match = candidates.find(
+      (c) =>
+        c.name.toLowerCase().includes(courseName.toLowerCase()) ||
+        courseName.toLowerCase().includes(c.name.toLowerCase())
     );
     return match?.id;
   };
@@ -301,16 +302,16 @@ function enrichWithRecipeLinks(
     ...mealPlan,
     appetizer: {
       ...mealPlan.appetizer,
-      recipe_id: findMatch(mealPlan.appetizer.name, candidates.appetizerCandidates)
+      recipe_id: findMatch(mealPlan.appetizer.name, candidates.appetizerCandidates),
     },
     side: {
       ...mealPlan.side,
-      recipe_id: findMatch(mealPlan.side.name, candidates.sideCandidates)
+      recipe_id: findMatch(mealPlan.side.name, candidates.sideCandidates),
     },
     dessert: {
       ...mealPlan.dessert,
-      recipe_id: findMatch(mealPlan.dessert.name, candidates.dessertCandidates)
-    }
+      recipe_id: findMatch(mealPlan.dessert.name, candidates.dessertCandidates),
+    },
   };
 }
 
@@ -318,10 +319,7 @@ function enrichWithRecipeLinks(
 // Main Meal Generation Function
 // ============================================================================
 
-async function generateMealWithSemanticSearch(
-  input: MealPairingInput
-): Promise<MealPlan> {
-
+async function generateMealWithSemanticSearch(input: MealPairingInput): Promise<MealPlan> {
   // Step 1: If main dish is specified, find similar recipes
   let semanticContext = '';
 
@@ -329,14 +327,14 @@ async function generateMealWithSemanticSearch(
     const similarMains = await semanticSearch({
       query: input.mainDish,
       limit: 3,
-      filters: { course: 'main' }
+      filters: { course: 'main' },
     });
 
     if (similarMains.length > 0) {
       semanticContext += `\nRELATED MAIN DISHES IN DATABASE:\n`;
-      semanticContext += similarMains.map(r =>
-        `- ${r.name} (similarity: ${r.score.toFixed(2)}): ${r.description}`
-      ).join('\n');
+      semanticContext += similarMains
+        .map((r) => `- ${r.name} (similarity: ${r.score.toFixed(2)}): ${r.description}`)
+        .join('\n');
     }
   }
 
@@ -348,8 +346,8 @@ async function generateMealWithSemanticSearch(
     limit: 5,
     filters: {
       course: 'appetizer',
-      dietary: input.dietaryRestrictions
-    }
+      dietary: input.dietaryRestrictions,
+    },
   });
 
   // For side: based on main's characteristics (assume rich main needs light side)
@@ -358,8 +356,8 @@ async function generateMealWithSemanticSearch(
     limit: 5,
     filters: {
       course: 'side',
-      dietary: input.dietaryRestrictions
-    }
+      dietary: input.dietaryRestrictions,
+    },
   });
 
   // For dessert: sweet conclusion
@@ -368,30 +366,24 @@ async function generateMealWithSemanticSearch(
     limit: 5,
     filters: {
       course: 'dessert',
-      dietary: input.dietaryRestrictions
-    }
+      dietary: input.dietaryRestrictions,
+    },
   });
 
   // Step 3: Enrich prompt with database context
   if (appetizerCandidates.length > 0) {
     semanticContext += `\n\nAVAILABLE APPETIZERS IN DATABASE:\n`;
-    semanticContext += appetizerCandidates.map(r =>
-      `- ${r.name}: ${r.description}`
-    ).join('\n');
+    semanticContext += appetizerCandidates.map((r) => `- ${r.name}: ${r.description}`).join('\n');
   }
 
   if (sideCandidates.length > 0) {
     semanticContext += `\n\nAVAILABLE SIDES IN DATABASE:\n`;
-    semanticContext += sideCandidates.map(r =>
-      `- ${r.name}: ${r.description}`
-    ).join('\n');
+    semanticContext += sideCandidates.map((r) => `- ${r.name}: ${r.description}`).join('\n');
   }
 
   if (dessertCandidates.length > 0) {
     semanticContext += `\n\nAVAILABLE DESSERTS IN DATABASE:\n`;
-    semanticContext += dessertCandidates.map(r =>
-      `- ${r.name}: ${r.description}`
-    ).join('\n');
+    semanticContext += dessertCandidates.map((r) => `- ${r.name}: ${r.description}`).join('\n');
   }
 
   // Step 4: Build enhanced prompt with database awareness
@@ -403,15 +395,15 @@ async function generateMealWithSemanticSearch(
   }
 
   // Step 5: Call OpenRouter (using Anthropic API format)
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
       system: MEAL_PAIRING_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: enhancedPrompt }]
-    })
+      messages: [{ role: 'user', content: enhancedPrompt }],
+    }),
   });
 
   if (!response.ok) {
@@ -423,8 +415,8 @@ async function generateMealWithSemanticSearch(
 
   // Handle potential markdown wrapping
   const cleanedJson = responseText
-    .replace(/```json\n?/g, "")
-    .replace(/```\n?/g, "")
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
     .trim();
 
   const mealPlan: MealPlan = JSON.parse(cleanedJson);
@@ -433,7 +425,7 @@ async function generateMealWithSemanticSearch(
   return enrichWithRecipeLinks(mealPlan, {
     appetizerCandidates,
     sideCandidates,
-    dessertCandidates
+    dessertCandidates,
   });
 }
 
@@ -442,13 +434,13 @@ async function generateMealWithSemanticSearch(
 // ============================================================================
 
 interface SimpleMealRequest {
-  cuisine?: string;        // "Italian", "Thai", "French"
-  theme?: string;          // "Summer BBQ", "Romantic Dinner", "Holiday Feast"
-  mainDish?: string;       // "Grilled Salmon", "Beef Bourguignon"
-  dietary?: string[];      // ["vegetarian", "gluten-free"]
-  ingredients?: string[];  // ["tomatoes", "basil", "garlic"]
-  maxTime?: number;        // 60 (minutes)
-  servings?: number;       // 4
+  cuisine?: string; // "Italian", "Thai", "French"
+  theme?: string; // "Summer BBQ", "Romantic Dinner", "Holiday Feast"
+  mainDish?: string; // "Grilled Salmon", "Beef Bourguignon"
+  dietary?: string[]; // ["vegetarian", "gluten-free"]
+  ingredients?: string[]; // ["tomatoes", "basil", "garlic"]
+  maxTime?: number; // 60 (minutes)
+  servings?: number; // 4
 }
 
 /**
@@ -474,7 +466,7 @@ async function generateMeal(request: SimpleMealRequest): Promise<MealPlan> {
     dietaryRestrictions: request.dietary,
     availableIngredients: request.ingredients,
     timeLimit: request.maxTime,
-    servings: request.servings || 4
+    servings: request.servings || 4,
   };
 
   return generateMealWithSemanticSearch(input);
@@ -525,5 +517,5 @@ export {
   MEAL_PAIRING_SYSTEM_PROMPT,
   type MealPairingInput,
   type MealPlan,
-  type SimpleMealRequest
+  type SimpleMealRequest,
 };

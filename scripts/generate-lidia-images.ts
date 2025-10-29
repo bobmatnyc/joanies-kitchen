@@ -27,7 +27,7 @@ import { join } from 'node:path';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
 // Configuration

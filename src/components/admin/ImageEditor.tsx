@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
 import { Image as ImageIcon, Upload, Wand2, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { regenerateImage, uploadRecipeImage } from '@/app/actions/admin-edit';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { regenerateImage, uploadRecipeImage } from '@/app/actions/admin-edit';
 
 interface ImageEditorProps {
   recipeId: string;
@@ -147,11 +147,7 @@ export function ImageEditor({
           {/* Current/Preview Image */}
           <div className="aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
             {displayImageUrl ? (
-              <img
-                src={displayImageUrl}
-                alt={recipeName}
-                className="w-full h-full object-cover"
-              />
+              <img src={displayImageUrl} alt={recipeName} className="w-full h-full object-cover" />
             ) : (
               <div className="flex flex-col items-center justify-center text-muted-foreground">
                 <ImageIcon className="w-16 h-16 mb-2 opacity-50" />

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { MapPin } from 'lucide-react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapPin } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface ChefWithLocation {
@@ -58,8 +58,8 @@ export function ChefLocationMap({ chefs }: ChefLocationMapProps) {
     (chef) =>
       chef.latitude &&
       chef.longitude &&
-      !isNaN(parseFloat(chef.latitude)) &&
-      !isNaN(parseFloat(chef.longitude))
+      !Number.isNaN(parseFloat(chef.latitude)) &&
+      !Number.isNaN(parseFloat(chef.longitude))
   );
 
   // Extract positions for auto-fit
