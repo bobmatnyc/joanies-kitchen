@@ -3,10 +3,9 @@
 import { CheckCircle, ChefHat, Edit, Loader2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { searchRecipesByIngredients } from '@/app/actions/ingredient-search';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
-import type { RecipeWithMatch } from '@/types/ingredient-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { RecipeWithMatch } from '@/types/ingredient-search';
 
 type SortOption = 'best-match' | 'fewest-missing' | 'cook-time';
+
+/**
+ * Timeout wrapper for search operations
+ * Prevents infinite loading state if search takes too long
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Search timeout - request took too long')), ms)
+    ),
+  ]);
+}
 
 /**
  * Fridge Results Page - Recipe Matches
@@ -45,7 +58,11 @@ function FridgeResultsContent() {
 
   // Parse ingredients from URL
   const ingredientsParam = searchParams.get('ingredients');
-  const ingredients = ingredientsParam?.split(',').map((i) => i.trim()).filter(Boolean) || [];
+  const ingredients =
+    ingredientsParam
+      ?.split(',')
+      .map((i) => i.trim())
+      .filter(Boolean) || [];
 
   // State
   const [recipes, setRecipes] = useState<RecipeWithMatch[]>([]);
@@ -60,7 +77,7 @@ function FridgeResultsContent() {
       router.push('/fridge');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ingredients.length]);
+  }, [ingredients.length, router]);
 
   // Fetch recipes on mount or when ingredients change
   useEffect(() => {
@@ -71,22 +88,34 @@ function FridgeResultsContent() {
       setError(null);
 
       try {
-        const result = await searchRecipesByIngredients(ingredients, {
-          matchMode: 'any',
-          minMatchPercentage: 0, // Get all matches, we'll filter client-side
-          limit: 50,
-          includePrivate: false, // Only public recipes
-          rankingMode: 'balanced',
-        });
+        // Wrap search in 30-second timeout to prevent infinite loading
+        const result = await withTimeout(
+          searchRecipesByIngredients(ingredients, {
+            matchMode: 'any',
+            minMatchPercentage: 0, // Get all matches, we'll filter client-side
+            limit: 50,
+            includePrivate: false, // Only public recipes
+            rankingMode: 'balanced',
+          }),
+          30000 // 30 second timeout
+        );
 
         if (result.success) {
           setRecipes(result.recipes);
         } else {
           setError(result.error || 'Failed to search recipes');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Recipe search error:', err);
-        setError('An unexpected error occurred. Please try again.');
+
+        // Show specific timeout error message
+        if (err.message?.includes('timeout')) {
+          setError(
+            'The search is taking longer than expected. Please try again with fewer ingredients or different search terms.'
+          );
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -94,7 +123,7 @@ function FridgeResultsContent() {
 
     fetchRecipes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ingredientsParam]);
+  }, [ingredients]);
 
   // Apply client-side sorting and filtering
   const filteredAndSortedRecipes = [...recipes]
@@ -105,11 +134,14 @@ function FridgeResultsContent() {
           return b.matchPercentage - a.matchPercentage;
         case 'fewest-missing':
           return (
-            a.totalIngredients - a.matchedIngredients.length -
+            a.totalIngredients -
+            a.matchedIngredients.length -
             (b.totalIngredients - b.matchedIngredients.length)
           );
         case 'cook-time':
-          return (a.prep_time || 0) + (a.cook_time || 0) - ((b.prep_time || 0) + (b.cook_time || 0));
+          return (
+            (a.prep_time || 0) + (a.cook_time || 0) - ((b.prep_time || 0) + (b.cook_time || 0))
+          );
         default:
           return 0;
       }
@@ -153,8 +185,8 @@ function FridgeResultsContent() {
           <ChefHat className="w-12 h-12 text-jk-clay mx-auto" />
           <h2 className="text-2xl font-heading text-jk-olive">No Recipes Found</h2>
           <p className="text-base text-jk-charcoal/70 font-body">
-            We couldn't find any recipes matching your ingredients.
-            Try removing some ingredients or browse all recipes.
+            We couldn't find any recipes matching your ingredients. Try removing some ingredients or
+            browse all recipes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button onClick={() => router.push('/fridge')} variant="default">
@@ -202,7 +234,10 @@ function FridgeResultsContent() {
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 bg-white rounded-lg p-4 shadow-sm border border-jk-sage/20">
           {/* Sort By */}
           <div className="flex items-center gap-2 flex-1">
-            <label htmlFor="sort-by" className="text-sm font-ui text-jk-charcoal/70 whitespace-nowrap">
+            <label
+              htmlFor="sort-by"
+              className="text-sm font-ui text-jk-charcoal/70 whitespace-nowrap"
+            >
               Sort by:
             </label>
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
@@ -219,12 +254,15 @@ function FridgeResultsContent() {
 
           {/* Min Match Filter */}
           <div className="flex items-center gap-2 flex-1">
-            <label htmlFor="min-match" className="text-sm font-ui text-jk-charcoal/70 whitespace-nowrap">
+            <label
+              htmlFor="min-match"
+              className="text-sm font-ui text-jk-charcoal/70 whitespace-nowrap"
+            >
               Min Match:
             </label>
             <Select
               value={minMatchFilter.toString()}
-              onValueChange={(value) => setMinMatchFilter(parseInt(value))}
+              onValueChange={(value) => setMinMatchFilter(parseInt(value, 10))}
             >
               <SelectTrigger id="min-match" className="flex-1 sm:w-[140px]">
                 <SelectValue />
@@ -242,11 +280,7 @@ function FridgeResultsContent() {
         {/* Results Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredAndSortedRecipes.map((recipe) => (
-            <RecipeMatchCard
-              key={recipe.id}
-              recipe={recipe}
-              userIngredients={ingredients}
-            />
+            <RecipeMatchCard key={recipe.id} recipe={recipe} userIngredients={ingredients} />
           ))}
         </div>
 
@@ -270,9 +304,7 @@ export default function FridgeResultsPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-4">
             <Loader2 className="w-12 h-12 animate-spin text-jk-clay mx-auto" />
-            <p className="text-lg text-jk-charcoal/70 font-ui">
-              Loading recipe matches...
-            </p>
+            <p className="text-lg text-jk-charcoal/70 font-ui">Loading recipe matches...</p>
           </div>
         </div>
       }
@@ -379,9 +411,7 @@ function RecipeMatchCard({
           {missingCount > 0 && (
             <div className="flex items-center gap-1 text-orange-600">
               <XCircle className="w-4 h-4" />
-              <span className="font-ui">
-                {missingCount} missing
-              </span>
+              <span className="font-ui">{missingCount} missing</span>
             </div>
           )}
         </div>
