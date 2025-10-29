@@ -261,20 +261,24 @@ export const recipes = pgTable(
 );
 
 // Recipe Embeddings table for vector similarity search
-export const recipeEmbeddings = pgTable('recipe_embeddings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
-  embedding: vector('embedding').notNull(),
-  embedding_text: text('embedding_text').notNull(),
-  model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'),
-  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-}, (table) => ({
-  // Unique constraint: one embedding per recipe
-  recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
-}));
+export const recipeEmbeddings = pgTable(
+  'recipe_embeddings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    embedding: vector('embedding').notNull(),
+    embedding_text: text('embedding_text').notNull(),
+    model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    // Unique constraint: one embedding per recipe
+    recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
+  })
+);
 
 // Recipe Ratings table for individual user ratings
 export const recipeRatings = pgTable(
@@ -376,91 +380,107 @@ export const heroBackgrounds = pgTable(
 // ====================
 
 // Recipe Likes table - thumbs-up/like system
-export const recipeLikes = pgTable('recipe_likes', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
-  user_id: text('user_id').notNull(), // Clerk user ID
-  created_at: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  // Unique constraint: one like per user per recipe
-  recipeUserUnique: unique().on(table.recipe_id, table.user_id),
-  // Indexes for efficient queries
-  recipeIdIdx: index('recipe_likes_recipe_id_idx').on(table.recipe_id),
-  userIdIdx: index('recipe_likes_user_id_idx').on(table.user_id),
-  createdAtIdx: index('recipe_likes_created_at_idx').on(table.created_at.desc()),
-}));
+export const recipeLikes = pgTable(
+  'recipe_likes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    user_id: text('user_id').notNull(), // Clerk user ID
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    // Unique constraint: one like per user per recipe
+    recipeUserUnique: unique().on(table.recipe_id, table.user_id),
+    // Indexes for efficient queries
+    recipeIdIdx: index('recipe_likes_recipe_id_idx').on(table.recipe_id),
+    userIdIdx: index('recipe_likes_user_id_idx').on(table.user_id),
+    createdAtIdx: index('recipe_likes_created_at_idx').on(table.created_at.desc()),
+  })
+);
 
 // Recipe Forks table - recipe copying with attribution
-export const recipeForks = pgTable('recipe_forks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }), // The forked (new) recipe
-  original_recipe_id: text('original_recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }), // The original recipe
-  user_id: text('user_id').notNull(), // Clerk user ID who forked
-  created_at: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  // Indexes for efficient queries
-  recipeIdIdx: index('recipe_forks_recipe_id_idx').on(table.recipe_id),
-  originalRecipeIdIdx: index('recipe_forks_original_recipe_id_idx').on(table.original_recipe_id),
-  userIdIdx: index('recipe_forks_user_id_idx').on(table.user_id),
-  createdAtIdx: index('recipe_forks_created_at_idx').on(table.created_at.desc()),
-}));
+export const recipeForks = pgTable(
+  'recipe_forks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }), // The forked (new) recipe
+    original_recipe_id: text('original_recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }), // The original recipe
+    user_id: text('user_id').notNull(), // Clerk user ID who forked
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    // Indexes for efficient queries
+    recipeIdIdx: index('recipe_forks_recipe_id_idx').on(table.recipe_id),
+    originalRecipeIdIdx: index('recipe_forks_original_recipe_id_idx').on(table.original_recipe_id),
+    userIdIdx: index('recipe_forks_user_id_idx').on(table.user_id),
+    createdAtIdx: index('recipe_forks_created_at_idx').on(table.created_at.desc()),
+  })
+);
 
 // Recipe Comments table - flat commenting with emoji support
-export const recipeComments = pgTable('recipe_comments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
-  user_id: text('user_id').notNull(), // Clerk user ID
-  content: text('content').notNull(), // Comment text (supports emojis)
-  is_edited: boolean('is_edited').notNull().default(false), // Track if edited
-  is_flagged: boolean('is_flagged').notNull().default(false), // Moderation flag
-  created_at: timestamp('created_at').notNull().defaultNow(),
-  updated_at: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => ({
-  // Indexes for efficient queries
-  recipeIdIdx: index('recipe_comments_recipe_id_idx').on(table.recipe_id),
-  userIdIdx: index('recipe_comments_user_id_idx').on(table.user_id),
-  createdAtIdx: index('recipe_comments_created_at_idx').on(table.created_at.desc()),
-  isFlaggedIdx: index('recipe_comments_is_flagged_idx').on(table.is_flagged),
-}));
+export const recipeComments = pgTable(
+  'recipe_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    user_id: text('user_id').notNull(), // Clerk user ID
+    content: text('content').notNull(), // Comment text (supports emojis)
+    is_edited: boolean('is_edited').notNull().default(false), // Track if edited
+    is_flagged: boolean('is_flagged').notNull().default(false), // Moderation flag
+    created_at: timestamp('created_at').notNull().defaultNow(),
+    updated_at: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    // Indexes for efficient queries
+    recipeIdIdx: index('recipe_comments_recipe_id_idx').on(table.recipe_id),
+    userIdIdx: index('recipe_comments_user_id_idx').on(table.user_id),
+    createdAtIdx: index('recipe_comments_created_at_idx').on(table.created_at.desc()),
+    isFlaggedIdx: index('recipe_comments_is_flagged_idx').on(table.is_flagged),
+  })
+);
 
 // ====================
 // JOANIE'S PERSONAL NOTES (Joanie Comments)
 // ====================
 
 // Joanie Comments table - Personal observations and cooking stories from Joanie
-export const joanieComments = pgTable('joanie_comments', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const joanieComments = pgTable(
+  'joanie_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
 
-  // Flexible reference - comment can be attached to recipe, meal, or ingredient
-  recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'cascade' }),
-  meal_id: uuid('meal_id'), // Will reference meals.id once imported
-  ingredient_id: uuid('ingredient_id'), // Will reference ingredients.id once imported
+    // Flexible reference - comment can be attached to recipe, meal, or ingredient
+    recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'cascade' }),
+    meal_id: uuid('meal_id'), // Will reference meals.id once imported
+    ingredient_id: uuid('ingredient_id'), // Will reference ingredients.id once imported
 
-  // Comment content
-  comment_text: text('comment_text').notNull(),
-  comment_type: text('comment_type', {
-    enum: ['story', 'tip', 'substitution', 'general']
-  }),
+    // Comment content
+    comment_text: text('comment_text').notNull(),
+    comment_type: text('comment_type', {
+      enum: ['story', 'tip', 'substitution', 'general'],
+    }),
 
-  // Metadata
-  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-}, (table) => ({
-  // Indexes for efficient queries
-  recipeIdIdx: index('joanie_comments_recipe_id_idx').on(table.recipe_id),
-  mealIdIdx: index('joanie_comments_meal_id_idx').on(table.meal_id),
-  ingredientIdIdx: index('joanie_comments_ingredient_id_idx').on(table.ingredient_id),
-  commentTypeIdx: index('joanie_comments_type_idx').on(table.comment_type),
-  createdAtIdx: index('joanie_comments_created_at_idx').on(table.created_at.desc()),
-}));
+    // Metadata
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    // Indexes for efficient queries
+    recipeIdIdx: index('joanie_comments_recipe_id_idx').on(table.recipe_id),
+    mealIdIdx: index('joanie_comments_meal_id_idx').on(table.meal_id),
+    ingredientIdIdx: index('joanie_comments_ingredient_id_idx').on(table.ingredient_id),
+    commentTypeIdx: index('joanie_comments_type_idx').on(table.comment_type),
+    createdAtIdx: index('joanie_comments_created_at_idx').on(table.created_at.desc()),
+  })
+);
 
 // ====================
 // MEAL PLANNING INFRASTRUCTURE (v0.65.0)
@@ -470,143 +490,179 @@ export const joanieComments = pgTable('joanie_comments', {
 // They are re-exported at the end of this file for convenience
 
 // Kitchen Tools/Equipment table
-export const tools = pgTable('tools', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().unique(), // Canonical name (e.g., "large-pot")
-  display_name: text('display_name').notNull(), // Display name (e.g., "Large Pot")
-  category: text('category', {
-    enum: [
-      'cookware', 'bakeware', 'knives', 'utensils', 'appliances',
-      'measuring', 'prep', 'serving', 'other'
-    ]
-  }).notNull(),
+export const tools = pgTable(
+  'tools',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(), // Canonical name (e.g., "large-pot")
+    display_name: text('display_name').notNull(), // Display name (e.g., "Large Pot")
+    category: text('category', {
+      enum: [
+        'cookware',
+        'bakeware',
+        'knives',
+        'utensils',
+        'appliances',
+        'measuring',
+        'prep',
+        'serving',
+        'other',
+      ],
+    }).notNull(),
 
-  // Ontology categorization (NEW - 5 types, 48 subtypes)
-  type: varchar('type', { length: 50 }), // CUTTING_PREP, COOKING_VESSELS, MIXING_MEASURING, HEAT_POWER, STORAGE_SERVING
-  subtype: varchar('subtype', { length: 100 }), // knives_chef, pots_sauce, mixing_bowls, stovetop_gas, storage_containers, etc.
+    // Ontology categorization (NEW - 5 types, 48 subtypes)
+    type: varchar('type', { length: 50 }), // CUTTING_PREP, COOKING_VESSELS, MIXING_MEASURING, HEAT_POWER, STORAGE_SERVING
+    subtype: varchar('subtype', { length: 100 }), // knives_chef, pots_sauce, mixing_bowls, stovetop_gas, storage_containers, etc.
 
-  // Tool characteristics
-  is_essential: boolean('is_essential').default(false), // Part of basic kitchen
-  is_specialized: boolean('is_specialized').default(false), // Specialized equipment
-  alternatives: text('alternatives'), // JSON array of alternative tools
+    // Tool characteristics
+    is_essential: boolean('is_essential').default(false), // Part of basic kitchen
+    is_specialized: boolean('is_specialized').default(false), // Specialized equipment
+    alternatives: text('alternatives'), // JSON array of alternative tools
 
-  // Metadata
-  typical_price_usd: decimal('typical_price_usd', { precision: 8, scale: 2 }),
-  description: text('description'),
-  image_url: text('image_url'), // Tool image (/images/tools/...)
+    // Metadata
+    typical_price_usd: decimal('typical_price_usd', { precision: 8, scale: 2 }),
+    description: text('description'),
+    image_url: text('image_url'), // Tool image (/images/tools/...)
 
-  created_at: timestamp('created_at').notNull().defaultNow(),
-  updated_at: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => ({
-  nameIdx: index('tools_name_idx').on(table.name),
-  categoryIdx: index('tools_category_idx').on(table.category),
-  isEssentialIdx: index('tools_is_essential_idx').on(table.is_essential),
-  typeIdx: index('tools_type_idx').on(table.type),
-  subtypeIdx: index('tools_subtype_idx').on(table.subtype),
-  typeSubtypeIdx: index('tools_type_subtype_idx').on(table.type, table.subtype),
-}));
+    created_at: timestamp('created_at').notNull().defaultNow(),
+    updated_at: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: index('tools_name_idx').on(table.name),
+    categoryIdx: index('tools_category_idx').on(table.category),
+    isEssentialIdx: index('tools_is_essential_idx').on(table.is_essential),
+    typeIdx: index('tools_type_idx').on(table.type),
+    subtypeIdx: index('tools_subtype_idx').on(table.subtype),
+    typeSubtypeIdx: index('tools_type_subtype_idx').on(table.type, table.subtype),
+  })
+);
 
 // Recipe Tools mapping
-export const recipeTools = pgTable('recipe_tools', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
-  tool_id: uuid('tool_id')
-    .notNull()
-    .references(() => tools.id, { onDelete: 'cascade' }),
+export const recipeTools = pgTable(
+  'recipe_tools',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    tool_id: uuid('tool_id')
+      .notNull()
+      .references(() => tools.id, { onDelete: 'cascade' }),
 
-  is_optional: boolean('is_optional').default(false),
-  quantity: integer('quantity').default(1), // How many needed (e.g., 2 mixing bowls)
-  notes: text('notes'), // Special notes (e.g., "8-inch or larger")
+    is_optional: boolean('is_optional').default(false),
+    quantity: integer('quantity').default(1), // How many needed (e.g., 2 mixing bowls)
+    notes: text('notes'), // Special notes (e.g., "8-inch or larger")
 
-  created_at: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  recipeIdIdx: index('recipe_tools_recipe_id_idx').on(table.recipe_id),
-  toolIdIdx: index('recipe_tools_tool_id_idx').on(table.tool_id),
-}));
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    recipeIdIdx: index('recipe_tools_recipe_id_idx').on(table.recipe_id),
+    toolIdIdx: index('recipe_tools_tool_id_idx').on(table.tool_id),
+  })
+);
 
 // Recipe Tasks - breaks down cooking into trackable tasks
-export const recipeTasks = pgTable('recipe_tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  recipe_id: text('recipe_id')
-    .notNull()
-    .references(() => recipes.id, { onDelete: 'cascade' }),
+export const recipeTasks = pgTable(
+  'recipe_tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipe_id: text('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
 
-  // Task description
-  task_name: text('task_name').notNull(), // e.g., "Dice onions", "Boil pasta"
-  task_order: integer('task_order').notNull(), // Sequence in recipe
-  instruction_text: text('instruction_text').notNull(), // Full instruction
+    // Task description
+    task_name: text('task_name').notNull(), // e.g., "Dice onions", "Boil pasta"
+    task_order: integer('task_order').notNull(), // Sequence in recipe
+    instruction_text: text('instruction_text').notNull(), // Full instruction
 
-  // Task classification
-  task_type: text('task_type', {
-    enum: [
-      'prep', 'mixing', 'cooking', 'baking', 'chilling', 'resting',
-      'boiling', 'simmering', 'sauteing', 'searing', 'roasting',
-      'grilling', 'frying', 'assembly', 'plating', 'other'
-    ]
-  }).notNull(),
+    // Task classification
+    task_type: text('task_type', {
+      enum: [
+        'prep',
+        'mixing',
+        'cooking',
+        'baking',
+        'chilling',
+        'resting',
+        'boiling',
+        'simmering',
+        'sauteing',
+        'searing',
+        'roasting',
+        'grilling',
+        'frying',
+        'assembly',
+        'plating',
+        'other',
+      ],
+    }).notNull(),
 
-  // Restaurant-style role (for better task organization)
-  role: text('role', {
-    enum: [
-      'prep_cook',      // Chopping, peeling, measuring
-      'line_cook',      // Active cooking, sautéing, searing
-      'pastry',         // Baking, desserts
-      'garde_manger',   // Cold prep, salads, appetizers
-      'sous_chef',      // Coordination, multi-tasking
-      'expeditor'       // Final plating, assembly
-    ]
-  }).notNull(),
+    // Restaurant-style role (for better task organization)
+    role: text('role', {
+      enum: [
+        'prep_cook', // Chopping, peeling, measuring
+        'line_cook', // Active cooking, sautéing, searing
+        'pastry', // Baking, desserts
+        'garde_manger', // Cold prep, salads, appetizers
+        'sous_chef', // Coordination, multi-tasking
+        'expeditor', // Final plating, assembly
+      ],
+    }).notNull(),
 
-  // Time estimates (in minutes)
-  active_time: integer('active_time').notNull(), // Hands-on time
-  passive_time: integer('passive_time').default(0), // Waiting time (oven, chilling)
+    // Time estimates (in minutes)
+    active_time: integer('active_time').notNull(), // Hands-on time
+    passive_time: integer('passive_time').default(0), // Waiting time (oven, chilling)
 
-  // Dependencies and parallelization
-  can_be_parallel: boolean('can_be_parallel').default(true), // Can be done alongside other tasks
-  depends_on_task_ids: text('depends_on_task_ids'), // JSON array of task IDs that must be completed first
+    // Dependencies and parallelization
+    can_be_parallel: boolean('can_be_parallel').default(true), // Can be done alongside other tasks
+    depends_on_task_ids: text('depends_on_task_ids'), // JSON array of task IDs that must be completed first
 
-  // Tools and ingredients used in this specific task
-  ingredient_ids: text('ingredient_ids'), // JSON array of ingredient IDs used
-  tool_ids: text('tool_ids'), // JSON array of tool IDs used
+    // Tools and ingredients used in this specific task
+    ingredient_ids: text('ingredient_ids'), // JSON array of ingredient IDs used
+    tool_ids: text('tool_ids'), // JSON array of tool IDs used
 
-  // Metadata
-  parsed_by_model: text('parsed_by_model'), // LLM that generated this breakdown
-  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }),
+    // Metadata
+    parsed_by_model: text('parsed_by_model'), // LLM that generated this breakdown
+    confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }),
 
-  created_at: timestamp('created_at').notNull().defaultNow(),
-  updated_at: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => ({
-  recipeIdIdx: index('recipe_tasks_recipe_id_idx').on(table.recipe_id),
-  taskOrderIdx: index('recipe_tasks_task_order_idx').on(table.recipe_id, table.task_order),
-  taskTypeIdx: index('recipe_tasks_task_type_idx').on(table.task_type),
-  roleIdx: index('recipe_tasks_role_idx').on(table.role),
-}));
+    created_at: timestamp('created_at').notNull().defaultNow(),
+    updated_at: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    recipeIdIdx: index('recipe_tasks_recipe_id_idx').on(table.recipe_id),
+    taskOrderIdx: index('recipe_tasks_task_order_idx').on(table.recipe_id, table.task_order),
+    taskTypeIdx: index('recipe_tasks_task_type_idx').on(table.task_type),
+    roleIdx: index('recipe_tasks_role_idx').on(table.role),
+  })
+);
 
 // NOTE: meals and mealRecipes tables are defined in meals-schema.ts
 // They are re-exported at the end of this file for convenience
 
 // Meal Occasions - predefined occasions/themes
-export const mealOccasions = pgTable('meal_occasions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().unique(),
-  display_name: text('display_name').notNull(),
-  description: text('description'),
-  tags: text('tags'), // JSON array
-  is_holiday: boolean('is_holiday').default(false),
-  season: text('season', {
-    enum: ['spring', 'summer', 'fall', 'winter', 'year-round']
-  }),
-  icon: text('icon'), // Icon name for UI
-  created_at: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  nameIdx: index('meal_occasions_name_idx').on(table.name),
-  seasonIdx: index('meal_occasions_season_idx').on(table.season),
-}));
+export const mealOccasions = pgTable(
+  'meal_occasions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(),
+    display_name: text('display_name').notNull(),
+    description: text('description'),
+    tags: text('tags'), // JSON array
+    is_holiday: boolean('is_holiday').default(false),
+    season: text('season', {
+      enum: ['spring', 'summer', 'fall', 'winter', 'year-round'],
+    }),
+    icon: text('icon'), // Icon name for UI
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: index('meal_occasions_name_idx').on(table.name),
+    seasonIdx: index('meal_occasions_season_idx').on(table.season),
+  })
+);
 
 // Type exports
-export type RecipeLicense = typeof recipeLicenseEnum.enumValues[number];
+export type RecipeLicense = (typeof recipeLicenseEnum.enumValues)[number];
 export type RecipeSource = typeof recipeSources.$inferSelect;
 export type NewRecipeSource = typeof recipeSources.$inferInsert;
 export type RecipeSourceType = typeof recipeSourceTypes.$inferSelect;
@@ -688,7 +744,37 @@ export {
   selectIngredientStatisticsSchema,
   selectRecipeIngredientSchema,
 } from './ingredients-schema';
-
+// Re-export inventory-related types and schemas for convenience
+export {
+  type InventoryItem,
+  type InventoryItemWithDetails,
+  type InventoryStats,
+  type InventoryStatus,
+  type InventoryUsageLog,
+  insertInventoryItemSchema,
+  insertInventoryUsageLogSchema,
+  insertWasteTrackingSchema,
+  inventoryItems,
+  inventoryStatusEnum,
+  inventoryUsageLog,
+  type NewInventoryItem,
+  type NewInventoryUsageLog,
+  type NewWasteTracking,
+  type StorageLocation,
+  selectInventoryItemSchema,
+  selectInventoryUsageLogSchema,
+  selectWasteTrackingSchema,
+  storageLocationEnum,
+  type UsageAction,
+  type UsageLogWithDetails,
+  usageActionEnum,
+  type WasteOutcome,
+  type WasteStats,
+  type WasteTracking,
+  type WasteTrackingWithDetails,
+  wasteOutcomeEnum,
+  wasteTracking,
+} from './inventory-schema';
 // Re-export meals-related types and schemas for convenience
 export {
   insertMealRecipeSchema,
@@ -715,35 +801,3 @@ export {
   selectShoppingListSchema,
   shoppingLists,
 } from './meals-schema';
-
-// Re-export inventory-related types and schemas for convenience
-export {
-  insertInventoryItemSchema,
-  insertInventoryUsageLogSchema,
-  insertWasteTrackingSchema,
-  type InventoryItem,
-  type InventoryItemWithDetails,
-  type InventoryStats,
-  type InventoryStatus,
-  inventoryStatusEnum,
-  inventoryItems,
-  type InventoryUsageLog,
-  inventoryUsageLog,
-  type NewInventoryItem,
-  type NewInventoryUsageLog,
-  type NewWasteTracking,
-  selectInventoryItemSchema,
-  selectInventoryUsageLogSchema,
-  selectWasteTrackingSchema,
-  type StorageLocation,
-  storageLocationEnum,
-  type UsageAction,
-  usageActionEnum,
-  type UsageLogWithDetails,
-  type WasteOutcome,
-  wasteOutcomeEnum,
-  type WasteStats,
-  type WasteTracking,
-  wasteTracking,
-  type WasteTrackingWithDetails,
-} from './inventory-schema';

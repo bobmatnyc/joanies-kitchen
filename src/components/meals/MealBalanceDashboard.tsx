@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  Clock,
-  Palette,
-  Thermometer,
-  Activity,
-  Award,
-  TrendingUp
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Activity, Award, Clock, Palette, Thermometer, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { MealPlan } from '@/types';
 
@@ -42,9 +35,7 @@ export function MealBalanceDashboard({ mealPlan }: MealBalanceDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{meal_analysis.total_prep_time} min</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            From appetizer to dessert
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">From appetizer to dessert</p>
         </CardContent>
       </Card>
 
@@ -77,9 +68,7 @@ export function MealBalanceDashboard({ mealPlan }: MealBalanceDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-sm font-medium">{meal_analysis.cultural_coherence}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Cuisine alignment across courses
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Cuisine alignment across courses</p>
         </CardContent>
       </Card>
 
@@ -127,8 +116,8 @@ export function MealBalanceDashboard({ mealPlan }: MealBalanceDashboardProps) {
                             temp.toLowerCase().includes('hot')
                               ? 'border-orange-500 text-orange-600'
                               : temp.toLowerCase().includes('cold')
-                              ? 'border-blue-500 text-blue-600'
-                              : 'border-gray-500 text-gray-600'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-gray-500 text-gray-600'
                           }`}
                         >
                           {temp}

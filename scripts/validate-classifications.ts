@@ -6,8 +6,8 @@
  * Run with: pnpm tsx scripts/validate-classifications.ts
  */
 
-import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
 import type { InstructionMetadata } from '@/types/instruction-metadata';
 
 async function validateClassifications() {
@@ -90,7 +90,7 @@ async function validateClassifications() {
           avgConf,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       console.error(`Error parsing metadata for recipe: ${(row as any).name}`);
     }
   }
@@ -155,7 +155,7 @@ async function validateClassifications() {
     { name: 'Avg Confidence > 90%', pass: avgConfidence > 0.9, critical: false },
     {
       name: 'Low confidence recipes < 5%',
-      pass: (lowConfidenceRecipes.length / classifiedRecipes) < 0.05,
+      pass: lowConfidenceRecipes.length / classifiedRecipes < 0.05,
       critical: false,
     },
   ];

@@ -4,13 +4,12 @@ import { asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   type Ingredient,
+  type IngredientWithStats,
   ingredientStatistics,
   ingredients,
-  type IngredientWithStats,
   recipeIngredients,
 } from '@/lib/db/ingredients-schema';
-import { joanieComments } from '@/lib/db/schema';
-import { recipes } from '@/lib/db/schema';
+import { joanieComments, recipes } from '@/lib/db/schema';
 
 /**
  * Ingredients Server Actions
@@ -60,21 +59,17 @@ export type SortOption = 'alphabetical' | 'most-used' | 'recently-added';
  * @param options - Filter and sort options
  * @returns List of ingredients with statistics
  */
-export async function getAllIngredients(options: {
-  category?: string;
-  search?: string;
-  sort?: SortOption;
-  limit?: number;
-  offset?: number;
-} = {}): Promise<IngredientsListResult> {
+export async function getAllIngredients(
+  options: {
+    category?: string;
+    search?: string;
+    sort?: SortOption;
+    limit?: number;
+    offset?: number;
+  } = {}
+): Promise<IngredientsListResult> {
   try {
-    const {
-      category,
-      search,
-      sort = 'alphabetical',
-      limit = 100,
-      offset = 0,
-    } = options;
+    const { category, search, sort = 'alphabetical', limit = 100, offset = 0 } = options;
 
     // Build where conditions
     const conditions = [];
@@ -103,7 +98,6 @@ export async function getAllIngredients(options: {
       case 'recently-added':
         orderBy = [desc(ingredients.created_at), asc(ingredients.display_name)];
         break;
-      case 'alphabetical':
       default:
         orderBy = [asc(ingredients.display_name)];
         break;
@@ -122,18 +116,18 @@ export async function getAllIngredients(options: {
       .offset(offset);
 
     // Apply conditions if any
-    const results = conditions.length > 0
-      ? await query.where(sql`${sql.join(conditions, sql` AND `)}`)
-      : await query;
+    const results =
+      conditions.length > 0
+        ? await query.where(sql`${sql.join(conditions, sql` AND `)}`)
+        : await query;
 
     // Get total count for pagination
-    const countQuery = db
-      .select({ count: count() })
-      .from(ingredients);
+    const countQuery = db.select({ count: count() }).from(ingredients);
 
-    const [countResult] = conditions.length > 0
-      ? await countQuery.where(sql`${sql.join(conditions, sql` AND `)}`)
-      : await countQuery;
+    const [countResult] =
+      conditions.length > 0
+        ? await countQuery.where(sql`${sql.join(conditions, sql` AND `)}`)
+        : await countQuery;
 
     const ingredientsWithStats: IngredientWithStats[] = results.map((r) => ({
       ...r.ingredient,
@@ -262,7 +256,6 @@ export async function getRecipesUsingIngredient(
       case 'rating':
         orderBy = [desc(recipes.avg_user_rating), desc(recipes.system_rating)];
         break;
-      case 'popular':
       default:
         orderBy = [desc(recipes.like_count), desc(recipes.system_rating)];
         break;
@@ -273,7 +266,10 @@ export async function getRecipesUsingIngredient(
       .select()
       .from(recipes)
       .where(
-        sql`${recipes.id} IN (${sql.join(recipeIds.map((id) => sql`${id}`), sql`, `)})`
+        sql`${recipes.id} IN (${sql.join(
+          recipeIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
       )
       .orderBy(...orderBy)
       .limit(limit)
@@ -284,7 +280,10 @@ export async function getRecipesUsingIngredient(
       .select({ count: count() })
       .from(recipes)
       .where(
-        sql`${recipes.id} IN (${sql.join(recipeIds.map((id) => sql`${id}`), sql`, `)})`
+        sql`${recipes.id} IN (${sql.join(
+          recipeIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
       );
 
     return {

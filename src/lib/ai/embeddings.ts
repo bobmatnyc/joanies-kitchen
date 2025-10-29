@@ -558,11 +558,9 @@ export async function generateMealEmbedding(
   const embeddingText = buildMealEmbeddingText(meal, recipeNames);
 
   if (!embeddingText) {
-    throw new EmbeddingError(
-      'Cannot generate embedding: meal has no content',
-      'VALIDATION_ERROR',
-      { mealId: meal.id }
-    );
+    throw new EmbeddingError('Cannot generate embedding: meal has no content', 'VALIDATION_ERROR', {
+      mealId: meal.id,
+    });
   }
 
   const embedding = await generateEmbedding(embeddingText, options);
@@ -647,11 +645,9 @@ export async function generateChefEmbedding(
   const embeddingText = buildChefEmbeddingText(chef);
 
   if (!embeddingText) {
-    throw new EmbeddingError(
-      'Cannot generate embedding: chef has no content',
-      'VALIDATION_ERROR',
-      { chefId: chef.id }
-    );
+    throw new EmbeddingError('Cannot generate embedding: chef has no content', 'VALIDATION_ERROR', {
+      chefId: chef.id,
+    });
   }
 
   const embedding = await generateEmbedding(embeddingText, options);

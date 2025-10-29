@@ -1,8 +1,8 @@
 'use client';
 
+import { Package, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Package, TrendingUp } from 'lucide-react';
 import type { IngredientWithStats } from '@/lib/db/ingredients-schema';
 
 interface IngredientCardProps {

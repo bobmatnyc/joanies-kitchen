@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ingredients } from '@/lib/db/ingredients-schema';
-import { eq, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
 
 /**
  * GET /api/ingredients/filter
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
     // Pagination and sorting
     const sortBy = searchParams.get('sort') || 'usage_count';
     const sortOrder = searchParams.get('order') || 'desc';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Build WHERE conditions
     const conditions = [];
@@ -71,12 +71,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Build ORDER BY
-    const sortColumn = {
-      usage_count: ingredients.usage_count,
-      name: ingredients.name,
-      display_name: ingredients.display_name,
-      created_at: ingredients.created_at,
-    }[sortBy] || ingredients.usage_count;
+    const sortColumn =
+      {
+        usage_count: ingredients.usage_count,
+        name: ingredients.name,
+        display_name: ingredients.display_name,
+        created_at: ingredients.created_at,
+      }[sortBy] || ingredients.usage_count;
 
     const orderFn = sortOrder === 'asc' ? asc : desc;
 
@@ -118,9 +119,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error filtering ingredients:', error);
-    return NextResponse.json(
-      { error: 'Failed to filter ingredients' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to filter ingredients' }, { status: 500 });
   }
 }

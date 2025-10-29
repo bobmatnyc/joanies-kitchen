@@ -86,6 +86,13 @@ function createMockRecipe(overrides: Partial<Recipe> = {}): Recipe {
     waste_reduction_tags: null,
     scrap_utilization_notes: null,
     environmental_notes: null,
+    qa_status: 'pending',
+    qa_timestamp: null,
+    qa_method: null,
+    qa_confidence: null,
+    qa_notes: null,
+    qa_issues_found: null,
+    qa_fixes_applied: null,
     ...overrides,
   };
 }

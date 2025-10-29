@@ -11,10 +11,10 @@
  *   pnpm tsx scripts/detect-recipe-issues.ts --verbose
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import fs from 'fs';
-import path from 'path';
 
 interface IssuePattern {
   name: string;
@@ -49,13 +49,14 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'missing_space_after_number',
     pattern: /\d+(cups?|tablespoons?|teaspoons?|tbsp|tsp|oz|lbs?|grams?|g|kg|ml|liters?|l)\b/gi,
     severity: 'high',
-    description: 'Missing space between number and unit (e.g., "2cups" should be "2 cups")'
+    description: 'Missing space between number and unit (e.g., "2cups" should be "2 cups")',
   },
   {
     name: 'missing_space_fraction',
-    pattern: /[½¼¾⅓⅔⅛⅜⅝⅞](cups?|tablespoons?|teaspoons?|tbsp|tsp|oz|lbs?|grams?|g|kg|ml|liters?|l)\b/gi,
+    pattern:
+      /[½¼¾⅓⅔⅛⅜⅝⅞](cups?|tablespoons?|teaspoons?|tbsp|tsp|oz|lbs?|grams?|g|kg|ml|liters?|l)\b/gi,
     severity: 'high',
-    description: 'Missing space between fraction and unit'
+    description: 'Missing space between fraction and unit',
   },
 
   // Extra brackets
@@ -63,7 +64,7 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'extra_brackets',
     pattern: /\[[^\]]+\]/g,
     severity: 'medium',
-    description: 'Extra brackets around content (e.g., "[ingredient name]")'
+    description: 'Extra brackets around content (e.g., "[ingredient name]")',
   },
 
   // URLs and links
@@ -71,19 +72,19 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'http_urls',
     pattern: /https?:\/\/[^\s]+/gi,
     severity: 'high',
-    description: 'HTTP/HTTPS URLs in content'
+    description: 'HTTP/HTTPS URLs in content',
   },
   {
     name: 'amazon_links',
     pattern: /(amzn\.to|amazon\.com|a\.co)\/[^\s]+/gi,
     severity: 'high',
-    description: 'Amazon affiliate or product links'
+    description: 'Amazon affiliate or product links',
   },
   {
     name: 'url_fragments',
     pattern: /\b[A-Z]{2,3}\s+\d[A-Z0-9]{2,}\b/g,
     severity: 'medium',
-    description: 'Potential URL fragments or postal codes (e.g., "PH3 OGV")'
+    description: 'Potential URL fragments or postal codes (e.g., "PH3 OGV")',
   },
 
   // Markup artifacts
@@ -91,31 +92,31 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'checkbox_symbol',
     pattern: /▢/g,
     severity: 'high',
-    description: 'Checkbox symbols (▢) from imported recipes'
+    description: 'Checkbox symbols (▢) from imported recipes',
   },
   {
     name: 'markdown_bold',
     pattern: /\*\*[^*]+\*\*/g,
     severity: 'medium',
-    description: 'Markdown bold formatting (**text**)'
+    description: 'Markdown bold formatting (**text**)',
   },
   {
     name: 'markdown_italic',
     pattern: /__[^_]+__/g,
     severity: 'medium',
-    description: 'Markdown italic formatting (__text__)'
+    description: 'Markdown italic formatting (__text__)',
   },
   {
     name: 'markdown_headers',
     pattern: /^#{1,6}\s+/gm,
     severity: 'medium',
-    description: 'Markdown header symbols (# ## ###)'
+    description: 'Markdown header symbols (# ## ###)',
   },
   {
     name: 'html_tags',
     pattern: /<[^>]+>/g,
     severity: 'high',
-    description: 'HTML tags in content'
+    description: 'HTML tags in content',
   },
 
   // Encoding issues
@@ -123,25 +124,25 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'encoding_apostrophe',
     pattern: /â€™/g,
     severity: 'high',
-    description: 'Malformed apostrophe encoding (â€™ should be \')'
+    description: "Malformed apostrophe encoding (â€™ should be ')",
   },
   {
     name: 'encoding_dash',
     pattern: /â€"/g,
     severity: 'high',
-    description: 'Malformed dash encoding (â€" should be —)'
+    description: 'Malformed dash encoding (â€" should be —)',
   },
   {
     name: 'encoding_quote',
     pattern: /â€œ|â€/g,
     severity: 'high',
-    description: 'Malformed quote encoding'
+    description: 'Malformed quote encoding',
   },
   {
     name: 'encoding_ellipsis',
     pattern: /â€¦/g,
     severity: 'medium',
-    description: 'Malformed ellipsis encoding (â€¦ should be ...)'
+    description: 'Malformed ellipsis encoding (â€¦ should be ...)',
   },
 
   // Whitespace issues
@@ -149,19 +150,19 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'multiple_spaces',
     pattern: /\s{2,}/g,
     severity: 'low',
-    description: 'Multiple consecutive spaces'
+    description: 'Multiple consecutive spaces',
   },
   {
     name: 'trailing_spaces',
     pattern: /\s+$/gm,
     severity: 'low',
-    description: 'Trailing spaces at end of lines'
+    description: 'Trailing spaces at end of lines',
   },
   {
     name: 'leading_spaces',
     pattern: /^\s+/gm,
     severity: 'low',
-    description: 'Leading spaces at start of lines'
+    description: 'Leading spaces at start of lines',
   },
 
   // Inconsistent formatting
@@ -169,14 +170,14 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     name: 'mixed_bullets',
     pattern: /^[•\-*]\s/gm,
     severity: 'low',
-    description: 'Mixed bullet point styles'
+    description: 'Mixed bullet point styles',
   },
   {
     name: 'degree_symbol_issues',
     pattern: /\d+\s*(F|C|degrees)\b/gi,
     severity: 'low',
-    description: 'Temperature without degree symbol (should use °F or °C)'
-  }
+    description: 'Temperature without degree symbol (should use °F or °C)',
+  },
 ];
 
 async function scanRecipes(verbose: boolean = false): Promise<IssueReport> {
@@ -202,8 +203,12 @@ async function scanRecipes(verbose: boolean = false): Promise<IssueReport> {
       if (verbose) {
         console.log(`📋 Recipe: ${recipe.name} (${recipe.id})`);
         for (const issue of recipeIssues) {
-          console.log(`  ⚠️  [${issue.severity.toUpperCase()}] ${issue.issueType} in ${issue.location}`);
-          console.log(`      Matches: ${issue.matches.slice(0, 3).join(', ')}${issue.matches.length > 3 ? '...' : ''}`);
+          console.log(
+            `  ⚠️  [${issue.severity.toUpperCase()}] ${issue.issueType} in ${issue.location}`
+          );
+          console.log(
+            `      Matches: ${issue.matches.slice(0, 3).join(', ')}${issue.matches.length > 3 ? '...' : ''}`
+          );
         }
         console.log('');
       }
@@ -212,11 +217,11 @@ async function scanRecipes(verbose: boolean = false): Promise<IssueReport> {
 
   const report: IssueReport = {
     totalRecipes: allRecipes.length,
-    recipesWithIssues: new Set(affectedRecipes.map(r => r.recipeId)).size,
+    recipesWithIssues: new Set(affectedRecipes.map((r) => r.recipeId)).size,
     issuesByType,
     issuesBySeverity,
     affectedRecipes,
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
   };
 
   return report;
@@ -228,11 +233,15 @@ function scanRecipe(recipe: any): RecipeIssue[] {
   // Parse ingredients and instructions
   const ingredients = Array.isArray(recipe.ingredients)
     ? recipe.ingredients
-    : (typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients) : []);
+    : typeof recipe.ingredients === 'string'
+      ? JSON.parse(recipe.ingredients)
+      : [];
 
   const instructions = Array.isArray(recipe.instructions)
     ? recipe.instructions
-    : (typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : []);
+    : typeof recipe.instructions === 'string'
+      ? JSON.parse(recipe.instructions)
+      : [];
 
   const ingredientsText = ingredients.join(' ');
   const instructionsText = instructions.join(' ');
@@ -244,9 +253,11 @@ function scanRecipe(recipe: any): RecipeIssue[] {
 
     if (ingredientMatches.length > 0 || instructionMatches.length > 0) {
       const location =
-        ingredientMatches.length > 0 && instructionMatches.length > 0 ? 'both' :
-        ingredientMatches.length > 0 ? 'ingredients' :
-        'instructions';
+        ingredientMatches.length > 0 && instructionMatches.length > 0
+          ? 'both'
+          : ingredientMatches.length > 0
+            ? 'ingredients'
+            : 'instructions';
 
       issues.push({
         recipeId: recipe.id,
@@ -255,7 +266,7 @@ function scanRecipe(recipe: any): RecipeIssue[] {
         severity: pattern.severity,
         location,
         matches: [...new Set([...ingredientMatches, ...instructionMatches])],
-        context: pattern.description
+        context: pattern.description,
       });
     }
   }
@@ -283,13 +294,17 @@ function printReport(report: IssueReport) {
   console.log('═══════════════════════════════════════════════════════════\n');
 
   console.log(`📊 Total Recipes Scanned: ${report.totalRecipes}`);
-  console.log(`⚠️  Recipes with Issues: ${report.recipesWithIssues} (${((report.recipesWithIssues / report.totalRecipes) * 100).toFixed(1)}%)\n`);
+  console.log(
+    `⚠️  Recipes with Issues: ${report.recipesWithIssues} (${((report.recipesWithIssues / report.totalRecipes) * 100).toFixed(1)}%)\n`
+  );
 
   console.log('📈 Issues by Severity:');
   console.log(`   🔴 High:   ${report.issuesBySeverity.high || 0}`);
   console.log(`   🟡 Medium: ${report.issuesBySeverity.medium || 0}`);
   console.log(`   🟢 Low:    ${report.issuesBySeverity.low || 0}`);
-  console.log(`   📊 Total:  ${Object.values(report.issuesBySeverity).reduce((a, b) => a + b, 0)}\n`);
+  console.log(
+    `   📊 Total:  ${Object.values(report.issuesBySeverity).reduce((a, b) => a + b, 0)}\n`
+  );
 
   console.log('🔍 Issues by Type (Top 10):');
   const sortedIssues = Object.entries(report.issuesByType)
@@ -297,8 +312,9 @@ function printReport(report: IssueReport) {
     .slice(0, 10);
 
   for (const [type, count] of sortedIssues) {
-    const pattern = ISSUE_PATTERNS.find(p => p.name === type);
-    const severityIcon = pattern?.severity === 'high' ? '🔴' : pattern?.severity === 'medium' ? '🟡' : '🟢';
+    const pattern = ISSUE_PATTERNS.find((p) => p.name === type);
+    const severityIcon =
+      pattern?.severity === 'high' ? '🔴' : pattern?.severity === 'medium' ? '🟡' : '🟢';
     console.log(`   ${severityIcon} ${type.padEnd(30)} ${count}`);
   }
 
@@ -325,7 +341,7 @@ function printSampleIssues(report: IssueReport, count: number = 5) {
     if (!recipesWithIssues.has(issue.recipeId)) {
       recipesWithIssues.set(issue.recipeId, []);
     }
-    recipesWithIssues.get(issue.recipeId)!.push(issue);
+    recipesWithIssues.get(issue.recipeId)?.push(issue);
   }
 
   // Get first N recipes with issues
@@ -339,11 +355,14 @@ function printSampleIssues(report: IssueReport, count: number = 5) {
     console.log(`Issues Found: ${issues.length}\n`);
 
     for (const issue of issues) {
-      const severityIcon = issue.severity === 'high' ? '🔴' : issue.severity === 'medium' ? '🟡' : '🟢';
+      const severityIcon =
+        issue.severity === 'high' ? '🔴' : issue.severity === 'medium' ? '🟡' : '🟢';
       console.log(`${severityIcon} [${issue.severity.toUpperCase()}] ${issue.issueType}`);
       console.log(`   Location: ${issue.location}`);
       console.log(`   Description: ${issue.context}`);
-      console.log(`   Examples: ${issue.matches.slice(0, 3).join(', ')}${issue.matches.length > 3 ? ` (+${issue.matches.length - 3} more)` : ''}`);
+      console.log(
+        `   Examples: ${issue.matches.slice(0, 3).join(', ')}${issue.matches.length > 3 ? ` (+${issue.matches.length - 3} more)` : ''}`
+      );
       console.log('');
     }
   }

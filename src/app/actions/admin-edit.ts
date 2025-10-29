@@ -70,9 +70,10 @@ export async function parseIngredientsWithLLM(recipeId: string) {
       return { success: false, error: 'Recipe not found' };
     }
 
-    const currentIngredients = typeof recipe[0].ingredients === 'string'
-      ? JSON.parse(recipe[0].ingredients)
-      : recipe[0].ingredients;
+    const currentIngredients =
+      typeof recipe[0].ingredients === 'string'
+        ? JSON.parse(recipe[0].ingredients)
+        : recipe[0].ingredients;
 
     // Use OpenRouter to parse and clean up ingredients
     const client = getOpenRouterClient();
@@ -89,9 +90,7 @@ Return ONLY the JSON array, no additional text.`;
 
     const response = await client.chat.completions.create({
       model: 'anthropic/claude-3.5-sonnet',
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
       max_tokens: 2000,
     });
@@ -190,9 +189,10 @@ export async function formatInstructionsWithLLM(recipeId: string) {
       return { success: false, error: 'Recipe not found' };
     }
 
-    const currentInstructions = typeof recipe[0].instructions === 'string'
-      ? JSON.parse(recipe[0].instructions)
-      : recipe[0].instructions;
+    const currentInstructions =
+      typeof recipe[0].instructions === 'string'
+        ? JSON.parse(recipe[0].instructions)
+        : recipe[0].instructions;
 
     // Use OpenRouter to format and clean up instructions
     const client = getOpenRouterClient();
@@ -208,9 +208,7 @@ Return ONLY the JSON array, no additional text.`;
 
     const response = await client.chat.completions.create({
       model: 'anthropic/claude-3.5-sonnet',
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
       max_tokens: 3000,
     });

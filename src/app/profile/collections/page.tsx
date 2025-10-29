@@ -26,9 +26,7 @@ export default async function MyCollectionsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading text-jk-olive mb-2">
-              My Collections
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-heading text-jk-olive mb-2">My Collections</h1>
             <p className="text-jk-charcoal/70 font-body">
               {userCollections.length} collection{userCollections.length !== 1 ? 's' : ''} in your
               library

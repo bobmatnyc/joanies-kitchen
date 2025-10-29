@@ -158,7 +158,7 @@ export class TheMealDBClient {
             signal: controller.signal,
             headers: {
               'User-Agent': 'recipe-manager/1.0',
-              'Accept': 'application/json',
+              Accept: 'application/json',
             },
           });
 
@@ -201,7 +201,7 @@ export class TheMealDBClient {
         }
 
         // Wait before retrying (exponential backoff)
-        const backoffMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        const backoffMs = 1000 * 2 ** (attempt - 1); // 1s, 2s, 4s
         console.log(
           `  ⚠️  Attempt ${attempt}/${retries} failed: ${errorMessage}. Retrying in ${backoffMs / 1000}s...`
         );
@@ -223,9 +223,7 @@ export class TheMealDBClient {
    * // Returns: [{ idCategory: "1", strCategory: "Beef", ... }, ...]
    */
   async getCategories(): Promise<TheMealDBCategory[]> {
-    const response = await this.makeRequest<{ categories: TheMealDBCategory[] }>(
-      'categories.php'
-    );
+    const response = await this.makeRequest<{ categories: TheMealDBCategory[] }>('categories.php');
 
     return response.categories || [];
   }
@@ -276,9 +274,7 @@ export class TheMealDBClient {
    * @returns Random recipe
    */
   async getRandomRecipe(): Promise<TheMealDBRecipe | null> {
-    const response = await this.makeRequest<TheMealDBResponse<TheMealDBRecipe>>(
-      'random.php'
-    );
+    const response = await this.makeRequest<TheMealDBResponse<TheMealDBRecipe>>('random.php');
 
     if (!response.meals || response.meals.length === 0) {
       return null;

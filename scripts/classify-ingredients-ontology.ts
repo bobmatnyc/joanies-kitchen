@@ -1,6 +1,5 @@
-import postgres from 'postgres';
 import { config } from 'dotenv';
-import OpenAI from 'openrouter';
+import postgres from 'postgres';
 
 config({ path: '.env.local' });
 
@@ -20,7 +19,7 @@ const ONTOLOGY = {
     fruits_tropical: ['banana', 'pineapple', 'mango', 'papaya'],
     fruits_melons: ['watermelon', 'cantaloupe', 'honeydew'],
     fruits_other: ['apple', 'pear', 'grape'],
-    herbs_fresh: ['basil', 'cilantro', 'parsley', 'mint', 'dill', 'thyme', 'rosemary']
+    herbs_fresh: ['basil', 'cilantro', 'parsley', 'mint', 'dill', 'thyme', 'rosemary'],
   },
   PROTEINS: {
     meat_beef: ['beef', 'steak', 'ground beef', 'roast', 'short rib'],
@@ -35,7 +34,7 @@ const ONTOLOGY = {
     seafood_mollusks: ['clam', 'mussel', 'oyster', 'squid'],
     plant_legumes: ['chickpea', 'lentil', 'bean'],
     plant_soy: ['tofu', 'tempeh', 'edamame'],
-    plant_other: ['seitan']
+    plant_other: ['seitan'],
   },
   DAIRY_EGGS: {
     milk_products: ['milk', 'cream', 'half and half', 'half & half'],
@@ -45,7 +44,7 @@ const ONTOLOGY = {
     cheese_fresh: ['fresh mozzarella', 'burrata', 'cottage cheese'],
     cultured_products: ['yogurt', 'greek yogurt', 'sour cream', 'kefir'],
     butter_fats: ['butter', 'ghee'],
-    eggs: ['egg']
+    eggs: ['egg'],
   },
   PANTRY_STAPLES: {
     grains_rice: ['rice'],
@@ -62,7 +61,7 @@ const ONTOLOGY = {
     spices_ground: ['cumin', 'paprika', 'cinnamon', 'ginger', 'turmeric'],
     spices_whole: ['peppercorn', 'star anise'],
     spices_salt: ['salt'],
-    spices_pepper: ['pepper']
+    spices_pepper: ['pepper'],
   },
   BAKING_SPECIALTY: {
     leavening: ['baking powder', 'baking soda', 'yeast'],
@@ -72,70 +71,73 @@ const ONTOLOGY = {
     nuts_seeds: ['sunflower seed', 'pumpkin seed', 'chia seed'],
     nut_butters: ['peanut butter', 'almond butter'],
     dried_fruits: ['raisin', 'cranberry', 'date'],
-    thickeners: ['corn starch', 'gelatin']
-  }
+    thickeners: ['corn starch', 'gelatin'],
+  },
 };
 
-async function classifyIngredient(name: string, existing_category?: string): Promise<{type: string, subtype: string}> {
+async function classifyIngredient(
+  name: string,
+  existing_category?: string
+): Promise<{ type: string; subtype: string }> {
   const nameLower = name.toLowerCase();
-  
+
   // Rule-based classification for common patterns
   for (const [type, subtypes] of Object.entries(ONTOLOGY)) {
     for (const [subtype, keywords] of Object.entries(subtypes)) {
-      if (keywords.some(kw => nameLower.includes(kw))) {
+      if (keywords.some((kw) => nameLower.includes(kw))) {
         return { type, subtype };
       }
     }
   }
-  
+
   // If no match, categorize as OTHER with best guess subtype
   if (existing_category) {
-    return { 
-      type: 'PANTRY_STAPLES', 
-      subtype: `${existing_category}_other` 
+    return {
+      type: 'PANTRY_STAPLES',
+      subtype: `${existing_category}_other`,
     };
   }
-  
+
   return { type: 'PANTRY_STAPLES', subtype: 'other' };
 }
 
 async function main() {
   const client = postgres(process.env.DATABASE_URL!);
-  
+
   console.log('\n🔄 Classifying ingredients using ontology...\n');
-  
+
   // Fetch all ingredients
   const ingredients = await client`
     SELECT id, name, display_name, category
     FROM ingredients
     ORDER BY usage_count DESC
   `;
-  
+
   console.log(`Total ingredients to classify: ${ingredients.length}\n`);
-  
+
   let classified = 0;
-  let skipped = 0;
-  
+  const skipped = 0;
+
   for (const ing of ingredients) {
     const { type, subtype } = await classifyIngredient(ing.name, ing.category);
-    
+
     await client`
       UPDATE ingredients
       SET type = ${type}, subtype = ${subtype}
       WHERE id = ${ing.id}
     `;
-    
+
     classified++;
-    
+
     if (classified % 100 === 0) {
       console.log(`✓ Classified ${classified}/${ingredients.length} ingredients...`);
     }
   }
-  
+
   console.log(`\n✅ Classification complete!`);
   console.log(`   Classified: ${classified}`);
   console.log(`   Skipped: ${skipped}`);
-  
+
   // Show distribution
   const distribution = await client`
     SELECT type, subtype, COUNT(*) as count
@@ -144,7 +146,7 @@ async function main() {
     GROUP BY type, subtype
     ORDER BY type, count DESC
   `;
-  
+
   console.log('\n📊 Distribution by type:');
   let currentType = '';
   for (const row of distribution) {
@@ -154,7 +156,7 @@ async function main() {
     }
     console.log(`  ${row.subtype}: ${row.count}`);
   }
-  
+
   await client.end();
 }
 

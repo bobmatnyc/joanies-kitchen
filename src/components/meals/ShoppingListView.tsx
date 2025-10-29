@@ -15,6 +15,7 @@ import {
   parseShoppingListItems,
   type ShoppingListItem,
 } from '@/lib/meals/type-guards';
+import { formatQuantity } from '@/lib/utils/quantity-formatter';
 
 interface ShoppingListViewProps {
   shoppingList: ShoppingList;
@@ -277,7 +278,7 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                         <Checkbox
                           checked={item.checked}
                           onCheckedChange={() => handleToggleItem(globalIndex)}
-                          className="mt-1"
+                          className="mt-0.5"
                         />
                         <div className="flex-1 min-w-0">
                           <div
@@ -285,10 +286,21 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                               item.checked ? 'line-through text-jk-charcoal/50' : 'text-jk-charcoal'
                             }`}
                           >
-                            <span className="font-semibold">
-                              {item.quantity > 0 ? `${item.quantity.toFixed(2)} ${item.unit}` : ''}
-                            </span>{' '}
-                            {item.name}
+                            {item.isToTaste ? (
+                              <>
+                                <span className="font-semibold">{item.name}</span>
+                                <span className="text-jk-charcoal/60 text-sm ml-1">(to taste)</span>
+                              </>
+                            ) : (
+                              <>
+                                {item.quantity > 0 && (
+                                  <span className="font-semibold">
+                                    {formatQuantity(item.quantity)} {item.unit}{' '}
+                                  </span>
+                                )}
+                                {item.name}
+                              </>
+                            )}
                           </div>
                           {item.estimated_price && (
                             <div className="text-xs text-jk-charcoal/60 mt-1 font-ui">

@@ -5,18 +5,10 @@
  * semantic search for meals and chefs.
  */
 
-import {
-  customType,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from 'drizzle-orm/pg-core';
+import { customType, index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { meals } from './meals-schema';
 import { chefs } from './chef-schema';
+import { meals } from './meals-schema';
 
 // Custom type for pgvector embedding columns (384 dimensions)
 const vector = customType<{ data: number[]; driverData: string }>({

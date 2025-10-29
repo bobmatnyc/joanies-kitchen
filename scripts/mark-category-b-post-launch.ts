@@ -1,7 +1,7 @@
+import * as fs from 'node:fs';
+import { inArray } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { inArray } from 'drizzle-orm';
-import * as fs from 'fs';
 
 /**
  * Mark Category B recipes (179 with ingredients but no instructions)
@@ -19,9 +19,15 @@ async function markCategoryBPostLaunch() {
 
   console.log(`\n📊 CATEGORY B STATUS:`);
   console.log(`   Total Recipes: ${categoryB.length}`);
-  console.log(`   Tier 1 (High Priority): ${prioritized.tiers.tier1.count} recipes (12+ ingredients)`);
-  console.log(`   Tier 2 (Medium Priority): ${prioritized.tiers.tier2.count} recipes (8-11 ingredients)`);
-  console.log(`   Tier 3 (Low Priority): ${prioritized.tiers.tier3.count} recipes (5-7 ingredients)`);
+  console.log(
+    `   Tier 1 (High Priority): ${prioritized.tiers.tier1.count} recipes (12+ ingredients)`
+  );
+  console.log(
+    `   Tier 2 (Medium Priority): ${prioritized.tiers.tier2.count} recipes (8-11 ingredients)`
+  );
+  console.log(
+    `   Tier 3 (Low Priority): ${prioritized.tiers.tier3.count} recipes (5-7 ingredients)`
+  );
   console.log();
   console.log(`   Primary Source: food.com (174/179 recipes = 97.2%)`);
   console.log();
@@ -33,7 +39,8 @@ async function markCategoryBPostLaunch() {
       qa_status: 'pending_instructions',
       qa_method: 'awaiting-post-launch-extraction',
       qa_timestamp: new Date(),
-      qa_notes: 'Has ingredients but missing instructions - scheduled for post-launch batch extraction from source URLs',
+      qa_notes:
+        'Has ingredients but missing instructions - scheduled for post-launch batch extraction from source URLs',
       qa_confidence: '0.80',
       qa_fixes_applied: JSON.stringify(['marked_for_post_launch_processing']),
     })

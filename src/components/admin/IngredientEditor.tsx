@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import { GripVertical, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { parseIngredientsWithLLM, updateRecipeIngredients } from '@/app/actions/admin-edit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { parseIngredientsWithLLM, updateRecipeIngredients } from '@/app/actions/admin-edit';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface IngredientEditorProps {
   recipeId: string;
@@ -74,7 +81,10 @@ export function IngredientEditor({
     setParsing(true);
     try {
       // First save current state
-      const saveResult = await updateRecipeIngredients(recipeId, ingredients.filter(ing => ing.trim()));
+      const saveResult = await updateRecipeIngredients(
+        recipeId,
+        ingredients.filter((ing) => ing.trim())
+      );
 
       if (!saveResult.success) {
         toast.error(saveResult.error || 'Failed to save ingredients before parsing');
@@ -102,7 +112,7 @@ export function IngredientEditor({
     setSaving(true);
     try {
       // Filter out empty ingredients
-      const validIngredients = ingredients.filter(ing => ing.trim());
+      const validIngredients = ingredients.filter((ing) => ing.trim());
 
       if (validIngredients.length === 0) {
         toast.error('Please add at least one ingredient');
@@ -232,11 +242,7 @@ export function IngredientEditor({
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || parsing}
-            className="flex-1 min-h-[44px]"
-          >
+          <Button onClick={handleSave} disabled={saving || parsing} className="flex-1 min-h-[44px]">
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </SheetFooter>

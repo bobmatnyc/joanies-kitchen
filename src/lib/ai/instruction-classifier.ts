@@ -8,6 +8,11 @@
  */
 
 import OpenAI from 'openai';
+import type {
+  InstructionClassification,
+  InstructionMetadata,
+  SkillLevelEnum,
+} from '@/types/instruction-metadata';
 import {
   buildBatchClassificationPrompt,
   buildInstructionClassifierPrompt,
@@ -15,11 +20,6 @@ import {
   parseClassificationResponse,
   validateClassification,
 } from './instruction-classifier-prompt';
-import type {
-  InstructionClassification,
-  InstructionMetadata,
-  SkillLevelEnum,
-} from '@/types/instruction-metadata';
 
 const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free';
 const CLASSIFICATION_TEMPERATURE = 0.1; // Low for consistency
@@ -250,9 +250,7 @@ export function getRequiredTools(metadata: InstructionMetadata[]): string[] {
 /**
  * Identifies steps that require constant attention
  */
-export function getAttentionRequiredSteps(
-  metadata: InstructionMetadata[]
-): InstructionMetadata[] {
+export function getAttentionRequiredSteps(metadata: InstructionMetadata[]): InstructionMetadata[] {
   return metadata.filter((step) => step.classification.requires_attention);
 }
 

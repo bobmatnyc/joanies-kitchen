@@ -132,8 +132,14 @@ export function areVariants(name1: string, name2: string): boolean {
   if (norm1 === norm2) return true;
 
   // Check if words are same but in different order
-  const words1 = name1.toLowerCase().split(/[\s-_]+/).sort();
-  const words2 = name2.toLowerCase().split(/[\s-_]+/).sort();
+  const words1 = name1
+    .toLowerCase()
+    .split(/[\s-_]+/)
+    .sort();
+  const words2 = name2
+    .toLowerCase()
+    .split(/[\s-_]+/)
+    .sort();
 
   if (words1.length === words2.length && words1.join('') === words2.join('')) {
     return true;
@@ -155,7 +161,7 @@ export function areVariants(name1: string, name2: string): boolean {
  */
 export function clusterVariants(
   ingredients: Ingredient[],
-  threshold: number = 0.85
+  _threshold: number = 0.85
 ): Ingredient[][] {
   const clusters: Ingredient[][] = [];
   const processed = new Set<string>();

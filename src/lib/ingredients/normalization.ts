@@ -12,7 +12,7 @@
  * @module lib/ingredients/normalization
  */
 
-import { PREPARATION_METHODS, type PreparationMethod } from '../db/ingredients-schema';
+import { PREPARATION_METHODS } from '../db/ingredients-schema';
 import { applyConsolidation } from './consolidation-map';
 
 /**
@@ -88,7 +88,7 @@ const PREPARATION_SUFFIXES = [
  * Ingredient prefixes that should be preserved (not treated as preparation)
  * Example: "Baby Arugula" - "Baby" is part of the ingredient name, not preparation
  */
-const PRESERVE_PREFIXES = [
+const _PRESERVE_PREFIXES = [
   'baby',
   'young',
   'fresh',
@@ -249,16 +249,18 @@ export function capitalizeWords(str: string): string {
  * // Returns: "extra-virgin-olive-oil"
  */
 export function generateCanonicalSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    // Replace spaces, underscores, and multiple hyphens with single hyphen
-    .replace(/[\s_]+/g, '-')
-    .replace(/-+/g, '-')
-    // Remove special characters except hyphens
-    .replace(/[^a-z0-9-]/g, '')
-    // Remove leading/trailing hyphens
-    .replace(/^-+|-+$/g, '');
+  return (
+    name
+      .toLowerCase()
+      .trim()
+      // Replace spaces, underscores, and multiple hyphens with single hyphen
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      // Remove special characters except hyphens
+      .replace(/[^a-z0-9-]/g, '')
+      // Remove leading/trailing hyphens
+      .replace(/^-+|-+$/g, '')
+  );
 }
 
 /**
@@ -406,7 +408,7 @@ export function formatNormalizationChange(normalized: NormalizedIngredient): str
 
   if (normalized.quantity || normalized.unit) {
     parts.push(
-      `Extracted quantity: ${normalized.quantity || ''}${normalized.unit ? ' ' + normalized.unit : ''}`
+      `Extracted quantity: ${normalized.quantity || ''}${normalized.unit ? ` ${normalized.unit}` : ''}`
     );
   }
 

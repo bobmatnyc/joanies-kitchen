@@ -23,7 +23,6 @@ import { getAllTags } from '@/app/actions/recipes';
 import { RequireAuthAI } from '@/components/auth/RequireAuth';
 import { WebSearchPanel } from '@/components/recipe/WebSearchPanel';
 import { Badge } from '@/components/ui/badge';
-import { getTagLabel } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -53,6 +52,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MODEL_CATEGORIES, MODELS } from '@/lib/ai/openrouter';
+import { getTagLabel } from '@/lib/tags';
 import { toast } from '@/lib/toast';
 
 export default function DiscoverPage() {
@@ -194,7 +194,8 @@ export default function DiscoverPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Find Recipes You Can Make</h1>
           <p className="text-muted-foreground">
-            Tell us what's in your fridge and we'll find recipes you can make right now — or generate new ideas using what you have
+            Tell us what's in your fridge and we'll find recipes you can make right now — or
+            generate new ideas using what you have
           </p>
         </div>
 

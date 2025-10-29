@@ -59,10 +59,7 @@ async function backfillMealSlugs() {
       console.log(`\n📝 Updating ${updates.length} meals with slugs...`);
 
       for (const { id, slug } of updates) {
-        await db
-          .update(meals)
-          .set({ slug, updated_at: new Date() })
-          .where(eq(meals.id, id));
+        await db.update(meals).set({ slug, updated_at: new Date() }).where(eq(meals.id, id));
       }
 
       console.log('✅ All slugs updated successfully!');

@@ -1,8 +1,8 @@
 'use client';
 
-import { Leaf, Recycle, Sun, Clock, RefreshCw, ChefHat } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { ChefHat, Clock, Leaf, Recycle, RefreshCw, Sun } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface WasteReductionSectionProps {
@@ -14,41 +14,39 @@ interface WasteReductionSectionProps {
 }
 
 // Tag type mapping with icons and colors
-const WASTE_REDUCTION_TAGS: Record<
-  string,
-  { label: string; icon: typeof Recycle; color: string }
-> = {
-  'uses-scraps': {
-    label: 'Uses Scraps',
-    icon: Recycle,
-    color: 'bg-green-100 text-green-700 border-green-200',
-  },
-  'one-pot': {
-    label: 'One Pot',
-    icon: ChefHat,
-    color: 'bg-blue-100 text-blue-700 border-blue-200',
-  },
-  'flexible-ingredients': {
-    label: 'Flexible Ingredients',
-    icon: RefreshCw,
-    color: 'bg-purple-100 text-purple-700 border-purple-200',
-  },
-  'minimal-waste': {
-    label: 'Minimal Waste',
-    icon: Leaf,
-    color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  },
-  'uses-aging': {
-    label: 'Uses Aging Produce',
-    icon: Clock,
-    color: 'bg-orange-100 text-orange-700 border-orange-200',
-  },
-  seasonal: {
-    label: 'Seasonal',
-    icon: Sun,
-    color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  },
-};
+const WASTE_REDUCTION_TAGS: Record<string, { label: string; icon: typeof Recycle; color: string }> =
+  {
+    'uses-scraps': {
+      label: 'Uses Scraps',
+      icon: Recycle,
+      color: 'bg-green-100 text-green-700 border-green-200',
+    },
+    'one-pot': {
+      label: 'One Pot',
+      icon: ChefHat,
+      color: 'bg-blue-100 text-blue-700 border-blue-200',
+    },
+    'flexible-ingredients': {
+      label: 'Flexible Ingredients',
+      icon: RefreshCw,
+      color: 'bg-purple-100 text-purple-700 border-purple-200',
+    },
+    'minimal-waste': {
+      label: 'Minimal Waste',
+      icon: Leaf,
+      color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    },
+    'uses-aging': {
+      label: 'Uses Aging Produce',
+      icon: Clock,
+      color: 'bg-orange-100 text-orange-700 border-orange-200',
+    },
+    seasonal: {
+      label: 'Seasonal',
+      icon: Sun,
+      color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    },
+  };
 
 export function WasteReductionSection({
   resourcefulnessScore,
@@ -105,18 +103,18 @@ export function WasteReductionSection({
         {/* Resourcefulness Score */}
         {resourcefulnessScore && resourcefulnessScore > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-jk-charcoal/80 mb-2">
-              Resourcefulness Score
-            </h3>
-            <div className="flex items-center gap-1" role="img" aria-label={`Resourcefulness score ${resourcefulnessScore} out of 5`}>
+            <h3 className="text-sm font-medium text-jk-charcoal/80 mb-2">Resourcefulness Score</h3>
+            <div
+              className="flex items-center gap-1"
+              role="img"
+              aria-label={`Resourcefulness score ${resourcefulnessScore} out of 5`}
+            >
               {[1, 2, 3, 4, 5].map((leaf) => (
                 <Leaf
                   key={leaf}
                   className={cn(
                     'h-6 w-6 transition-colors',
-                    leaf <= resourcefulnessScore
-                      ? 'fill-jk-sage text-jk-sage'
-                      : 'text-jk-sage/20'
+                    leaf <= resourcefulnessScore ? 'fill-jk-sage text-jk-sage' : 'text-jk-sage/20'
                   )}
                   aria-hidden="true"
                 />

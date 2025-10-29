@@ -13,12 +13,7 @@ import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { renderPrompt } from '@/lib/ai/prompts';
 import { INGREDIENT_SUBSTITUTION_GENERATOR } from '@/lib/ai/prompts/ingredient-substitution';
 import { STATIC_SUBSTITUTION_LIBRARY } from './static-library';
-import type {
-  SubstitutionResult,
-  SubstitutionContext,
-  IngredientSubstitution,
-  CachedSubstitution,
-} from './types';
+import type { CachedSubstitution, SubstitutionContext, SubstitutionResult } from './types';
 
 /**
  * In-memory cache for AI-generated substitutions (24-hour TTL)
@@ -40,25 +35,27 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
  * - "2 cups All-Purpose Flour" → "all purpose flour"
  */
 export function normalizeIngredientName(ingredient: string): string {
-  return ingredient
-    .toLowerCase()
-    .trim()
-    // Remove amounts and numbers
-    .replace(/\b\d+\/\d+|\b\d+\.?\d*\b/g, '')
-    // Remove common units
-    .replace(
-      /\b(cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|ounce|ounces|oz|pound|pounds|lb|lbs|gram|grams|g|kilogram|kilograms|kg|milliliter|milliliters|ml|liter|liters|l|pinch|dash|handful|clove|cloves|can|cans|package|packages|piece|pieces|slice|slices|sprig|sprigs|stalk|stalks)\b/gi,
-      ''
-    )
-    // Remove common descriptors
-    .replace(
-      /\b(fresh|dried|frozen|canned|organic|chopped|diced|sliced|minced|grated|shredded|crushed|whole|ground|raw|cooked|large|small|medium|extra|fine|finely|roughly|thinly|thickly|boneless|skinless|peeled|unpeeled|ripe|green|unsalted|salted)\b/gi,
-      ''
-    )
-    // Remove special characters and extra spaces
-    .replace(/[,()[\]]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    ingredient
+      .toLowerCase()
+      .trim()
+      // Remove amounts and numbers
+      .replace(/\b\d+\/\d+|\b\d+\.?\d*\b/g, '')
+      // Remove common units
+      .replace(
+        /\b(cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|ounce|ounces|oz|pound|pounds|lb|lbs|gram|grams|g|kilogram|kilograms|kg|milliliter|milliliters|ml|liter|liters|l|pinch|dash|handful|clove|cloves|can|cans|package|packages|piece|pieces|slice|slices|sprig|sprigs|stalk|stalks)\b/gi,
+        ''
+      )
+      // Remove common descriptors
+      .replace(
+        /\b(fresh|dried|frozen|canned|organic|chopped|diced|sliced|minced|grated|shredded|crushed|whole|ground|raw|cooked|large|small|medium|extra|fine|finely|roughly|thinly|thickly|boneless|skinless|peeled|unpeeled|ripe|green|unsalted|salted)\b/gi,
+        ''
+      )
+      // Remove special characters and extra spaces
+      .replace(/[,()[\]]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 /**
@@ -78,17 +75,12 @@ function getStaticSubstitutions(ingredient: string): SubstitutionResult | null {
 
     // Check aliases
     if (e.aliases) {
-      return e.aliases.some(
-        (alias) => normalizeIngredientName(alias) === normalized
-      );
+      return e.aliases.some((alias) => normalizeIngredientName(alias) === normalized);
     }
 
     // Fuzzy match: check if normalized is contained in entry or vice versa
     const entryNormalized = normalizeIngredientName(e.ingredient);
-    return (
-      normalized.includes(entryNormalized) ||
-      entryNormalized.includes(normalized)
-    );
+    return normalized.includes(entryNormalized) || entryNormalized.includes(normalized);
   });
 
   if (!entry) {
@@ -124,7 +116,7 @@ function getCachedSubstitutions(ingredient: string): SubstitutionResult | null {
   }
 
   // Check if cache is expired
-  const now = new Date().getTime();
+  const now = Date.now();
   const expiresAt = new Date(cached.expires_at).getTime();
 
   if (now > expiresAt) {
@@ -349,7 +341,7 @@ export async function getBatchSubstitutions(
  * Clear expired cache entries (maintenance function)
  */
 export function clearExpiredCache(): number {
-  const now = new Date().getTime();
+  const now = Date.now();
   let cleared = 0;
 
   const entries = Array.from(substitutionCache.entries());
@@ -368,7 +360,7 @@ export function clearExpiredCache(): number {
  * Get cache statistics (for monitoring)
  */
 export function getCacheStats() {
-  const now = new Date().getTime();
+  const now = Date.now();
   let expired = 0;
   let valid = 0;
 

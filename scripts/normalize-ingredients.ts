@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Ingredient Normalization Script
  *
@@ -17,17 +18,17 @@
  * @module scripts/normalize-ingredients
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { ingredients, recipeIngredients } from '../src/lib/db/ingredients-schema';
 import {
-  normalizeIngredientName,
-  generateCanonicalSlug,
   capitalizeWords,
+  generateCanonicalSlug,
   type NormalizedIngredient,
+  normalizeIngredientName,
 } from '../src/lib/ingredients/normalization';
-import { sql, eq } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // ============================================================================
 // CLI ARGUMENTS
@@ -46,9 +47,7 @@ function parseArgs(): CliArgs {
     execute: args.includes('--execute'),
     help: args.includes('--help') || args.includes('-h'),
     verbose: args.includes('--verbose') || args.includes('-v'),
-    limit: args.includes('--limit')
-      ? parseInt(args[args.indexOf('--limit') + 1], 10)
-      : undefined,
+    limit: args.includes('--limit') ? parseInt(args[args.indexOf('--limit') + 1], 10) : undefined,
   };
 }
 
@@ -122,9 +121,7 @@ interface NormalizationChange {
   affectedRecipes: number;
 }
 
-async function analyzeNormalization(
-  limit?: number
-): Promise<{
+async function analyzeNormalization(limit?: number): Promise<{
   changes: NormalizationChange[];
   stats: {
     total: number;
@@ -137,9 +134,7 @@ async function analyzeNormalization(
   console.log('🔍 Analyzing ingredients for normalization...\n');
 
   // Fetch all ingredients
-  const query = limit
-    ? db.select().from(ingredients).limit(limit)
-    : db.select().from(ingredients);
+  const query = limit ? db.select().from(ingredients).limit(limit) : db.select().from(ingredients);
 
   const allIngredients = await query;
 
@@ -168,9 +163,7 @@ async function analyzeNormalization(
     // Check if normalization would change anything
     const baseLower = normalized.base.toLowerCase();
     const needsChange =
-      baseLower !== ingredient.name ||
-      normalized.quantity ||
-      normalized.preparation;
+      baseLower !== ingredient.name || normalized.quantity || normalized.preparation;
 
     if (needsChange) {
       // Get recipe count from map
@@ -254,7 +247,7 @@ async function executeNormalization(
         recipeIngredientsUpdated += change.affectedRecipes;
       }
 
-      if (verbose && (updated % 50 === 0)) {
+      if (verbose && updated % 50 === 0) {
         console.log(`    Progress: ${updated}/${changes.length}`);
       }
     } catch (error) {
@@ -271,11 +264,7 @@ async function executeNormalization(
 // REPORTING
 // ============================================================================
 
-function generateReport(
-  changes: NormalizationChange[],
-  stats: any,
-  backupTable?: string
-): string {
+function generateReport(changes: NormalizationChange[], stats: any, backupTable?: string): string {
   const timestamp = new Date().toISOString();
 
   let report = `# Ingredient Normalization Report\n\n`;
@@ -420,7 +409,7 @@ async function main() {
     saveReport(report, 'normalization-report.md');
 
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('✅ NORMALIZATION ' + (args.execute ? 'COMPLETE' : 'ANALYSIS COMPLETE'));
+    console.log(`✅ NORMALIZATION ${args.execute ? 'COMPLETE' : 'ANALYSIS COMPLETE'}`);
     console.log('═══════════════════════════════════════════════════════════════\n');
 
     process.exit(0);

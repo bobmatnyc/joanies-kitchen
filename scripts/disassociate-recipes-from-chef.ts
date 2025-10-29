@@ -9,10 +9,10 @@
  * - fc3bb79b-a596-4c9c-bbe8-10a08a3e621f
  */
 
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
+import { chefRecipes } from '../src/lib/db/chef-schema';
 import { db } from '../src/lib/db/index';
 import { recipes } from '../src/lib/db/schema';
-import { chefRecipes } from '../src/lib/db/chef-schema';
 
 const RECIPE_IDS_TO_UPDATE = [
   'd8e9184c-144a-4bff-a518-a4d63e3146ab',

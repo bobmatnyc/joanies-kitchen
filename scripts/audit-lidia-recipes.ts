@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { eq, like, or } from 'drizzle-orm';
 import { db } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
 import { chefs } from '../src/lib/db/chef-schema';
-import { eq, and, like, or } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
+import { recipes } from '../src/lib/db/schema';
 
 /**
  * LIDIA BASTIANICH RECIPE CONTENT AUDIT SCRIPT
@@ -102,7 +102,7 @@ function analyzeRecipeQuality(recipe: any): RecipeAudit {
       severity: 'high',
       category: 'Description',
       issue: 'Missing recipe description',
-      recommendation: 'Add a warm, engaging description in Lidia\'s voice',
+      recommendation: "Add a warm, engaging description in Lidia's voice",
     });
     qualityScore -= 15;
   } else {
@@ -129,7 +129,9 @@ function analyzeRecipeQuality(recipe: any): RecipeAudit {
     }
 
     // Check for Lidia's voice markers
-    const hasItalianHeritage = /\b(italian|nonna|tradition|family|sicilian|roman|venetian)\b/i.test(recipe.description);
+    const hasItalianHeritage = /\b(italian|nonna|tradition|family|sicilian|roman|venetian)\b/i.test(
+      recipe.description
+    );
     if (hasItalianHeritage) {
       strengths.push('Description captures Italian heritage');
     }
@@ -138,15 +140,16 @@ function analyzeRecipeQuality(recipe: any): RecipeAudit {
   // 3. Ingredients Analysis
   let ingredients: any[] = [];
   try {
-    ingredients = typeof recipe.ingredients === 'string'
-      ? JSON.parse(recipe.ingredients)
-      : recipe.ingredients || [];
+    ingredients =
+      typeof recipe.ingredients === 'string'
+        ? JSON.parse(recipe.ingredients)
+        : recipe.ingredients || [];
 
     if (!Array.isArray(ingredients)) {
       ingredients = [];
       throw new Error('Ingredients is not an array');
     }
-  } catch (e) {
+  } catch (_e) {
     issues.push({
       severity: 'critical',
       category: 'Ingredients',
@@ -267,10 +270,8 @@ function analyzeRecipeQuality(recipe: any): RecipeAudit {
   // 7. Images
   let images: any[] = [];
   try {
-    images = typeof recipe.images === 'string'
-      ? JSON.parse(recipe.images)
-      : recipe.images || [];
-  } catch (e) {
+    images = typeof recipe.images === 'string' ? JSON.parse(recipe.images) : recipe.images || [];
+  } catch (_e) {
     images = [];
   }
 
@@ -289,10 +290,8 @@ function analyzeRecipeQuality(recipe: any): RecipeAudit {
   // 8. Tags
   let tags: any[] = [];
   try {
-    tags = typeof recipe.tags === 'string'
-      ? JSON.parse(recipe.tags)
-      : recipe.tags || [];
-  } catch (e) {
+    tags = typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags || [];
+  } catch (_e) {
     tags = [];
   }
 
@@ -386,7 +385,7 @@ function generateAuditReport(audits: RecipeAudit[]): AuditSummary {
       }
     }
 
-    const hasImages = audit.strengths.some(s => s.includes('image'));
+    const hasImages = audit.strengths.some((s) => s.includes('image'));
     if (hasImages) {
       summary.recipesWithImages++;
     }
@@ -405,11 +404,7 @@ async function main() {
   // Step 1: Find Lidia Bastianich
   console.log('🔍 Step 1: Finding Lidia Bastianich in database...\n');
 
-  const [chef] = await db
-    .select()
-    .from(chefs)
-    .where(eq(chefs.slug, 'lidia-bastianich'))
-    .limit(1);
+  const [chef] = await db.select().from(chefs).where(eq(chefs.slug, 'lidia-bastianich')).limit(1);
 
   if (!chef) {
     console.error('❌ Error: Lidia Bastianich not found in database');
@@ -427,12 +422,7 @@ async function main() {
   const lidiaRecipes = await db
     .select()
     .from(recipes)
-    .where(
-      or(
-        like(recipes.tags, '%Lidia%'),
-        like(recipes.source, '%lidia%')
-      )
-    )
+    .where(or(like(recipes.tags, '%Lidia%'), like(recipes.source, '%lidia%')))
     .orderBy(recipes.name);
 
   console.log(`📚 Found ${lidiaRecipes.length} recipes\n`);
@@ -444,7 +434,7 @@ async function main() {
   }
 
   // Check if chef_id needs to be linked
-  const unlinkedCount = lidiaRecipes.filter(r => !r.chef_id).length;
+  const unlinkedCount = lidiaRecipes.filter((r) => !r.chef_id).length;
   if (unlinkedCount > 0) {
     console.log(`⚠️  Note: ${unlinkedCount}/${lidiaRecipes.length} recipes have NULL chef_id`);
     console.log(`   Run linking script to associate recipes with chef profile\n`);
@@ -477,7 +467,9 @@ async function main() {
   console.log(`  🟠 Medium:   ${summary.mediumPriorityIssues}`);
   console.log(`  ⚪ Low:      ${summary.lowPriorityIssues}\n`);
 
-  console.log(`Images: ${summary.recipesWithImages}/${summary.totalRecipes} recipes (${(summary.recipesWithImages / summary.totalRecipes * 100).toFixed(1)}%)\n`);
+  console.log(
+    `Images: ${summary.recipesWithImages}/${summary.totalRecipes} recipes (${((summary.recipesWithImages / summary.totalRecipes) * 100).toFixed(1)}%)\n`
+  );
 
   // Most Common Issues
   console.log('═══════════════════════════════════════════════════════════════════════');
@@ -499,7 +491,7 @@ async function main() {
   console.log('═══════════════════════════════════════════════════════════════════════\n');
 
   const topRecipes = audits
-    .filter(a => a.qualityScore >= 90)
+    .filter((a) => a.qualityScore >= 90)
     .sort((a, b) => b.qualityScore - a.qualityScore);
 
   if (topRecipes.length === 0) {
@@ -518,7 +510,7 @@ async function main() {
   console.log('═══════════════════════════════════════════════════════════════════════\n');
 
   const problemRecipes = audits
-    .filter(a => a.qualityScore < 70)
+    .filter((a) => a.qualityScore < 70)
     .sort((a, b) => a.qualityScore - b.qualityScore);
 
   if (problemRecipes.length === 0) {
@@ -528,7 +520,9 @@ async function main() {
       console.log(`❌ ${recipe.qualityScore}/100 - ${recipe.name}`);
       console.log(`   ID: ${recipe.id}`);
 
-      const criticalIssues = recipe.issues.filter(i => i.severity === 'critical' || i.severity === 'high');
+      const criticalIssues = recipe.issues.filter(
+        (i) => i.severity === 'critical' || i.severity === 'high'
+      );
       if (criticalIssues.length > 0) {
         console.log('   Critical/High Priority Issues:');
         for (const issue of criticalIssues) {
@@ -582,7 +576,7 @@ async function main() {
   console.log('1. Review recipes with quality score < 70');
   console.log('2. Fix critical issues (missing ingredients, instructions)');
   console.log('3. Add missing prep/cook times where possible');
-  console.log('4. Enhance descriptions to capture Lidia\'s voice');
+  console.log("4. Enhance descriptions to capture Lidia's voice");
   console.log('5. Generate images for recipes without photos');
   console.log('6. Run fix script: npx tsx scripts/fix-lidia-content.ts\n');
 

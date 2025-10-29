@@ -1,8 +1,8 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { inArray } from 'drizzle-orm';
-import fs from 'fs/promises';
-import path from 'path';
 
 // ============================================================================
 // TYPES
@@ -63,9 +63,10 @@ function isEmptyOrInvalid(value: string | null): boolean {
     if (Array.isArray(parsed) && parsed.length === 0) return true;
 
     // Check if array contains only empty strings
-    if (Array.isArray(parsed) && parsed.every((item: any) =>
-      typeof item === 'string' && item.trim() === ''
-    )) {
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((item: any) => typeof item === 'string' && item.trim() === '')
+    ) {
       return true;
     }
 
@@ -98,12 +99,10 @@ function determineCorruptionType(
  */
 function isKnownCorruptedRecipe(name: string, source: string | null): boolean {
   // Known corrupted recipe patterns
-  const knownCorrupted = [
-    { name: /shannon martinez/i, source: null },
-  ];
+  const knownCorrupted = [{ name: /shannon martinez/i, source: null }];
 
-  return knownCorrupted.some(pattern =>
-    pattern.name.test(name) && (!pattern.source || pattern.source === source)
+  return knownCorrupted.some(
+    (pattern) => pattern.name.test(name) && (!pattern.source || pattern.source === source)
   );
 }
 
@@ -118,16 +117,18 @@ async function findCorruptedRecipes(): Promise<CorruptedRecipe[]> {
   console.log('🔍 Scanning database for corrupted recipes...\n');
 
   // Fetch all recipes (we need to check each one)
-  const allRecipes = await db.select({
-    id: recipes.id,
-    name: recipes.name,
-    instructions: recipes.instructions,
-    ingredients: recipes.ingredients,
-    is_public: recipes.is_public,
-    chef_id: recipes.chef_id,
-    source: recipes.source,
-    created_at: recipes.created_at,
-  }).from(recipes);
+  const allRecipes = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      instructions: recipes.instructions,
+      ingredients: recipes.ingredients,
+      is_public: recipes.is_public,
+      chef_id: recipes.chef_id,
+      source: recipes.source,
+      created_at: recipes.created_at,
+    })
+    .from(recipes);
 
   console.log(`📊 Total recipes in database: ${allRecipes.length}`);
 
@@ -181,7 +182,7 @@ async function hideRecipes(recipeIds: string[], dryRun: boolean): Promise<number
   for (let i = 0; i < recipeIds.length; i += batchSize) {
     const batch = recipeIds.slice(i, i + batchSize);
 
-    const result = await db
+    const _result = await db
       .update(recipes)
       .set({
         is_public: false,
@@ -256,7 +257,7 @@ function generateReport(
  * Print summary to console
  */
 function printSummary(report: HideReport): void {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('📊 CORRUPTION ANALYSIS SUMMARY');
   console.log('='.repeat(80));
   console.log(`Mode: ${report.execution_mode === 'dry_run' ? '🔍 DRY RUN' : '⚠️  EXECUTED'}`);
@@ -275,14 +276,13 @@ function printSummary(report: HideReport): void {
   console.log(`  - Was Private: ${report.summary.was_private_count}`);
 
   console.log('\n📂 By Source:');
-  const sortedSources = Object.entries(report.summary.by_source)
-    .sort((a, b) => b[1] - a[1]);
+  const sortedSources = Object.entries(report.summary.by_source).sort((a, b) => b[1] - a[1]);
 
   for (const [source, count] of sortedSources) {
     console.log(`  - ${source}: ${count}`);
   }
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
 
   if (report.execution_mode === 'dry_run') {
     console.log('\n💡 This was a DRY RUN. No changes were made.');
@@ -324,11 +324,11 @@ async function main() {
   const dryRun = !args.includes('--execute');
   const verbose = args.includes('--verbose');
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('🔧 HIDE CORRUPTED RECIPES SCRIPT');
   console.log('='.repeat(80));
   console.log(`Mode: ${dryRun ? '🔍 DRY RUN (preview only)' : '⚠️  EXECUTE (will make changes)'}`);
-  console.log('='.repeat(80) + '\n');
+  console.log(`${'='.repeat(80)}\n`);
 
   try {
     // Step 1: Find corrupted recipes
@@ -349,7 +349,7 @@ async function main() {
     }
 
     // Step 3: Hide recipes (or show what would be hidden)
-    const recipeIds = corruptedRecipes.map(r => r.id);
+    const recipeIds = corruptedRecipes.map((r) => r.id);
     const totalHidden = await hideRecipes(recipeIds, dryRun);
 
     // Step 4: Generate report

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { Award } from 'lucide-react';
+import { useState } from 'react';
 import type { getTopRatedRecipes, RecipeCategory } from '@/app/actions/recipes';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Top50TabsProps {
   allRecipes: Awaited<ReturnType<typeof getTopRatedRecipes>>;
@@ -66,7 +66,13 @@ const CATEGORIES = {
 /**
  * Client component for tabbed recipe display with category filtering
  */
-export function Top50Tabs({ allRecipes, mainsRecipes, sidesRecipes, dessertsRecipes, appetizersRecipes }: Top50TabsProps) {
+export function Top50Tabs({
+  allRecipes,
+  mainsRecipes,
+  sidesRecipes,
+  dessertsRecipes,
+  appetizersRecipes,
+}: Top50TabsProps) {
   const [activeCategory, setActiveCategory] = useState<RecipeCategory>('all');
   const [selectedProtein, setSelectedProtein] = useState<string | null>(null);
   // Helper function to render recipe grid with subcategories
@@ -93,8 +99,16 @@ export function Top50Tabs({ allRecipes, mainsRecipes, sidesRecipes, dessertsReci
             vegan: ['vegan', 'plant-based'],
           };
 
-          const proteinTags = categoryMapping[selectedProtein as keyof typeof categoryMapping] as string[] | undefined;
-          return (Array.isArray(proteinTags) && proteinTags.some((tag: string) => normalizedTags.some((t: string) => t.includes(tag)))) || false;
+          const proteinTags = categoryMapping[selectedProtein as keyof typeof categoryMapping] as
+            | string[]
+            | undefined;
+          return (
+            (Array.isArray(proteinTags) &&
+              proteinTags.some((tag: string) =>
+                normalizedTags.some((t: string) => t.includes(tag))
+              )) ||
+            false
+          );
         } catch {
           return false;
         }
@@ -117,7 +131,11 @@ export function Top50Tabs({ allRecipes, mainsRecipes, sidesRecipes, dessertsReci
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredRecipes.map((recipe, index) => (
-            <RecipeCard key={recipe.id} recipe={recipe} showRank={category === 'all' ? index + 1 : undefined} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              showRank={category === 'all' ? index + 1 : undefined}
+            />
           ))}
         </div>
       );
@@ -139,7 +157,7 @@ export function Top50Tabs({ allRecipes, mainsRecipes, sidesRecipes, dessertsReci
               const categoryMapping = {
                 appetizers: {
                   dips: ['dip', 'dips', 'hummus', 'guacamole', 'salsa'],
-                  'finger-foods': ['finger food', 'appetizer', 'hors d\'oeuvre', 'canape'],
+                  'finger-foods': ['finger food', 'appetizer', "hors d'oeuvre", 'canape'],
                   cheese: ['cheese board', 'cheese platter', 'brie', 'charcuterie'],
                   meat: ['meatball', 'wing', 'wings', 'skewer'],
                   vegetable: ['crudite', 'veggie platter', 'stuffed mushroom'],
@@ -170,8 +188,16 @@ export function Top50Tabs({ allRecipes, mainsRecipes, sidesRecipes, dessertsReci
                 },
               };
 
-              const subcatTags = categoryMapping[category]?.[subcat.value as keyof typeof categoryMapping[typeof category]] as string[] | undefined;
-              return (Array.isArray(subcatTags) && subcatTags.some((tag: string) => normalizedTags.some((t: string) => t.includes(tag)))) || false;
+              const subcatTags = categoryMapping[category]?.[
+                subcat.value as keyof (typeof categoryMapping)[typeof category]
+              ] as string[] | undefined;
+              return (
+                (Array.isArray(subcatTags) &&
+                  subcatTags.some((tag: string) =>
+                    normalizedTags.some((t: string) => t.includes(tag))
+                  )) ||
+                false
+              );
             } catch {
               return false;
             }

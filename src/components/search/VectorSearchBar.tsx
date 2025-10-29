@@ -173,7 +173,6 @@ export function VectorSearchBar({ className, autoFocus = false }: VectorSearchBa
                   'transition-all shadow-sm'
                 )}
                 aria-label={`Search ${searchType}`}
-                autoFocus={autoFocus}
               />
             </div>
           </PopoverTrigger>

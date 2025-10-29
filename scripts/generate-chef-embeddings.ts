@@ -30,10 +30,7 @@ import * as dotenv from 'dotenv';
 import { sql } from 'drizzle-orm';
 import { EmbeddingError, generateChefEmbedding } from '../src/lib/ai/embeddings';
 import { db } from '../src/lib/db';
-import {
-  countChefEmbeddings,
-  saveChefEmbedding,
-} from '../src/lib/db/meal-chef-embeddings';
+import { countChefEmbeddings, saveChefEmbedding } from '../src/lib/db/meal-chef-embeddings';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -282,7 +279,10 @@ async function main() {
     `  With embeddings: ${embeddingCount.toLocaleString()} (${((embeddingCount / chefCount) * 100).toFixed(1)}%)`,
     colors.blue
   );
-  log(`  Missing embeddings: ${missing.toLocaleString()}`, missing > 0 ? colors.yellow : colors.green);
+  log(
+    `  Missing embeddings: ${missing.toLocaleString()}`,
+    missing > 0 ? colors.yellow : colors.green
+  );
 
   if (LIMIT) {
     log(`  Limit applied: ${LIMIT.toLocaleString()}`, colors.magenta);
@@ -361,7 +361,7 @@ async function main() {
         SELECT c.*
         FROM chefs c
         LEFT JOIN chefs_embeddings e ON c.id = e.chef_id
-        WHERE e.id IS NULL AND c.id NOT IN (${sql.raw(idsArray.map(id => `'${id}'`).join(', '))})
+        WHERE e.id IS NULL AND c.id NOT IN (${sql.raw(idsArray.map((id) => `'${id}'`).join(', '))})
       `;
     }
 
@@ -503,7 +503,10 @@ async function main() {
     if (failedChefs.length > displayCount) {
       log(`  ... and ${failedChefs.length - displayCount} more`, colors.red);
     }
-    log(`\n   Error log saved to: ${path.join(tmpDir, 'chef-embedding-errors.log')}`, colors.yellow);
+    log(
+      `\n   Error log saved to: ${path.join(tmpDir, 'chef-embedding-errors.log')}`,
+      colors.yellow
+    );
     log(`   You can re-run with --resume to retry failed chefs`, colors.yellow);
   } else if (stats.success > 0) {
     log(`\n✨ All embeddings generated successfully!`, colors.green);

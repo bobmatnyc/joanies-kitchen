@@ -156,14 +156,11 @@ const CHEF_RECIPES = {
   },
 };
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     console.log('[Batch Import API] Starting batch import of 121 chef recipes');
 
-    const totalUrls = Object.values(CHEF_RECIPES).reduce(
-      (sum, chef) => sum + chef.urls.length,
-      0
-    );
+    const totalUrls = Object.values(CHEF_RECIPES).reduce((sum, chef) => sum + chef.urls.length, 0);
     console.log(
       `[Batch Import API] Total chefs: ${Object.keys(CHEF_RECIPES).length}, Total URLs: ${totalUrls}`
     );
@@ -173,7 +170,7 @@ export async function POST(request: NextRequest) {
     let failCount = 0;
     const results: any[] = [];
 
-    for (const [chefSlug, data] of Object.entries(CHEF_RECIPES)) {
+    for (const [_chefSlug, data] of Object.entries(CHEF_RECIPES)) {
       console.log(`\n[Batch Import API] Starting ${data.name} (${data.urls.length} recipes)`);
 
       for (const url of data.urls) {
@@ -229,7 +226,7 @@ export async function POST(request: NextRequest) {
         total: count,
         success: successCount,
         failed: failCount,
-        successRate: ((successCount / count) * 100).toFixed(1) + '%',
+        successRate: `${((successCount / count) * 100).toFixed(1)}%`,
       },
       results,
     });
@@ -250,10 +247,7 @@ export async function GET() {
     message: 'Use POST to start batch import',
     info: {
       totalChefs: Object.keys(CHEF_RECIPES).length,
-      totalRecipes: Object.values(CHEF_RECIPES).reduce(
-        (sum, chef) => sum + chef.urls.length,
-        0
-      ),
+      totalRecipes: Object.values(CHEF_RECIPES).reduce((sum, chef) => sum + chef.urls.length, 0),
       estimatedTime: '~4 minutes',
     },
   });

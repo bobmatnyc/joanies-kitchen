@@ -52,7 +52,7 @@ async function comprehensiveImageAudit() {
       totalProblematic += count;
     }
   }
-  
+
   if (totalProblematic === 0) {
     console.log('  ✅ No problematic patterns found!');
   }
@@ -102,7 +102,7 @@ async function comprehensiveImageAudit() {
     const images = row.images as string[];
     if (images && images.length > 0) {
       const firstImage = images[0];
-      const displayUrl = firstImage.length > 60 ? firstImage.substring(0, 57) + '...' : firstImage;
+      const displayUrl = firstImage.length > 60 ? `${firstImage.substring(0, 57)}...` : firstImage;
       console.log(`    Image: ${displayUrl}`);
     }
     console.log('');

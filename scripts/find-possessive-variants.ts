@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Find Possessive Variants
  *
@@ -6,9 +7,9 @@
  * Example: "angel's hair" → "angelshair" vs "angel hair" → "angelhair"
  */
 
-import { db } from './db-with-transactions';
-import { ingredients } from '../src/lib/db/ingredients-schema';
 import { sql } from 'drizzle-orm';
+import { ingredients } from '../src/lib/db/ingredients-schema';
+import { db } from './db-with-transactions';
 
 interface PossessiveVariant {
   withPossessive: {
@@ -32,11 +33,11 @@ interface PossessiveVariant {
 function normalizeWithPossessiveHandling(name: string): string {
   return name
     .toLowerCase()
-    .replace(/['']s\b/g, '')     // Remove possessive 's
+    .replace(/['']s\b/g, '') // Remove possessive 's
     .replace(/['']s(?=\s)/g, '') // Remove possessive 's before space
-    .replace(/['']s$/g, '')      // Remove possessive 's at end
-    .replace(/[''`]/g, '')       // Remove remaining apostrophes
-    .replace(/[-_\s]/g, '')      // Remove separators
+    .replace(/['']s$/g, '') // Remove possessive 's at end
+    .replace(/[''`]/g, '') // Remove remaining apostrophes
+    .replace(/[-_\s]/g, '') // Remove separators
     .trim();
 }
 
@@ -92,13 +93,15 @@ async function findPossessiveVariants() {
   for (const [normalized, variants] of advancedMap.entries()) {
     if (variants.length > 1) {
       // Check if basic normalization would miss this
-      const basicNormalizations = variants.map(v => normalizeBasic(v.name));
+      const basicNormalizations = variants.map((v) => normalizeBasic(v.name));
       const uniqueBasicNorms = [...new Set(basicNormalizations)];
 
       if (uniqueBasicNorms.length > 1) {
         // Find the possessive vs non-possessive pair
-        const withApostrophe = variants.find(v => v.name.includes("'") || v.name.includes("'"));
-        const withoutApostrophe = variants.find(v => !v.name.includes("'") && !v.name.includes("'"));
+        const withApostrophe = variants.find((v) => v.name.includes("'") || v.name.includes("'"));
+        const withoutApostrophe = variants.find(
+          (v) => !v.name.includes("'") && !v.name.includes("'")
+        );
 
         if (withApostrophe && withoutApostrophe) {
           possessiveVariants.push({
@@ -112,9 +115,11 @@ async function findPossessiveVariants() {
   }
 
   // Sort by total usage
-  possessiveVariants.sort((a, b) =>
-    (b.withPossessive.usage_count + b.withoutPossessive.usage_count) -
-    (a.withPossessive.usage_count + a.withoutPossessive.usage_count)
+  possessiveVariants.sort(
+    (a, b) =>
+      b.withPossessive.usage_count +
+      b.withoutPossessive.usage_count -
+      (a.withPossessive.usage_count + a.withoutPossessive.usage_count)
   );
 
   console.log(`\n📊 POSSESSIVE VARIANTS FOUND: ${possessiveVariants.length}\n`);
@@ -126,9 +131,13 @@ async function findPossessiveVariants() {
     possessiveVariants.forEach((variant, idx) => {
       const totalUsage = variant.withPossessive.usage_count + variant.withoutPossessive.usage_count;
 
-      console.log(`${idx + 1}. "${variant.withoutPossessive.name}" vs "${variant.withPossessive.name}"`);
+      console.log(
+        `${idx + 1}. "${variant.withoutPossessive.name}" vs "${variant.withPossessive.name}"`
+      );
       console.log(`   Normalized base: "${variant.normalizedBase}"`);
-      console.log(`   Usage: ${variant.withoutPossessive.usage_count} vs ${variant.withPossessive.usage_count} (Total: ${totalUsage})`);
+      console.log(
+        `   Usage: ${variant.withoutPossessive.usage_count} vs ${variant.withPossessive.usage_count} (Total: ${totalUsage})`
+      );
 
       // Show normalization comparison
       const basic1 = normalizeBasic(variant.withoutPossessive.name);
@@ -136,8 +145,12 @@ async function findPossessiveVariants() {
       const advanced1 = normalizeWithPossessiveHandling(variant.withoutPossessive.name);
       const advanced2 = normalizeWithPossessiveHandling(variant.withPossessive.name);
 
-      console.log(`   Basic norm:    "${basic1}" vs "${basic2}" → ${basic1 === basic2 ? '✅ MATCH' : '❌ NO MATCH'}`);
-      console.log(`   Advanced norm: "${advanced1}" vs "${advanced2}" → ${advanced1 === advanced2 ? '✅ MATCH' : '❌ NO MATCH'}`);
+      console.log(
+        `   Basic norm:    "${basic1}" vs "${basic2}" → ${basic1 === basic2 ? '✅ MATCH' : '❌ NO MATCH'}`
+      );
+      console.log(
+        `   Advanced norm: "${advanced1}" vs "${advanced2}" → ${advanced1 === advanced2 ? '✅ MATCH' : '❌ NO MATCH'}`
+      );
       console.log();
     });
   }
@@ -156,13 +169,13 @@ async function findPossessiveVariants() {
   }> = [];
 
   // Simple plural detection (ends with 's')
-  for (const [normalized, variants] of advancedMap.entries()) {
+  for (const [_normalized, variants] of advancedMap.entries()) {
     if (variants.length === 2) {
       const sorted = [...variants].sort((a, b) => a.name.length - b.name.length);
       const [shorter, longer] = sorted;
 
       // Check if longer is just shorter + 's'
-      if (longer.name === shorter.name + 's') {
+      if (longer.name === `${shorter.name}s`) {
         pluralVariants.push({
           singular: shorter.name,
           plural: longer.name,
@@ -174,8 +187,8 @@ async function findPossessiveVariants() {
   }
 
   // Sort by total usage
-  pluralVariants.sort((a, b) =>
-    (b.singularUsage + b.pluralUsage) - (a.singularUsage + a.pluralUsage)
+  pluralVariants.sort(
+    (a, b) => b.singularUsage + b.pluralUsage - (a.singularUsage + a.pluralUsage)
   );
 
   console.log(`\nFound ${pluralVariants.length} plural/singular pairs\n`);
@@ -186,7 +199,9 @@ async function findPossessiveVariants() {
     pluralVariants.slice(0, 15).forEach((variant, idx) => {
       const totalUsage = variant.singularUsage + variant.pluralUsage;
       console.log(`${idx + 1}. "${variant.singular}" vs "${variant.plural}"`);
-      console.log(`   Usage: ${variant.singularUsage} vs ${variant.pluralUsage} (Total: ${totalUsage})`);
+      console.log(
+        `   Usage: ${variant.singularUsage} vs ${variant.pluralUsage} (Total: ${totalUsage})`
+      );
     });
   }
 
@@ -200,15 +215,15 @@ async function findPossessiveVariants() {
   console.log(`Plural/Singular Variants:     ${pluralVariants.length}`);
   console.log(`Total Variants Found:         ${possessiveVariants.length + pluralVariants.length}`);
 
-  const totalUsage = possessiveVariants.reduce((sum, v) =>
-    sum + v.withPossessive.usage_count + v.withoutPossessive.usage_count, 0
-  ) + pluralVariants.reduce((sum, v) =>
-    sum + v.singularUsage + v.pluralUsage, 0
-  );
+  const totalUsage =
+    possessiveVariants.reduce(
+      (sum, v) => sum + v.withPossessive.usage_count + v.withoutPossessive.usage_count,
+      0
+    ) + pluralVariants.reduce((sum, v) => sum + v.singularUsage + v.pluralUsage, 0);
 
   console.log(`Total Usage Affected:         ${totalUsage}`);
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('Analysis complete! ✅\n');
 
   process.exit(0);

@@ -23,11 +23,11 @@
  */
 
 import 'dotenv/config';
-import { eq, sql, and, desc, asc, isNull, gt, inArray } from 'drizzle-orm';
-import { db, cleanup } from './db-with-transactions';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { ingredients } from '../src/lib/db/ingredients-schema';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { cleanup, db } from './db-with-transactions';
 
 // ============================================================================
 // TYPES & CONFIGURATION
@@ -126,14 +126,19 @@ async function generateWithAI(ingredientName: string, category: string | null): 
   } else if (openrouterKey) {
     return generateWithOpenRouterLegacy(ingredientName, category);
   } else {
-    throw new Error('No AI image generation API key found (REPLICATE_API_TOKEN or OPENROUTER_API_KEY)');
+    throw new Error(
+      'No AI image generation API key found (REPLICATE_API_TOKEN or OPENROUTER_API_KEY)'
+    );
   }
 }
 
 /**
  * Generate with Replicate (Flux Schnell - free tier)
  */
-async function generateWithReplicate(ingredientName: string, category: string | null): Promise<string> {
+async function generateWithReplicate(
+  ingredientName: string,
+  category: string | null
+): Promise<string> {
   const apiKey = process.env.REPLICATE_API_TOKEN;
   if (!apiKey) {
     throw new Error('REPLICATE_API_TOKEN not found');
@@ -148,9 +153,9 @@ async function generateWithReplicate(ingredientName: string, category: string | 
   const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Prefer': 'wait',
+      Prefer: 'wait',
     },
     body: JSON.stringify({
       version: '5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637', // Flux Schnell
@@ -181,7 +186,7 @@ async function generateWithReplicate(ingredientName: string, category: string | 
 
     const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
     });
 
@@ -213,9 +218,14 @@ async function generateWithReplicate(ingredientName: string, category: string | 
  * Generate with OpenRouter (legacy fallback using Gemini for image description + external service)
  * Note: OpenRouter doesn't natively support image generation, so we'll use a simpler approach
  */
-async function generateWithOpenRouterLegacy(ingredientName: string, category: string | null): Promise<string> {
+async function generateWithOpenRouterLegacy(
+  _ingredientName: string,
+  _category: string | null
+): Promise<string> {
   // For now, throw an error suggesting Replicate
-  throw new Error('OpenRouter image generation not implemented. Please set REPLICATE_API_TOKEN for image generation.');
+  throw new Error(
+    'OpenRouter image generation not implemented. Please set REPLICATE_API_TOKEN for image generation.'
+  );
 }
 
 /**
@@ -272,10 +282,7 @@ async function generateIngredientImage(
     log(`\n[${ingredient.name}] Attempt ${attemptNumber}/${MAX_RETRIES}`);
 
     // Generate image with AI
-    const tempImageUrl = await generateWithAI(
-      ingredient.display_name,
-      ingredient.category
-    );
+    const tempImageUrl = await generateWithAI(ingredient.display_name, ingredient.category);
 
     // Download and save locally
     const publicPath = await downloadAndSaveImage(
@@ -352,7 +359,7 @@ async function fetchIngredientsForPhase(phase: PhaseConfig): Promise<IngredientT
 
   const results = await query;
 
-  return results.map(ing => ({
+  return results.map((ing) => ({
     ...ing,
     priority: phase.phase === 1 ? 'high' : phase.phase === 2 ? 'medium' : 'low',
   }));
@@ -428,8 +435,8 @@ async function log(message: string): Promise<void> {
 
   try {
     await fs.mkdir(path.dirname(LOG_FILE), { recursive: true });
-    await fs.appendFile(LOG_FILE, logMessage + '\n');
-  } catch (error) {
+    await fs.appendFile(LOG_FILE, `${logMessage}\n`);
+  } catch (_error) {
     // Fail silently if logging fails
   }
 }
@@ -438,7 +445,7 @@ async function log(message: string): Promise<void> {
  * Sleep utility
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================
@@ -463,7 +470,9 @@ async function processBatch(
     const startTime = Date.now();
     log(`\n${'='.repeat(70)}`);
     log(`📦 [${progress.processed + 1}/${progress.total}] ${ingredient.display_name}`);
-    log(`   Category: ${ingredient.category || 'N/A'} | Usage: ${ingredient.usage_count} | Priority: ${ingredient.priority}`);
+    log(
+      `   Category: ${ingredient.category || 'N/A'} | Usage: ${ingredient.usage_count} | Priority: ${ingredient.priority}`
+    );
 
     const result = await generateIngredientImage(ingredient);
 
@@ -492,10 +501,13 @@ async function processBatch(
 
     const duration = Date.now() - startTime;
     const remaining = progress.total - progress.processed;
-    const avgTimePerItem = (Date.now() - new Date(progress.startedAt).getTime()) / progress.processed;
+    const avgTimePerItem =
+      (Date.now() - new Date(progress.startedAt).getTime()) / progress.processed;
     const etaMinutes = Math.ceil((remaining * avgTimePerItem) / 1000 / 60);
 
-    log(`   ⏱️  Completed in ${(duration / 1000).toFixed(1)}s | ETA: ${etaMinutes}m | Progress: ${((progress.processed / progress.total) * 100).toFixed(1)}%`);
+    log(
+      `   ⏱️  Completed in ${(duration / 1000).toFixed(1)}s | ETA: ${etaMinutes}m | Progress: ${((progress.processed / progress.total) * 100).toFixed(1)}%`
+    );
 
     // Rate limiting
     if (progress.processed < progress.total) {
@@ -509,7 +521,7 @@ async function processBatch(
  * Run image generation for a specific phase
  */
 async function runPhase(phaseNumber: number, dryRun: boolean = false): Promise<void> {
-  const phase = PHASES.find(p => p.phase === phaseNumber);
+  const phase = PHASES.find((p) => p.phase === phaseNumber);
   if (!phase) {
     throw new Error(`Invalid phase number: ${phaseNumber}`);
   }
@@ -523,8 +535,12 @@ async function runPhase(phaseNumber: number, dryRun: boolean = false): Promise<v
 
   log(`📊 Phase ${phase.phase} Statistics:`);
   log(`   Total ingredients: ${ingredientsToProcess.length}`);
-  log(`   Estimated cost: $${phase.estimatedCost.min.toFixed(2)} - $${phase.estimatedCost.max.toFixed(2)}`);
-  log(`   Estimated time: ${Math.ceil(ingredientsToProcess.length * (RATE_LIMIT_DELAY / 1000) / 60)}-${Math.ceil(ingredientsToProcess.length * (RATE_LIMIT_DELAY / 1000 + 3) / 60)} minutes\n`);
+  log(
+    `   Estimated cost: $${phase.estimatedCost.min.toFixed(2)} - $${phase.estimatedCost.max.toFixed(2)}`
+  );
+  log(
+    `   Estimated time: ${Math.ceil((ingredientsToProcess.length * (RATE_LIMIT_DELAY / 1000)) / 60)}-${Math.ceil((ingredientsToProcess.length * (RATE_LIMIT_DELAY / 1000 + 3)) / 60)} minutes\n`
+  );
 
   if (dryRun) {
     log(`✅ DRY RUN - No images will be generated\n`);
@@ -567,11 +583,17 @@ async function runPhase(phaseNumber: number, dryRun: boolean = false): Promise<v
   log(`📊 PHASE ${phase.phase} COMPLETE - FINAL SUMMARY`);
   log(`${'='.repeat(70)}`);
   log(`Total processed: ${progress.processed}/${progress.total}`);
-  log(`✅ Successful: ${progress.successful} (${((progress.successful / progress.total) * 100).toFixed(1)}%)`);
+  log(
+    `✅ Successful: ${progress.successful} (${((progress.successful / progress.total) * 100).toFixed(1)}%)`
+  );
   log(`❌ Failed: ${progress.failed}`);
   log(`⏭️  Skipped: ${progress.skipped}`);
-  log(`💰 Estimated cost: $${(progress.successful * 0.004).toFixed(2)} (Flux Schnell on Replicate: ~$0.003-$0.005/image)`);
-  log(`⏱️  Total time: ${Math.ceil((Date.now() - new Date(progress.startedAt).getTime()) / 1000 / 60)} minutes`);
+  log(
+    `💰 Estimated cost: $${(progress.successful * 0.004).toFixed(2)} (Flux Schnell on Replicate: ~$0.003-$0.005/image)`
+  );
+  log(
+    `⏱️  Total time: ${Math.ceil((Date.now() - new Date(progress.startedAt).getTime()) / 1000 / 60)} minutes`
+  );
   log(`${'='.repeat(70)}\n`);
 
   if (progress.failedIngredients.length > 0) {
@@ -629,8 +651,10 @@ async function main() {
   const resume = args.includes('--resume');
   const allPhases = args.includes('--all');
 
-  const phaseArg = args.find(arg => arg.startsWith('--phase'));
-  const phaseNumber = phaseArg ? parseInt(phaseArg.split('=')[1] || args[args.indexOf(phaseArg) + 1]) : null;
+  const phaseArg = args.find((arg) => arg.startsWith('--phase'));
+  const phaseNumber = phaseArg
+    ? parseInt(phaseArg.split('=')[1] || args[args.indexOf(phaseArg) + 1], 10)
+    : null;
 
   try {
     // Validate environment

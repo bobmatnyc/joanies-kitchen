@@ -14,14 +14,14 @@
  * Date: October 26, 2025
  */
 
+import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { eq } from 'drizzle-orm';
-import { db } from '../src/lib/db';
-import { chefs, chefRecipes } from '../src/lib/db/chef-schema';
-import { recipes, mealRecipes, meals } from '../src/lib/db/schema';
 import { generateRecipeEmbedding } from '../src/lib/ai/embeddings';
+import { db } from '../src/lib/db';
+import { chefRecipes, chefs } from '../src/lib/db/chef-schema';
 import { saveRecipeEmbedding } from '../src/lib/db/embeddings';
+import { mealRecipes, meals, recipes } from '../src/lib/db/schema';
 import { generateUniqueSlug } from '../src/lib/utils/slug';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -54,7 +54,7 @@ Joanie's Notes: "I could have watered it down more if I didn't want it to taste 
     'Blend: Using an immersion blender ("zizz it"), blend the mixture until smooth. You\'re creating a thick vegetable broth base.',
     'Add tomato paste: Stir in tomato paste until fully incorporated. Taste - it should have some acidity and depth.',
     'Add chickpeas: Stir in chickpeas but DO NOT BLEND. You want them whole for texture, not hummus-like.',
-    'Adjust consistency: If too thick or too tomato-forward, add more water 1/4 cup at a time. If it tastes too much like pasta sauce, you\'ve gone the Grana Padano route or used too much tomato paste.',
+    "Adjust consistency: If too thick or too tomato-forward, add more water 1/4 cup at a time. If it tastes too much like pasta sauce, you've gone the Grana Padano route or used too much tomato paste.",
     'Serve: Ladle into bowls. Top with fresh herbs.',
   ],
   prep_time: 10,
@@ -68,7 +68,8 @@ Joanie's Notes: "I could have watered it down more if I didn't want it to taste 
   license: 'PERSONAL_USE' as const,
   resourcefulness_score: 5,
   waste_reduction_tags: ['uses-aging', 'flexible-ingredients', 'minimal-waste', 'one-pot'],
-  scrap_utilization_notes: 'Uses leftover crudité vegetables about to expire. Can be repurposed as pasta sauce.',
+  scrap_utilization_notes:
+    'Uses leftover crudité vegetables about to expire. Can be repurposed as pasta sauce.',
   environmental_notes: 'Zero-waste approach: uses vegetables that would otherwise go bad.',
 };
 
@@ -121,13 +122,23 @@ What this teaches: Fusion isn't fusion if each component respects its tradition.
   servings: 4,
   difficulty: 'medium' as const,
   cuisine: 'Asian Fusion',
-  tags: ['rice-bowl', 'asian-fusion', 'joanie', 'sunday-lunch', 'chicken', 'tofu', 'cauliflower', 'resourceful'],
+  tags: [
+    'rice-bowl',
+    'asian-fusion',
+    'joanie',
+    'sunday-lunch',
+    'chicken',
+    'tofu',
+    'cauliflower',
+    'resourceful',
+  ],
   is_system_recipe: true,
   source: "Joanie's Sunday Lunch - October 26, 2025",
   license: 'PERSONAL_USE' as const,
   resourcefulness_score: 4,
   waste_reduction_tags: ['one-temperature', 'passive-cooking', 'batch-cooking'],
-  scrap_utilization_notes: 'All three components roast at same temperature for efficiency. Rice cooker handles rice passively.',
+  scrap_utilization_notes:
+    'All three components roast at same temperature for efficiency. Rice cooker handles rice passively.',
   environmental_notes: 'Efficient cooking: everything at one temperature, reduces energy use.',
 };
 
@@ -180,18 +191,28 @@ What this teaches: The 2:1 ratio is a starting point, not a rule. Water is a too
   servings: 5, // 4-6 average to 5
   difficulty: 'easy' as const,
   cuisine: 'American',
-  tags: ['salad', 'vegetarian', 'garden-fresh', 'joanie', 'sunday-lunch', 'dressing', 'resourceful'],
+  tags: [
+    'salad',
+    'vegetarian',
+    'garden-fresh',
+    'joanie',
+    'sunday-lunch',
+    'dressing',
+    'resourceful',
+  ],
   is_system_recipe: true,
   source: "Joanie's Sunday Lunch - October 26, 2025",
   license: 'PERSONAL_USE' as const,
   resourcefulness_score: 5,
   waste_reduction_tags: ['uses-aging', 'flexible-ingredients', 'seasonal', 'uses-scraps'],
-  scrap_utilization_notes: 'Uses beet tops from garden beets, last of the cabbage, arugula that needs using.',
-  environmental_notes: 'Garden integration: uses vegetables about to expire, beet tops that are often discarded.',
+  scrap_utilization_notes:
+    'Uses beet tops from garden beets, last of the cabbage, arugula that needs using.',
+  environmental_notes:
+    'Garden integration: uses vegetables about to expire, beet tops that are often discarded.',
 };
 
 async function main() {
-  console.log('🥘 Creating Joanie\'s Sunday Lunch Recipes and Meal Plan\n');
+  console.log("🥘 Creating Joanie's Sunday Lunch Recipes and Meal Plan\n");
 
   try {
     // Step 1: Create or get Joanie chef profile
@@ -340,11 +361,18 @@ async function main() {
       .values({
         user_id: SYSTEM_USER_ID,
         name: "Joanie's Sunday Lunch",
-        description: 'A complete Sunday lunch demonstrating resourceful cooking philosophy: using what needs using, mixing ethnic profiles with respect, and cooking everything at one temperature. Features leftover vegetable soup, Asian-inspired rice bowls, and garden-fresh salad.',
+        description:
+          'A complete Sunday lunch demonstrating resourceful cooking philosophy: using what needs using, mixing ethnic profiles with respect, and cooking everything at one temperature. Features leftover vegetable soup, Asian-inspired rice bowls, and garden-fresh salad.',
         meal_type: 'lunch',
         occasion: 'Sunday Lunch',
         serves: 4,
-        tags: JSON.stringify(['sunday-lunch', 'joanie', 'zero-waste', 'multi-course', 'resourceful']),
+        tags: JSON.stringify([
+          'sunday-lunch',
+          'joanie',
+          'zero-waste',
+          'multi-course',
+          'resourceful',
+        ]),
         is_template: true,
         is_public: true,
         total_prep_time: RECIPE_1.prep_time + RECIPE_2.prep_time + RECIPE_3.prep_time, // 40 min
@@ -390,7 +418,12 @@ async function main() {
     // Recipe 1 embedding
     try {
       const result1 = await generateRecipeEmbedding(recipe1);
-      await saveRecipeEmbedding(recipe1.id, result1.embedding, result1.embeddingText, result1.modelName);
+      await saveRecipeEmbedding(
+        recipe1.id,
+        result1.embedding,
+        result1.embeddingText,
+        result1.modelName
+      );
       console.log(`✅ Generated embedding for: ${recipe1.name}`);
     } catch (error) {
       console.error(`❌ Failed to generate embedding for ${recipe1.name}:`, error);
@@ -399,7 +432,12 @@ async function main() {
     // Recipe 2 embedding
     try {
       const result2 = await generateRecipeEmbedding(recipe2);
-      await saveRecipeEmbedding(recipe2.id, result2.embedding, result2.embeddingText, result2.modelName);
+      await saveRecipeEmbedding(
+        recipe2.id,
+        result2.embedding,
+        result2.embeddingText,
+        result2.modelName
+      );
       console.log(`✅ Generated embedding for: ${recipe2.name}`);
     } catch (error) {
       console.error(`❌ Failed to generate embedding for ${recipe2.name}:`, error);
@@ -408,7 +446,12 @@ async function main() {
     // Recipe 3 embedding
     try {
       const result3 = await generateRecipeEmbedding(recipe3);
-      await saveRecipeEmbedding(recipe3.id, result3.embedding, result3.embeddingText, result3.modelName);
+      await saveRecipeEmbedding(
+        recipe3.id,
+        result3.embedding,
+        result3.embeddingText,
+        result3.modelName
+      );
       console.log(`✅ Generated embedding for: ${recipe3.name}`);
     } catch (error) {
       console.error(`❌ Failed to generate embedding for ${recipe3.name}:`, error);
@@ -420,15 +463,12 @@ async function main() {
       .select()
       .from(chefRecipes)
       .where(eq(chefRecipes.chef_id, joanie.id));
-    await db
-      .update(chefs)
-      .set({ recipe_count: recipeCount.length })
-      .where(eq(chefs.id, joanie.id));
+    await db.update(chefs).set({ recipe_count: recipeCount.length }).where(eq(chefs.id, joanie.id));
     console.log(`✅ Updated chef recipe count to ${recipeCount.length}`);
 
     // Summary
-    console.log('\n' + '='.repeat(80));
-    console.log('✅ SUCCESS - Joanie\'s Sunday Lunch Created!');
+    console.log(`\n${'='.repeat(80)}`);
+    console.log("✅ SUCCESS - Joanie's Sunday Lunch Created!");
     console.log('='.repeat(80));
     console.log(`\nChef:`);
     console.log(`  Name: ${joanie.name}`);

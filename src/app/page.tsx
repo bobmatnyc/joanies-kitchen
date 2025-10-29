@@ -1,46 +1,46 @@
 'use client';
 
-import { BookOpen, Calendar, CalendarClock, ChefHat, ChevronRight, Lightbulb, PlusCircle, Recycle, Refrigerator, Trophy } from 'lucide-react';
+import {
+  BookOpen,
+  Calendar,
+  CalendarClock,
+  ChefHat,
+  Lightbulb,
+  PlusCircle,
+  Recycle,
+  Refrigerator,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getBackgroundImages } from '@/app/actions/background-images';
-import { getSharedRecipes, getResourcefulRecipes } from '@/app/actions/recipes';
+import { getRecipesOfTheDay } from '@/app/actions/recipes';
 import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
 import { FridgeInput } from '@/components/inventory';
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
-import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 
 export default function Home() {
   const router = useRouter();
-  const [sharedRecipes, setSharedRecipes] = useState<Recipe[]>([]);
-  const [topRecipes, setTopRecipes] = useState<Recipe[]>([]);
+  const [recipesOfTheDay, setRecipesOfTheDay] = useState<Recipe[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<string[]>([]);
 
   // Fetch data on component mount
   useEffect(() => {
     async function fetchData() {
       // Parallel data fetching for improved performance
-      const [sharedRecipesResult, topRecipesResult, backgroundImagesResult] = await Promise.allSettled([
-        getSharedRecipes(),
-        getResourcefulRecipes({ limit: 8 }),
+      const [recipesOfTheDayResult, backgroundImagesResult] = await Promise.allSettled([
+        getRecipesOfTheDay(),
         getBackgroundImages(),
       ]);
 
       // Extract data with fallbacks for failed promises
-      const sharedRecipesData =
-        sharedRecipesResult.status === 'fulfilled' &&
-        sharedRecipesResult.value.success &&
-        sharedRecipesResult.value.data
-          ? sharedRecipesResult.value.data.slice(0, 15)
-          : [];
-
-      const topRecipesData = topRecipesResult.status === 'fulfilled' ? topRecipesResult.value : [];
+      const recipesOfTheDayData =
+        recipesOfTheDayResult.status === 'fulfilled' ? recipesOfTheDayResult.value : [];
 
       const backgroundImagesData =
         backgroundImagesResult.status === 'fulfilled' &&
@@ -50,18 +50,20 @@ export default function Home() {
           : [];
 
       // Log errors (optional - helps with debugging)
-      if (sharedRecipesResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch shared recipes:', sharedRecipesResult.reason);
-      }
-      if (topRecipesResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch top-rated recipes:', topRecipesResult.reason);
+      if (recipesOfTheDayResult.status === 'rejected') {
+        console.error('[Homepage] Failed to fetch recipes of the day:', recipesOfTheDayResult.reason);
       }
       if (backgroundImagesResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
+        console.error(
+          '[Homepage] Failed to fetch background images:',
+          backgroundImagesResult.reason
+        );
       }
 
-      setSharedRecipes(sharedRecipesData);
-      setTopRecipes(topRecipesData);
+      // Debug logging
+      console.log('[Homepage] Recipes of the Day fetched:', recipesOfTheDayData.length);
+
+      setRecipesOfTheDay(recipesOfTheDayData);
       setBackgroundImages(backgroundImagesData);
     }
 
@@ -73,6 +75,10 @@ export default function Home() {
     const query = ingredients.join(',');
     router.push(`/fridge/results?ingredients=${encodeURIComponent(query)}`);
   };
+
+  // Debug logging for render
+  console.log('[Homepage] Rendering with recipesOfTheDay:', recipesOfTheDay.length);
+
   return (
     <div className="min-h-screen">
       {/* Hero Section - Joanie's Kitchen */}
@@ -102,7 +108,8 @@ export default function Home() {
             Cook With What You Have. Waste Nothing.
           </p>
           <p className="font-ui text-base md:text-lg text-jk-linen/90 max-w-2xl mx-auto mb-6 md:mb-8 px-4">
-            Enter what's in your fridge and we'll show you delicious meals you can make right now — with substitutions for what's missing.
+            Enter what's in your fridge and we'll show you delicious meals you can make right now —
+            with substitutions for what's missing.
           </p>
 
           {/* FridgeInput Component */}
@@ -123,6 +130,19 @@ export default function Home() {
               How does this work? Learn more →
             </Link>
           </div>
+
+          {/* Recipes of the Day - Centered in Hero Section */}
+          {recipesOfTheDay.length > 0 && (
+            <div className="mt-8 md:mt-12">
+              <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-jk-linen">
+                Recipes of the Day
+              </h2>
+              <p className="font-body text-center text-base md:text-lg text-jk-linen/80 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
+                Fresh inspiration daily — one appetizer, main course, side dish, and dessert
+              </p>
+              <SharedRecipeCarousel recipes={recipesOfTheDay} />
+            </div>
+          )}
         </MobileContainer>
       </section>
 
@@ -130,33 +150,29 @@ export default function Home() {
       <section className="py-16 bg-jk-sage/10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-
             {/* Section Header */}
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-jk-charcoal mb-4">
                 A Mission Against Food Waste
               </h2>
               <p className="text-lg text-jk-olive italic">
-                "I'd like to see technology help with food waste.
-                That would be the highlight of my life."
+                "I'd like to see technology help with food waste. That would be the highlight of my
+                life."
                 <span className="block text-sm mt-2 not-italic">— Joanie</span>
               </p>
             </div>
 
             {/* Philosophy Grid */}
             <div className="grid md:grid-cols-3 gap-8">
-
               {/* Principle 1: FIFO */}
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-jk-olive rounded-full flex items-center justify-center">
                   <CalendarClock className="h-8 w-8 text-jk-linen" />
                 </div>
-                <h3 className="text-xl font-semibold text-jk-charcoal mb-2">
-                  First In, First Out
-                </h3>
+                <h3 className="text-xl font-semibold text-jk-charcoal mb-2">First In, First Out</h3>
                 <p className="text-jk-olive">
-                  Use what you bought first. Track what's aging in your fridge
-                  and get recipes to rescue ingredients before they spoil.
+                  Use what you bought first. Track what's aging in your fridge and get recipes to
+                  rescue ingredients before they spoil.
                 </p>
               </div>
 
@@ -169,8 +185,8 @@ export default function Home() {
                   Creative Substitutions
                 </h3>
                 <p className="text-jk-olive">
-                  Missing an ingredient? No problem. Our recipes suggest smart
-                  swaps so you can cook with what you have, not what you don't.
+                  Missing an ingredient? No problem. Our recipes suggest smart swaps so you can cook
+                  with what you have, not what you don't.
                 </p>
               </div>
 
@@ -183,26 +199,23 @@ export default function Home() {
                   Nothing Goes to Waste
                 </h3>
                 <p className="text-jk-olive">
-                  Every ingredient matters. Learn techniques to use scraps,
-                  stems, and peels that others throw away.
+                  Every ingredient matters. Learn techniques to use scraps, stems, and peels that
+                  others throw away.
                 </p>
               </div>
-
             </div>
 
             {/* Call to Action */}
             <div className="text-center mt-12">
               <p className="text-jk-olive mb-4">
-                Americans waste <span className="font-bold text-jk-charcoal">$1,500 worth of food per year</span>.
+                Americans waste{' '}
+                <span className="font-bold text-jk-charcoal">$1,500 worth of food per year</span>.
                 Let's change that together.
               </p>
               <Button asChild>
-                <Link href="/fridge">
-                  Start Cooking from Your Fridge
-                </Link>
+                <Link href="/fridge">Start Cooking from Your Fridge</Link>
               </Button>
             </div>
-
           </div>
         </div>
       </section>
@@ -272,45 +285,13 @@ export default function Home() {
             Stop Wasting Food. Start Cooking.
           </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/80">
-            Got odds and ends in your fridge? Perfect. Joanie's Kitchen helps you turn what you have into something unforgettable — no shopping required. Tell us what's on hand and we'll show you what you can make.
+            Got odds and ends in your fridge? Perfect. Joanie's Kitchen helps you turn what you have
+            into something unforgettable — no shopping required. Tell us what's on hand and we'll
+            show you what you can make.
           </p>
         </div>
 
         <MobileSpacer size="sm" />
-
-        {/* Resourceful Recipes - Week 3 Task 4.3 */}
-        {topRecipes.length > 0 && (
-          <section className="mt-12 md:mt-16 mb-12 md:mb-16">
-            <div className="jk-divider mb-8 md:mb-12"></div>
-            <div className="text-center mb-8 md:mb-12">
-              <Refrigerator className="h-10 w-10 md:h-12 md:w-12 text-jk-sage mx-auto mb-4" />
-              <h2 className="text-3xl md:text-4xl font-heading text-jk-olive mb-3 md:mb-4">
-                Recipes You Can Make Right Now
-              </h2>
-              <p className="text-base md:text-xl text-jk-charcoal/70 max-w-2xl mx-auto font-body px-4">
-                Flexible recipes that work with what you have — high resourcefulness scores
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              {topRecipes.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
-              ))}
-            </div>
-
-            <div className="text-center">
-              <Button
-                className="bg-jk-clay hover:bg-jk-clay/90 text-white font-ui font-medium gap-2 touch-target"
-                asChild
-              >
-                <Link href="/recipes/top-50">
-                  View All Top 50 Recipes
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </section>
-        )}
 
         {/* About Joanie Section */}
         <section className="mt-12 md:mt-16 mb-12 md:mb-16">
@@ -393,20 +374,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Shared Recipe Carousel */}
-        {sharedRecipes.length > 0 && (
-          <div className="mt-12 md:mt-16 mb-8 md:mb-12">
-            <div className="jk-divider mb-8 md:mb-12"></div>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-jk-olive">
-              Resourceful Recipes from Our Community
-            </h2>
-            <p className="font-body text-center text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              Real home cooks sharing flexible recipes that work with what you have. Swap ingredients, adapt to your fridge, and waste nothing.
-            </p>
-            <SharedRecipeCarousel recipes={sharedRecipes} />
-          </div>
-        )}
-
         {/* Quick Actions */}
         <div className="mt-12 md:mt-16 text-center">
           <div className="jk-divider mb-8 md:mb-12"></div>
@@ -414,7 +381,8 @@ export default function Home() {
             Cook With What You Have
           </h2>
           <p className="font-body text-base md:text-lg text-jk-charcoal/70 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-            Stop food waste, save money, and get creative. Tell us what's in your fridge or explore recipes built for flexibility.
+            Stop food waste, save money, and get creative. Tell us what's in your fridge or explore
+            recipes built for flexibility.
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 md:gap-4">
             <Button

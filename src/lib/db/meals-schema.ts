@@ -65,6 +65,7 @@ export const meals = pgTable(
     is_public: boolean('is_public').default(false), // Share with others
     total_prep_time: integer('total_prep_time'), // Total prep time in minutes (calculated)
     total_cook_time: integer('total_cook_time'), // Total cook time in minutes (calculated)
+    image_url: text('image_url'), // Meal image URL (optional)
 
     // SEO slug for friendly URLs
     slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "thanksgiving-dinner-2024")
@@ -257,6 +258,7 @@ export type ShoppingListItem = {
   checked: boolean;
   from_recipes: string[]; // Recipe IDs that require this ingredient
   notes?: string;
+  isToTaste?: boolean; // Whether this ingredient is "to taste" or "as needed"
 };
 
 export type ShoppingListWithMeal = ShoppingList & {

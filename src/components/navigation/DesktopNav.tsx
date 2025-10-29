@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  GraduationCap,
-  Leaf,
-  BookOpen,
-  Package,
-  CalendarDays,
-} from 'lucide-react';
+import { BookOpen, CalendarDays, GraduationCap, Leaf, Package } from 'lucide-react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
 import { NavLink } from '@/components/navigation/NavLink';
 

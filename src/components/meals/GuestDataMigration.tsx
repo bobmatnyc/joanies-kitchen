@@ -89,7 +89,9 @@ export function GuestDataMigration() {
       clearGuestData();
       setMigrationComplete(true);
 
-      toast.success(`Successfully migrated ${migratedCount} ${migratedCount === 1 ? 'meal' : 'meals'}!`);
+      toast.success(
+        `Successfully migrated ${migratedCount} ${migratedCount === 1 ? 'meal' : 'meals'}!`
+      );
 
       // Redirect after a moment
       setTimeout(() => {
@@ -108,7 +110,7 @@ export function GuestDataMigration() {
     // Ask for confirmation
     if (
       window.confirm(
-        'Are you sure? Your guest meals will remain in your browser but won\'t be saved to your account.'
+        "Are you sure? Your guest meals will remain in your browser but won't be saved to your account."
       )
     ) {
       setShowMigrationDialog(false);
@@ -117,11 +119,7 @@ export function GuestDataMigration() {
 
   const handleDiscard = () => {
     // Ask for confirmation
-    if (
-      window.confirm(
-        'Are you sure you want to discard all guest data? This cannot be undone.'
-      )
-    ) {
+    if (window.confirm('Are you sure you want to discard all guest data? This cannot be undone.')) {
       clearGuestData();
       toast.success('Guest data cleared');
       setShowMigrationDialog(false);

@@ -7,15 +7,10 @@ export async function POST(request: NextRequest) {
     const { url, chefName, recipeIndex, totalRecipes } = body;
 
     if (!url) {
-      return NextResponse.json(
-        { success: false, error: 'url is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'url is required' }, { status: 400 });
     }
 
-    const progressLabel = recipeIndex && totalRecipes
-      ? `[${recipeIndex}/${totalRecipes}]`
-      : '';
+    const progressLabel = recipeIndex && totalRecipes ? `[${recipeIndex}/${totalRecipes}]` : '';
 
     console.log(`[Single Import] ${progressLabel} Processing: ${url}`);
     console.log(`[Single Import] Chef: ${chefName || 'Unknown'}`);

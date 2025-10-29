@@ -1,13 +1,15 @@
 'use server';
 
-import { and, asc, desc, eq, gte, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNotNull, lte, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { ingredients } from '@/lib/db/ingredients-schema';
 import {
   type InventoryItem,
-  inventoryItems,
   type InventoryStatus,
+  inventoryItems,
   inventoryUsageLog,
   type NewInventoryItem,
   type NewInventoryUsageLog,
@@ -17,9 +19,7 @@ import {
   type WasteOutcome,
   wasteTracking,
 } from '@/lib/db/inventory-schema';
-import { ingredients } from '@/lib/db/ingredients-schema';
 import { recipeIngredients, recipes } from '@/lib/db/schema';
-import { z } from 'zod';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -43,9 +43,7 @@ const addInventoryItemSchema = z.object({
  */
 const updateInventoryItemSchema = z.object({
   storage_location: z.enum(['fridge', 'freezer', 'pantry', 'other']).optional(),
-  status: z
-    .enum(['fresh', 'use_soon', 'expiring', 'expired', 'used', 'wasted'])
-    .optional(),
+  status: z.enum(['fresh', 'use_soon', 'expiring', 'expired', 'used', 'wasted']).optional(),
   quantity: z.number().positive('Quantity must be positive').optional(),
   unit: z.string().min(1).max(50).optional(),
   expiry_date: z.date().optional().nullable(),
@@ -67,7 +65,14 @@ const markAsUsedSchema = z.object({
  * Validation schema for marking items as wasted
  */
 const markAsWastedSchema = z.object({
-  outcome: z.enum(['expired', 'spoiled', 'forgot_about_it', 'bought_too_much', 'overcooked', 'other']),
+  outcome: z.enum([
+    'expired',
+    'spoiled',
+    'forgot_about_it',
+    'bought_too_much',
+    'overcooked',
+    'other',
+  ]),
   cost_usd: z.number().min(0).optional().nullable(),
   weight_oz: z.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -711,11 +716,13 @@ export async function markItemAsWasted(
 
     // Calculate days owned
     const daysOwned = Math.floor(
-      (new Date().getTime() - inventoryItem.acquisition_date.getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - inventoryItem.acquisition_date.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     // Use item's cost if not provided
-    const wasteCost = validatedData.cost_usd ?? (inventoryItem.cost_usd ? parseFloat(inventoryItem.cost_usd) : null);
+    const wasteCost =
+      validatedData.cost_usd ??
+      (inventoryItem.cost_usd ? parseFloat(inventoryItem.cost_usd) : null);
 
     // Create waste tracking entry
     const wasteEntry: NewWasteTracking = {
@@ -775,10 +782,7 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
       .select()
       .from(recipes)
       .where(
-        and(
-          eq(recipes.id, recipeId),
-          or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
-        )
+        and(eq(recipes.id, recipeId), or(eq(recipes.user_id, userId), eq(recipes.is_public, true)))
       )
       .limit(1);
 

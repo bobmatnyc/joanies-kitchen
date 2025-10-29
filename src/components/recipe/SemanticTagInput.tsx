@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Plus, Tag, X } from 'lucide-react';
+import { Plus, Tag, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,21 +13,15 @@ import {
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { categorizeTags, getCategoryColor, getCategoryIcon } from '@/lib/tag-ontology';
+import { getTagLabel, type Locale, normalizeTagToId, type TagId } from '@/lib/tags';
 import {
   getPopularTags,
   getRelatedTags,
-  normalizeTag,
-  searchSemanticTags,
   type SemanticTag,
+  searchSemanticTags,
 } from '@/lib/tags/semantic-tags';
-import {
-  normalizeTagToId,
-  getTagLabel,
-  type Locale,
-  type TagId,
-} from '@/lib/tags';
+import { cn } from '@/lib/utils';
 
 interface SemanticTagInputProps {
   selectedTags: string[];
@@ -57,7 +51,7 @@ export function SemanticTagInput({
   // Memoize normalized selected tags to prevent infinite loop in useEffect
   // This ensures a stable reference that only changes when selectedTags actually changes
   const normalizedSelectedTags = useMemo(
-    () => selectedTags.map(tag => normalizeTagToId(tag)),
+    () => selectedTags.map((tag) => normalizeTagToId(tag)),
     [selectedTags]
   );
 
@@ -133,10 +127,7 @@ export function SemanticTagInput({
                     <Badge
                       key={`${tagId}-${index}`}
                       variant="secondary"
-                      className={cn(
-                        'py-1 px-2 text-xs',
-                        getCategoryColor(category as any)
-                      )}
+                      className={cn('py-1 px-2 text-xs', getCategoryColor(category as any))}
                     >
                       <span className="capitalize">{label}</span>
                       <button
@@ -157,9 +148,7 @@ export function SemanticTagInput({
 
       {/* Tag Limit Warning */}
       {selectedTags.length >= maxTags && (
-        <div className="text-xs text-muted-foreground">
-          Maximum {maxTags} tags reached
-        </div>
+        <div className="text-xs text-muted-foreground">Maximum {maxTags} tags reached</div>
       )}
 
       {/* Tag Input with Smart Autocomplete */}
@@ -215,9 +204,7 @@ export function SemanticTagInput({
                   <div className="py-6 text-center text-sm">
                     {inputValue ? (
                       <>
-                        <div className="text-muted-foreground mb-2">
-                          No matching tags found
-                        </div>
+                        <div className="text-muted-foreground mb-2">No matching tags found</div>
                         <Button
                           type="button"
                           variant="outline"
@@ -229,38 +216,24 @@ export function SemanticTagInput({
                         </Button>
                       </>
                     ) : (
-                      <div className="text-muted-foreground">
-                        Start typing to search tags
-                      </div>
+                      <div className="text-muted-foreground">Start typing to search tags</div>
                     )}
                   </div>
                 </CommandEmpty>
+              ) : inputValue ? (
+                <CommandGroup heading="Matching Tags">
+                  {suggestions.map((tag) => (
+                    <TagSuggestionItem key={tag.id} tag={tag} onSelect={() => addTag(tag.id)} />
+                  ))}
+                </CommandGroup>
               ) : (
-                <>
-                  {inputValue ? (
-                    <CommandGroup heading="Matching Tags">
-                      {suggestions.map((tag) => (
-                        <TagSuggestionItem
-                          key={tag.id}
-                          tag={tag}
-                          onSelect={() => addTag(tag.id)}
-                        />
-                      ))}
-                    </CommandGroup>
-                  ) : (
-                    showPopular && (
-                      <CommandGroup heading="Popular Tags">
-                        {suggestions.map((tag) => (
-                          <TagSuggestionItem
-                            key={tag.id}
-                            tag={tag}
-                            onSelect={() => addTag(tag.id)}
-                          />
-                        ))}
-                      </CommandGroup>
-                    )
-                  )}
-                </>
+                showPopular && (
+                  <CommandGroup heading="Popular Tags">
+                    {suggestions.map((tag) => (
+                      <TagSuggestionItem key={tag.id} tag={tag} onSelect={() => addTag(tag.id)} />
+                    ))}
+                  </CommandGroup>
+                )
               )}
             </Command>
           </PopoverContent>
@@ -269,11 +242,7 @@ export function SemanticTagInput({
 
       {/* Related Tag Suggestions */}
       {selectedTags.length > 0 && selectedTags.length < maxTags && (
-        <RelatedTagSuggestions
-          selectedTags={selectedTags}
-          onAddTag={addTag}
-          maxSuggestions={5}
-        />
+        <RelatedTagSuggestions selectedTags={selectedTags} onAddTag={addTag} maxSuggestions={5} />
       )}
     </div>
   );
@@ -296,9 +265,7 @@ function TagSuggestionItem({ tag, onSelect }: TagSuggestionItemProps) {
           <div className="flex-1">
             <div className="font-medium capitalize">{tag.name}</div>
             {tag.description && (
-              <div className="text-xs text-muted-foreground truncate">
-                {tag.description}
-              </div>
+              <div className="text-xs text-muted-foreground truncate">{tag.description}</div>
             )}
           </div>
         </div>

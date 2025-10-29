@@ -7,10 +7,10 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FridgeInput } from './FridgeInput';
+import { useState } from 'react';
 import { matchRecipesToInventory } from '@/app/actions/inventory';
+import { FridgeInput } from './FridgeInput';
 
 /**
  * Example 1: Basic Usage with Navigation
@@ -28,9 +28,7 @@ export function BasicFridgeInputExample() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-serif text-jk-clay mb-4">
-        What&apos;s in Your Fridge?
-      </h1>
+      <h1 className="text-2xl font-serif text-jk-clay mb-4">What&apos;s in Your Fridge?</h1>
       <FridgeInput onSearch={handleSearch} />
     </div>
   );
@@ -46,7 +44,7 @@ export function ServerActionFridgeInputExample() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (ingredients: string[]) => {
+  const handleSearch = async (_ingredients: string[]) => {
     setLoading(true);
     try {
       // Note: This example shows the pattern but won't work as-is
@@ -72,17 +70,11 @@ export function ServerActionFridgeInputExample() {
     <div className="max-w-4xl mx-auto p-6">
       <FridgeInput onSearch={handleSearch} />
 
-      {loading && (
-        <div className="mt-6 text-center text-jk-clay/60">
-          Searching for recipes...
-        </div>
-      )}
+      {loading && <div className="mt-6 text-center text-jk-clay/60">Searching for recipes...</div>}
 
       {results.length > 0 && (
         <div className="mt-6 space-y-4">
-          <h2 className="text-xl font-serif text-jk-clay">
-            Found {results.length} recipes
-          </h2>
+          <h2 className="text-xl font-serif text-jk-clay">Found {results.length} recipes</h2>
           {/* Recipe cards would go here */}
         </div>
       )}
@@ -133,9 +125,7 @@ export function FormIntegratedFridgeInputExample() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-ui text-jk-clay mb-2">
-          Ingredients
-        </label>
+        <label className="block text-sm font-ui text-jk-clay mb-2">Ingredients</label>
         <FridgeInput onSearch={handleSearch} />
       </div>
 

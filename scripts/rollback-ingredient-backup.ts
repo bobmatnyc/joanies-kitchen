@@ -7,11 +7,14 @@
  * Usage: tsx scripts/rollback-ingredient-backup.ts <backup-file-path>
  */
 
-import { db, cleanup } from './db-with-transactions';
-import { ingredients, recipeIngredients, ingredientStatistics } from '../src/lib/db/ingredients-schema';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
 import { sql } from 'drizzle-orm';
+import {
+  ingredientStatistics,
+  ingredients,
+  recipeIngredients,
+} from '../src/lib/db/ingredients-schema';
+import { cleanup, db } from './db-with-transactions';
 
 interface BackupData {
   timestamp: string;
@@ -44,7 +47,9 @@ async function rollbackFromBackup(backupPath: string): Promise<void> {
   console.log(`   - Ingredient Statistics: ${backup.counts.ingredient_statistics}\n`);
 
   // Confirm rollback
-  console.log('⚠️  WARNING: This will DELETE all current ingredient data and restore from backup!\n');
+  console.log(
+    '⚠️  WARNING: This will DELETE all current ingredient data and restore from backup!\n'
+  );
 
   // Execute rollback in transaction
   console.log('🔄 Executing rollback...\n');
@@ -73,7 +78,9 @@ async function rollbackFromBackup(backupPath: string): Promise<void> {
     }
 
     // Step 4: Restore ingredient_statistics
-    console.log(`   Step 6: Restoring ${backup.ingredient_statistics.length} ingredient_statistics...`);
+    console.log(
+      `   Step 6: Restoring ${backup.ingredient_statistics.length} ingredient_statistics...`
+    );
     for (const stat of backup.ingredient_statistics) {
       await tx.insert(ingredientStatistics).values(stat);
     }
@@ -94,7 +101,9 @@ async function main() {
   if (!backupPath) {
     console.error('❌ Error: Backup file path required!\n');
     console.error('Usage: tsx scripts/rollback-ingredient-backup.ts <backup-file-path>\n');
-    console.error('Example: tsx scripts/rollback-ingredient-backup.ts tmp/ingredient-full-backup-1234567890.json\n');
+    console.error(
+      'Example: tsx scripts/rollback-ingredient-backup.ts tmp/ingredient-full-backup-1234567890.json\n'
+    );
     process.exit(1);
   }
 

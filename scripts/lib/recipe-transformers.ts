@@ -4,7 +4,7 @@
  * Transforms recipes from various sources to our database schema
  */
 
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Create SEO-friendly slug from recipe name
@@ -143,7 +143,7 @@ export function transformTheMealDBRecipe(meal: TheMealDBRecipe, systemUserId: st
     const ingredient = meal[`strIngredient${i}`];
     const measure = meal[`strMeasure${i}`];
 
-    if (ingredient && ingredient.trim()) {
+    if (ingredient?.trim()) {
       ingredients.push({
         item: ingredient.trim(),
         quantity: measure?.trim() || '',
@@ -159,9 +159,7 @@ export function transformTheMealDBRecipe(meal: TheMealDBRecipe, systemUserId: st
     const split = meal.strInstructions.split(stepPattern);
 
     if (split.length > 1) {
-      instructions = split
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+      instructions = split.map((s) => s.trim()).filter((s) => s.length > 0);
     } else {
       // Fallback: split by newlines
       instructions = meal.strInstructions
@@ -470,12 +468,15 @@ export function transformTastyRecipe(recipe: TastyRecipe, systemUserId: string) 
           } else {
             // Build ingredient from structured data
             const ingredientName =
-              component.ingredient?.name || component.ingredient?.display_singular || 'Unknown ingredient';
+              component.ingredient?.name ||
+              component.ingredient?.display_singular ||
+              'Unknown ingredient';
             let quantity = '';
 
             if (component.measurements && component.measurements.length > 0) {
               const measurement = component.measurements[0];
-              quantity = `${measurement.quantity || ''} ${measurement.unit?.display_singular || measurement.unit?.name || ''}`.trim();
+              quantity =
+                `${measurement.quantity || ''} ${measurement.unit?.display_singular || measurement.unit?.name || ''}`.trim();
             }
 
             ingredients.push({
@@ -632,11 +633,7 @@ export function transformTastyRecipe(recipe: TastyRecipe, systemUserId: string) 
 /**
  * Transform USDA recipe to our schema
  */
-export function transformUSDARecipe(
-  recipe: USDARecipe,
-  systemUserId: string,
-  sourceId: string
-) {
+export function transformUSDARecipe(recipe: USDARecipe, systemUserId: string, sourceId: string) {
   // Format ingredients as array of objects with item and quantity
   const ingredients = recipe.ingredients.map((ing) => {
     // USDA ingredients are typically already formatted with measurements
@@ -644,10 +641,7 @@ export function transformUSDARecipe(
   });
 
   // Build tags
-  const tags: string[] = [
-    'source.usda',
-    'license.public-domain',
-  ];
+  const tags: string[] = ['source.usda', 'license.public-domain'];
 
   // Add government/educational tag
   tags.push('source.government');
@@ -661,7 +655,8 @@ export function transformUSDARecipe(
   const description =
     recipe.description ||
     (recipe.instructions.length > 0
-      ? recipe.instructions[0].substring(0, 200) + (recipe.instructions[0].length > 200 ? '...' : '')
+      ? recipe.instructions[0].substring(0, 200) +
+        (recipe.instructions[0].length > 200 ? '...' : '')
       : `Recipe from ${recipe.sourceName}`);
 
   return {

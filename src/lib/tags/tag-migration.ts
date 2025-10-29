@@ -5,8 +5,8 @@
  * Supports dual-mode operation during transition period
  */
 
+import { findTagIdBySynonym, TAG_HIERARCHY } from './tag-hierarchy';
 import type { TagId } from './tag-ids';
-import { TAG_HIERARCHY, findTagIdBySynonym } from './tag-hierarchy';
 
 /**
  * Normalize a tag to the new ID format
@@ -66,9 +66,7 @@ export function normalizeTags(tags: string[]): TagId[] {
     return [];
   }
 
-  return tags
-    .filter((tag) => tag && typeof tag === 'string')
-    .map((tag) => normalizeTagToId(tag));
+  return tags.filter((tag) => tag && typeof tag === 'string').map((tag) => normalizeTagToId(tag));
 }
 
 /**
@@ -164,7 +162,7 @@ export function migrateTags(
     // Convert all to new format
     const newTags = tags.map((tag) => {
       // Check custom synonyms first
-      if (customSynonyms && customSynonyms[tag]) {
+      if (customSynonyms?.[tag]) {
         return customSynonyms[tag];
       }
       return normalizeTagToId(tag);
@@ -180,7 +178,7 @@ export function migrateTags(
   if (strategy === MigrationStrategy.DUAL) {
     // Keep both formats (for transition period)
     const normalizedTags = tags.map((tag) => {
-      if (customSynonyms && customSynonyms[tag]) {
+      if (customSynonyms?.[tag]) {
         return customSynonyms[tag];
       }
       return normalizeTagToId(tag);
@@ -299,9 +297,15 @@ export function generateMigrationReport(tags: string[]): MigrationReport {
 export function printMigrationReport(report: MigrationReport): void {
   console.log('=== Tag Migration Report ===');
   console.log(`Total tags: ${report.total}`);
-  console.log(`Successfully mapped: ${report.mapped} (${((report.mapped / report.total) * 100).toFixed(1)}%)`);
-  console.log(`Already new format: ${report.alreadyNew} (${((report.alreadyNew / report.total) * 100).toFixed(1)}%)`);
-  console.log(`Unmapped (fallback to other.*): ${report.unmapped} (${((report.unmapped / report.total) * 100).toFixed(1)}%)`);
+  console.log(
+    `Successfully mapped: ${report.mapped} (${((report.mapped / report.total) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `Already new format: ${report.alreadyNew} (${((report.alreadyNew / report.total) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `Unmapped (fallback to other.*): ${report.unmapped} (${((report.unmapped / report.total) * 100).toFixed(1)}%)`
+  );
 
   if (report.unmappedTags.length > 0) {
     console.log('\nUnmapped tags:');

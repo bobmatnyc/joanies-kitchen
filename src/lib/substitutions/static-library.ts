@@ -20,12 +20,14 @@ const BUTTER: StaticSubstitutionEntry = {
       ratio: '1:1',
       confidence: 'high',
       confidence_score: 0.9,
-      reason: 'Similar fat content and melting point. Works excellently in baking for moisture and richness.',
+      reason:
+        'Similar fat content and melting point. Works excellently in baking for moisture and richness.',
       best_for: ['baking', 'cookies', 'cakes', 'sautéing'],
       avoid_for: ['frosting', 'buttercream'],
       flavor_impact: 'minimal',
       texture_impact: 'none',
-      cooking_adjustment: 'Use refined coconut oil to avoid coconut flavor. Solid at room temp like butter.',
+      cooking_adjustment:
+        'Use refined coconut oil to avoid coconut flavor. Solid at room temp like butter.',
     },
     {
       substitute_ingredient: 'olive oil',
@@ -33,7 +35,8 @@ const BUTTER: StaticSubstitutionEntry = {
       substitute_amount: '3/4 cup per 1 cup butter',
       confidence: 'high',
       confidence_score: 0.85,
-      reason: 'Healthier fat profile with heart-healthy monounsaturated fats. Best for savory dishes.',
+      reason:
+        'Healthier fat profile with heart-healthy monounsaturated fats. Best for savory dishes.',
       best_for: ['sautéing', 'roasting', 'savory baking'],
       avoid_for: ['sweet baking', 'frosting', 'pie crusts'],
       flavor_impact: 'noticeable',
@@ -50,7 +53,8 @@ const BUTTER: StaticSubstitutionEntry = {
       avoid_for: ['cookies', 'pie crust', 'sautéing', 'frosting'],
       flavor_impact: 'minimal',
       texture_impact: 'noticeable',
-      cooking_adjustment: 'Baked goods will be denser and more cake-like. Reduce sugar slightly as applesauce adds sweetness.',
+      cooking_adjustment:
+        'Baked goods will be denser and more cake-like. Reduce sugar slightly as applesauce adds sweetness.',
     },
     {
       substitute_ingredient: 'ghee',
@@ -62,7 +66,8 @@ const BUTTER: StaticSubstitutionEntry = {
       avoid_for: [],
       flavor_impact: 'minimal',
       texture_impact: 'none',
-      cooking_adjustment: 'Higher smoke point (485°F vs 350°F) makes it better for high-heat cooking.',
+      cooking_adjustment:
+        'Higher smoke point (485°F vs 350°F) makes it better for high-heat cooking.',
     },
     {
       substitute_ingredient: 'greek yogurt',
@@ -2220,7 +2225,7 @@ const BAKING_SODA: StaticSubstitutionEntry = {
       ratio: '1 tsp soda = 3 tsp baking powder',
       confidence: 'medium',
       confidence_score: 0.7,
-      reason: 'Baking powder is weaker. Need more and won\'t neutralize acid.',
+      reason: "Baking powder is weaker. Need more and won't neutralize acid.",
       best_for: ['recipes without acidic ingredients'],
       avoid_for: ['recipes with buttermilk, yogurt, vinegar'],
       flavor_impact: 'minimal',
@@ -2304,7 +2309,7 @@ const CORNSTARCH: StaticSubstitutionEntry = {
       avoid_for: ['dairy-based sauces'],
       flavor_impact: 'none',
       texture_impact: 'none',
-      cooking_adjustment: 'Add at end of cooking. Doesn\'t tolerate prolonged heat.',
+      cooking_adjustment: "Add at end of cooking. Doesn't tolerate prolonged heat.",
     },
     {
       substitute_ingredient: 'tapioca starch',
@@ -2414,10 +2419,13 @@ export function getLibraryStats() {
     0
   );
 
-  const categories = STATIC_SUBSTITUTION_LIBRARY.reduce((acc, entry) => {
-    acc[entry.category] = (acc[entry.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const categories = STATIC_SUBSTITUTION_LIBRARY.reduce(
+    (acc, entry) => {
+      acc[entry.category] = (acc[entry.category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   return {
     totalIngredients,

@@ -1,9 +1,9 @@
 'use server';
 
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { joanieComments, type NewJoanieComment, type JoanieComment } from '@/lib/db/schema';
+import { joanieComments, type NewJoanieComment } from '@/lib/db/schema';
 
 /**
  * Joanie Comments Server Actions
@@ -92,10 +92,7 @@ export async function getCommentForIngredient(ingredientId: string) {
  */
 export async function getAllComments() {
   try {
-    const comments = await db
-      .select()
-      .from(joanieComments)
-      .orderBy(joanieComments.created_at);
+    const comments = await db.select().from(joanieComments).orderBy(joanieComments.created_at);
 
     return {
       success: true,
@@ -118,11 +115,9 @@ export async function getAllComments() {
 export async function createComment(data: NewJoanieComment) {
   try {
     // Validate that exactly one reference is provided
-    const referenceCount = [
-      data.recipe_id,
-      data.meal_id,
-      data.ingredient_id,
-    ].filter(Boolean).length;
+    const referenceCount = [data.recipe_id, data.meal_id, data.ingredient_id].filter(
+      Boolean
+    ).length;
 
     if (referenceCount !== 1) {
       return {
@@ -139,10 +134,7 @@ export async function createComment(data: NewJoanieComment) {
       };
     }
 
-    const [comment] = await db
-      .insert(joanieComments)
-      .values(data)
-      .returning();
+    const [comment] = await db.insert(joanieComments).values(data).returning();
 
     // Revalidate relevant paths
     if (data.recipe_id) {
@@ -221,10 +213,7 @@ export async function updateComment(id: string, commentText: string) {
  */
 export async function deleteComment(id: string) {
   try {
-    const [comment] = await db
-      .delete(joanieComments)
-      .where(eq(joanieComments.id, id))
-      .returning();
+    const [comment] = await db.delete(joanieComments).where(eq(joanieComments.id, id)).returning();
 
     if (!comment) {
       return {

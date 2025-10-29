@@ -21,9 +21,7 @@ export default function GlobalError({
       <body>
         <div className="container mx-auto py-16 px-4 text-center">
           <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
-          <p className="text-gray-600 mb-4">
-            An unexpected error occurred. Please try again.
-          </p>
+          <p className="text-gray-600 mb-4">An unexpected error occurred. Please try again.</p>
           <button
             type="button"
             onClick={() => reset()}

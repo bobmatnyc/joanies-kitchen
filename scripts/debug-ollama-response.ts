@@ -1,5 +1,5 @@
 import ollama from 'ollama';
-import { parseJsonResponse, extractIngredientArray } from './lib/qa-helpers';
+import { extractIngredientArray, parseJsonResponse } from './lib/qa-helpers';
 
 async function test() {
   const sampleInstructions = [
@@ -23,10 +23,12 @@ Return the JSON array now:`;
 
   const response = await ollama.chat({
     model: 'qwen2.5-coder:7b-instruct',
-    messages: [{
-      role: 'user',
-      content: prompt,
-    }],
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
     format: 'json',
     options: {
       temperature: 0.1,
@@ -36,7 +38,7 @@ Return the JSON array now:`;
 
   console.log('RAW RESPONSE:');
   console.log(response.message.content);
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
 
   try {
     const parsed = parseJsonResponse(response.message.content);

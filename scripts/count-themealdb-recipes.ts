@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import * as dotenv from 'dotenv';
+
 dotenv.config({ path: '.env.local' });
 
 import { sql } from 'drizzle-orm';
@@ -48,7 +49,7 @@ async function countTheMealDBRecipes() {
       console.log(`   Format: ${isObjectFormat ? 'Object {item, quantity}' : 'String array'}`);
       console.log(`   Sample: ${JSON.stringify(ingredients[0])}`);
       console.log('');
-    } catch (error) {
+    } catch (_error) {
       console.log(`${i + 1}. ${recipe.name} - Parse Error`);
     }
   });

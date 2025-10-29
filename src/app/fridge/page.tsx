@@ -47,7 +47,8 @@ export default function FridgePage() {
             What's in Your Fridge?
           </h1>
           <p className="text-base sm:text-lg lg:text-xl text-jk-charcoal/70 font-body max-w-2xl mx-auto leading-relaxed">
-            Enter the ingredients you have on hand, and we'll find delicious recipes that help you use them up.
+            Enter the ingredients you have on hand, and we'll find delicious recipes that help you
+            use them up.
             <span className="block mt-2 text-sm sm:text-base text-jk-clay">
               Zero waste. Maximum flavor.
             </span>
@@ -74,9 +75,7 @@ export default function FridgePage() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-jk-sage/20 rounded-full flex items-center justify-center">
                 <span className="text-2xl sm:text-3xl font-heading text-jk-olive">1</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">
-                Enter Ingredients
-              </h3>
+              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">Enter Ingredients</h3>
               <p className="text-sm sm:text-base text-jk-charcoal/70 font-body">
                 Type what you have in your fridge, pantry, or cupboard. We'll autocomplete for you.
               </p>
@@ -87,9 +86,7 @@ export default function FridgePage() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-jk-sage/20 rounded-full flex items-center justify-center">
                 <span className="text-2xl sm:text-3xl font-heading text-jk-olive">2</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">
-                Find Matches
-              </h3>
+              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">Find Matches</h3>
               <p className="text-sm sm:text-base text-jk-charcoal/70 font-body">
                 Our smart search finds recipes that use your ingredients with minimal waste.
               </p>
@@ -100,9 +97,7 @@ export default function FridgePage() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-jk-sage/20 rounded-full flex items-center justify-center">
                 <span className="text-2xl sm:text-3xl font-heading text-jk-olive">3</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">
-                Start Cooking
-              </h3>
+              <h3 className="text-lg sm:text-xl font-heading text-jk-clay">Start Cooking</h3>
               <p className="text-sm sm:text-base text-jk-charcoal/70 font-body">
                 Choose a recipe, see what's missing, and get cooking with what you've got!
               </p>
@@ -112,32 +107,34 @@ export default function FridgePage() {
 
         {/* Tips Section */}
         <div className="mt-12 sm:mt-16 bg-jk-sage/10 rounded-xl p-6 sm:p-8 border border-jk-sage/20">
-          <h3 className="text-xl sm:text-2xl font-heading text-jk-olive mb-4">
-            Pro Tips
-          </h3>
+          <h3 className="text-xl sm:text-2xl font-heading text-jk-olive mb-4">Pro Tips</h3>
           <ul className="space-y-2 text-sm sm:text-base text-jk-charcoal/70 font-body">
             <li className="flex items-start gap-2">
               <span className="text-jk-tomato mt-1">•</span>
               <span>
-                <strong className="text-jk-clay">Start with proteins:</strong> Chicken, beef, tofu, eggs
+                <strong className="text-jk-clay">Start with proteins:</strong> Chicken, beef, tofu,
+                eggs
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-jk-tomato mt-1">•</span>
               <span>
-                <strong className="text-jk-clay">Add vegetables:</strong> Whatever needs using up first
+                <strong className="text-jk-clay">Add vegetables:</strong> Whatever needs using up
+                first
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-jk-tomato mt-1">•</span>
               <span>
-                <strong className="text-jk-clay">Don't forget pantry staples:</strong> Rice, pasta, canned goods
+                <strong className="text-jk-clay">Don't forget pantry staples:</strong> Rice, pasta,
+                canned goods
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-jk-tomato mt-1">•</span>
               <span>
-                <strong className="text-jk-clay">Less is more:</strong> Start with 3-5 key ingredients for best results
+                <strong className="text-jk-clay">Less is more:</strong> Start with 3-5 key
+                ingredients for best results
               </span>
             </li>
           </ul>

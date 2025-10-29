@@ -1,7 +1,7 @@
 'use client';
 
-import { type JoanieComment } from '@/lib/db/schema';
-import { MessageCircle, Lightbulb, RefreshCw, PenLine } from 'lucide-react';
+import { Lightbulb, MessageCircle, PenLine, RefreshCw } from 'lucide-react';
+import type { JoanieComment } from '@/lib/db/schema';
 
 interface JoanieCommentProps {
   comment: JoanieComment;
@@ -56,9 +56,7 @@ export function JoanieComment({ comment, className = '' }: JoanieCommentProps) {
       {/* Header with icon and label */}
       <div className="mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-400">
         {getIcon()}
-        <span className="font-semibold text-sm uppercase tracking-wide">
-          {getLabel()}
-        </span>
+        <span className="font-semibold text-sm uppercase tracking-wide">{getLabel()}</span>
       </div>
 
       {/* Comment text in quote style */}
@@ -81,9 +79,7 @@ export function JoanieComment({ comment, className = '' }: JoanieCommentProps) {
 
       {/* Signature */}
       <div className="mt-6 text-right">
-        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-          — Joanie
-        </p>
+        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">— Joanie</p>
       </div>
 
       {/* Optional: Decorative corner accent */}
@@ -115,16 +111,12 @@ export function JoanieCommentCompact({ comment, className = '' }: JoanieCommentP
     <div
       className={`flex gap-3 rounded-md border-l-2 border-amber-500 bg-amber-50/50 p-3 text-sm dark:bg-amber-950/10 dark:border-amber-600 ${className}`}
     >
-      <div className="flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5">
-        {getIcon()}
-      </div>
+      <div className="flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5">{getIcon()}</div>
       <div className="flex-1">
         <p className="text-gray-700 dark:text-gray-300 italic line-clamp-3">
           {comment.comment_text}
         </p>
-        <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-          — Joanie
-        </p>
+        <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">— Joanie</p>
       </div>
     </div>
   );
@@ -139,9 +131,7 @@ export function JoanieCommentInline({ comment, className = '' }: JoanieCommentPr
       className={`inline-flex items-start gap-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs dark:bg-amber-950/10 dark:border-amber-700 ${className}`}
     >
       <Lightbulb className="h-3 w-3 flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-      <span className="text-gray-700 dark:text-gray-300 italic">
-        {comment.comment_text}
-      </span>
+      <span className="text-gray-700 dark:text-gray-300 italic">{comment.comment_text}</span>
     </div>
   );
 }

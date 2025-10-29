@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Apple,
   Bot,
   ChefHat,
   ChevronLeft,
@@ -18,20 +19,19 @@ import {
   User,
   Users,
   Utensils,
-  Apple,
 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
 import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
+import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
 import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
-import { FlagImageButton } from '@/components/admin/FlagImageButton';
 import { AdminContentActions } from '@/components/admin/AdminContentActions';
 import { AdminEditModeProvider } from '@/components/admin/AdminEditMode';
+import { FlagImageButton } from '@/components/admin/FlagImageButton';
 import { RecipeContentWithEdit } from '@/components/admin/RecipeContentWithEdit';
 import { AddToCollectionButton } from '@/components/collections/AddToCollectionButton';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
@@ -39,19 +39,14 @@ import { BackToChef } from '@/components/recipe/BackToChef';
 import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { InventoryMatchSection } from '@/components/recipe/InventoryMatchSection';
-import { SubstitutionSuggestionsWrapper } from '@/components/recipe/SubstitutionSuggestionsWrapper';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
 } from '@/components/recipe/RecipeEngagementStats';
 import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
+import { SubstitutionSuggestionsWrapper } from '@/components/recipe/SubstitutionSuggestionsWrapper';
 import { WasteReductionSection } from '@/components/recipe/WasteReductionSection';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { isAdmin } from '@/lib/admin-client';
-import { parseRecipe } from '@/lib/utils/recipe-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +57,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { isAdmin } from '@/lib/admin-client';
+import { parseRecipe } from '@/lib/utils/recipe-utils';
 
 /**
  * Safe Clerk user hook that handles the case where Clerk is not available
@@ -163,7 +163,7 @@ export default function RecipePage({ params }: RecipePageProps) {
         });
 
       // Fetch original recipe if this is a fork
-      if (result.data.source && result.data.source.includes('Forked from recipe ID:')) {
+      if (result.data.source?.includes('Forked from recipe ID:')) {
         getOriginalRecipe(result.data.id)
           .then((original) => {
             if (original) {
@@ -291,9 +291,10 @@ export default function RecipePage({ params }: RecipePageProps) {
     try {
       // Format recipe as text - use tag labels from ontology
       const { getTagLabel, normalizeTagToId } = await import('@/lib/tags');
-      const tagLabels = recipe.tags && recipe.tags.length > 0
-        ? recipe.tags.map((tag: string) => getTagLabel(normalizeTagToId(tag))).join(', ')
-        : '';
+      const tagLabels =
+        recipe.tags && recipe.tags.length > 0
+          ? recipe.tags.map((tag: string) => getTagLabel(normalizeTagToId(tag))).join(', ')
+          : '';
 
       const recipeText = `
 ${recipe.name}
@@ -325,7 +326,12 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
   );
 
   const editUrl = useMemo(
-    () => (recipe?.slug ? `/recipes/${recipe.slug}/edit` : recipe?.id ? `/recipes/${recipe.id}/edit` : ''),
+    () =>
+      recipe?.slug
+        ? `/recipes/${recipe.slug}/edit`
+        : recipe?.id
+          ? `/recipes/${recipe.id}/edit`
+          : '',
     [recipe]
   );
 
@@ -343,45 +349,57 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
     if (!recipe) return null;
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
-    const recipeUrl = recipe.slug ? `${baseUrl}/recipes/${recipe.slug}` : `${baseUrl}/recipes/${recipe.id}`;
+    const recipeUrl = recipe.slug
+      ? `${baseUrl}/recipes/${recipe.slug}`
+      : `${baseUrl}/recipes/${recipe.id}`;
 
     return {
-      "@context": "https://schema.org",
-      "@type": "Recipe",
-      "name": recipe.name,
-      "description": recipe.description || `Delicious ${recipe.name} recipe from Joanie's Kitchen`,
-      "image": recipe.images?.[0] || (recipe.image_url ? [recipe.image_url] : []),
-      "author": {
-        "@type": authorProfile ? "Person" : "Organization",
-        "name": authorProfile?.display_name || "Joanie's Kitchen"
+      '@context': 'https://schema.org',
+      '@type': 'Recipe',
+      name: recipe.name,
+      description: recipe.description || `Delicious ${recipe.name} recipe from Joanie's Kitchen`,
+      image: recipe.images?.[0] || (recipe.image_url ? [recipe.image_url] : []),
+      author: {
+        '@type': authorProfile ? 'Person' : 'Organization',
+        name: authorProfile?.display_name || "Joanie's Kitchen",
       },
-      "datePublished": recipe.created_at,
-      "dateModified": recipe.updated_at,
-      "prepTime": recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
-      "cookTime": recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
-      "totalTime": totalTime > 0 ? `PT${totalTime}M` : undefined,
-      "recipeYield": recipe.servings ? `${recipe.servings} servings` : undefined,
-      "recipeCategory": recipe.cuisine || undefined,
-      "recipeCuisine": recipe.cuisine || undefined,
-      "keywords": recipe.tags?.join(", ") || undefined,
-      "recipeIngredient": recipe.ingredients || [],
-      "recipeInstructions": recipe.instructions?.map((step: string, i: number) => ({
-        "@type": "HowToStep",
-        "position": i + 1,
-        "text": step
-      })) || [],
-      "nutrition": recipe.nutrition_info ? {
-        "@type": "NutritionInformation",
-        ...(typeof recipe.nutrition_info === 'string' ? JSON.parse(recipe.nutrition_info) : recipe.nutrition_info)
-      } : undefined,
-      "aggregateRating": (recipe.avg_user_rating && recipe.total_user_ratings) ? {
-        "@type": "AggregateRating",
-        "ratingValue": recipe.avg_user_rating,
-        "ratingCount": recipe.total_user_ratings
-      } : undefined,
-      "url": recipeUrl,
-      "isAccessibleForFree": "True",
-      "license": recipe.license ? `https://creativecommons.org/licenses/${recipe.license.toLowerCase().replace(/_/g, '-')}/4.0/` : undefined
+      datePublished: recipe.created_at,
+      dateModified: recipe.updated_at,
+      prepTime: recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
+      cookTime: recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
+      totalTime: totalTime > 0 ? `PT${totalTime}M` : undefined,
+      recipeYield: recipe.servings ? `${recipe.servings} servings` : undefined,
+      recipeCategory: recipe.cuisine || undefined,
+      recipeCuisine: recipe.cuisine || undefined,
+      keywords: recipe.tags?.join(', ') || undefined,
+      recipeIngredient: recipe.ingredients || [],
+      recipeInstructions:
+        recipe.instructions?.map((step: string, i: number) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          text: step,
+        })) || [],
+      nutrition: recipe.nutrition_info
+        ? {
+            '@type': 'NutritionInformation',
+            ...(typeof recipe.nutrition_info === 'string'
+              ? JSON.parse(recipe.nutrition_info)
+              : recipe.nutrition_info),
+          }
+        : undefined,
+      aggregateRating:
+        recipe.avg_user_rating && recipe.total_user_ratings
+          ? {
+              '@type': 'AggregateRating',
+              ratingValue: recipe.avg_user_rating,
+              ratingCount: recipe.total_user_ratings,
+            }
+          : undefined,
+      url: recipeUrl,
+      isAccessibleForFree: 'True',
+      license: recipe.license
+        ? `https://creativecommons.org/licenses/${recipe.license.toLowerCase().replace(/_/g, '-')}/4.0/`
+        : undefined,
     };
   }, [recipe, authorProfile, totalTime]);
 
@@ -457,7 +475,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(recipeJsonLd)
+            __html: JSON.stringify(recipeJsonLd),
           }}
         />
       )}
@@ -476,328 +494,343 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           </Link>
         )}
 
-      {/* Tool Buttons Row */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {/* Engagement Actions */}
-        {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-        {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
-        {!isOwner && (
-          <CloneRecipeButton
-            recipeId={recipe.id}
-            recipeName={recipe.name}
-            currentUserId={user?.id}
-            recipeOwnerId={recipe.user_id}
-            variant="outline"
-          />
-        )}
+        {/* Tool Buttons Row */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {/* Engagement Actions */}
+          {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
+          {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+          {!isOwner && (
+            <CloneRecipeButton
+              recipeId={recipe.id}
+              recipeName={recipe.name}
+              currentUserId={user?.id}
+              recipeOwnerId={recipe.user_id}
+              variant="outline"
+            />
+          )}
 
-        {/* Utility Actions */}
-        <Link
-          href={`/recipes/${recipe.id}/similar`}
-          className="contents"
-        >
+          {/* Utility Actions */}
+          <Link href={`/recipes/${recipe.id}/similar`} className="contents">
+            <Button
+              variant="outline"
+              className="min-h-[44px] min-w-[44px]"
+              aria-label="View similar recipes"
+            >
+              <Sparkles className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Similar</span>
+            </Button>
+          </Link>
+
           <Button
             variant="outline"
+            onClick={handleCopyRecipe}
             className="min-h-[44px] min-w-[44px]"
-            aria-label="View similar recipes"
+            aria-label="Copy recipe to clipboard"
           >
-            <Sparkles className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Similar</span>
+            <Copy className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Copy</span>
           </Button>
-        </Link>
 
-        <Button
-          variant="outline"
-          onClick={handleCopyRecipe}
-          className="min-h-[44px] min-w-[44px]"
-          aria-label="Copy recipe to clipboard"
-        >
-          <Copy className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Copy</span>
-        </Button>
-
-        {/* Export Dropdown - Touch-friendly Popover */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              disabled={exporting}
-              className="min-h-[44px] min-w-[44px]"
-              aria-label="Export recipe"
-            >
-              <Download className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
-            <div className="flex flex-col gap-1">
-              <Button
-                variant="ghost"
-                onClick={handleExportMarkdown}
-                disabled={exporting}
-                className="justify-start min-h-[44px] w-full"
-                aria-label="Export as Markdown"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Export as Markdown
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleExportPDF}
-                disabled={exporting}
-                className="justify-start min-h-[44px] w-full"
-                aria-label="Export as PDF"
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                Export as PDF
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Button
-          variant="outline"
-          onClick={() => window.print()}
-          className="min-h-[44px] min-w-[44px]"
-          aria-label="Print recipe"
-        >
-          <Printer className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">Print</span>
-        </Button>
-
-        {/* Admin Actions */}
-        {isUserAdmin && (
-          <>
-            <FlagImageButton
-              recipeId={recipe.id}
-              recipeName={recipe.name}
-              isFlagged={recipe.image_flagged_for_regeneration || false}
-            />
-            <AdminContentActions
-              recipeId={recipe.id}
-              recipeName={recipe.name}
-            />
-          </>
-        )}
-
-        {/* Owner Actions - Visually separated */}
-        {isOwner && (
-          <>
-            <div className="w-full sm:w-auto sm:ml-auto" />
-            <Link href={editUrl} className="contents">
+          {/* Export Dropdown - Touch-friendly Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                disabled={exporting}
                 className="min-h-[44px] min-w-[44px]"
-                aria-label="Edit recipe"
+                aria-label="Export recipe"
               >
-                <Edit className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Edit</span>
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
               </Button>
-            </Link>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={deleting}
-              className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive"
-              aria-label="Delete recipe"
-            >
-              <Trash2 className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Delete</span>
-            </Button>
-          </>
-        )}
-      </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="ghost"
+                  onClick={handleExportMarkdown}
+                  disabled={exporting}
+                  className="justify-start min-h-[44px] w-full"
+                  aria-label="Export as Markdown"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as Markdown
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleExportPDF}
+                  disabled={exporting}
+                  className="justify-start min-h-[44px] w-full"
+                  aria-label="Export as PDF"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-      {/* Recipe Header */}
-      <div className="mb-8">
-        {/* Title */}
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">{recipe.name}</h1>
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+            className="min-h-[44px] min-w-[44px]"
+            aria-label="Print recipe"
+          >
+            <Printer className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Print</span>
+          </Button>
 
-        {/* Description */}
-        {recipe.description && (
-          <p className="text-base sm:text-lg text-muted-foreground mb-6 leading-relaxed">
-            {recipe.description}
-          </p>
-        )}
+          {/* Admin Actions */}
+          {isUserAdmin && (
+            <>
+              <FlagImageButton
+                recipeId={recipe.id}
+                recipeName={recipe.name}
+                isFlagged={recipe.image_flagged_for_regeneration || false}
+              />
+              <AdminContentActions recipeId={recipe.id} recipeName={recipe.name} />
+            </>
+          )}
 
-        {/* Metadata Row */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 items-center">
-          {/* Author and View Count */}
-          {authorProfile && (
-            <Link
-              href={`/profile/${authorProfile.username}`}
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2 -ml-2 rounded-md hover:bg-accent"
-              aria-label={`View ${authorProfile.display_name}'s profile`}
-            >
-              <User className="w-4 h-4 flex-shrink-0" />
-              <span className="font-medium">by {authorProfile.display_name}</span>
-            </Link>
-          )}
-          {viewCount > 0 && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`${viewCount.toLocaleString()} views`}>
-              <Eye className="w-4 h-4 flex-shrink-0" />
-              <span>
-                {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
-              </span>
-            </div>
-          )}
-          {recipe.cuisine && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Cuisine: ${recipe.cuisine}`}>
-              <ChefHat className="w-4 h-4 flex-shrink-0" />
-              <span>{recipe.cuisine}</span>
-            </div>
-          )}
-          {categorizedTags?.['Meal Type']?.[0] && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Meal type: ${require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}`}>
-              <Utensils className="w-4 h-4 flex-shrink-0" />
-              <span>{require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}</span>
-            </div>
-          )}
-          {categorizedTags?.['Main Ingredient']?.[0] && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Main ingredient: ${require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}`}>
-              <Apple className="w-4 h-4 flex-shrink-0" />
-              <span>{require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}</span>
-            </div>
-          )}
-          {totalTime > 0 && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Total time: ${totalTime} minutes`}>
-              <Clock className="w-4 h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">
-                {recipe.prep_time ? `${recipe.prep_time} min prep` : ''}
-                {recipe.prep_time && recipe.cook_time ? ' + ' : ''}
-                {recipe.cook_time ? `${recipe.cook_time} min cook` : ''}
-              </span>
-            </div>
-          )}
-          {recipe.servings && (
-            <div className="flex items-center gap-1.5 text-muted-foreground" aria-label={`Servings: ${recipe.servings}`}>
-              <Users className="w-4 h-4 flex-shrink-0" />
-              <span>{recipe.servings} servings</span>
-            </div>
-          )}
-          {recipe.difficulty && (
-            <Badge
-              variant="outline"
-              className={
-                recipe.difficulty === 'easy'
-                  ? 'text-green-600 border-green-600/20'
-                  : recipe.difficulty === 'medium'
-                    ? 'text-yellow-600 border-yellow-600/20'
-                    : 'text-red-600 border-red-600/20'
-              }
-              aria-label={`Difficulty: ${recipe.difficulty}`}
-            >
-              {recipe.difficulty}
-            </Badge>
-          )}
-          {recipe.is_ai_generated && (
-            <Badge variant="secondary" aria-label="AI Generated Recipe">
-              <Bot className="w-3 h-3 mr-1" />
-              AI Generated
-            </Badge>
-          )}
-          {recipe.is_system_recipe && (
-            <Badge variant="default" className="bg-jk-tomato" aria-label="Shared System Recipe">
-              <Lock className="w-3 h-3 mr-1" />
-              Shared
-            </Badge>
+          {/* Owner Actions - Visually separated */}
+          {isOwner && (
+            <>
+              <div className="w-full sm:w-auto sm:ml-auto" />
+              <Link href={editUrl} className="contents">
+                <Button
+                  variant="outline"
+                  className="min-h-[44px] min-w-[44px]"
+                  aria-label="Edit recipe"
+                >
+                  <Edit className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={deleting}
+                className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive"
+                aria-label="Delete recipe"
+              >
+                <Trash2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Delete</span>
+              </Button>
+            </>
           )}
         </div>
 
-        {/* Semantic Tags - Exclude categories shown in metadata */}
-        {recipe.tags && recipe.tags.length > 0 && (
-          <div className="mt-4">
-            <SemanticTagDisplay
-              tags={recipe.tags}
-              layout="grouped"
-              showCategoryLabels
-              size="md"
-              excludeCategories={['Cuisine', 'Meal Type', 'Main Ingredient', 'Difficulty']}
+        {/* Recipe Header */}
+        <div className="mb-8">
+          {/* Title */}
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">{recipe.name}</h1>
+
+          {/* Description */}
+          {recipe.description && (
+            <p className="text-base sm:text-lg text-muted-foreground mb-6 leading-relaxed">
+              {recipe.description}
+            </p>
+          )}
+
+          {/* Metadata Row */}
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 items-center">
+            {/* Author and View Count */}
+            {authorProfile && (
+              <Link
+                href={`/profile/${authorProfile.username}`}
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2 -ml-2 rounded-md hover:bg-accent"
+                aria-label={`View ${authorProfile.display_name}'s profile`}
+              >
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">by {authorProfile.display_name}</span>
+              </Link>
+            )}
+            {viewCount > 0 && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`${viewCount.toLocaleString()} views`}
+              >
+                <Eye className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
+                </span>
+              </div>
+            )}
+            {recipe.cuisine && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`Cuisine: ${recipe.cuisine}`}
+              >
+                <ChefHat className="w-4 h-4 flex-shrink-0" />
+                <span>{recipe.cuisine}</span>
+              </div>
+            )}
+            {categorizedTags?.['Meal Type']?.[0] && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`Meal type: ${require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}`}
+              >
+                <Utensils className="w-4 h-4 flex-shrink-0" />
+                <span>{require('@/lib/tags').getTagLabel(categorizedTags['Meal Type'][0])}</span>
+              </div>
+            )}
+            {categorizedTags?.['Main Ingredient']?.[0] && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`Main ingredient: ${require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}`}
+              >
+                <Apple className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  {require('@/lib/tags').getTagLabel(categorizedTags['Main Ingredient'][0])}
+                </span>
+              </div>
+            )}
+            {totalTime > 0 && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`Total time: ${totalTime} minutes`}
+              >
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">
+                  {recipe.prep_time ? `${recipe.prep_time} min prep` : ''}
+                  {recipe.prep_time && recipe.cook_time ? ' + ' : ''}
+                  {recipe.cook_time ? `${recipe.cook_time} min cook` : ''}
+                </span>
+              </div>
+            )}
+            {recipe.servings && (
+              <div
+                className="flex items-center gap-1.5 text-muted-foreground"
+                aria-label={`Servings: ${recipe.servings}`}
+              >
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span>{recipe.servings} servings</span>
+              </div>
+            )}
+            {recipe.difficulty && (
+              <Badge
+                variant="outline"
+                className={
+                  recipe.difficulty === 'easy'
+                    ? 'text-green-600 border-green-600/20'
+                    : recipe.difficulty === 'medium'
+                      ? 'text-yellow-600 border-yellow-600/20'
+                      : 'text-red-600 border-red-600/20'
+                }
+                aria-label={`Difficulty: ${recipe.difficulty}`}
+              >
+                {recipe.difficulty}
+              </Badge>
+            )}
+            {recipe.is_ai_generated && (
+              <Badge variant="secondary" aria-label="AI Generated Recipe">
+                <Bot className="w-3 h-3 mr-1" />
+                AI Generated
+              </Badge>
+            )}
+            {recipe.is_system_recipe && (
+              <Badge variant="default" className="bg-jk-tomato" aria-label="Shared System Recipe">
+                <Lock className="w-3 h-3 mr-1" />
+                Shared
+              </Badge>
+            )}
+          </div>
+
+          {/* Semantic Tags - Exclude categories shown in metadata */}
+          {recipe.tags && recipe.tags.length > 0 && (
+            <div className="mt-4">
+              <SemanticTagDisplay
+                tags={recipe.tags}
+                layout="grouped"
+                showCategoryLabels
+                size="md"
+                excludeCategories={['Cuisine', 'Meal Type', 'Main Ingredient', 'Difficulty']}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Fork Attribution - show if this recipe was forked from another */}
+        {originalRecipe && (
+          <div className="mb-6">
+            <RecipeForkAttribution
+              originalRecipeName={originalRecipe.name}
+              originalRecipeId={originalRecipe.id}
+              originalRecipeSlug={originalRecipe.slug}
             />
           </div>
         )}
-      </div>
 
-      {/* Fork Attribution - show if this recipe was forked from another */}
-      {originalRecipe && (
-        <div className="mb-6">
-          <RecipeForkAttribution
-            originalRecipeName={originalRecipe.name}
-            originalRecipeId={originalRecipe.id}
-            originalRecipeSlug={originalRecipe.slug}
-          />
+        {/* Engagement Stats - Inline row display */}
+        {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
+          <div className="mb-6">
+            <RecipeEngagementStats
+              likeCount={recipe.like_count || 0}
+              forkCount={recipe.fork_count || 0}
+              collectionCount={recipe.collection_count || 0}
+              recipeId={recipe.id}
+              inline
+            />
+          </div>
+        )}
+
+        {/* Images */}
+        {(recipe.images?.length > 0 || recipe.image_url) && (
+          <div className="mb-8">
+            <ImageCarousel
+              images={
+                recipe.images?.length > 0
+                  ? recipe.images
+                  : recipe.image_url
+                    ? [recipe.image_url]
+                    : []
+              }
+              title={recipe.name}
+              recipeId={recipe.id}
+              isFlagged={recipe.image_flagged_for_regeneration}
+              isAdmin={isUserAdmin}
+            />
+          </div>
+        )}
+
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
+          {/* Recipe Content with Admin Edit Overlays */}
+          <RecipeContentWithEdit recipe={recipe} isAdmin={isUserAdmin} />
         </div>
-      )}
 
-      {/* Engagement Stats - Inline row display */}
-      {(recipe.like_count > 0 || recipe.fork_count > 0 || recipe.collection_count > 0) && (
-        <div className="mb-6">
-          <RecipeEngagementStats
-            likeCount={recipe.like_count || 0}
-            forkCount={recipe.fork_count || 0}
-            collectionCount={recipe.collection_count || 0}
-            recipeId={recipe.id}
-            inline
-          />
+        {/* Similar Recipes Widget */}
+        <div className="mt-8">
+          <SimilarRecipesWidget recipeId={recipe.id} recipeName={recipe.name} limit={6} />
         </div>
-      )}
 
-      {/* Images */}
-      {(recipe.images?.length > 0 || recipe.image_url) && (
+        {/* YOU HAVE / YOU NEED SECTION - Week 2 Task 3.1 */}
+        <div className="mt-8 sm:mt-12 mb-8">
+          <InventoryMatchSection recipeId={recipe.id} ingredients={recipe.ingredients} />
+        </div>
+
+        {/* SMART SUBSTITUTIONS SECTION */}
         <div className="mb-8">
-          <ImageCarousel
-            images={
-              recipe.images?.length > 0 ? recipe.images : recipe.image_url ? [recipe.image_url] : []
-            }
-            title={recipe.name}
+          <SubstitutionSuggestionsWrapper
             recipeId={recipe.id}
-            isFlagged={recipe.image_flagged_for_regeneration}
-            isAdmin={isUserAdmin}
+            recipeName={recipe.name}
+            ingredients={recipe.ingredients}
           />
         </div>
-      )}
 
-      <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
-        {/* Recipe Content with Admin Edit Overlays */}
-        <RecipeContentWithEdit recipe={recipe} isAdmin={isUserAdmin} />
-      </div>
-
-      {/* Similar Recipes Widget */}
-      <div className="mt-8">
-        <SimilarRecipesWidget recipeId={recipe.id} recipeName={recipe.name} limit={6} />
-      </div>
-
-      {/* YOU HAVE / YOU NEED SECTION - Week 2 Task 3.1 */}
-      <div className="mb-8">
-        <InventoryMatchSection
-          recipeId={recipe.id}
-          ingredients={recipe.ingredients}
-        />
-      </div>
-
-      {/* SMART SUBSTITUTIONS SECTION */}
-      <div className="mb-8">
-        <SubstitutionSuggestionsWrapper
-          recipeId={recipe.id}
-          recipeName={recipe.name}
-          ingredients={recipe.ingredients}
-        />
-      </div>
-
-      {/* WASTE-REDUCTION CONTENT SECTION - Week 2 Task 3.3 */}
-      {(recipe.resourcefulness_score ||
-        recipe.waste_reduction_tags ||
-        recipe.scrap_utilization_notes ||
-        recipe.environmental_notes) && (
-        <div className="mb-8">
-          <WasteReductionSection
-            resourcefulnessScore={recipe.resourcefulness_score}
-            wasteReductionTags={recipe.waste_reduction_tags}
-            scrapUtilizationNotes={recipe.scrap_utilization_notes}
-            environmentalNotes={recipe.environmental_notes}
-          />
-        </div>
-      )}
+        {/* WASTE-REDUCTION CONTENT SECTION - Week 2 Task 3.3 */}
+        {(recipe.resourcefulness_score ||
+          recipe.waste_reduction_tags ||
+          recipe.scrap_utilization_notes ||
+          recipe.environmental_notes) && (
+          <div className="mb-8">
+            <WasteReductionSection
+              resourcefulnessScore={recipe.resourcefulness_score}
+              wasteReductionTags={recipe.waste_reduction_tags}
+              scrapUtilizationNotes={recipe.scrap_utilization_notes}
+              environmentalNotes={recipe.environmental_notes}
+            />
+          </div>
+        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

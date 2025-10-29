@@ -33,11 +33,50 @@ function parseIngredientName(ingredient: string): string {
 
   // Remove common units
   const units = [
-    'cup', 'cups', 'tablespoon', 'tablespoons', 'tbsp', 'teaspoon', 'teaspoons', 'tsp',
-    'ounce', 'ounces', 'oz', 'pound', 'pounds', 'lb', 'lbs', 'gram', 'grams', 'g',
-    'kilogram', 'kilograms', 'kg', 'milliliter', 'milliliters', 'ml', 'liter', 'liters', 'l',
-    'pinch', 'dash', 'handful', 'clove', 'cloves', 'can', 'cans', 'package', 'packages',
-    'piece', 'pieces', 'slice', 'slices', 'sprig', 'sprigs', 'stalk', 'stalks'
+    'cup',
+    'cups',
+    'tablespoon',
+    'tablespoons',
+    'tbsp',
+    'teaspoon',
+    'teaspoons',
+    'tsp',
+    'ounce',
+    'ounces',
+    'oz',
+    'pound',
+    'pounds',
+    'lb',
+    'lbs',
+    'gram',
+    'grams',
+    'g',
+    'kilogram',
+    'kilograms',
+    'kg',
+    'milliliter',
+    'milliliters',
+    'ml',
+    'liter',
+    'liters',
+    'l',
+    'pinch',
+    'dash',
+    'handful',
+    'clove',
+    'cloves',
+    'can',
+    'cans',
+    'package',
+    'packages',
+    'piece',
+    'pieces',
+    'slice',
+    'slices',
+    'sprig',
+    'sprigs',
+    'stalk',
+    'stalks',
   ];
 
   const unitPattern = new RegExp(`\\b(${units.join('|')})\\b`, 'gi');
@@ -48,10 +87,37 @@ function parseIngredientName(ingredient: string): string {
 
   // Remove common descriptors
   const descriptors = [
-    'fresh', 'dried', 'frozen', 'canned', 'organic', 'chopped', 'diced', 'sliced',
-    'minced', 'grated', 'shredded', 'crushed', 'whole', 'ground', 'raw', 'cooked',
-    'large', 'small', 'medium', 'extra', 'fine', 'finely', 'roughly', 'thinly',
-    'thickly', 'boneless', 'skinless', 'peeled', 'unpeeled', 'ripe', 'green'
+    'fresh',
+    'dried',
+    'frozen',
+    'canned',
+    'organic',
+    'chopped',
+    'diced',
+    'sliced',
+    'minced',
+    'grated',
+    'shredded',
+    'crushed',
+    'whole',
+    'ground',
+    'raw',
+    'cooked',
+    'large',
+    'small',
+    'medium',
+    'extra',
+    'fine',
+    'finely',
+    'roughly',
+    'thinly',
+    'thickly',
+    'boneless',
+    'skinless',
+    'peeled',
+    'unpeeled',
+    'ripe',
+    'green',
   ];
 
   const descriptorPattern = new RegExp(`\\b(${descriptors.join('|')})\\b`, 'gi');
@@ -68,10 +134,7 @@ function parseIngredientName(ingredient: string): string {
 /**
  * Match recipe ingredients against user's inventory
  */
-function getMissingIngredients(
-  recipeIngredients: string[],
-  inventoryItems: any[]
-): string[] {
+function getMissingIngredients(recipeIngredients: string[], inventoryItems: any[]): string[] {
   const missing: string[] = [];
 
   for (const ingredient of recipeIngredients) {
@@ -85,10 +148,7 @@ function getMissingIngredients(
         ''
       ).toLowerCase();
 
-      return (
-        inventoryName.includes(parsedIngredient) ||
-        parsedIngredient.includes(inventoryName)
-      );
+      return inventoryName.includes(parsedIngredient) || parsedIngredient.includes(inventoryName);
     });
 
     if (!hasIt) {
@@ -103,9 +163,7 @@ function getMissingIngredients(
  * Get user's available ingredient names for substitution availability check
  */
 function getUserIngredientNames(inventoryItems: any[]): string[] {
-  return inventoryItems.map(
-    (item) => item.ingredient?.display_name || item.ingredient?.name || ''
-  );
+  return inventoryItems.map((item) => item.ingredient?.display_name || item.ingredient?.name || '');
 }
 
 export function SubstitutionSuggestionsWrapper({

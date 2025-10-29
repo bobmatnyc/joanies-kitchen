@@ -14,9 +14,7 @@ import {
   type Ingredient,
   ingredients,
   type Recipe,
-  type RecipeIngredient,
   type RecipeTask,
-  type RecipeTool,
   recipeIngredients,
   recipes,
   recipeTasks,
@@ -24,6 +22,11 @@ import {
   type Tool,
   tools,
 } from '@/lib/db/schema';
+import {
+  consolidateUsageNotes,
+  extractUsageNotes,
+  normalizeIngredientName,
+} from '@/lib/utils/ingredient-normalizer';
 
 export interface MealRecipe {
   recipe: Recipe;
@@ -37,6 +40,9 @@ export interface ConsolidatedIngredient {
   unit: string;
   usedIn: string[]; // Recipe names
   category: string;
+  normalizedName: string; // Purchaseable name without prep details
+  originalNames: string[]; // All original ingredient names
+  usageNotes: string | null; // Consolidated usage notes (e.g., "for chicken and marinade")
 }
 
 export interface ConsolidatedTool {
@@ -176,13 +182,22 @@ async function fetchRecipeTasks(recipeIds: string[]) {
 }
 
 /**
- * Consolidate ingredients across recipes
+ * Consolidate ingredients across recipes with smart normalization
  */
 function consolidateIngredients(
   ingredientsData: any[],
   mealRecipes: MealRecipe[]
 ): ConsolidatedIngredient[] {
-  const ingredientMap = new Map<string, ConsolidatedIngredient>();
+  // Use normalized name as the consolidation key instead of ingredient ID
+  const ingredientMap = new Map<string, {
+    ingredient: Ingredient;
+    totalAmount: number;
+    unit: string;
+    usedIn: string[];
+    category: string;
+    originalNames: string[];
+    usageNotes: (string | null)[];
+  }>();
 
   for (const data of ingredientsData) {
     const { recipeIngredient, ingredient, recipe } = data;
@@ -197,12 +212,22 @@ function consolidateIngredients(
       ? parseFloat(recipeIngredient.amount) * servingMultiplier
       : 0;
 
-    const key = ingredient.id;
+    // Normalize ingredient name for consolidation
+    const originalName = ingredient.name;
+    const normalizedName = normalizeIngredientName(originalName);
+    const usageNote = extractUsageNotes(originalName);
+
+    // Use normalized name as key for consolidation
+    const key = normalizedName.toLowerCase();
 
     if (ingredientMap.has(key)) {
       const existing = ingredientMap.get(key)!;
       existing.totalAmount += adjustedAmount;
-      existing.usedIn.push(recipe.name);
+      if (!existing.usedIn.includes(recipe.name)) {
+        existing.usedIn.push(recipe.name);
+      }
+      existing.originalNames.push(originalName);
+      existing.usageNotes.push(usageNote);
     } else {
       ingredientMap.set(key, {
         ingredient,
@@ -210,18 +235,34 @@ function consolidateIngredients(
         unit: recipeIngredient.unit || ingredient.standard_unit,
         usedIn: [recipe.name],
         category: ingredient.category,
+        originalNames: [originalName],
+        usageNotes: [usageNote],
       });
     }
   }
 
+  // Convert to final format with consolidated usage notes
+  const consolidated: ConsolidatedIngredient[] = Array.from(ingredientMap.entries()).map(
+    ([normalizedName, data]) => ({
+      ingredient: data.ingredient,
+      totalAmount: data.totalAmount,
+      unit: data.unit,
+      usedIn: data.usedIn,
+      category: data.category,
+      normalizedName,
+      originalNames: data.originalNames,
+      usageNotes: consolidateUsageNotes(data.usageNotes),
+    })
+  );
+
   // Sort by category for organized shopping
-  return Array.from(ingredientMap.values()).sort((a, b) => a.category.localeCompare(b.category));
+  return consolidated.sort((a, b) => a.category.localeCompare(b.category));
 }
 
 /**
  * Consolidate tools across recipes
  */
-function consolidateTools(toolsData: any[], mealRecipes: MealRecipe[]): ConsolidatedTool[] {
+function consolidateTools(toolsData: any[], _mealRecipes: MealRecipe[]): ConsolidatedTool[] {
   const toolMap = new Map<string, ConsolidatedTool>();
 
   for (const data of toolsData) {
@@ -254,7 +295,7 @@ function consolidateTools(toolsData: any[], mealRecipes: MealRecipe[]): Consolid
 /**
  * Find tool conflicts (same tool needed at overlapping times)
  */
-function findToolConflicts(tasksData: any[], mealRecipes: MealRecipe[]): ToolConflict[] {
+function findToolConflicts(tasksData: any[], _mealRecipes: MealRecipe[]): ToolConflict[] {
   const conflicts: ToolConflict[] = [];
 
   // Group tasks by tool
@@ -272,9 +313,9 @@ function findToolConflicts(tasksData: any[], mealRecipes: MealRecipe[]): ToolCon
         if (!tasksByTool.has(toolId)) {
           tasksByTool.set(toolId, []);
         }
-        tasksByTool.get(toolId)!.push({ task, recipe });
+        tasksByTool.get(toolId)?.push({ task, recipe });
       }
-    } catch (error) {
+    } catch (_error) {
       // Skip invalid JSON
     }
   }
@@ -312,7 +353,7 @@ function findToolConflicts(tasksData: any[], mealRecipes: MealRecipe[]): ToolCon
 /**
  * Build chronological task timeline
  */
-function buildTaskTimeline(tasksData: any[], mealRecipes: MealRecipe[]): TaskTimeline[] {
+function buildTaskTimeline(tasksData: any[], _mealRecipes: MealRecipe[]): TaskTimeline[] {
   const timeline: TaskTimeline[] = [];
 
   // Sort tasks by role priority and dependencies
@@ -380,7 +421,7 @@ function calculateTimeEstimates(timeline: TaskTimeline[]) {
  * NOTE: Currently disabled as average_price_usd field is not in ingredients schema
  * TODO: Re-implement when pricing data is available
  */
-function estimateMealCost(consolidatedIngredients: ConsolidatedIngredient[]): number {
+function estimateMealCost(_consolidatedIngredients: ConsolidatedIngredient[]): number {
   // Placeholder: return 0 until pricing data is added to ingredients schema
   return 0;
 }

@@ -6,8 +6,8 @@
  * Provides server-side substitution lookup with error handling
  */
 
-import { getSubstitutions, getBatchSubstitutions } from '@/lib/substitutions/substitution-service';
-import type { SubstitutionResult, SubstitutionContext } from '@/lib/substitutions/types';
+import { getBatchSubstitutions, getSubstitutions } from '@/lib/substitutions/substitution-service';
+import type { SubstitutionContext, SubstitutionResult } from '@/lib/substitutions/types';
 
 /**
  * Server action result wrapper

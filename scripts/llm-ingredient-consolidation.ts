@@ -10,9 +10,9 @@
  * Usage: tsx scripts/llm-ingredient-consolidation.ts
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { DuplicateGroup, IngredientVariant } from './analyze-ingredient-duplicates';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type { DuplicateGroup } from './analyze-ingredient-duplicates';
 
 interface ConsolidationDecision {
   group: string;
@@ -61,7 +61,7 @@ async function analyzeWithLLM(groups: DuplicateGroup[]): Promise<ConsolidationDe
             'Content-Type': 'application/json',
             Authorization: `Bearer ${apiKey}`,
             'HTTP-Referer': 'https://joanies.kitchen',
-            'X-Title': 'Joanie\'s Kitchen - Ingredient Consolidation',
+            'X-Title': "Joanie's Kitchen - Ingredient Consolidation",
           },
           body: JSON.stringify({
             model: 'anthropic/claude-3.5-sonnet',
@@ -96,7 +96,10 @@ async function analyzeWithLLM(groups: DuplicateGroup[]): Promise<ConsolidationDe
         break;
       } catch (error) {
         attempt++;
-        console.error(`   ⚠️  Attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
+        console.error(
+          `   ⚠️  Attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : error
+        );
 
         if (attempt >= MAX_RETRIES) {
           console.error(`   ❌ Max retries reached for batch ${batchNum}`);
@@ -233,7 +236,9 @@ async function main() {
   console.log(`📁 Decisions saved to: ${outputPath}\n`);
 
   // Show sample high-confidence merges
-  const highConfidenceMerges = decisions.filter((d) => d.action === 'merge' && d.confidence === 'high').slice(0, 5);
+  const highConfidenceMerges = decisions
+    .filter((d) => d.action === 'merge' && d.confidence === 'high')
+    .slice(0, 5);
 
   if (highConfidenceMerges.length > 0) {
     console.log('✨ Sample High-Confidence Merges:\n');

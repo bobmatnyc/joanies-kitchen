@@ -24,7 +24,7 @@ export function parseJsonResponse(content: string): any {
   // Try to parse
   try {
     return JSON.parse(cleaned);
-  } catch (parseError) {
+  } catch (_parseError) {
     // Fallback: try to extract JSON array or object
     const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
     const objectMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -45,7 +45,7 @@ export function parseJsonResponse(content: string): any {
  */
 export function extractIngredientArray(parsed: any): string[] {
   if (Array.isArray(parsed)) {
-    return parsed.filter(item => typeof item === 'string');
+    return parsed.filter((item) => typeof item === 'string');
   } else if (parsed.ingredients && Array.isArray(parsed.ingredients)) {
     return parsed.ingredients.filter((item: any) => typeof item === 'string');
   } else if (typeof parsed === 'object' && Object.keys(parsed).length === 1) {
@@ -56,12 +56,12 @@ export function extractIngredientArray(parsed: any): string[] {
     }
   }
 
-  throw new Error('Unexpected response format: ' + JSON.stringify(parsed).substring(0, 100));
+  throw new Error(`Unexpected response format: ${JSON.stringify(parsed).substring(0, 100)}`);
 }
 
 /**
  * Sleep utility for retry delays
  */
 export async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

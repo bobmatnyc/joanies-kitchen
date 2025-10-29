@@ -1,19 +1,18 @@
 #!/usr/bin/env tsx
+
 /**
  * Validation script for ingredient consolidation
  */
 
-import { db, cleanup } from './db-with-transactions';
-import { ingredients, recipeIngredients } from '../src/lib/db/ingredients-schema';
 import { sql } from 'drizzle-orm';
+import { ingredients } from '../src/lib/db/ingredients-schema';
+import { cleanup, db } from './db-with-transactions';
 
 async function validate() {
   console.log('\n🔍 Validating Ingredient Consolidation...\n');
 
   // 1. Check ingredient count
-  const countResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(ingredients);
+  const countResult = await db.select({ count: sql<number>`count(*)` }).from(ingredients);
   console.log(`✅ Total ingredients: ${countResult[0].count}`);
 
   // 2. Check for ingredients with aliases

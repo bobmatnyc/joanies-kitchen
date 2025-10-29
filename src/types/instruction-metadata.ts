@@ -12,18 +12,18 @@ import { z } from 'zod';
 // ============================================================================
 
 export const WorkType = z.enum([
-  'prep',       // Chopping, peeling, measuring, trimming
-  'cook',       // Active cooking with heat application
-  'setup',      // Equipment setup, preheating, arrangement
-  'rest',       // Waiting, resting, cooling, setting
-  'assemble',   // Combining components, layering, building
-  'clean',      // Washing, draining, patting dry
-  'marinate',   // Soaking, marinating, brining
-  'mix',        // Stirring, whisking, kneading, blending
-  'monitor',    // Watching, adjusting heat, checking doneness
-  'serve',      // Final plating, garnishing, presentation
-  'chill',      // Refrigerating, freezing
-  'strain',     // Draining, straining, filtering
+  'prep', // Chopping, peeling, measuring, trimming
+  'cook', // Active cooking with heat application
+  'setup', // Equipment setup, preheating, arrangement
+  'rest', // Waiting, resting, cooling, setting
+  'assemble', // Combining components, layering, building
+  'clean', // Washing, draining, patting dry
+  'marinate', // Soaking, marinating, brining
+  'mix', // Stirring, whisking, kneading, blending
+  'monitor', // Watching, adjusting heat, checking doneness
+  'serve', // Final plating, garnishing, presentation
+  'chill', // Refrigerating, freezing
+  'strain', // Draining, straining, filtering
 ]);
 
 export const Technique = z.enum([
@@ -259,12 +259,7 @@ export const SkillLevel = z.enum(['beginner', 'intermediate', 'advanced']);
 
 export const TemperatureUnit = z.enum(['F', 'C']);
 
-export const TemperatureType = z.enum([
-  'oven_preheat',
-  'surface',
-  'liquid',
-  'storage',
-]);
+export const TemperatureType = z.enum(['oven_preheat', 'surface', 'liquid', 'storage']);
 
 // ============================================================================
 // Type Exports (for convenience)
@@ -367,9 +362,7 @@ export function calculateTotalTime(
 /**
  * Identifies steps that can be done in parallel
  */
-export function getParallelSteps(
-  metadata: InstructionMetadata[]
-): InstructionMetadata[][] {
+export function getParallelSteps(metadata: InstructionMetadata[]): InstructionMetadata[][] {
   const parallel: InstructionMetadata[][] = [];
   const used = new Set<number>();
 
@@ -423,7 +416,7 @@ export function getEquipmentConflicts(
       if (!equipmentUsage.has(tool)) {
         equipmentUsage.set(tool, []);
       }
-      equipmentUsage.get(tool)!.push(idx);
+      equipmentUsage.get(tool)?.push(idx);
     });
   });
 
@@ -469,7 +462,7 @@ export function groupByWorkType(
     if (!groups.has(workType)) {
       groups.set(workType, []);
     }
-    groups.get(workType)!.push(step);
+    groups.get(workType)?.push(step);
   });
 
   return groups;
@@ -478,9 +471,7 @@ export function groupByWorkType(
 /**
  * Determines overall recipe difficulty based on classified steps
  */
-export function calculateRecipeDifficulty(
-  metadata: InstructionMetadata[]
-): SkillLevelEnum {
+export function calculateRecipeDifficulty(metadata: InstructionMetadata[]): SkillLevelEnum {
   const skillLevels = metadata.map((s) => s.classification.skill_level_required);
 
   const hasAdvanced = skillLevels.includes('advanced');
@@ -495,9 +486,7 @@ export function calculateRecipeDifficulty(
 /**
  * Identifies steps that require constant attention
  */
-export function getAttentionRequiredSteps(
-  metadata: InstructionMetadata[]
-): InstructionMetadata[] {
+export function getAttentionRequiredSteps(metadata: InstructionMetadata[]): InstructionMetadata[] {
   return metadata.filter((step) => step.classification.requires_attention);
 }
 
@@ -520,9 +509,7 @@ export function validatePrerequisites(metadata: InstructionMetadata[]): {
   metadata.forEach((step, idx) => {
     step.classification.prerequisite_steps.forEach((prereqIdx) => {
       if (prereqIdx >= idx) {
-        errors.push(
-          `Step ${idx} has invalid prerequisite ${prereqIdx} (must be earlier step)`
-        );
+        errors.push(`Step ${idx} has invalid prerequisite ${prereqIdx} (must be earlier step)`);
       }
       if (prereqIdx < 0 || prereqIdx >= metadata.length) {
         errors.push(`Step ${idx} has invalid prerequisite ${prereqIdx} (out of range)`);

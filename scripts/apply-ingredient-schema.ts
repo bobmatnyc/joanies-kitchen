@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Apply Ingredient Schema Changes
  *
@@ -13,9 +14,9 @@
  *   pnpm tsx scripts/apply-ingredient-schema.ts
  */
 
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { sql } from 'drizzle-orm';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 

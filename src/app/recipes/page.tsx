@@ -73,7 +73,8 @@ export default async function RecipesPage({ searchParams }: PageProps) {
       <div className="mb-8">
         <h1 className="text-4xl font-heading text-jk-olive mb-2">Browse Recipes</h1>
         <p className="text-jk-charcoal/70 font-ui">
-          {pagination.total} public recipe{pagination.total !== 1 ? 's' : ''} shared by our community
+          {pagination.total} public recipe{pagination.total !== 1 ? 's' : ''} shared by our
+          community
         </p>
       </div>
 

@@ -49,17 +49,26 @@ function cleanIngredient(ingredient: string): string {
 
   // Fix spacing issues between numbers/fractions and units
   // "¼cupfreshly" → "¼ cup freshly"
-  cleaned = cleaned.replace(/([¼½¾⅓⅔⅛⅜⅝⅞])\s*(cup|tablespoon|teaspoon|pound|ounce)([a-z])/gi, '$1 $2 $3');
+  cleaned = cleaned.replace(
+    /([¼½¾⅓⅔⅛⅜⅝⅞])\s*(cup|tablespoon|teaspoon|pound|ounce)([a-z])/gi,
+    '$1 $2 $3'
+  );
 
   // "2clovesgarlic" → "2 cloves garlic"
   // "8ouncesdried" → "8 ounces dried"
-  cleaned = cleaned.replace(/(\d+)\s*(clove|cup|tablespoon|teaspoon|pound|ounce)(s?)([a-z])/gi, '$1 $2$3 $4');
+  cleaned = cleaned.replace(
+    /(\d+)\s*(clove|cup|tablespoon|teaspoon|pound|ounce)(s?)([a-z])/gi,
+    '$1 $2$3 $4'
+  );
 
   // Fix broken spacing from previous runs: "clove s" → "cloves", "ounce s" → "ounces"
   cleaned = cleaned.replace(/\b(clove|cup|tablespoon|teaspoon|pound|ounce)\s+s\b/gi, '$1s');
 
   // Fix cases where unit got split: "8 ounce sdried" → "8 ounces dried"
-  cleaned = cleaned.replace(/\b(cloves?|cups?|tablespoons?|teaspoons?|pounds?|ounces?)\s+s([a-z])/gi, '$1s $2');
+  cleaned = cleaned.replace(
+    /\b(cloves?|cups?|tablespoons?|teaspoons?|pounds?|ounces?)\s+s([a-z])/gi,
+    '$1s $2'
+  );
 
   // Clean up multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ');
@@ -79,14 +88,11 @@ function cleanIngredient(ingredient: string): string {
 async function cleanRecipeIngredients(recipeId: string) {
   console.log('🧹 Recipe Ingredient Cleaner\n');
   console.log(`Recipe ID: ${recipeId}\n`);
-  console.log('━'.repeat(80) + '\n');
+  console.log(`${'━'.repeat(80)}\n`);
 
   try {
     // Fetch the recipe
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId));
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
 
     if (!recipe) {
       console.error(`❌ Recipe not found: ${recipeId}`);
@@ -168,7 +174,9 @@ const recipeId = process.argv[2];
 
 if (!recipeId) {
   console.error('❌ Usage: pnpm tsx scripts/clean-recipe-ingredients.ts <recipe-id>');
-  console.error('Example: pnpm tsx scripts/clean-recipe-ingredients.ts 42c99b0f-05d2-4b96-95b0-d8d611c8bcde');
+  console.error(
+    'Example: pnpm tsx scripts/clean-recipe-ingredients.ts 42c99b0f-05d2-4b96-95b0-d8d611c8bcde'
+  );
   process.exit(1);
 }
 

@@ -1,7 +1,7 @@
 import { ChefHat } from 'lucide-react';
 import { getAllChefs } from '@/app/actions/chefs';
-import { ChefViewToggle } from '@/components/discover/ChefViewToggle';
 import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
+import { ChefViewToggle } from '@/components/discover/ChefViewToggle';
 
 export const metadata = {
   title: "Discover Chefs | Joanie's Kitchen",

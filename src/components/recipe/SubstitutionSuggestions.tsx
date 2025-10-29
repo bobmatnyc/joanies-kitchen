@@ -13,14 +13,14 @@
  * - Loading states and error handling
  */
 
+import { CheckCircle2, ChevronDown, ChevronUp, Info, Lightbulb, Loader2, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Lightbulb, Loader2, Star, Info, CheckCircle2 } from 'lucide-react';
 import { getMultipleIngredientSubstitutions } from '@/app/actions/substitutions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import type { SubstitutionResult, SubstitutionConfidence } from '@/lib/substitutions/types';
+import type { SubstitutionConfidence, SubstitutionResult } from '@/lib/substitutions/types';
 
 interface SubstitutionSuggestionsProps {
   /** Missing ingredients to find substitutions for */
@@ -139,9 +139,7 @@ function SubstitutionCard({
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h5 className="font-semibold text-sm truncate">
-                      {sub.substitute_ingredient}
-                    </h5>
+                    <h5 className="font-semibold text-sm truncate">{sub.substitute_ingredient}</h5>
                     {sub.is_user_available && (
                       <Badge className="bg-green-600 hover:bg-green-600 shrink-0">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -168,10 +166,7 @@ function SubstitutionCard({
                   </Badge>
                   <div className="flex gap-0.5">
                     {Array.from({ length: getConfidenceStars(sub.confidence) }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-3 w-3 fill-yellow-400 text-yellow-400"
-                      />
+                      <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
                 </div>
@@ -239,7 +234,12 @@ function SubstitutionCard({
 
           {/* Source indicator */}
           <div className="text-xs text-gray-500 text-center pt-2 border-t">
-            Source: {result.source === 'static' ? 'Curated Library' : result.source === 'cached' ? 'Cached AI' : 'AI Generated'}
+            Source:{' '}
+            {result.source === 'static'
+              ? 'Curated Library'
+              : result.source === 'cached'
+                ? 'Cached AI'
+                : 'AI Generated'}
           </div>
         </div>
       )}
@@ -433,19 +433,19 @@ export function SubstitutionSuggestions({
 
         <CollapsibleContent>
           <CardContent className="space-y-2">
-        {results.map((result, idx) => (
-          <SubstitutionCard
-            key={idx}
-            result={result}
-            isExpanded={expandedItems.has(idx)}
-            onToggle={() => toggleExpanded(idx)}
-          />
-        ))}
+            {results.map((result, idx) => (
+              <SubstitutionCard
+                key={idx}
+                result={result}
+                isExpanded={expandedItems.has(idx)}
+                onToggle={() => toggleExpanded(idx)}
+              />
+            ))}
 
-        {/* Helper tip */}
-        <div className="text-xs text-center text-muted-foreground pt-4 border-t">
-          💡 Tip: Substitutions marked &quot;You Have&quot; are in your fridge inventory
-        </div>
+            {/* Helper tip */}
+            <div className="text-xs text-center text-muted-foreground pt-4 border-t">
+              💡 Tip: Substitutions marked &quot;You Have&quot; are in your fridge inventory
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Card>

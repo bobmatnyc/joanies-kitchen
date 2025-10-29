@@ -1,22 +1,23 @@
 #!/usr/bin/env tsx
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { db } from '../src/lib/db/index.js';
 import { tools } from '../src/lib/db/schema.js';
-import { sql } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
 
 async function analyzeToolsCoverage() {
   try {
     // Get all tools from database
-    const allTools = await db.select({
-      name: tools.name,
-      display_name: tools.display_name,
-      category: tools.category,
-      type: tools.type,
-      subtype: tools.subtype,
-      is_essential: tools.is_essential,
-    }).from(tools);
+    const allTools = await db
+      .select({
+        name: tools.name,
+        display_name: tools.display_name,
+        category: tools.category,
+        type: tools.type,
+        subtype: tools.subtype,
+        is_essential: tools.is_essential,
+      })
+      .from(tools);
 
     console.log(`\n📊 TOOLS DATABASE ANALYSIS\n`);
     console.log(`Total tools in database: ${allTools.length}`);
@@ -27,12 +28,10 @@ async function analyzeToolsCoverage() {
 
     try {
       const files = fs.readdirSync(imagesDir);
-      existingImages = files
-        .filter(f => f.endsWith('.png'))
-        .map(f => f.replace('.png', ''));
+      existingImages = files.filter((f) => f.endsWith('.png')).map((f) => f.replace('.png', ''));
 
       console.log(`Existing tool images: ${existingImages.length}`);
-    } catch (err) {
+    } catch (_err) {
       console.log('Images directory not accessible');
     }
 
@@ -70,18 +69,18 @@ async function analyzeToolsCoverage() {
 
       for (const [category, toolList] of Object.entries(byCategory)) {
         console.log(`\n${category.toUpperCase()}:`);
-        toolList.forEach(t => console.log(`  - ${t}`));
+        toolList.forEach((t) => console.log(`  - ${t}`));
       }
     }
 
     // Check for orphaned images
-    const orphanedImages = existingImages.filter(img =>
-      !allTools.some(t => t.name.toLowerCase().replace(/-/g, '_') === img)
+    const orphanedImages = existingImages.filter(
+      (img) => !allTools.some((t) => t.name.toLowerCase().replace(/-/g, '_') === img)
     );
 
     if (orphanedImages.length > 0) {
       console.log(`\n⚠️  ORPHANED IMAGES (no matching database record):`);
-      orphanedImages.forEach(img => console.log(`  - ${img}`));
+      orphanedImages.forEach((img) => console.log(`  - ${img}`));
     }
 
     console.log(`\n`);

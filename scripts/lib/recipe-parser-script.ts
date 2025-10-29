@@ -135,7 +135,9 @@ Respond with ONLY the JSON object, no other text.`;
     try {
       parsed = JSON.parse(content_text);
     } catch (parseError) {
-      console.error(`   ✗ Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      console.error(
+        `   ✗ Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+      );
       console.error(`   Response was: ${content_text.substring(0, 200)}...`);
       return null;
     }
@@ -163,11 +165,15 @@ Respond with ONLY the JSON object, no other text.`;
     }
 
     console.log(`   ✓ AI extracted: ${parsed.name} (confidence: ${parsed.confidence || 'N/A'})`);
-    console.log(`      - ${parsed.ingredients.length} ingredients, ${parsed.instructions.length} steps`);
+    console.log(
+      `      - ${parsed.ingredients.length} ingredients, ${parsed.instructions.length} steps`
+    );
 
     return parsed;
   } catch (error) {
-    console.error(`   ✗ AI extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(
+      `   ✗ AI extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return null;
   }
 }
@@ -176,5 +182,5 @@ Respond with ONLY the JSON object, no other text.`;
  * Rate limiting helper for AI requests
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -19,14 +19,13 @@
  *   pnpm tsx scripts/qa-recipe-ingredients-llm.ts --resume  # Resume from checkpoint
  */
 
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import cliProgress from 'cli-progress';
 import ollama from 'ollama';
-import { parseJsonResponse, extractIngredientArray, sleep } from './lib/qa-helpers';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
+import { extractIngredientArray, parseJsonResponse, sleep } from './lib/qa-helpers';
 
 interface ExtractionResult {
   recipe_id: string;
@@ -62,7 +61,7 @@ interface Checkpoint {
   timestamp: string;
 }
 
-const BATCH_SIZE = 50;
+const _BATCH_SIZE = 50;
 const CHECKPOINT_INTERVAL = 500; // Save checkpoint every 500 recipes
 const MODEL = 'qwen2.5-coder:7b-instruct';
 const MAX_RETRIES = 3;
@@ -88,10 +87,12 @@ If no ingredients found, return: []`;
   try {
     const response = await ollama.chat({
       model: MODEL,
-      messages: [{
-        role: 'user',
-        content: prompt,
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
       format: 'json',
       options: {
         temperature: 0.1, // Low temperature for consistency
@@ -132,15 +133,15 @@ If no ingredients found, return: []`;
 function calculateMatchPercentage(declared: string[], extracted: string[]): number {
   if (declared.length === 0) return 0;
 
-  const declaredLower = declared.map(i => i.toLowerCase().trim());
-  const extractedLower = extracted.map(i => i.toLowerCase().trim());
+  const declaredLower = declared.map((i) => i.toLowerCase().trim());
+  const extractedLower = extracted.map((i) => i.toLowerCase().trim());
 
   let matches = 0;
   for (const ingredient of declaredLower) {
     // Check if any extracted ingredient contains this declared ingredient
     // or vice versa (handles partial matches)
     const found = extractedLower.some(
-      ext => ext.includes(ingredient) || ingredient.includes(ext)
+      (ext) => ext.includes(ingredient) || ingredient.includes(ext)
     );
     if (found) matches++;
   }
@@ -152,24 +153,28 @@ function findMissingAndExtra(
   declared: string[],
   extracted: string[]
 ): { missing: string[]; extra: string[] } {
-  const declaredLower = declared.map(i => i.toLowerCase().trim());
-  const extractedLower = extracted.map(i => i.toLowerCase().trim());
+  const declaredLower = declared.map((i) => i.toLowerCase().trim());
+  const extractedLower = extracted.map((i) => i.toLowerCase().trim());
 
-  const missing = declared.filter((ing, idx) => {
+  const missing = declared.filter((_ing, idx) => {
     const ingLower = declaredLower[idx];
-    return !extractedLower.some(ext => ext.includes(ingLower) || ingLower.includes(ext));
+    return !extractedLower.some((ext) => ext.includes(ingLower) || ingLower.includes(ext));
   });
 
-  const extra = extracted.filter((ing, idx) => {
+  const extra = extracted.filter((_ing, idx) => {
     const ingLower = extractedLower[idx];
-    return !declaredLower.some(decl => decl.includes(ingLower) || ingLower.includes(decl));
+    return !declaredLower.some((decl) => decl.includes(ingLower) || ingLower.includes(decl));
   });
 
   return { missing, extra };
 }
 
 async function loadCheckpoint(): Promise<Checkpoint | null> {
-  const checkpointPath = path.join(process.cwd(), 'tmp', 'qa-ingredient-extraction-checkpoint.json');
+  const checkpointPath = path.join(
+    process.cwd(),
+    'tmp',
+    'qa-ingredient-extraction-checkpoint.json'
+  );
   if (fs.existsSync(checkpointPath)) {
     const data = fs.readFileSync(checkpointPath, 'utf-8');
     return JSON.parse(data);
@@ -178,7 +183,11 @@ async function loadCheckpoint(): Promise<Checkpoint | null> {
 }
 
 async function saveCheckpoint(checkpoint: Checkpoint): Promise<void> {
-  const checkpointPath = path.join(process.cwd(), 'tmp', 'qa-ingredient-extraction-checkpoint.json');
+  const checkpointPath = path.join(
+    process.cwd(),
+    'tmp',
+    'qa-ingredient-extraction-checkpoint.json'
+  );
   fs.writeFileSync(checkpointPath, JSON.stringify(checkpoint, null, 2));
 }
 
@@ -189,7 +198,7 @@ async function extractIngredients() {
   // Check if Ollama is running and model is available
   try {
     await ollama.list();
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ Error: Ollama is not running or not accessible');
     console.error('   Please start Ollama with: ollama serve');
     process.exit(1);
@@ -209,7 +218,9 @@ async function extractIngredients() {
   if (shouldResume) {
     const checkpoint = await loadCheckpoint();
     if (checkpoint) {
-      console.log(`📍 Resuming from checkpoint: ${checkpoint.last_processed_index + 1} recipes processed`);
+      console.log(
+        `📍 Resuming from checkpoint: ${checkpoint.last_processed_index + 1} recipes processed`
+      );
       startIndex = checkpoint.last_processed_index + 1;
       results = checkpoint.results;
     } else {
@@ -219,12 +230,14 @@ async function extractIngredients() {
 
   // Fetch all recipes
   console.log('📊 Fetching recipes from database...');
-  const allRecipes = await db.select({
-    id: recipes.id,
-    name: recipes.name,
-    ingredients: recipes.ingredients,
-    instructions: recipes.instructions,
-  }).from(recipes);
+  const allRecipes = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      ingredients: recipes.ingredients,
+      instructions: recipes.instructions,
+    })
+    .from(recipes);
 
   console.log(`✅ Found ${allRecipes.length} recipes`);
   console.log(`🔄 Processing ${allRecipes.length - startIndex} recipes\n`);
@@ -265,9 +278,9 @@ async function extractIngredients() {
     try {
       const parsed = JSON.parse(recipe.ingredients);
       if (Array.isArray(parsed)) {
-        declaredIngredients = parsed.filter(ing => typeof ing === 'string' && ing.trim() !== '');
+        declaredIngredients = parsed.filter((ing) => typeof ing === 'string' && ing.trim() !== '');
       }
-    } catch (error) {
+    } catch (_error) {
       // Skip recipes with malformed JSON (already caught in Phase 1)
       errorCount++;
       progressBar.update(i - startIndex + 1, { errors: errorCount });
@@ -279,9 +292,9 @@ async function extractIngredients() {
     try {
       const parsed = JSON.parse(recipe.instructions);
       if (Array.isArray(parsed)) {
-        instructionsArray = parsed.filter(inst => typeof inst === 'string' && inst.trim() !== '');
+        instructionsArray = parsed.filter((inst) => typeof inst === 'string' && inst.trim() !== '');
       }
-    } catch (error) {
+    } catch (_error) {
       errorCount++;
       progressBar.update(i - startIndex + 1, { errors: errorCount });
       continue;
@@ -377,10 +390,18 @@ async function extractIngredients() {
   console.log(`Model Used:              ${report.model_used}`);
   console.log('');
   console.log('Match Quality:');
-  console.log(`  🟢 Perfect (100%):     ${report.statistics.perfect_matches.toLocaleString()} (${((report.statistics.perfect_matches / report.processed_recipes) * 100).toFixed(2)}%)`);
-  console.log(`  🟡 High (≥80%):        ${report.statistics.high_matches.toLocaleString()} (${((report.statistics.high_matches / report.processed_recipes) * 100).toFixed(2)}%)`);
-  console.log(`  🟠 Medium (≥60%):      ${report.statistics.medium_matches.toLocaleString()} (${((report.statistics.medium_matches / report.processed_recipes) * 100).toFixed(2)}%)`);
-  console.log(`  🔴 Low (<60%):         ${report.statistics.low_matches.toLocaleString()} (${((report.statistics.low_matches / report.processed_recipes) * 100).toFixed(2)}%)`);
+  console.log(
+    `  🟢 Perfect (100%):     ${report.statistics.perfect_matches.toLocaleString()} (${((report.statistics.perfect_matches / report.processed_recipes) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `  🟡 High (≥80%):        ${report.statistics.high_matches.toLocaleString()} (${((report.statistics.high_matches / report.processed_recipes) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `  🟠 Medium (≥60%):      ${report.statistics.medium_matches.toLocaleString()} (${((report.statistics.medium_matches / report.processed_recipes) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `  🔴 Low (<60%):         ${report.statistics.low_matches.toLocaleString()} (${((report.statistics.low_matches / report.processed_recipes) * 100).toFixed(2)}%)`
+  );
   console.log(`  ❌ Errors:             ${report.statistics.extraction_errors.toLocaleString()}`);
   console.log('─'.repeat(60));
   console.log(`\n✅ Report saved to: ${reportPath}\n`);

@@ -41,6 +41,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   Recipes
                 </Link>
                 <Link
+                  href="/admin/ingest-recipe"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  Ingest Recipe
+                </Link>
+                <Link
                   href="/admin/flags"
                   className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                 >

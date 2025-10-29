@@ -20,12 +20,12 @@
  */
 
 import 'dotenv/config';
-import { eq, or, isNull } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { chefs, type Chef } from '@/lib/db/chef-schema';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { eq, isNull, or } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { db } from '@/lib/db';
+import { chefs } from '@/lib/db/chef-schema';
 
 // Initialize OpenAI client (DALL-E is available directly via OpenAI API)
 const openai = new OpenAI({
@@ -89,7 +89,7 @@ function extractBioDescriptor(bio: string | null, specialties: string[]): string
         // Clean up the match and limit length
         let descriptor = match[0].replace(/\s+/g, ' ').trim();
         if (descriptor.length > 100) {
-          descriptor = descriptor.substring(0, 97) + '...';
+          descriptor = `${descriptor.substring(0, 97)}...`;
         }
         return descriptor;
       }
@@ -319,7 +319,7 @@ async function getAllChefs(): Promise<{ total: number; withImages: number }> {
 async function main() {
   const dryRun = process.env.APPLY_CHANGES !== 'true';
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('👨‍🍳 CHEF PROFILE IMAGE GENERATION (DALL-E 3)');
   console.log('='.repeat(70));
 
@@ -345,7 +345,9 @@ async function main() {
     process.exit(0);
   }
 
-  console.log(`\n💰 Estimated Cost: $${(chefsNeedingImages.length * 0.04).toFixed(2)} - $${(chefsNeedingImages.length * 0.1).toFixed(2)}`);
+  console.log(
+    `\n💰 Estimated Cost: $${(chefsNeedingImages.length * 0.04).toFixed(2)} - $${(chefsNeedingImages.length * 0.1).toFixed(2)}`
+  );
   console.log(`⏱️  Estimated Time: ${Math.ceil((chefsNeedingImages.length * 6) / 60)} minutes\n`);
 
   if (dryRun) {
@@ -381,7 +383,7 @@ async function main() {
   }
 
   // Final summary
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('✨ GENERATION COMPLETE');
   console.log('='.repeat(70));
   console.log(`\n📊 Results:`);
@@ -404,7 +406,7 @@ async function main() {
     });
   }
 
-  console.log('\n' + '='.repeat(70) + '\n');
+  console.log(`\n${'='.repeat(70)}\n`);
 
   // Exit with error code if there were failures
   if (progress.failed > 0) {

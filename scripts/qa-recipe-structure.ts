@@ -13,12 +13,11 @@
  *   pnpm tsx scripts/qa-recipe-structure.ts
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import cliProgress from 'cli-progress';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { isNull, sql } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
-import cliProgress from 'cli-progress';
 
 interface StructureIssue {
   recipe_id: string;
@@ -52,7 +51,10 @@ interface StructureReport {
   all_issues: StructureIssue[];
 }
 
-function parseJsonField(field: string | null, fieldName: string): { valid: boolean; data?: any; error?: string } {
+function parseJsonField(
+  field: string | null,
+  fieldName: string
+): { valid: boolean; data?: any; error?: string } {
   if (!field || field.trim() === '') {
     return { valid: false, error: `${fieldName} is null or empty` };
   }
@@ -69,7 +71,7 @@ function parseJsonField(field: string | null, fieldName: string): { valid: boole
 }
 
 function countEmptyStrings(arr: any[]): number {
-  return arr.filter(item => typeof item === 'string' && item.trim() === '').length;
+  return arr.filter((item) => typeof item === 'string' && item.trim() === '').length;
 }
 
 async function validateRecipeStructure() {
@@ -83,12 +85,14 @@ async function validateRecipeStructure() {
 
   // Fetch all recipes
   console.log('📊 Fetching all recipes from database...');
-  const allRecipes = await db.select({
-    id: recipes.id,
-    name: recipes.name,
-    ingredients: recipes.ingredients,
-    instructions: recipes.instructions,
-  }).from(recipes);
+  const allRecipes = await db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      ingredients: recipes.ingredients,
+      instructions: recipes.instructions,
+    })
+    .from(recipes);
 
   console.log(`✅ Found ${allRecipes.length} recipes\n`);
 
@@ -255,8 +259,12 @@ async function validateRecipeStructure() {
   console.log('\n📋 Structure Validation Summary:');
   console.log('─'.repeat(60));
   console.log(`Total Recipes:           ${report.total_recipes.toLocaleString()}`);
-  console.log(`✅ Recipes OK:           ${report.summary.recipes_ok.toLocaleString()} (${((report.summary.recipes_ok / report.total_recipes) * 100).toFixed(2)}%)`);
-  console.log(`⚠️  Recipes Flagged:      ${report.summary.recipes_flagged.toLocaleString()} (${((report.summary.recipes_flagged / report.total_recipes) * 100).toFixed(2)}%)`);
+  console.log(
+    `✅ Recipes OK:           ${report.summary.recipes_ok.toLocaleString()} (${((report.summary.recipes_ok / report.total_recipes) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `⚠️  Recipes Flagged:      ${report.summary.recipes_flagged.toLocaleString()} (${((report.summary.recipes_flagged / report.total_recipes) * 100).toFixed(2)}%)`
+  );
   console.log('');
   console.log('By Severity:');
   console.log(`  🔴 Critical:           ${report.summary.by_severity.critical.toLocaleString()}`);
@@ -264,13 +272,23 @@ async function validateRecipeStructure() {
   console.log(`  🟡 Medium:             ${report.summary.by_severity.medium.toLocaleString()}`);
   console.log('');
   console.log('Critical Issues:');
-  console.log(`  Missing Ingredients:   ${report.critical_issues.missing_ingredients.length.toLocaleString()}`);
-  console.log(`  Missing Instructions:  ${report.critical_issues.missing_instructions.length.toLocaleString()}`);
-  console.log(`  Malformed JSON:        ${report.critical_issues.malformed_json.length.toLocaleString()}`);
+  console.log(
+    `  Missing Ingredients:   ${report.critical_issues.missing_ingredients.length.toLocaleString()}`
+  );
+  console.log(
+    `  Missing Instructions:  ${report.critical_issues.missing_instructions.length.toLocaleString()}`
+  );
+  console.log(
+    `  Malformed JSON:        ${report.critical_issues.malformed_json.length.toLocaleString()}`
+  );
   console.log('');
   console.log('Warnings:');
-  console.log(`  Empty Strings (Ingr):  ${report.warnings.empty_strings_in_ingredients.length.toLocaleString()}`);
-  console.log(`  Empty Strings (Instr): ${report.warnings.empty_strings_in_instructions.length.toLocaleString()}`);
+  console.log(
+    `  Empty Strings (Ingr):  ${report.warnings.empty_strings_in_ingredients.length.toLocaleString()}`
+  );
+  console.log(
+    `  Empty Strings (Instr): ${report.warnings.empty_strings_in_instructions.length.toLocaleString()}`
+  );
   console.log('─'.repeat(60));
   console.log(`\n✅ Report saved to: ${reportPath}\n`);
 

@@ -108,6 +108,7 @@ export const ShoppingListItemSchema = z.object({
   checked: z.boolean(),
   from_recipes: z.array(z.string()),
   notes: z.string().optional(),
+  isToTaste: z.boolean().optional(),
 });
 
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;

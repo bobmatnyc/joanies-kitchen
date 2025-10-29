@@ -17,10 +17,10 @@
 import 'dotenv/config';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { eq, and, or, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
-import { chefs, chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
 // Configuration
@@ -33,10 +33,7 @@ const RETRY_DELAY_MS = 2000;
 const DELAY_BETWEEN_RECIPES_MS = 2000;
 
 // Recipes to skip (already improved)
-const SKIP_RECIPES = [
-  'Savoy Cabbage and Bell Pepper Slaw',
-  'Zucchini in Scapece'
-];
+const SKIP_RECIPES = ['Savoy Cabbage and Bell Pepper Slaw', 'Zucchini in Scapece'];
 
 // Stats tracking
 const stats = {
@@ -335,7 +332,7 @@ async function processRecipe(recipe: any): Promise<{
   const needsImage = !recipe.images || recipe.images === '[]' || recipe.images === '';
   if (needsImage) {
     console.log('\n   🖼️  STEP 1: Generating AI Image');
-    console.log('   ' + '─'.repeat(66));
+    console.log(`   ${'─'.repeat(66)}`);
 
     try {
       const prompt = generateImagePrompt(recipe.name, recipe.description, recipe.cuisine);
@@ -370,7 +367,7 @@ async function processRecipe(recipe: any): Promise<{
   const needsFormatting = !isWellFormatted(recipe.instructions) && !recipe.instructions_backup;
   if (needsFormatting) {
     console.log('\n   📝 STEP 2: Formatting Instructions');
-    console.log('   ' + '─'.repeat(66));
+    console.log(`   ${'─'.repeat(66)}`);
 
     try {
       console.log(`      🤖 Formatting with LLM...`);
@@ -395,7 +392,7 @@ async function processRecipe(recipe: any): Promise<{
             ALTER TABLE recipes
             ADD COLUMN IF NOT EXISTS instructions_backup TEXT
           `);
-        } catch (e) {
+        } catch (_e) {
           // Column might already exist, ignore error
         }
 
@@ -486,9 +483,7 @@ async function main() {
     console.log(`📊 Found ${allRecipes.length} total recipes\n`);
 
     // Filter out already-improved recipes
-    const recipesToProcess = allRecipes.filter(
-      (recipe) => !SKIP_RECIPES.includes(recipe.name)
-    );
+    const recipesToProcess = allRecipes.filter((recipe) => !SKIP_RECIPES.includes(recipe.name));
 
     const skippedCount = allRecipes.length - recipesToProcess.length;
     if (skippedCount > 0) {
@@ -528,7 +523,9 @@ async function main() {
       // Progress update every 5 recipes
       if ((i + 1) % 5 === 0) {
         console.log(`\n📊 Progress: ${i + 1}/${recipesToProcess.length} recipes processed`);
-        console.log(`   Images: ${stats.imagesGenerated} | Instructions: ${stats.instructionsFormatted}`);
+        console.log(
+          `   Images: ${stats.imagesGenerated} | Instructions: ${stats.instructionsFormatted}`
+        );
       }
 
       // Rate limiting: delay between recipes

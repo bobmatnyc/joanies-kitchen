@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Link Joanie's Crab Salad Recipe to Her Chef Profile
  *
@@ -8,23 +9,19 @@
  * 3. Increments Joanie's recipe_count
  */
 
+import { eq } from 'drizzle-orm';
+import { chefRecipes, chefs } from '../src/lib/db/chef-schema';
 import { db } from '../src/lib/db/index';
 import { recipes } from '../src/lib/db/schema';
-import { chefs, chefRecipes } from '../src/lib/db/chef-schema';
-import { eq } from 'drizzle-orm';
 
 async function linkCrabSaladToJoanie() {
-  console.log('🔗 Linking Crab Salad Recipe to Joanie\'s Chef Profile...\n');
+  console.log("🔗 Linking Crab Salad Recipe to Joanie's Chef Profile...\n");
 
   const JOANIE_CHEF_ID = 'f1272147-9a8f-47e3-8f21-09339e278002';
   const RECIPE_SLUG = 'joanies-monday-night-crab-salad-cheesy-tomato-melts';
 
   // Step 1: Get the recipe
-  const recipe = await db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.slug, RECIPE_SLUG))
-    .limit(1);
+  const recipe = await db.select().from(recipes).where(eq(recipes.slug, RECIPE_SLUG)).limit(1);
 
   if (recipe.length === 0) {
     console.error('❌ Recipe not found!');
@@ -36,10 +33,7 @@ async function linkCrabSaladToJoanie() {
   console.log(`   Recipe ID: ${recipeId}`);
 
   // Step 2: Update recipe to set chef_id
-  await db
-    .update(recipes)
-    .set({ chef_id: JOANIE_CHEF_ID })
-    .where(eq(recipes.id, recipeId));
+  await db.update(recipes).set({ chef_id: JOANIE_CHEF_ID }).where(eq(recipes.id, recipeId));
 
   console.log(`✅ Updated recipe chef_id to Joanie's ID`);
 
@@ -60,11 +54,7 @@ async function linkCrabSaladToJoanie() {
   }
 
   // Step 4: Increment Joanie's recipe count
-  const joanie = await db
-    .select()
-    .from(chefs)
-    .where(eq(chefs.id, JOANIE_CHEF_ID))
-    .limit(1);
+  const joanie = await db.select().from(chefs).where(eq(chefs.id, JOANIE_CHEF_ID)).limit(1);
 
   const currentCount = joanie[0].recipe_count || 0;
 
@@ -78,7 +68,7 @@ async function linkCrabSaladToJoanie() {
 
   console.log(`✅ Updated Joanie's recipe count: ${currentCount} → ${currentCount + 1}`);
 
-  console.log('\n🎉 Recipe successfully linked to Joanie\'s chef profile!');
+  console.log("\n🎉 Recipe successfully linked to Joanie's chef profile!");
   console.log(`\n📍 You can now view this recipe on Joanie's chef page:`);
   console.log(`   http://localhost:3002/chefs/joanie`);
 }

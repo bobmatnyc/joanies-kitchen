@@ -18,8 +18,8 @@ import {
 import { AiRecipeSuggestions } from './AiRecipeSuggestions';
 import { MealFormFields } from './MealFormFields';
 import { RecipeSearchDialog } from './RecipeSearchDialog';
-import { SignInToSaveDialog } from './SignInToSaveDialog';
 import { type MealRecipeWithDetails, SelectedRecipesList } from './SelectedRecipesList';
+import { SignInToSaveDialog } from './SignInToSaveDialog';
 
 export function MealBuilder() {
   const router = useRouter();
@@ -273,68 +273,68 @@ export function MealBuilder() {
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
         {/* Meal Details Section */}
         <MealFormFields
-        name={name}
-        description={description}
-        mealType={mealType}
-        serves={serves}
-        occasion={occasion}
-        tags={tags}
-        onNameChange={setName}
-        onDescriptionChange={setDescription}
-        onMealTypeChange={setMealType}
-        onServesChange={setServes}
-        onOccasionChange={setOccasion}
-        onTagsChange={setTags}
-      />
+          name={name}
+          description={description}
+          mealType={mealType}
+          serves={serves}
+          occasion={occasion}
+          tags={tags}
+          onNameChange={setName}
+          onDescriptionChange={setDescription}
+          onMealTypeChange={setMealType}
+          onServesChange={setServes}
+          onOccasionChange={setOccasion}
+          onTagsChange={setTags}
+        />
 
-      {/* AI Recipe Suggestions Section */}
-      <AiRecipeSuggestions description={description} tags={tags} onAddRecipe={addRecipe} />
+        {/* AI Recipe Suggestions Section */}
+        <AiRecipeSuggestions description={description} tags={tags} onAddRecipe={addRecipe} />
 
-      {/* Recipe Selection Section */}
-      <SelectedRecipesList
-        selectedRecipes={selectedRecipes}
-        onRemove={removeRecipe}
-        onUpdateMultiplier={updateRecipeMultiplier}
-        onUpdateCourse={updateRecipeCourse}
-        searchDialogTrigger={
-          <RecipeSearchDialog
-            recipes={recipes}
-            isLoadingRecipes={isLoadingRecipes}
-            open={open}
-            onOpenChange={setOpen}
-            onAddRecipe={addRecipe}
-          />
-        }
-      />
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCancel}
-          className="min-h-[44px] touch-manipulation font-ui"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={
-            isLoading || selectedRecipes.length === 0 || !name.trim() || !description.trim()
+        {/* Recipe Selection Section */}
+        <SelectedRecipesList
+          selectedRecipes={selectedRecipes}
+          onRemove={removeRecipe}
+          onUpdateMultiplier={updateRecipeMultiplier}
+          onUpdateCourse={updateRecipeCourse}
+          searchDialogTrigger={
+            <RecipeSearchDialog
+              recipes={recipes}
+              isLoadingRecipes={isLoadingRecipes}
+              open={open}
+              onOpenChange={setOpen}
+              onAddRecipe={addRecipe}
+            />
           }
-          className="min-h-[44px] touch-manipulation bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating Meal...
-            </>
-          ) : (
-            'Create Meal'
-          )}
-        </Button>
-      </div>
-    </form>
+        />
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancel}
+            className="min-h-[44px] touch-manipulation font-ui"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={
+              isLoading || selectedRecipes.length === 0 || !name.trim() || !description.trim()
+            }
+            className="min-h-[44px] touch-manipulation bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating Meal...
+              </>
+            ) : (
+              'Create Meal'
+            )}
+          </Button>
+        </div>
+      </form>
     </>
   );
 }

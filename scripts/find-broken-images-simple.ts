@@ -28,7 +28,7 @@ async function findBrokenImages() {
     if (result.rows.length > 0) {
       console.log(`\nFound ${result.rows.length} recipes with ${name} in images:`);
       console.log('='.repeat(80));
-      
+
       for (const row of result.rows) {
         console.log(`\nRecipe: ${row.name}`);
         console.log(`ID: ${row.id}`);
@@ -42,7 +42,7 @@ async function findBrokenImages() {
   if (totalFound === 0) {
     console.log('No broken images found!\n');
     console.log('Showing sample of recipes with valid images:\n');
-    
+
     const samples = await db.execute(sql`
       SELECT name, images
       FROM recipes
@@ -50,7 +50,7 @@ async function findBrokenImages() {
       ORDER BY created_at DESC
       LIMIT 5
     `);
-    
+
     for (const row of samples.rows) {
       const imgs = row.images as string[];
       if (imgs && imgs.length > 0) {

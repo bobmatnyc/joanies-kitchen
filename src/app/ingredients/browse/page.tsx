@@ -1,7 +1,7 @@
 import { IngredientBrowser } from '@/components/ingredients/IngredientBrowser';
 
 export const metadata = {
-  title: 'Browse Ingredients | Joanie\'s Kitchen',
+  title: "Browse Ingredients | Joanie's Kitchen",
   description: 'Explore and filter ingredients by category, type, and dietary needs',
 };
 

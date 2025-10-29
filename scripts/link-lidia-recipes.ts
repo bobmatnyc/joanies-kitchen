@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
+import { eq, like, or } from 'drizzle-orm';
 import { db } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
 import { chefs } from '../src/lib/db/chef-schema';
-import { eq, like, or, isNull } from 'drizzle-orm';
+import { recipes } from '../src/lib/db/schema';
 
 /**
  * LINK LIDIA BASTIANICH RECIPES TO CHEF PROFILE
@@ -20,11 +20,7 @@ async function main() {
   // Step 1: Find Lidia's chef profile
   console.log('🔍 Step 1: Finding Lidia Bastianich chef profile...\n');
 
-  const [chef] = await db
-    .select()
-    .from(chefs)
-    .where(eq(chefs.slug, 'lidia-bastianich'))
-    .limit(1);
+  const [chef] = await db.select().from(chefs).where(eq(chefs.slug, 'lidia-bastianich')).limit(1);
 
   if (!chef) {
     console.error('❌ Error: Lidia Bastianich not found in chefs table');
@@ -43,12 +39,7 @@ async function main() {
   const lidiaRecipes = await db
     .select()
     .from(recipes)
-    .where(
-      or(
-        like(recipes.tags, '%Lidia%'),
-        like(recipes.source, '%lidia%')
-      )
-    );
+    .where(or(like(recipes.tags, '%Lidia%'), like(recipes.source, '%lidia%')));
 
   console.log(`📚 Found ${lidiaRecipes.length} recipes\n`);
 
@@ -58,14 +49,14 @@ async function main() {
   }
 
   // Check how many already linked
-  const alreadyLinked = lidiaRecipes.filter(r => r.chef_id === chef.id);
-  const needsLinking = lidiaRecipes.filter(r => r.chef_id !== chef.id);
+  const alreadyLinked = lidiaRecipes.filter((r) => r.chef_id === chef.id);
+  const needsLinking = lidiaRecipes.filter((r) => r.chef_id !== chef.id);
 
   console.log(`✅ Already linked: ${alreadyLinked.length}`);
   console.log(`🔗 Need linking: ${needsLinking.length}\n`);
 
   if (needsLinking.length === 0) {
-    console.log('✅ All recipes are already linked to Lidia\'s profile!');
+    console.log("✅ All recipes are already linked to Lidia's profile!");
     return;
   }
 
@@ -106,10 +97,7 @@ async function main() {
   // Verify linking
   console.log('🔍 Verifying...\n');
 
-  const verifyLinked = await db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.chef_id, chef.id));
+  const verifyLinked = await db.select().from(recipes).where(eq(recipes.chef_id, chef.id));
 
   console.log(`✅ Verification: ${verifyLinked.length} recipes now linked to Lidia Bastianich\n`);
 

@@ -12,8 +12,8 @@
  * Usage: tsx scripts/rule-based-consolidation.ts
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { DuplicateGroup, IngredientVariant } from './analyze-ingredient-duplicates';
 
 interface ConsolidationDecision {
@@ -112,13 +112,13 @@ function arePluralVariants(variants: IngredientVariant[]): boolean {
     const variant = names[i];
 
     // Direct plural: cat -> cats
-    if (variant === base + 's') continue;
+    if (variant === `${base}s`) continue;
 
     // -es plural: tomato -> tomatoes
-    if (variant === base + 'es') continue;
+    if (variant === `${base}es`) continue;
 
     // -ies plural: berry -> berries
-    if (base.endsWith('y') && variant === base.slice(0, -1) + 'ies') continue;
+    if (base.endsWith('y') && variant === `${base.slice(0, -1)}ies`) continue;
 
     // Not a simple plural variation
     return false;
@@ -131,7 +131,13 @@ function arePunctuationVariants(variants: IngredientVariant[]): boolean {
   if (variants.length > 3) return false;
 
   // Normalize: remove all punctuation and compare
-  const normalized = variants.map((v) => v.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim());
+  const normalized = variants.map((v) =>
+    v.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 
   // All should be the same after normalization
   const uniqueNormalized = new Set(normalized);
@@ -227,7 +233,9 @@ function analyzeGroup(group: DuplicateGroup): ConsolidationDecision {
       canonical_category: selectCanonicalCategory(variants),
       duplicates_to_merge: [duplicate.id],
       reason: 'Plural/singular variants of same ingredient',
-      aliases: variants.map((v) => v.display_name).filter((n) => n !== selectCanonicalName(variants)),
+      aliases: variants
+        .map((v) => v.display_name)
+        .filter((n) => n !== selectCanonicalName(variants)),
       confidence: 'high',
     };
   }
@@ -246,7 +254,9 @@ function analyzeGroup(group: DuplicateGroup): ConsolidationDecision {
       canonical_category: selectCanonicalCategory(variants),
       duplicates_to_merge: duplicates.map((v) => v.id),
       reason: 'Punctuation/spelling variants of same ingredient',
-      aliases: variants.map((v) => v.display_name).filter((n) => n !== selectCanonicalName(variants)),
+      aliases: variants
+        .map((v) => v.display_name)
+        .filter((n) => n !== selectCanonicalName(variants)),
       confidence: 'high',
     };
   }
@@ -338,7 +348,9 @@ async function main() {
   console.log(`📁 Decisions saved to: ${outputPath}\n`);
 
   // Show sample high-confidence merges
-  const highConfidenceMerges = decisions.filter((d) => d.action === 'merge' && d.confidence === 'high').slice(0, 10);
+  const highConfidenceMerges = decisions
+    .filter((d) => d.action === 'merge' && d.confidence === 'high')
+    .slice(0, 10);
 
   if (highConfidenceMerges.length > 0) {
     console.log('✨ Sample High-Confidence Merges:\n');

@@ -1,6 +1,6 @@
+import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
 
 /**
  * Sample validation to identify potential ingredient-instruction mismatches
@@ -50,7 +50,7 @@ async function sampleIngredientValidation() {
       const instructionsText = instructionsList.join(' ').toLowerCase();
 
       // Extract ingredient names (simplified - just take the last word as the ingredient)
-      const ingredientNames = ingredientsList.map((ing) => {
+      const _ingredientNames = ingredientsList.map((ing) => {
         // Simple extraction: get the main ingredient word
         const cleaned = ing.toLowerCase().replace(/[,()]/g, '');
         const words = cleaned.split(/\s+/);
@@ -85,10 +85,14 @@ async function sampleIngredientValidation() {
 
         if (mentionedInInstructions) {
           // Check if in ingredient list
-          const inIngredientList = ingredientsList.some((ing) => ing.toLowerCase().includes(commonIng));
+          const inIngredientList = ingredientsList.some((ing) =>
+            ing.toLowerCase().includes(commonIng)
+          );
 
           if (!inIngredientList) {
-            issues.push(`"${commonIng}" mentioned in instructions but not found in ingredient list`);
+            issues.push(
+              `"${commonIng}" mentioned in instructions but not found in ingredient list`
+            );
           }
         }
       }

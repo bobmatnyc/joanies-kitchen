@@ -5,20 +5,20 @@
  * What scraps to save, basic stock recipes, storage techniques, usage ideas
  */
 
-import { Soup, Flame, Snowflake, Package, Clock } from 'lucide-react';
+import { Clock, Flame, Package, Snowflake, Soup } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Stock from Scraps Guide | Joanie\'s Kitchen',
-  description: 'Transform vegetable peels, chicken bones, and herb stems into rich, flavorful stock. Stop buying broth—make it from scraps.',
+  title: "Stock from Scraps Guide | Joanie's Kitchen",
+  description:
+    'Transform vegetable peels, chicken bones, and herb stems into rich, flavorful stock. Stop buying broth—make it from scraps.',
 };
 
 export default function StockFromScrapsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-jk-cream via-white to-amber-50/20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-
         {/* Page Header */}
         <div className="text-center mb-12">
           <Soup className="h-16 w-16 text-amber-600 mx-auto mb-4" />
@@ -33,16 +33,15 @@ export default function StockFromScrapsPage() {
 
         {/* Why Make Stock */}
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-8 mb-12 border-2 border-amber-200">
-          <h2 className="text-2xl font-heading text-jk-olive mb-4">
-            💰 Why Make Your Own Stock?
-          </h2>
+          <h2 className="text-2xl font-heading text-jk-olive mb-4">💰 Why Make Your Own Stock?</h2>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <span className="text-amber-600 text-2xl flex-shrink-0">✓</span>
               <div>
                 <p className="font-heading text-jk-clay mb-1">Costs Almost Nothing</p>
                 <p className="text-sm text-jk-charcoal/70">
-                  Made from scraps you'd throw away. A gallon of homemade stock costs ~$0.50 vs. $4-8 store-bought.
+                  Made from scraps you'd throw away. A gallon of homemade stock costs ~$0.50 vs.
+                  $4-8 store-bought.
                 </p>
               </div>
             </div>
@@ -60,7 +59,8 @@ export default function StockFromScrapsPage() {
               <div>
                 <p className="font-heading text-jk-clay mb-1">Reduces Waste</p>
                 <p className="text-sm text-jk-charcoal/70">
-                  Onion skins, carrot peels, chicken bones—all become liquid gold instead of landfill.
+                  Onion skins, carrot peels, chicken bones—all become liquid gold instead of
+                  landfill.
                 </p>
               </div>
             </div>
@@ -81,9 +81,7 @@ export default function StockFromScrapsPage() {
           <div className="flex items-start gap-4 mb-6">
             <Package className="h-12 w-12 text-blue-600 flex-shrink-0" />
             <div>
-              <h2 className="text-2xl font-heading text-jk-olive mb-3">
-                The Freezer Bag Method
-              </h2>
+              <h2 className="text-2xl font-heading text-jk-olive mb-3">The Freezer Bag Method</h2>
               <p className="text-base text-jk-charcoal/70 italic mb-4">
                 "Keep a bag in your freezer. Add scraps as you cook. Make stock when it's full."
               </p>
@@ -92,7 +90,9 @@ export default function StockFromScrapsPage() {
 
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">1</span>
+              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                1
+              </span>
               <div>
                 <p className="text-base text-jk-charcoal/70">
                   <strong>Label a gallon freezer bag:</strong> "Veggie Scraps" or "Chicken Scraps"
@@ -100,23 +100,31 @@ export default function StockFromScrapsPage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
+              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                2
+              </span>
               <div>
                 <p className="text-base text-jk-charcoal/70">
-                  <strong>Add scraps as you cook:</strong> Onion ends, carrot tops, chicken bones, herb stems
+                  <strong>Add scraps as you cook:</strong> Onion ends, carrot tops, chicken bones,
+                  herb stems
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
+              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                3
+              </span>
               <div>
                 <p className="text-base text-jk-charcoal/70">
-                  <strong>When the bag is full:</strong> Dump contents into a pot, cover with water, simmer
+                  <strong>When the bag is full:</strong> Dump contents into a pot, cover with water,
+                  simmer
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
+              <span className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                4
+              </span>
               <div>
                 <p className="text-base text-jk-charcoal/70">
                   <strong>Strain and store:</strong> Freeze in jars or ice cube trays for easy use
@@ -128,9 +136,7 @@ export default function StockFromScrapsPage() {
 
         {/* What Scraps to Save */}
         <div className="bg-white rounded-2xl p-8 mb-12 border-2 border-jk-sage/20">
-          <h2 className="text-2xl font-heading text-jk-olive mb-6">
-            🥕 What Scraps to Save
-          </h2>
+          <h2 className="text-2xl font-heading text-jk-olive mb-6">🥕 What Scraps to Save</h2>
 
           <div className="space-y-6">
             {/* Good for Stock */}
@@ -187,12 +193,25 @@ export default function StockFromScrapsPage() {
               <h3 className="font-heading text-red-700 mb-4 text-lg">✗ Avoid These</h3>
               <div className="bg-red-50 p-4 rounded-xl border border-red-200">
                 <ul className="text-sm text-jk-charcoal/70 space-y-1">
-                  <li>• <strong>Cruciferous vegetables:</strong> Broccoli, cauliflower, cabbage, Brussels sprouts (too strong/bitter)</li>
-                  <li>• <strong>Starchy vegetables:</strong> Potatoes (make stock cloudy)</li>
-                  <li>• <strong>Beets:</strong> Will turn stock pink</li>
-                  <li>• <strong>Asparagus:</strong> Too overpowering</li>
-                  <li>• <strong>Peppers (bell/hot):</strong> Can dominate flavor</li>
-                  <li>• <strong>Artichokes:</strong> Too bitter</li>
+                  <li>
+                    • <strong>Cruciferous vegetables:</strong> Broccoli, cauliflower, cabbage,
+                    Brussels sprouts (too strong/bitter)
+                  </li>
+                  <li>
+                    • <strong>Starchy vegetables:</strong> Potatoes (make stock cloudy)
+                  </li>
+                  <li>
+                    • <strong>Beets:</strong> Will turn stock pink
+                  </li>
+                  <li>
+                    • <strong>Asparagus:</strong> Too overpowering
+                  </li>
+                  <li>
+                    • <strong>Peppers (bell/hot):</strong> Can dominate flavor
+                  </li>
+                  <li>
+                    • <strong>Artichokes:</strong> Too bitter
+                  </li>
                 </ul>
               </div>
             </div>
@@ -204,9 +223,7 @@ export default function StockFromScrapsPage() {
           <div className="flex items-start gap-4 mb-6">
             <Flame className="h-12 w-12 text-green-600 flex-shrink-0" />
             <div>
-              <h2 className="text-2xl font-heading text-jk-olive mb-3">
-                Basic Stock Recipes
-              </h2>
+              <h2 className="text-2xl font-heading text-jk-olive mb-3">Basic Stock Recipes</h2>
             </div>
           </div>
 
@@ -269,7 +286,8 @@ export default function StockFromScrapsPage() {
                 <div className="flex items-center gap-2 pt-2">
                   <Clock className="h-4 w-4 text-green-600" />
                   <p className="text-xs text-jk-charcoal/60 italic">
-                    <strong>Time:</strong> 2-4 hours | <strong>Yield:</strong> ~8 cups | <strong>Rich, gelatinous when cold</strong>
+                    <strong>Time:</strong> 2-4 hours | <strong>Yield:</strong> ~8 cups |{' '}
+                    <strong>Rich, gelatinous when cold</strong>
                   </p>
                 </div>
               </div>
@@ -300,7 +318,8 @@ export default function StockFromScrapsPage() {
                 <div className="flex items-center gap-2 pt-2">
                   <Clock className="h-4 w-4 text-green-600" />
                   <p className="text-xs text-jk-charcoal/60 italic">
-                    <strong>Time:</strong> 12-24 hours | <strong>Yield:</strong> ~10 cups | <strong>Extremely gelatinous, nutrient-dense</strong>
+                    <strong>Time:</strong> 12-24 hours | <strong>Yield:</strong> ~10 cups |{' '}
+                    <strong>Extremely gelatinous, nutrient-dense</strong>
                   </p>
                 </div>
               </div>
@@ -323,11 +342,12 @@ export default function StockFromScrapsPage() {
             <div className="bg-white p-5 rounded-xl border border-indigo-200">
               <h3 className="font-heading text-jk-clay mb-2">🧊 Ice Cube Method</h3>
               <p className="text-sm text-jk-charcoal/70 mb-2">
-                <strong>Best for:</strong> Quick flavor additions (sautéing, deglazing, small portions)
+                <strong>Best for:</strong> Quick flavor additions (sautéing, deglazing, small
+                portions)
               </p>
               <p className="text-sm text-jk-charcoal/60">
-                Pour stock into ice cube trays. Freeze solid. Pop out cubes into freezer bag. Label with date.
-                Each cube = ~2 tablespoons.
+                Pour stock into ice cube trays. Freeze solid. Pop out cubes into freezer bag. Label
+                with date. Each cube = ~2 tablespoons.
               </p>
             </div>
 
@@ -337,8 +357,8 @@ export default function StockFromScrapsPage() {
                 <strong>Best for:</strong> Soups, risotto, cooking grains (2-4 cup portions)
               </p>
               <p className="text-sm text-jk-charcoal/60">
-                Pour into wide-mouth mason jars, leaving 1 inch headspace for expansion. Cool completely before freezing.
-                Label with type and date. Thaw overnight in fridge.
+                Pour into wide-mouth mason jars, leaving 1 inch headspace for expansion. Cool
+                completely before freezing. Label with type and date. Thaw overnight in fridge.
               </p>
             </div>
 
@@ -348,17 +368,24 @@ export default function StockFromScrapsPage() {
                 <strong>Best for:</strong> Space-saving storage (flat stacks)
               </p>
               <p className="text-sm text-jk-charcoal/60">
-                Pour stock into gallon freezer bags. Lay flat on baking sheet, freeze solid. Stack bags vertically
-                like files. Saves freezer space. Break off pieces as needed.
+                Pour stock into gallon freezer bags. Lay flat on baking sheet, freeze solid. Stack
+                bags vertically like files. Saves freezer space. Break off pieces as needed.
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-xl border border-indigo-200">
               <h3 className="font-heading text-jk-clay mb-2">❄️ Storage Timeline</h3>
               <ul className="text-sm text-jk-charcoal/70 space-y-1">
-                <li>• <strong>Refrigerator:</strong> 4-5 days (bring to boil before using if older)</li>
-                <li>• <strong>Freezer:</strong> 4-6 months (still safe after, but flavor degrades)</li>
-                <li>• <strong>Scraps in freezer:</strong> 3-6 months (add continuously until ready to make stock)</li>
+                <li>
+                  • <strong>Refrigerator:</strong> 4-5 days (bring to boil before using if older)
+                </li>
+                <li>
+                  • <strong>Freezer:</strong> 4-6 months (still safe after, but flavor degrades)
+                </li>
+                <li>
+                  • <strong>Scraps in freezer:</strong> 3-6 months (add continuously until ready to
+                  make stock)
+                </li>
               </ul>
             </div>
           </div>
@@ -366,50 +393,60 @@ export default function StockFromScrapsPage() {
 
         {/* How to Use Stock */}
         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 mb-12 border-2 border-yellow-200">
-          <h2 className="text-2xl font-heading text-jk-olive mb-4">
-            🍲 How to Use Your Stock
-          </h2>
+          <h2 className="text-2xl font-heading text-jk-olive mb-4">🍲 How to Use Your Stock</h2>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Soups & Stews</p>
-                <p className="text-sm text-jk-charcoal/70">The obvious use. Stock is the base for any soup worth eating.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  The obvious use. Stock is the base for any soup worth eating.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Risotto & Grains</p>
-                <p className="text-sm text-jk-charcoal/70">Cook rice, quinoa, couscous in stock instead of water. Instant upgrade.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  Cook rice, quinoa, couscous in stock instead of water. Instant upgrade.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Sauces & Gravies</p>
-                <p className="text-sm text-jk-charcoal/70">Deglaze pans, make pan sauces, thicken gravies. Rich stock = rich sauce.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  Deglaze pans, make pan sauces, thicken gravies. Rich stock = rich sauce.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Braising Liquid</p>
-                <p className="text-sm text-jk-charcoal/70">Braise meats, vegetables in stock for deep flavor infusion.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  Braise meats, vegetables in stock for deep flavor infusion.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Mashed Potatoes</p>
-                <p className="text-sm text-jk-charcoal/70">Use stock instead of milk. Professional chef secret.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  Use stock instead of milk. Professional chef secret.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-yellow-600 font-bold text-lg flex-shrink-0">→</span>
               <div>
                 <p className="font-heading text-jk-clay">Sautéing</p>
-                <p className="text-sm text-jk-charcoal/70">Use stock cubes instead of oil for lower-fat cooking.</p>
+                <p className="text-sm text-jk-charcoal/70">
+                  Use stock cubes instead of oil for lower-fat cooking.
+                </p>
               </div>
             </div>
           </div>
@@ -424,12 +461,9 @@ export default function StockFromScrapsPage() {
             Find recipes that use your homemade stock—from comforting soups to rich risottos.
           </p>
           <Button size="lg" asChild className="bg-jk-tomato hover:bg-jk-tomato/90">
-            <Link href="/fridge">
-              Find Stock-Based Recipes
-            </Link>
+            <Link href="/fridge">Find Stock-Based Recipes</Link>
           </Button>
         </div>
-
       </div>
     </div>
   );

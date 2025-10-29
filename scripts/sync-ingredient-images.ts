@@ -1,8 +1,7 @@
+import { readdirSync } from 'node:fs';
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
-import { eq } from 'drizzle-orm';
-import { readdirSync, statSync } from 'fs';
-import { join } from 'path';
 
 const IMAGES_DIR = 'public/images/ingredients';
 const BASE_URL = '/images/ingredients';
@@ -15,7 +14,7 @@ interface ImageUpdate {
   filePath: string;
 }
 
-let processedFiles = new Set<string>();
+const processedFiles = new Set<string>();
 let totalSynced = 0;
 let lastCheckTime = Date.now();
 
@@ -25,8 +24,8 @@ let lastCheckTime = Date.now();
 function getGeneratedImages(): string[] {
   try {
     const files = readdirSync(IMAGES_DIR);
-    return files.filter(f => f.endsWith('.png'));
-  } catch (error) {
+    return files.filter((f) => f.endsWith('.png'));
+  } catch (_error) {
     console.log(`⚠️  Images directory not ready yet: ${IMAGES_DIR}`);
     return [];
   }
@@ -42,14 +41,18 @@ function filenameToIngredientName(filename: string): string {
   // Replace underscores with spaces and capitalize
   return nameWithoutExt
     .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
 /**
  * Update ingredient image URL in database
  */
-async function updateIngredientImage(ingredientName: string, imageUrl: string, filename: string): Promise<boolean> {
+async function updateIngredientImage(
+  ingredientName: string,
+  imageUrl: string,
+  filename: string
+): Promise<boolean> {
   try {
     // Strategy 1: Try exact name match (slug format)
     const slugName = ingredientName.toLowerCase().replace(/\s+/g, '-');
@@ -99,7 +102,7 @@ async function updateIngredientImage(ingredientName: string, imageUrl: string, f
  */
 async function processNewImages(): Promise<number> {
   const allImages = getGeneratedImages();
-  const newImages = allImages.filter(f => !processedFiles.has(f));
+  const newImages = allImages.filter((f) => !processedFiles.has(f));
 
   if (newImages.length === 0) {
     return 0;
@@ -135,7 +138,8 @@ async function processNewImages(): Promise<number> {
 function displayProgress() {
   const allImages = getGeneratedImages();
   const totalGenerated = allImages.length;
-  const percentSynced = totalGenerated > 0 ? ((totalSynced / totalGenerated) * 100).toFixed(1) : '0.0';
+  const percentSynced =
+    totalGenerated > 0 ? ((totalSynced / totalGenerated) * 100).toFixed(1) : '0.0';
 
   console.log(`\n${'='.repeat(60)}`);
   console.log(`📊 IMAGE SYNC PROGRESS`);
@@ -173,18 +177,19 @@ async function main() {
         displayProgress();
       } else {
         const elapsed = Math.floor((Date.now() - lastCheckTime) / 1000);
-        process.stdout.write(`\r⏳ Waiting for new images... (checked ${iteration} times, last: ${elapsed}s ago)`);
+        process.stdout.write(
+          `\r⏳ Waiting for new images... (checked ${iteration} times, last: ${elapsed}s ago)`
+        );
       }
 
       lastCheckTime = Date.now();
 
       // Wait before next check
-      await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL_MS));
-
+      await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL_MS));
     } catch (error) {
       console.error('\n❌ Error in sync loop:', error);
       console.log('🔄 Retrying in 30 seconds...\n');
-      await new Promise(resolve => setTimeout(resolve, 30000));
+      await new Promise((resolve) => setTimeout(resolve, 30000));
     }
   }
 }
@@ -204,7 +209,7 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-main().catch(error => {
+main().catch((error) => {
   console.error('💥 Fatal error:', error);
   process.exit(1);
 });

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Find Chefs Needing Recipe Scraping
  *
@@ -16,9 +17,9 @@
  * - Recommendations for recipe count to scrape
  */
 
+import { and, eq, or, sql } from 'drizzle-orm';
+import { chefRecipes, chefs } from '../src/lib/db/chef-schema.js';
 import { db } from '../src/lib/db/index.js';
-import { chefs, chefRecipes } from '../src/lib/db/chef-schema.js';
-import { eq, and, or, sql } from 'drizzle-orm';
 
 interface ChefWithRecipeInfo {
   id: string;
@@ -124,25 +125,25 @@ async function findChefsNeedingRecipes(): Promise<void> {
   const lowPriority = prioritizedChefs.filter((c) => c.priority === 'LOW');
 
   // Print results
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log('🔴 HIGH PRIORITY CHEFS (Sustainable/Featured)');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   printChefList(highPriority);
 
-  console.log('\n' + '=' .repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('🟡 MEDIUM PRIORITY CHEFS (Verified with Website)');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   printChefList(mediumPriority);
 
-  console.log('\n' + '=' .repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('⚪ LOW PRIORITY CHEFS (No Website or Unverified)');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   printChefList(lowPriority);
 
   // Summary statistics
-  console.log('\n' + '=' .repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('📈 SUMMARY');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
   console.log(`Total chefs needing recipes: ${prioritizedChefs.length}`);
   console.log(`  - High Priority: ${highPriority.length}`);
   console.log(`  - Medium Priority: ${mediumPriority.length}`);
@@ -159,9 +160,9 @@ async function findChefsNeedingRecipes(): Promise<void> {
   console.log(`\nTotal recommended recipes to scrape: ${totalRecommendedRecipes}`);
 
   // Generate action items
-  console.log('\n' + '=' .repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('📋 RECOMMENDED ACTIONS');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   if (highPriority.length > 0) {
     console.log('\n1. Start with HIGH PRIORITY chefs (zero-waste mission alignment):');
@@ -301,14 +302,11 @@ function printChefList(chefs: PrioritizedChef[]): void {
       console.log(`   Specialties: ${chef.specialties.join(', ')}`);
     }
 
-    console.log(
-      `   📋 Recommended Recipes: ${chef.scrapingRecommendation.recipesToScrape}`
-    );
+    console.log(`   📋 Recommended Recipes: ${chef.scrapingRecommendation.recipesToScrape}`);
     console.log(`   💡 Rationale: ${chef.scrapingRecommendation.rationale}`);
 
     if (chef.bio) {
-      const bioPreview =
-        chef.bio.length > 100 ? chef.bio.substring(0, 100) + '...' : chef.bio;
+      const bioPreview = chef.bio.length > 100 ? `${chef.bio.substring(0, 100)}...` : chef.bio;
       console.log(`   Bio: ${bioPreview}`);
     }
   });

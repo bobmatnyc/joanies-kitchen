@@ -10,14 +10,14 @@
  */
 
 import 'server-only';
+import { type RecipeWithSimilarity, semanticSearchRecipes } from '@/app/actions/semantic-search';
 import { getOpenRouterClient } from './openrouter-server';
-import { semanticSearchRecipes, type RecipeWithSimilarity } from '@/app/actions/semantic-search';
 import { renderPrompt } from './prompts';
 import {
-  generateMealByCuisine,
-  generateMealFromMainDish,
-  generateMealByTheme,
   generateFreestyleMeal,
+  generateMealByCuisine,
+  generateMealByTheme,
+  generateMealFromMainDish,
 } from './prompts/meal-pairing';
 
 // ============================================================================
@@ -208,7 +208,7 @@ function buildDatabaseContext(
   }
 
   context +=
-    '\n\nYou may suggest existing recipes from the database OR create new pairings if database options don\'t meet pairing principles.';
+    "\n\nYou may suggest existing recipes from the database OR create new pairings if database options don't meet pairing principles.";
 
   return context;
 }
@@ -226,13 +226,15 @@ function enrichWithRecipeLinks(
   }
 ): MealPlan {
   // Find best match based on semantic similarity and name matching
-  const findMatch = (courseName: string, candidates: RecipeWithSimilarity[]): string | undefined => {
+  const findMatch = (
+    courseName: string,
+    candidates: RecipeWithSimilarity[]
+  ): string | undefined => {
     if (candidates.length === 0) return undefined;
 
     // Try exact name match first
     const exactMatch = candidates.find(
-      (c) =>
-        c.name.toLowerCase().trim() === courseName.toLowerCase().trim()
+      (c) => c.name.toLowerCase().trim() === courseName.toLowerCase().trim()
     );
     if (exactMatch) return exactMatch.id;
 

@@ -33,10 +33,10 @@ export interface MealPlanEntry {
 
 // Meal Pairing Types (re-export from meal-pairing-engine)
 export type {
-  MealPairingMode,
-  MealPairingInput,
-  MealPlanCourse,
-  MealPlan,
-  SimpleMealRequest,
   MealGenerationResult,
+  MealPairingInput,
+  MealPairingMode,
+  MealPlan,
+  MealPlanCourse,
+  SimpleMealRequest,
 } from '@/lib/ai/meal-pairing-engine';

@@ -1,16 +1,12 @@
 'use server';
 
+import { desc, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/meal-pairing-engine';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { type NewMeal, type NewMealRecipe, mealRecipes, meals } from '@/lib/db/schema';
-import {
-  type MealPlan,
-  type SimpleMealRequest,
-  generateMeal,
-} from '@/lib/ai/meal-pairing-engine';
-import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
-import { desc, eq } from 'drizzle-orm';
+import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
 
 // ============================================================================
 // Input Validation Schemas
@@ -161,11 +157,7 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
  * }
  * ```
  */
-export async function saveMealPlanFromPairing(
-  mealPlan: MealPlan,
-  name: string,
-  occasion?: string
-) {
+export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, occasion?: string) {
   try {
     // 1. Authentication check
     const { userId } = await auth();
@@ -202,10 +194,7 @@ export async function saveMealPlanFromPairing(
       meal_type: 'dinner', // Default to dinner, can be customized later
       occasion: occasion?.trim() || undefined,
       serves: 4, // Default, matches typical meal plan servings
-      tags: JSON.stringify([
-        mealAnalysis.cultural_coherence,
-        ...mealAnalysis.color_palette,
-      ]),
+      tags: JSON.stringify([mealAnalysis.cultural_coherence, ...mealAnalysis.color_palette]),
       total_prep_time: totalPrepTime,
       is_template: false,
       is_public: false,
@@ -306,7 +295,7 @@ export async function getMealPairingHistory(
       // TODO: Add admin role check here if needed
       return {
         success: false,
-        error: 'You do not have permission to view this user\'s meal plans',
+        error: "You do not have permission to view this user's meal plans",
       };
     }
 
@@ -324,10 +313,7 @@ export async function getMealPairingHistory(
       .offset(validOffset);
 
     // 5. Get total count for pagination metadata
-    const allUserMeals = await db
-      .select()
-      .from(meals)
-      .where(eq(meals.user_id, targetUserId));
+    const allUserMeals = await db.select().from(meals).where(eq(meals.user_id, targetUserId));
 
     // 6. Return results with pagination info
     return {
@@ -379,11 +365,7 @@ export async function deleteMealPlan(mealId: string) {
     }
 
     // 3. Verify ownership
-    const mealResults = await db
-      .select()
-      .from(meals)
-      .where(eq(meals.id, mealId))
-      .limit(1);
+    const mealResults = await db.select().from(meals).where(eq(meals.id, mealId)).limit(1);
 
     if (mealResults.length === 0) {
       return {

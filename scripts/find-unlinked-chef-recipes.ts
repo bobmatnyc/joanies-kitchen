@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Find Unlinked Chef Recipes
  *
@@ -6,29 +7,40 @@
  * but aren't linked via chef_recipes junction table.
  */
 
-import { db } from '../src/lib/db';
-import { chefSchema } from '../src/lib/db';
+import { or, sql } from 'drizzle-orm';
+import { chefSchema, db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { like, or, sql } from 'drizzle-orm';
 
 const { chefs, chefRecipes } = chefSchema;
 
 const TARGET_CHEFS = [
   { name: 'Alton Brown', slug: 'alton-brown', patterns: ['alton', 'alton brown'] },
   { name: 'Bren Smith', slug: 'bren-smith', patterns: ['bren', 'bren smith'] },
-  { name: 'Cristina Scarpaleggia', slug: 'cristina-scarpaleggia', patterns: ['cristina', 'scarpaleggia'] },
+  {
+    name: 'Cristina Scarpaleggia',
+    slug: 'cristina-scarpaleggia',
+    patterns: ['cristina', 'scarpaleggia'],
+  },
   { name: 'Dan Barber', slug: 'dan-barber', patterns: ['dan barber', 'barber'] },
   { name: 'David Zilber', slug: 'david-zilber', patterns: ['david zilber', 'zilber'] },
   { name: 'Ina Garten', slug: 'ina-garten', patterns: ['ina', 'ina garten', 'barefoot contessa'] },
   { name: 'Jeremy Fox', slug: 'jeremy-fox', patterns: ['jeremy fox'] },
-  { name: 'Kirsten Shockey', slug: 'kirsten-christopher-shockey', patterns: ['shockey', 'kirsten shockey', 'christopher shockey'] },
-  { name: 'Nancy Silverton', slug: 'nancy-silverton', patterns: ['nancy', 'silverton', 'nancy silverton'] },
+  {
+    name: 'Kirsten Shockey',
+    slug: 'kirsten-christopher-shockey',
+    patterns: ['shockey', 'kirsten shockey', 'christopher shockey'],
+  },
+  {
+    name: 'Nancy Silverton',
+    slug: 'nancy-silverton',
+    patterns: ['nancy', 'silverton', 'nancy silverton'],
+  },
   { name: 'Tamar Adler', slug: 'tamar-adler', patterns: ['tamar', 'adler', 'tamar adler'] },
 ];
 
 async function findUnlinkedRecipes() {
   console.log('🔍 Finding Unlinked Chef Recipes\n');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   for (const chef of TARGET_CHEFS) {
     console.log(`\n${chef.name} (${chef.slug}):`);
@@ -47,8 +59,8 @@ async function findUnlinkedRecipes() {
         .from(recipes)
         .where(
           or(
-            sql`LOWER(${recipes.source}) LIKE LOWER(${'%' + pattern + '%'})`,
-            sql`LOWER(${recipes.name}) LIKE LOWER(${'%' + pattern + '%'})`
+            sql`LOWER(${recipes.source}) LIKE LOWER(${`%${pattern}%`})`,
+            sql`LOWER(${recipes.name}) LIKE LOWER(${`%${pattern}%`})`
           )
         )
         .limit(20);
@@ -73,15 +85,17 @@ async function findUnlinkedRecipes() {
         }
 
         // Count unlinked recipes for this pattern
-        const unlinkedCount = (await Promise.all(
-          foundRecipes.map(async (recipe) => {
-            const isLinked = await db
-              .select({ count: sql<number>`count(*)::int` })
-              .from(chefRecipes)
-              .where(sql`${chefRecipes.recipe_id} = ${recipe.id}`);
-            return isLinked[0]?.count || 0;
-          })
-        )).filter(count => count === 0).length;
+        const unlinkedCount = (
+          await Promise.all(
+            foundRecipes.map(async (recipe) => {
+              const isLinked = await db
+                .select({ count: sql<number>`count(*)::int` })
+                .from(chefRecipes)
+                .where(sql`${chefRecipes.recipe_id} = ${recipe.id}`);
+              return isLinked[0]?.count || 0;
+            })
+          )
+        ).filter((count) => count === 0).length;
 
         console.log(`\n   Summary: ${unlinkedCount} unlinked / ${foundRecipes.length} total`);
 
@@ -92,7 +106,7 @@ async function findUnlinkedRecipes() {
   }
 
   // Summary of all unlinked recipes that might belong to target chefs
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('📊 OVERALL SUMMARY\n');
 
   // Count recipes without chef_id and without junction table link

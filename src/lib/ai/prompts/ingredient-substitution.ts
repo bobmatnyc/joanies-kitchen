@@ -15,7 +15,8 @@ import type { PromptTemplate } from './types';
 export const INGREDIENT_SUBSTITUTION_GENERATOR: PromptTemplate = {
   id: 'ingredient-substitution-generator',
   name: 'Smart Ingredient Substitution Generator',
-  description: 'Generate practical, tested ingredient substitutions with confidence ratings and cooking adjustments',
+  description:
+    'Generate practical, tested ingredient substitutions with confidence ratings and cooking adjustments',
   version: '1.0.0',
   category: 'recipe',
   systemPrompt: `You are a professional chef and food scientist with deep expertise in:

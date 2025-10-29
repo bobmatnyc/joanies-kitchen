@@ -1,7 +1,7 @@
+import { writeFileSync } from 'node:fs';
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db/index.js';
 import { ingredients } from '../src/lib/db/ingredients-schema.js';
-import { eq } from 'drizzle-orm';
-import { writeFileSync } from 'fs';
 
 async function queryOtherIngredients() {
   const results = await db
@@ -19,14 +19,14 @@ async function queryOtherIngredients() {
 
   console.log(`Found ${results.length} ingredients with subtype 'other_other'`);
   console.log('\nSample ingredients:');
-  results.slice(0, 30).forEach(ing => {
+  results.slice(0, 30).forEach((ing) => {
     console.log(`- ${ing.display_name} (category: ${ing.category})`);
   });
-  
+
   // Save full list to file
   writeFileSync('tmp/other-ingredients.json', JSON.stringify(results, null, 2));
   console.log(`\nFull list saved to tmp/other-ingredients.json`);
-  
+
   process.exit(0);
 }
 

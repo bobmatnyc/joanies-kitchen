@@ -1,8 +1,8 @@
 'use server';
 
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { tools, recipeTools, recipes } from '@/lib/db/schema';
-import { eq, inArray, sql, and, like, desc } from 'drizzle-orm';
+import { recipeTools, tools } from '@/lib/db/schema';
 
 export interface Tool {
   id: string;
@@ -47,9 +47,7 @@ export interface GetToolsOptions {
 /**
  * Get all kitchen tools with optional filtering and sorting
  */
-export async function getAllTools(
-  options: GetToolsOptions = {}
-): Promise<{
+export async function getAllTools(options: GetToolsOptions = {}): Promise<{
   success: boolean;
   tools: Tool[];
   totalCount: number;
@@ -70,9 +68,7 @@ export async function getAllTools(
     const conditions = [];
 
     if (search) {
-      conditions.push(
-        sql`LOWER(${tools.display_name}) LIKE ${`%${search.toLowerCase()}%`}`
-      );
+      conditions.push(sql`LOWER(${tools.display_name}) LIKE ${`%${search.toLowerCase()}%`}`);
     }
 
     if (category) {
@@ -137,7 +133,10 @@ export async function getAllTools(
     let orderByClause;
     switch (sort) {
       case 'usage':
-        orderByClause = [sql`COALESCE(COUNT(DISTINCT ${recipeTools.recipe_id}), 0) DESC`, sql`LOWER(${tools.display_name}) ASC`];
+        orderByClause = [
+          sql`COALESCE(COUNT(DISTINCT ${recipeTools.recipe_id}), 0) DESC`,
+          sql`LOWER(${tools.display_name}) ASC`,
+        ];
         break;
       case 'category':
         orderByClause = [sql`${tools.category} ASC`, sql`LOWER(${tools.display_name}) ASC`];
@@ -145,7 +144,6 @@ export async function getAllTools(
       case 'essential':
         orderByClause = [sql`${tools.is_essential} DESC`, sql`LOWER(${tools.display_name}) ASC`];
         break;
-      case 'alphabetical':
       default:
         orderByClause = sql`LOWER(${tools.display_name}) ASC`;
     }
@@ -180,9 +178,7 @@ export async function getAllTools(
     }));
 
     // Count total (for pagination)
-    const countQuery = db
-      .select({ count: sql<number>`COUNT(DISTINCT ${tools.id})` })
-      .from(tools);
+    const countQuery = db.select({ count: sql<number>`COUNT(DISTINCT ${tools.id})` }).from(tools);
 
     if (conditions.length > 0) {
       countQuery.where(and(...conditions));

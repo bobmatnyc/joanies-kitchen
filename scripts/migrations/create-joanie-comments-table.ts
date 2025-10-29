@@ -110,8 +110,7 @@ async function createJoanieCommentsTable() {
     console.log('\nNext steps:');
     console.log('1. Test by adding a comment via the server actions');
     console.log('2. Verify the constraint by trying to set multiple references');
-    console.log('3. Add Joanie\'s first comment to Monday Night Crab Salad');
-
+    console.log("3. Add Joanie's first comment to Monday Night Crab Salad");
   } catch (error) {
     console.error('❌ Migration failed:', error);
     throw error;

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Comprehensive Chef Verification Report
  *
@@ -6,10 +7,9 @@
  * after the batch import completion claim.
  */
 
-import { db } from '../src/lib/db';
-import { chefSchema } from '../src/lib/db';
-import { recipes } from '../src/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { chefSchema, db } from '../src/lib/db';
+import { recipes } from '../src/lib/db/schema';
 
 const { chefs, chefRecipes, scrapingJobs } = chefSchema;
 
@@ -54,11 +54,7 @@ async function generateReport() {
     totalExpected += expectedCount;
 
     // Find chef in database
-    const chefResult = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.slug, slug))
-      .limit(1);
+    const chefResult = await db.select().from(chefs).where(eq(chefs.slug, slug)).limit(1);
 
     if (chefResult.length === 0) {
       console.log(`❌ ${slug.padEnd(40)} NOT FOUND IN DATABASE`);
@@ -84,16 +80,16 @@ async function generateReport() {
     totalActual += actualCount;
 
     const status =
-      actualCount === 0 ? 'missing' :
-      actualCount === expectedCount ? 'complete' :
-      actualCount < expectedCount ? 'partial' :
-      'over';
+      actualCount === 0
+        ? 'missing'
+        : actualCount === expectedCount
+          ? 'complete'
+          : actualCount < expectedCount
+            ? 'partial'
+            : 'over';
 
     const statusIcon =
-      status === 'complete' ? '✅' :
-      status === 'partial' ? '⚠️' :
-      status === 'over' ? '📈' :
-      '❌';
+      status === 'complete' ? '✅' : status === 'partial' ? '⚠️' : status === 'over' ? '📈' : '❌';
 
     console.log(
       `${statusIcon} ${chef.name.padEnd(35)} ${actualCount.toString().padStart(3)} / ${expectedCount.toString().padStart(3)} recipes`
@@ -109,17 +105,19 @@ async function generateReport() {
   }
 
   // 2. Summary Statistics
-  console.log('\n' + '═'.repeat(80));
+  console.log(`\n${'═'.repeat(80)}`);
   console.log('📊 SUMMARY STATISTICS\n');
 
-  const missingChefs = verifications.filter(v => v.status === 'missing');
-  const completeChefs = verifications.filter(v => v.status === 'complete');
-  const partialChefs = verifications.filter(v => v.status === 'partial');
-  const overChefs = verifications.filter(v => v.status === 'over');
+  const missingChefs = verifications.filter((v) => v.status === 'missing');
+  const completeChefs = verifications.filter((v) => v.status === 'complete');
+  const partialChefs = verifications.filter((v) => v.status === 'partial');
+  const overChefs = verifications.filter((v) => v.status === 'over');
 
   console.log(`Total Expected Recipes:        ${totalExpected}`);
   console.log(`Total Actual Recipes:          ${totalActual}`);
-  console.log(`Success Rate:                  ${((totalActual / totalExpected) * 100).toFixed(1)}%`);
+  console.log(
+    `Success Rate:                  ${((totalActual / totalExpected) * 100).toFixed(1)}%`
+  );
   console.log(`Expected from Batch Import:    95 (out of 121 URLs attempted)`);
   console.log('');
   console.log(`Chefs with Complete Import:    ${completeChefs.length} / 10`);
@@ -129,12 +127,12 @@ async function generateReport() {
 
   // 3. Detailed Discrepancy Report
   if (missingChefs.length > 0 || partialChefs.length > 0 || overChefs.length > 0) {
-    console.log('\n' + '═'.repeat(80));
+    console.log(`\n${'═'.repeat(80)}`);
     console.log('⚠️  DISCREPANCY DETAILS\n');
 
     if (missingChefs.length > 0) {
       console.log('❌ Chefs with ZERO recipes:');
-      missingChefs.forEach(chef => {
+      missingChefs.forEach((chef) => {
         console.log(`   - ${chef.name} (expected ${chef.expectedRecipes})`);
       });
       console.log('');
@@ -142,18 +140,22 @@ async function generateReport() {
 
     if (partialChefs.length > 0) {
       console.log('⚠️  Chefs with PARTIAL imports:');
-      partialChefs.forEach(chef => {
+      partialChefs.forEach((chef) => {
         const missing = chef.expectedRecipes - chef.actualRecipes;
-        console.log(`   - ${chef.name}: ${chef.actualRecipes}/${chef.expectedRecipes} (missing ${missing})`);
+        console.log(
+          `   - ${chef.name}: ${chef.actualRecipes}/${chef.expectedRecipes} (missing ${missing})`
+        );
       });
       console.log('');
     }
 
     if (overChefs.length > 0) {
       console.log('📈 Chefs with MORE than expected:');
-      overChefs.forEach(chef => {
+      overChefs.forEach((chef) => {
         const extra = chef.actualRecipes - chef.expectedRecipes;
-        console.log(`   - ${chef.name}: ${chef.actualRecipes}/${chef.expectedRecipes} (+${extra} extra)`);
+        console.log(
+          `   - ${chef.name}: ${chef.actualRecipes}/${chef.expectedRecipes} (+${extra} extra)`
+        );
       });
       console.log('');
     }
@@ -163,9 +165,7 @@ async function generateReport() {
   console.log('═'.repeat(80));
   console.log('🔍 DATABASE HEALTH CHECK\n');
 
-  const totalRecipesResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipes);
+  const totalRecipesResult = await db.select({ count: sql<number>`count(*)::int` }).from(recipes);
   const totalRecipes = totalRecipesResult[0]?.count || 0;
 
   const recipesWithChefIdResult = await db
@@ -190,7 +190,7 @@ async function generateReport() {
   console.log(`Scraping Jobs Recorded:                 ${scrapingJobsCount}`);
 
   // 5. Batch Import Status Assessment
-  console.log('\n' + '═'.repeat(80));
+  console.log(`\n${'═'.repeat(80)}`);
   console.log('🎯 BATCH IMPORT STATUS ASSESSMENT\n');
 
   if (scrapingJobsCount === 0) {
@@ -228,7 +228,9 @@ async function generateReport() {
     console.log('   4. Monitor progress and verify completion');
     console.log('   5. Re-run this verification script\n');
   } else if (totalActual < totalExpected) {
-    console.log(`⚠️  PARTIAL SUCCESS: ${totalActual}/${totalExpected} recipes imported (${((totalActual / totalExpected) * 100).toFixed(1)}%)\n`);
+    console.log(
+      `⚠️  PARTIAL SUCCESS: ${totalActual}/${totalExpected} recipes imported (${((totalActual / totalExpected) * 100).toFixed(1)}%)\n`
+    );
     console.log('Next Steps:');
     console.log('   1. Review failed URLs from batch import logs');
     console.log('   2. Manually retry failed imports');

@@ -1,9 +1,9 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { auth } from '@clerk/nextjs/server';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { addFavorite } from './favorites';
@@ -42,10 +42,7 @@ interface CloneRecipeOptions {
  * 5. Add to user's favorites
  * 6. Return cloned recipe
  */
-export async function cloneRecipe(
-  originalRecipeId: string,
-  modifications?: CloneRecipeOptions
-) {
+export async function cloneRecipe(originalRecipeId: string, modifications?: CloneRecipeOptions) {
   try {
     const { userId } = await auth();
 
@@ -120,10 +117,7 @@ export async function cloneRecipe(
     };
 
     // 3. Insert cloned recipe
-    const [clonedRecipe] = await db
-      .insert(recipes)
-      .values(clonedRecipeData)
-      .returning();
+    const [clonedRecipe] = await db.insert(recipes).values(clonedRecipeData).returning();
 
     // 4. Increment original recipe's fork_count
     await db
@@ -164,11 +158,7 @@ export async function cloneRecipe(
  */
 export async function getOriginalRecipe(recipeId: string): Promise<Recipe | null> {
   try {
-    const [recipe] = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
     if (!recipe || !recipe.source) {
       return null;
@@ -209,9 +199,7 @@ export async function hasUserClonedRecipe(recipeId: string): Promise<boolean> {
     const [clonedRecipe] = await db
       .select()
       .from(recipes)
-      .where(
-        sql`${recipes.user_id} = ${userId} AND ${recipes.source} LIKE ${'%' + recipeId + '%'}`
-      )
+      .where(sql`${recipes.user_id} = ${userId} AND ${recipes.source} LIKE ${`%${recipeId}%`}`)
       .limit(1);
 
     return !!clonedRecipe;
@@ -229,7 +217,7 @@ export async function getRecipeForks(recipeId: string): Promise<Recipe[]> {
     const forks = await db
       .select()
       .from(recipes)
-      .where(sql`${recipes.source} LIKE ${'%' + recipeId + '%'}`)
+      .where(sql`${recipes.source} LIKE ${`%${recipeId}%`}`)
       .orderBy(recipes.created_at);
 
     return forks;

@@ -2,9 +2,9 @@
 
 import { Check } from 'lucide-react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { isSustainabilityFocused, getSustainabilityTooltip } from '@/lib/utils/chef-utils';
+import { cn } from '@/lib/utils';
+import { getSustainabilityTooltip, isSustainabilityFocused } from '@/lib/utils/chef-utils';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 

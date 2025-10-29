@@ -3,7 +3,6 @@
 import { Loader2, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getIngredientSuggestions } from '@/app/actions/ingredient-search';
-import type { IngredientSuggestion } from '@/types/ingredient-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Ingredient } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
+import type { IngredientSuggestion } from '@/types/ingredient-search';
 
 interface IngredientSearchBarProps {
   selectedIngredients: Ingredient[];

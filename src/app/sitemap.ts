@@ -1,7 +1,7 @@
-import { and, eq, isNotNull, or, sql } from 'drizzle-orm';
+import { eq, isNotNull, or } from 'drizzle-orm';
 import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
-import { recipes, ingredients } from '@/lib/db/schema';
+import { ingredients, recipes } from '@/lib/db/schema';
 
 /**
  * Dynamic Sitemap Generation for Joanie's Kitchen
@@ -35,12 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         is_system_recipe: recipes.is_system_recipe,
       })
       .from(recipes)
-      .where(
-        or(
-          eq(recipes.is_public, true),
-          eq(recipes.is_system_recipe, true)
-        )
-      );
+      .where(or(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true)));
 
     // Map recipes to sitemap entries (prefer slug over ID)
     const recipeEntries: MetadataRoute.Sitemap = publicRecipes.map((recipe) => ({

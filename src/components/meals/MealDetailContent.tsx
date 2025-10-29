@@ -6,21 +6,22 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { generateShoppingList } from '@/app/actions/meals';
 import { getRecipes } from '@/app/actions/recipes';
-import type { MealWithRecipes, Recipe, ShoppingList } from '@/lib/db/schema';
-import {
-  createGuestShoppingList,
-  getGuestMealById,
-  getGuestShoppingLists,
-  type GuestMealWithRecipes,
-  type GuestShoppingList,
-} from '@/lib/utils/guest-meals';
-import { parseIngredientString } from '@/lib/utils/ingredient-consolidation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GuestMealBanner } from './SignInToSaveDialog';
+import type { MealWithRecipes, Recipe, ShoppingList } from '@/lib/db/schema';
+import {
+  createGuestShoppingList,
+  type GuestMealWithRecipes,
+  type GuestShoppingList,
+  getGuestMealById,
+  getGuestShoppingLists,
+} from '@/lib/utils/guest-meals';
+import { parseIngredientString } from '@/lib/utils/ingredient-consolidation';
 import { ShoppingListView } from './ShoppingListView';
+import { GuestMealBanner } from './SignInToSaveDialog';
 
 const MEAL_TYPE_COLORS: Record<string, string> = {
   breakfast: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -76,7 +77,7 @@ export function MealDetailContent({
   const [shoppingList, setShoppingList] = useState<ShoppingList | GuestShoppingList | null>(
     initialShoppingList || null
   );
-  const [recipes, setRecipes] = useState<Map<string, Recipe>>(new Map());
+  const [_recipes, setRecipes] = useState<Map<string, Recipe>>(new Map());
   const [isGeneratingList, setIsGeneratingList] = useState(false);
 
   // Extract meal ID for guest mode (slug might be guest ID)
@@ -211,52 +212,129 @@ export function MealDetailContent({
       return;
     }
 
-    // For authenticated users, the server action will handle it
-    // This is already handled by the form submission in the server component
+    // For authenticated users, call the server action
+    setIsGeneratingList(true);
+    try {
+      const result = await generateShoppingList({ mealId });
+
+      if (result.success && result.data) {
+        setShoppingList(result.data);
+        toast.success('Shopping list generated!');
+      } else {
+        toast.error(result.error || 'Failed to generate shopping list');
+      }
+    } catch (error) {
+      console.error('Failed to generate shopping list:', error);
+      toast.error('Failed to generate shopping list');
+    } finally {
+      setIsGeneratingList(false);
+    }
   };
 
   return (
     <div className="space-y-8">
       {!userId && <GuestMealBanner />}
 
-      {/* Meal header */}
-      <Card className="border-jk-sage">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-            <div className="flex-1">
+      {/* Meal header with hero image */}
+      <Card className="border-jk-sage overflow-hidden">
+        {/* Hero image section */}
+        {'image_url' in meal && meal.image_url && (
+          <div className="relative h-64 md:h-80 w-full">
+            <Image
+              src={meal.image_url}
+              alt={meal.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 1200px"
+              className="object-cover"
+              priority
+            />
+            {/* Gradient overlay for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
+
+            {/* Meal title overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl md:text-4xl font-heading text-jk-olive">{meal.name}</h1>
+                <h1 className="text-3xl md:text-4xl font-heading text-white drop-shadow-lg">
+                  {meal.name}
+                </h1>
                 {meal.meal_type && (
-                  <Badge variant="outline" className={`${mealTypeColor} font-ui`}>
+                  <Badge variant="outline" className="bg-white/90 backdrop-blur-sm text-jk-olive border-white/50 font-ui">
                     {meal.meal_type}
                   </Badge>
                 )}
               </div>
               {meal.description && (
-                <CardDescription className="font-body text-jk-charcoal/70 text-base">
+                <p className="font-body text-white/90 text-base drop-shadow-md max-w-3xl">
                   {meal.description}
-                </CardDescription>
+                </p>
               )}
               {meal.occasion && (
                 <div className="flex items-center gap-2 mt-3">
-                  <Utensils className="w-4 h-4 text-jk-clay" />
-                  <span className="text-sm text-jk-clay font-ui">{meal.occasion}</span>
+                  <Utensils className="w-4 h-4 text-white/90" />
+                  <span className="text-sm text-white/90 font-ui drop-shadow-md">{meal.occasion}</span>
                 </div>
               )}
             </div>
-            {userId && meal.slug && (
-              <Link href={`/meals/${meal.slug}/edit`}>
-                <Button
-                  variant="outline"
-                  className="min-h-[44px] touch-manipulation border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-              </Link>
+
+            {/* Edit button overlay */}
+            {userId && meal.slug && 'user_id' in meal && meal.user_id === userId && (
+              <div className="absolute top-4 right-4">
+                <Link href={`/meals/${meal.slug}/edit`}>
+                  <Button
+                    variant="outline"
+                    className="min-h-[44px] touch-manipulation bg-white/90 backdrop-blur-sm border-white/50 text-jk-olive hover:bg-white font-ui"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
+        )}
 
+        {/* Fallback header without image */}
+        {(!('image_url' in meal) || !meal.image_url) && (
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl md:text-4xl font-heading text-jk-olive">{meal.name}</h1>
+                  {meal.meal_type && (
+                    <Badge variant="outline" className={`${mealTypeColor} font-ui`}>
+                      {meal.meal_type}
+                    </Badge>
+                  )}
+                </div>
+                {meal.description && (
+                  <CardDescription className="font-body text-jk-charcoal/70 text-base">
+                    {meal.description}
+                  </CardDescription>
+                )}
+                {meal.occasion && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <Utensils className="w-4 h-4 text-jk-clay" />
+                    <span className="text-sm text-jk-clay font-ui">{meal.occasion}</span>
+                  </div>
+                )}
+              </div>
+              {userId && meal.slug && 'user_id' in meal && meal.user_id === userId && (
+                <Link href={`/meals/${meal.slug}/edit`}>
+                  <Button
+                    variant="outline"
+                    className="min-h-[44px] touch-manipulation border-jk-sage text-jk-olive hover:bg-jk-sage/10 font-ui"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </CardHeader>
+        )}
+
+        {/* Stats section - always visible */}
+        <CardHeader className="pt-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-jk-sage/30">
             {totalTime > 0 && (
               <div className="flex items-center gap-2 text-jk-charcoal/70">

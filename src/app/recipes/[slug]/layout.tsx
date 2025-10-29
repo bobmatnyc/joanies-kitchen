@@ -1,5 +1,5 @@
-import { getRecipe } from '@/app/actions/recipes';
 import { redirect } from 'next/navigation';
+import { getRecipe } from '@/app/actions/recipes';
 
 interface RecipeLayoutProps {
   children: React.ReactNode;
@@ -51,7 +51,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: `${recipe.name} | Joanie's Kitchen`,
-    description: recipe.description || `Delicious ${recipe.name} recipe from Joanie's Kitchen - ${recipe.cuisine ? `${recipe.cuisine} cuisine` : 'Easy to make'}`,
+    description:
+      recipe.description ||
+      `Delicious ${recipe.name} recipe from Joanie's Kitchen - ${recipe.cuisine ? `${recipe.cuisine} cuisine` : 'Easy to make'}`,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -60,14 +62,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: recipe.description || `Delicious ${recipe.name} recipe`,
       url: canonicalUrl,
       type: 'article',
-      images: firstImage ? [
-        {
-          url: firstImage,
-          width: 1200,
-          height: 630,
-          alt: recipe.name,
-        }
-      ] : undefined,
+      images: firstImage
+        ? [
+            {
+              url: firstImage,
+              width: 1200,
+              height: 630,
+              alt: recipe.name,
+            },
+          ]
+        : undefined,
       siteName: "Joanie's Kitchen",
     },
     twitter: {
