@@ -31,7 +31,7 @@ module.exports = {
       name: 'recipe-dev',
       script: 'pnpm',
       args: 'dev',
-      cwd: '/Users/masa/Projects/recipe-manager',
+      cwd: '/Users/masa/Projects/joanies-kitchen',
       watch: false, // Next.js handles file watching
       env: {
         NODE_ENV: 'development',
@@ -54,7 +54,7 @@ module.exports = {
       name: 'recipe-prod',
       script: 'pnpm',
       args: 'start',
-      cwd: '/Users/masa/Projects/recipe-manager',
+      cwd: '/Users/masa/Projects/joanies-kitchen',
       watch: false,
       env: {
         NODE_ENV: 'production',
@@ -76,7 +76,7 @@ module.exports = {
       name: 'recipe-scraper',
       script: 'tsx',
       args: 'scripts/standalone-scraper.ts',
-      cwd: '/Users/masa/Projects/recipe-manager',
+      cwd: '/Users/masa/Projects/joanies-kitchen',
       watch: false,
       env: {
         NODE_ENV: 'development',

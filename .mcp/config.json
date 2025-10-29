@@ -2,9 +2,7 @@
   "mcpServers": {
     "mcp-ticketer": {
       "command": "/Users/masa/Projects/claude-mpm/venv/bin/mcp-ticketer",
-      "args": [
-        "serve"
-      ],
+      "args": ["serve"],
       "cwd": "/Users/masa/Projects/joanies-kitchen",
       "env": {
         "LINEAR_API_KEY": "lin_api_1CNoO9WEIyyzjZ7syux5ZHxhuaZs7NKJULya76iR"
