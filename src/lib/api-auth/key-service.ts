@@ -18,10 +18,15 @@
 
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { apiKeys, apiKeyUsage, type ApiKey, type NewApiKey, type NewApiKeyUsage } from '../db/api-keys-schema';
+import {
+  type ApiKey,
+  apiKeys,
+  apiKeyUsage,
+  type NewApiKey,
+  type NewApiKeyUsage,
+} from '../db/api-keys-schema';
 import {
   constantTimeCompare,
-  extractKeyPrefix,
   generateApiKey,
   hashApiKey,
   validateApiKeyFormat,
@@ -128,9 +133,7 @@ export async function createApiKey(params: CreateApiKeyParams): Promise<CreateAp
     }
 
     // Generate new API key
-    const generated = generateApiKey(
-      params.environment || 'production'
-    );
+    const generated = generateApiKey(params.environment || 'production');
 
     // Prepare database record
     const newKey: NewApiKey = {
@@ -211,11 +214,7 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
     const keyHash = hashApiKey(providedKey);
 
     // Step 3: Look up key in database by hash
-    const [key] = await db
-      .select()
-      .from(apiKeys)
-      .where(eq(apiKeys.key_hash, keyHash))
-      .limit(1);
+    const [key] = await db.select().from(apiKeys).where(eq(apiKeys.key_hash, keyHash)).limit(1);
 
     if (!key) {
       return {
@@ -395,11 +394,7 @@ export async function listUserApiKeys(
  */
 export async function getApiKeyById(keyId: string): Promise<ApiKey | null> {
   try {
-    const [key] = await db
-      .select()
-      .from(apiKeys)
-      .where(eq(apiKeys.id, keyId))
-      .limit(1);
+    const [key] = await db.select().from(apiKeys).where(eq(apiKeys.id, keyId)).limit(1);
 
     return key || null;
   } catch (error) {
@@ -558,7 +553,9 @@ export async function getApiKeyUsage(
     const [last24hResult] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(apiKeyUsage)
-      .where(and(eq(apiKeyUsage.api_key_id, keyId), gte(apiKeyUsage.requested_at, twentyFourHoursAgo)));
+      .where(
+        and(eq(apiKeyUsage.api_key_id, keyId), gte(apiKeyUsage.requested_at, twentyFourHoursAgo))
+      );
 
     // Last 7 days
     const [last7dResult] = await db
@@ -655,7 +652,10 @@ export async function getRecentUsageLogs(keyId: string, limit: number = 100) {
  * @param requiredScope - The scope to check for
  * @returns true if key has the required scope
  */
-export async function checkApiKeyPermission(keyId: string, requiredScope: string): Promise<boolean> {
+export async function checkApiKeyPermission(
+  keyId: string,
+  requiredScope: string
+): Promise<boolean> {
   try {
     const key = await getApiKeyById(keyId);
     if (!key || !key.is_active) {

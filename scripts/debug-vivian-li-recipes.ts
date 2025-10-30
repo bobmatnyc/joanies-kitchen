@@ -59,7 +59,9 @@ async function checkVivianLiRecipes() {
 
   // Summary
   const withImageUrl = recipesResult.rows.filter((r: any) => r.image_url).length;
-  const withImagesArray = recipesResult.rows.filter((r: any) => r.images && r.images !== '[]').length;
+  const withImagesArray = recipesResult.rows.filter(
+    (r: any) => r.images && r.images !== '[]'
+  ).length;
   const publicRecipes = recipesResult.rows.filter((r: any) => r.is_public).length;
 
   console.log('=== SUMMARY ===');

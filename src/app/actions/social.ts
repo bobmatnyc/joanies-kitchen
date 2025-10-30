@@ -5,6 +5,30 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
+import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
+
+// ==================
+// TYPE DEFINITIONS
+// ==================
+
+export interface LikeToggleResult {
+  success: boolean;
+  liked?: boolean;
+  likesCount?: number;
+  error?: string;
+}
+
+export interface DataResult<T> {
+  success: boolean;
+  data: T;
+  error?: string;
+}
+
+export interface SuccessResult {
+  success: boolean;
+  error?: string;
+}
 
 // ==================
 // RECIPE LIKES
@@ -13,7 +37,7 @@ import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/sche
 /**
  * Toggle like on a recipe (add if not liked, remove if liked)
  */
-export async function toggleRecipeLike(recipeId: string) {
+export async function toggleRecipeLike(recipeId: string): Promise<LikeToggleResult> {
   try {
     const { userId } = await auth();
 
@@ -70,7 +94,7 @@ export async function toggleRecipeLike(recipeId: string) {
     console.error('[toggleRecipeLike] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to toggle like',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -78,7 +102,7 @@ export async function toggleRecipeLike(recipeId: string) {
 /**
  * Get total likes count for a recipe
  */
-export async function getRecipeLikesCount(recipeId: string) {
+export async function getRecipeLikesCount(recipeId: string): Promise<DataResult<number>> {
   try {
     const result = await db
       .select({ count: count() })
@@ -93,7 +117,7 @@ export async function getRecipeLikesCount(recipeId: string) {
     console.error('[getRecipeLikesCount] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get likes count',
+      error: toErrorMessage(error),
       data: 0,
     };
   }
@@ -102,7 +126,7 @@ export async function getRecipeLikesCount(recipeId: string) {
 /**
  * Check if current user has liked a recipe
  */
-export async function hasUserLikedRecipe(recipeId: string) {
+export async function hasUserLikedRecipe(recipeId: string): Promise<DataResult<boolean>> {
   try {
     const { userId } = await auth();
 
@@ -124,7 +148,7 @@ export async function hasUserLikedRecipe(recipeId: string) {
     console.error('[hasUserLikedRecipe] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to check like status',
+      error: toErrorMessage(error),
       data: false,
     };
   }
@@ -133,7 +157,7 @@ export async function hasUserLikedRecipe(recipeId: string) {
 /**
  * Get recipes liked by current user
  */
-export async function getUserLikedRecipes() {
+export async function getUserLikedRecipes(): Promise<DataResult<Array<{recipe: typeof recipes.$inferSelect; likedAt: Date | null}>>> {
   try {
     const { userId } = await auth();
 
@@ -159,7 +183,7 @@ export async function getUserLikedRecipes() {
     console.error('[getUserLikedRecipes] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get liked recipes',
+      error: toErrorMessage(error),
       data: [],
     };
   }
@@ -172,7 +196,7 @@ export async function getUserLikedRecipes() {
 /**
  * Fork a recipe (create a copy with attribution to original)
  */
-export async function forkRecipe(originalRecipeId: string) {
+export async function forkRecipe(originalRecipeId: string): Promise<DataResult<typeof recipes.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -234,7 +258,7 @@ export async function forkRecipe(originalRecipeId: string) {
     console.error('[forkRecipe] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fork recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -242,7 +266,7 @@ export async function forkRecipe(originalRecipeId: string) {
 /**
  * Get fork count for a recipe
  */
-export async function getRecipeForkCount(recipeId: string) {
+export async function getRecipeForkCount(recipeId: string): Promise<DataResult<number>> {
   try {
     const result = await db
       .select({ count: count() })
@@ -257,7 +281,7 @@ export async function getRecipeForkCount(recipeId: string) {
     console.error('[getRecipeForkCount] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get fork count',
+      error: toErrorMessage(error),
       data: 0,
     };
   }
@@ -266,7 +290,7 @@ export async function getRecipeForkCount(recipeId: string) {
 /**
  * Get original recipe info for a forked recipe
  */
-export async function getOriginalRecipe(forkedRecipeId: string) {
+export async function getOriginalRecipe(forkedRecipeId: string): Promise<DataResult<{originalRecipe: typeof recipes.$inferSelect; forkedAt: Date | null} | null>> {
   try {
     const forkInfo = await db
       .select({
@@ -290,7 +314,7 @@ export async function getOriginalRecipe(forkedRecipeId: string) {
     console.error('[getOriginalRecipe] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get original recipe',
+      error: toErrorMessage(error),
       data: null,
     };
   }
@@ -303,7 +327,7 @@ export async function getOriginalRecipe(forkedRecipeId: string) {
 /**
  * Add a comment to a recipe
  */
-export async function addRecipeComment(recipeId: string, content: string) {
+export async function addRecipeComment(recipeId: string, content: string): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -334,19 +358,44 @@ export async function addRecipeComment(recipeId: string, content: string) {
     console.error('[addRecipeComment] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to add comment',
+      error: toErrorMessage(error),
     };
   }
 }
 
+export interface RecipeCommentWithProfile {
+  id: string;
+  user_id: string;
+  recipe_id: string;
+  content: string;
+  is_edited: boolean;
+  is_flagged: boolean;
+  created_at: Date;
+  updated_at: Date;
+  user_name: string;
+  user_avatar?: string;
+}
+
 /**
- * Get comments for a recipe
+ * Get comments for a recipe with user profile data
  */
-export async function getRecipeComments(recipeId: string) {
+export async function getRecipeComments(recipeId: string): Promise<DataResult<RecipeCommentWithProfile[]>> {
   try {
-    const comments = await db
-      .select()
+    const commentsWithProfiles = await db
+      .select({
+        id: recipeComments.id,
+        userId: recipeComments.user_id,
+        recipeId: recipeComments.recipe_id,
+        content: recipeComments.content,
+        isEdited: recipeComments.is_edited,
+        isFlagged: recipeComments.is_flagged,
+        createdAt: recipeComments.created_at,
+        updatedAt: recipeComments.updated_at,
+        displayName: userProfiles.display_name,
+        avatar: userProfiles.profile_image_url,
+      })
       .from(recipeComments)
+      .leftJoin(userProfiles, eq(recipeComments.user_id, userProfiles.user_id))
       .where(
         and(
           eq(recipeComments.recipe_id, recipeId),
@@ -354,6 +403,19 @@ export async function getRecipeComments(recipeId: string) {
         )
       )
       .orderBy(desc(recipeComments.created_at));
+
+    const comments = commentsWithProfiles.map((c) => ({
+      id: c.id,
+      user_id: c.userId,
+      recipe_id: c.recipeId,
+      content: c.content,
+      is_edited: c.isEdited,
+      is_flagged: c.isFlagged,
+      created_at: c.createdAt || new Date(),
+      updated_at: c.updatedAt || new Date(),
+      user_name: c.displayName || 'Anonymous User',
+      user_avatar: c.avatar || undefined,
+    }));
 
     return {
       success: true,
@@ -363,7 +425,7 @@ export async function getRecipeComments(recipeId: string) {
     console.error('[getRecipeComments] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get comments',
+      error: toErrorMessage(error),
       data: [],
     };
   }
@@ -372,7 +434,7 @@ export async function getRecipeComments(recipeId: string) {
 /**
  * Update a comment
  */
-export async function updateRecipeComment(commentId: string, content: string) {
+export async function updateRecipeComment(commentId: string, content: string): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -419,7 +481,7 @@ export async function updateRecipeComment(commentId: string, content: string) {
     console.error('[updateRecipeComment] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update comment',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -427,7 +489,7 @@ export async function updateRecipeComment(commentId: string, content: string) {
 /**
  * Delete a comment
  */
-export async function deleteRecipeComment(commentId: string) {
+export async function deleteRecipeComment(commentId: string): Promise<SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -461,7 +523,7 @@ export async function deleteRecipeComment(commentId: string) {
     console.error('[deleteRecipeComment] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete comment',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -469,7 +531,7 @@ export async function deleteRecipeComment(commentId: string) {
 /**
  * Get comment count for a recipe
  */
-export async function getRecipeCommentCount(recipeId: string) {
+export async function getRecipeCommentCount(recipeId: string): Promise<DataResult<number>> {
   try {
     const result = await db
       .select({ count: count() })
@@ -484,7 +546,7 @@ export async function getRecipeCommentCount(recipeId: string) {
     console.error('[getRecipeCommentCount] Error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get comment count',
+      error: toErrorMessage(error),
       data: 0,
     };
   }

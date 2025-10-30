@@ -144,9 +144,7 @@ export function RatingDisplay({
       <div className="flex items-center gap-0.5">{renderStars()}</div>
       <span className="font-medium ml-1.5 text-foreground">{rating.toFixed(1)}</span>
       {showCount && (
-        <span className="text-muted-foreground ml-0.5">
-          ({totalRatings.toLocaleString()})
-        </span>
+        <span className="text-muted-foreground ml-0.5">({totalRatings.toLocaleString()})</span>
       )}
     </Component>
   );

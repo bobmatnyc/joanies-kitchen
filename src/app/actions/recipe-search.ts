@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { createRecipe } from './recipes';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // Schema for web search results
 const WebRecipeSchema = z.object({
@@ -139,11 +140,11 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
       success: true,
       data: validatedRecipes,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Web search error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to search for recipes',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -213,11 +214,11 @@ Return the recipe in this exact JSON format:
       success: true,
       data: validatedRecipe,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('URL parsing error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to parse recipe from URL',
+      error: toErrorMessage(error),
     };
   }
 }

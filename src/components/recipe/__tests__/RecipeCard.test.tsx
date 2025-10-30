@@ -21,7 +21,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock Next.js Link component
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: any) => (
+  default: ({ children, href, ...props }: unknown) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -30,20 +30,20 @@ vi.mock('next/link', () => ({
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: any) => <img src={src} alt={alt} {...props} />,
+  default: ({ src, alt, ...props }: unknown) => <img src={src} alt={alt} {...props} />,
 }));
 
 // Mock tag ontology module
 vi.mock('@/lib/tag-ontology', () => ({
   categorizeTags: (tags: string[]) => ({
     'Main Ingredient': [],
-    'Dietary': [],
+    Dietary: [],
     'Meal Type': [],
     'Cooking Method': [],
-    'Course': [],
-    'Season': [],
-    'Time': [],
-    'Other': tags, // Put all tags in 'Other' category for testing
+    Course: [],
+    Season: [],
+    Time: [],
+    Other: tags, // Put all tags in 'Other' category for testing
   }),
   getCategoryColor: () => 'bg-blue-100 text-blue-800',
   categorizeTag: () => 'Other',

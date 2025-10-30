@@ -38,7 +38,6 @@ async function testFix1AdminInfiniteLoop() {
     console.log('   3. Verify: No infinite spinner/loading');
     console.log('   4. Verify: Shows content or "No flagged images"');
     console.log('   5. Check browser console for errors\n');
-
   } catch (error) {
     console.error(`✗ Error: ${error.message}\n`);
   }
@@ -58,7 +57,9 @@ async function testFix2RecipeIngredients() {
 
     // Check for [object Object]
     const hasObjectObject = html.includes('[object Object]');
-    console.log(`${hasObjectObject ? '✗' : '✓'} Contains [object Object]: ${hasObjectObject ? 'YES (FAIL)' : 'NO (PASS)'}`);
+    console.log(
+      `${hasObjectObject ? '✗' : '✓'} Contains [object Object]: ${hasObjectObject ? 'YES (FAIL)' : 'NO (PASS)'}`
+    );
 
     // Look for ingredients section
     const hasIngredients = html.includes('Ingredients') || html.includes('ingredients');
@@ -84,7 +85,6 @@ async function testFix2RecipeIngredients() {
     console.log('   2. Scroll to "Ingredients" section');
     console.log('   3. Verify: All ingredients show as readable text');
     console.log('   4. Verify: NO "[object Object]" anywhere\n');
-
   } catch (error) {
     console.error(`✗ Error: ${error.message}\n`);
   }
@@ -107,11 +107,11 @@ async function testFix3ChefImages() {
     console.log(`✓ Total <img> tags found: ${imgTags ? imgTags.length : 0}`);
 
     // Check for Vercel Blob Storage URLs (correct source)
-    const blobUrls = (html.match(/https:\/\/[^"]*\.public\.blob\.vercel-storage\.com/gi) || []);
+    const blobUrls = html.match(/https:\/\/[^"]*\.public\.blob\.vercel-storage\.com/gi) || [];
     console.log(`✓ Vercel Blob Storage URLs: ${blobUrls.length}`);
 
     // Check for local /images/recipes/ paths (incorrect, should be minimal)
-    const localImagePaths = (html.match(/\/images\/recipes\/[^"]+/gi) || []);
+    const localImagePaths = html.match(/\/images\/recipes\/[^"]+/gi) || [];
     console.log(`✓ Local /images/recipes/ paths: ${localImagePaths.length}`);
 
     // Sample some image sources
@@ -123,7 +123,9 @@ async function testFix3ChefImages() {
         const src = match[1];
         const isBlob = src.includes('blob.vercel-storage.com');
         const isLocal = src.startsWith('/images/');
-        console.log(`   ${i + 1}. ${isBlob ? '✓ (Blob)' : isLocal ? '⚠ (Local)' : '?'} ${src.substring(0, 80)}`);
+        console.log(
+          `   ${i + 1}. ${isBlob ? '✓ (Blob)' : isLocal ? '⚠ (Local)' : '?'} ${src.substring(0, 80)}`
+        );
       });
     }
 
@@ -134,7 +136,6 @@ async function testFix3ChefImages() {
     console.log('   4. Open DevTools Network tab');
     console.log('   5. Verify: Images load from blob.vercel-storage.com');
     console.log('   6. Verify: No 404 errors for /images/recipes/\n');
-
   } catch (error) {
     console.error(`✗ Error: ${error.message}\n`);
   }
@@ -163,7 +164,6 @@ async function testFix4FridgeTimeout() {
     console.log('   4. Verify: Results appear quickly (< 1 second)');
     console.log('   5. Verify: No infinite "Finding recipes..." spinner');
     console.log('   6. Verify: If >30s, shows timeout error (unlikely)\n');
-
   } catch (error) {
     console.error(`✗ Error: ${error.message}\n`);
   }

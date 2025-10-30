@@ -54,12 +54,7 @@ export const createApiKeySchema = z.object({
  * All fields are optional since it's a PATCH operation
  */
 export const updateApiKeySchema = z.object({
-  name: z
-    .string()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe('Human-readable name for the API key'),
+  name: z.string().min(1).max(100).optional().describe('Human-readable name for the API key'),
 
   scopes: z
     .array(z.enum(VALID_SCOPES as [string, ...string[]]))
@@ -67,11 +62,7 @@ export const updateApiKeySchema = z.object({
     .optional()
     .describe('Array of permission scopes'),
 
-  description: z
-    .string()
-    .max(500)
-    .optional()
-    .describe('Optional description of the key purpose'),
+  description: z.string().max(500).optional().describe('Optional description of the key purpose'),
 
   expiresAt: z
     .string()
@@ -104,13 +95,9 @@ export const usageQuerySchema = z.object({
     .transform((val) => (val ? new Date(val) : undefined))
     .describe('End date for usage period (ISO 8601 format)'),
 
-  endpoint: z
-    .string()
-    .optional()
-    .describe('Filter by specific endpoint'),
+  endpoint: z.string().optional().describe('Filter by specific endpoint'),
 
-  limit: z
-    .coerce
+  limit: z.coerce
     .number()
     .int()
     .positive()

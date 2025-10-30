@@ -81,7 +81,7 @@ export function CommentItem({ comment, currentUserId, onEdit, onDelete }: Commen
 
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
-  }, [isEditing, editContent]);
+  }, [isEditing]);
 
   // Focus textarea when entering edit mode
   useEffect(() => {

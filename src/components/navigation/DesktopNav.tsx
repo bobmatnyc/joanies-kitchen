@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, CalendarDays, GraduationCap, Leaf, Package } from 'lucide-react';
+import { Bookmark, BookOpen, CalendarDays, GraduationCap, Leaf, Package } from 'lucide-react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
 import { NavLink } from '@/components/navigation/NavLink';
 
@@ -27,6 +27,9 @@ export function DesktopNav() {
 
       {/* All Recipes */}
       <NavLink href="/recipes" icon={BookOpen} label="Recipes" />
+
+      {/* Collections */}
+      <NavLink href="/collections" icon={Bookmark} label="Collections" />
 
       {/* Meal Plans */}
       <NavLink href="/meal-plans" icon={CalendarDays} label="Meals" />

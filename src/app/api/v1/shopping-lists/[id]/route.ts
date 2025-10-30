@@ -9,6 +9,7 @@
  * Authorization: Scope-based permissions + ownership verification
  */
 
+import { and, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getShoppingListById, updateShoppingList } from '@/app/actions/meals';
@@ -16,11 +17,7 @@ import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import {
-  updateShoppingListSchema,
-  type UpdateShoppingListInput,
-} from '@/lib/validations/meal-api';
+import { type UpdateShoppingListInput, updateShoppingListSchema } from '@/lib/validations/meal-api';
 
 /**
  * GET /api/v1/shopping-lists/:id
@@ -44,7 +41,7 @@ import {
  */
 export const GET = requireScopes(
   [SCOPES.READ_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, _auth, context: RouteContext) => {
     try {
       // Extract shopping list ID from route params (Next.js 15: params is a Promise)
       const params = context?.params ? await context.params : {};
@@ -279,7 +276,7 @@ export const PATCH = requireScopes(
  */
 export const DELETE = requireScopes(
   [SCOPES.DELETE_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract shopping list ID from route params (Next.js 15: params is a Promise)
       const params = context?.params ? await context.params : {};
@@ -327,12 +324,11 @@ export const DELETE = requireScopes(
       }
 
       // Delete shopping list directly
-      await db.delete(shoppingLists).where(
-        and(
-          eq(shoppingLists.id, existingList.data.id),
-          eq(shoppingLists.user_id, auth.userId!)
-        )
-      );
+      await db
+        .delete(shoppingLists)
+        .where(
+          and(eq(shoppingLists.id, existingList.data.id), eq(shoppingLists.user_id, auth.userId!))
+        );
 
       return NextResponse.json({
         success: true,

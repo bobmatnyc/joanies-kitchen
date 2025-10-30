@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Create a new chef profile
@@ -32,7 +33,7 @@ export async function createChef(data: NewChef) {
     console.error('Error creating chef:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create chef',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -67,7 +68,7 @@ export async function updateChef(id: string, data: Partial<NewChef>) {
     console.error('Error updating chef:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update chef',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -101,7 +102,7 @@ export async function deleteChef(id: string) {
     console.error('Error deleting chef:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete chef',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -290,7 +291,7 @@ export async function linkRecipeToChef(params: {
     console.error('Error linking recipe to chef:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to link recipe',
+      error: toErrorMessage(error),
     };
   }
 }

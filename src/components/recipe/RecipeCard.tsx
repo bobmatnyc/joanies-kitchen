@@ -56,10 +56,11 @@ export function RecipeCard({
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   // Prioritize working external URLs (http/https) over local paths
-  const workingImages = images.filter(img =>
-    img.startsWith('http://') || img.startsWith('https://')
+  const workingImages = images.filter(
+    (img) => img.startsWith('http://') || img.startsWith('https://')
   );
-  const displayImage = workingImages[0] || recipe.image_url || images[0] || getPlaceholderImage(tags);
+  const displayImage =
+    workingImages[0] || recipe.image_url || images[0] || getPlaceholderImage(tags);
 
   // Check if image is external (not from our domain or known CDNs)
   const isExternalImage = Boolean(

@@ -4,8 +4,8 @@
  * Tests for recipe quality gate validation system
  */
 
-import { validateParsedRecipe, sanitizeIngredients } from '../recipe-validation';
-import { validateSerialization, checkForObjectObject } from '../serialization-validation';
+import { sanitizeIngredients, validateParsedRecipe } from '../recipe-validation';
+import { checkForObjectObject, validateSerialization } from '../serialization-validation';
 
 // ============================================================================
 // TEST DATA
@@ -44,7 +44,7 @@ const RECIPE_MISSING_INGREDIENT_NAME = {
   instructions: ['Step 1'],
 };
 
-const RECIPE_WITH_STRING_INGREDIENTS = {
+const _RECIPE_WITH_STRING_INGREDIENTS = {
   name: 'Recipe with String Ingredients',
   ingredients: ['flour', 'sugar', 'eggs'], // Should be objects
   instructions: ['Mix and bake'],
@@ -105,18 +105,11 @@ describe('sanitizeIngredients', () => {
   it('should convert string ingredients to objects', () => {
     const result = sanitizeIngredients(['flour', 'sugar', 'eggs']);
     expect(result.modified).toBe(true);
-    expect(result.sanitized).toEqual([
-      { name: 'flour' },
-      { name: 'sugar' },
-      { name: 'eggs' },
-    ]);
+    expect(result.sanitized).toEqual([{ name: 'flour' }, { name: 'sugar' }, { name: 'eggs' }]);
   });
 
   it('should preserve valid ingredient objects', () => {
-    const validIngredients = [
-      { name: 'flour', quantity: '2', unit: 'cups' },
-      { name: 'sugar' },
-    ];
+    const validIngredients = [{ name: 'flour', quantity: '2', unit: 'cups' }, { name: 'sugar' }];
     const result = sanitizeIngredients(validIngredients);
     expect(result.modified).toBe(false);
     expect(result.sanitized).toEqual(validIngredients);
@@ -150,7 +143,7 @@ describe('validateSerialization', () => {
   });
 
   it('should fail serialization if [object Object] appears in JSON', () => {
-    const badRecipe = {
+    const _badRecipe = {
       name: 'Bad Recipe',
       ingredients: [{ name: 'flour', nested: { data: 'value' } }], // Will serialize to [object Object]
       instructions: ['Step 1'],

@@ -10,9 +10,9 @@
 
 import type { ShoppingListItem } from '@/lib/db/schema';
 import {
-  normalizeIngredientName as normalizeForShopping,
-  extractUsageNotes,
   consolidateUsageNotes,
+  extractUsageNotes,
+  normalizeIngredientName as normalizeForShopping,
 } from '@/lib/utils/ingredient-normalizer';
 
 // ============================================================================

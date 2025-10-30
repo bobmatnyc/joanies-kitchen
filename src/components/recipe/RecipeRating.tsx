@@ -161,7 +161,7 @@ export function RecipeRating({
       } else {
         setError(result.error || 'Failed to save rating');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);

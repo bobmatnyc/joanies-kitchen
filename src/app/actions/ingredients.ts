@@ -10,6 +10,7 @@ import {
   recipeIngredients,
 } from '@/lib/db/ingredients-schema';
 import { joanieComments, recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Ingredients Server Actions
@@ -139,13 +140,13 @@ export async function getAllIngredients(
       ingredients: ingredientsWithStats,
       totalCount: countResult.count,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch ingredients:', error);
     return {
       success: false,
       ingredients: [],
       totalCount: 0,
-      error: error.message || 'Failed to fetch ingredients',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -200,11 +201,11 @@ export async function getIngredientBySlug(slug: string): Promise<IngredientDetai
       joanieComment: joanieComment || undefined,
       recipesUsingIngredient: recipesResult.recipes,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch ingredient:', error);
     return {
       success: false,
-      error: error.message || 'Failed to fetch ingredient',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -291,13 +292,13 @@ export async function getRecipesUsingIngredient(
       recipes: recipesList,
       totalCount: countResult.count,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch recipes using ingredient:', error);
     return {
       success: false,
       recipes: [],
       totalCount: 0,
-      error: error.message || 'Failed to fetch recipes',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -326,12 +327,12 @@ export async function getIngredientCategories() {
       success: true,
       categories: categoriesResult.filter((c) => c.category !== null),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch ingredient categories:', error);
     return {
       success: false,
       categories: [],
-      error: error.message || 'Failed to fetch categories',
+      error: toErrorMessage(error),
     };
   }
 }

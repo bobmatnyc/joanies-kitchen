@@ -33,7 +33,7 @@ import { join } from 'node:path';
 import { put } from '@vercel/blob';
 import { eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { meals, mealRecipes } from '@/lib/db/meals-schema';
+import { mealRecipes, meals } from '@/lib/db/meals-schema';
 import { recipes } from '@/lib/db/schema';
 
 // Configuration
@@ -98,7 +98,7 @@ function checkPythonDependencies(): boolean {
 
     console.log('✅ All Python dependencies available');
     return true;
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ Python not found or error checking dependencies');
     return false;
   }
@@ -238,9 +238,7 @@ async function generateSDImage(
         console.log(`   ✅ SD XL image generated in ${generationTime}s`);
         resolve({ imagePath: outputPath, generationTime });
       } else {
-        const error = new Error(
-          `Python process failed with code ${code}: ${stderr || stdout}`
-        );
+        const error = new Error(`Python process failed with code ${code}: ${stderr || stdout}`);
 
         // Retry on failure
         if (retryCount < MAX_RETRIES) {
@@ -463,7 +461,7 @@ async function main() {
 
     for (let i = 0; i < mealsWithoutImages.length; i++) {
       const meal = mealsWithoutImages[i];
-      console.log(`\n[${ i + 1}/${mealsWithoutImages.length}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      console.log(`\n[${i + 1}/${mealsWithoutImages.length}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
       const result = await processMeal(meal);
       results.push(result);

@@ -44,9 +44,9 @@ async function testRecipeIngredients() {
     console.log(`\n🔍 Checking for proper ingredient formatting...`);
 
     const patterns = {
-      'Quantities': /\d+\s*(cup|tbsp|tsp|lb|oz|g|kg|ml|l)/gi,
-      'Fractions': /[½¼¾⅓⅔⅛⅜⅝⅞]/g,
-      'Kale': /kale/gi,
+      Quantities: /\d+\s*(cup|tbsp|tsp|lb|oz|g|kg|ml|l)/gi,
+      Fractions: /[½¼¾⅓⅔⅛⅜⅝⅞]/g,
+      Kale: /kale/gi,
       'Olive oil': /olive\s+oil/gi,
     };
 
@@ -57,7 +57,6 @@ async function testRecipeIngredients() {
     }
 
     return { status: 'PASS', details: 'No [object Object] found, proper formatting detected' };
-
   } catch (error) {
     console.error('❌ Error fetching recipe:', error.message);
     return { status: 'ERROR', details: error.message };
@@ -94,7 +93,6 @@ async function testAdminFlaggedImages() {
     }
 
     return { status: 'PARTIAL_PASS', details: 'Admin page loads, manual browser testing needed' };
-
   } catch (error) {
     console.error('❌ Error fetching admin page:', error.message);
     return { status: 'ERROR', details: error.message };
@@ -127,7 +125,9 @@ async function testMultipleRecipes() {
     }
 
     const uniqueRecipes = [...new Set(recipeLinks)].slice(0, 5); // Test first 5
-    console.log(`\n📋 Found ${recipeLinks.length} recipe links, testing ${uniqueRecipes.length}...`);
+    console.log(
+      `\n📋 Found ${recipeLinks.length} recipe links, testing ${uniqueRecipes.length}...`
+    );
 
     const results = [];
 
@@ -143,14 +143,15 @@ async function testMultipleRecipes() {
         const objectCount = (recipeHtml.match(/\[object Object\]/g) || []).length;
 
         console.log(`      Status: ${recipeResponse.status}`);
-        console.log(`      [object Object]: ${hasObjectObject ? `❌ ${objectCount} found` : '✅ None'}`);
+        console.log(
+          `      [object Object]: ${hasObjectObject ? `❌ ${objectCount} found` : '✅ None'}`
+        );
 
         results.push({
           slug,
           status: hasObjectObject ? 'FAIL' : 'PASS',
-          objectCount
+          objectCount,
         });
-
       } catch (error) {
         console.log(`      Error: ${error.message}`);
         results.push({ slug, status: 'ERROR', error: error.message });
@@ -158,9 +159,9 @@ async function testMultipleRecipes() {
     }
 
     console.log(`\n📊 Regression Test Summary:`);
-    const passed = results.filter(r => r.status === 'PASS').length;
-    const failed = results.filter(r => r.status === 'FAIL').length;
-    const errors = results.filter(r => r.status === 'ERROR').length;
+    const passed = results.filter((r) => r.status === 'PASS').length;
+    const failed = results.filter((r) => r.status === 'FAIL').length;
+    const errors = results.filter((r) => r.status === 'ERROR').length;
 
     console.log(`   ✅ Passed: ${passed}`);
     console.log(`   ❌ Failed: ${failed}`);
@@ -169,9 +170,8 @@ async function testMultipleRecipes() {
     return {
       status: failed === 0 && errors === 0 ? 'PASS' : 'FAIL',
       details: `${passed}/${results.length} recipes passed`,
-      results
+      results,
     };
-
   } catch (error) {
     console.error('❌ Error in regression test:', error.message);
     return { status: 'ERROR', details: error.message };
@@ -206,26 +206,32 @@ async function runAllTests() {
   console.log('='.repeat(70));
 
   results.forEach((result, index) => {
-    const statusIcon = result.status === 'PASS' ? '✅' :
-                       result.status === 'PARTIAL_PASS' ? '⚠️ ' :
-                       result.status === 'MANUAL_REQUIRED' ? '🔧' :
-                       result.status === 'FAIL' ? '❌' : '⚠️ ';
+    const statusIcon =
+      result.status === 'PASS'
+        ? '✅'
+        : result.status === 'PARTIAL_PASS'
+          ? '⚠️ '
+          : result.status === 'MANUAL_REQUIRED'
+            ? '🔧'
+            : result.status === 'FAIL'
+              ? '❌'
+              : '⚠️ ';
 
     console.log(`\n${statusIcon} Test ${index + 1}: ${result.test}`);
     console.log(`   Status: ${result.status}`);
     console.log(`   Details: ${result.details}`);
   });
 
-  const passCount = results.filter(r => r.status === 'PASS').length;
-  const failCount = results.filter(r => r.status === 'FAIL').length;
+  const passCount = results.filter((r) => r.status === 'PASS').length;
+  const failCount = results.filter((r) => r.status === 'FAIL').length;
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log(`Summary: ${passCount} passed, ${failCount} failed out of ${results.length} tests`);
   console.log('='.repeat(70));
   console.log('\n');
 }
 
-runAllTests().catch(error => {
+runAllTests().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

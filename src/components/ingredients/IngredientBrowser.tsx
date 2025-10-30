@@ -176,7 +176,7 @@ export function IngredientBrowser() {
                   {/* Subtypes */}
                   {selectedType === typeKey && typeData.subtypes && (
                     <div className="ml-4 space-y-1">
-                      {typeData.subtypes.slice(0, 10).map((st: any) => (
+                      {typeData.subtypes.slice(0, 10).map((st: unknown) => (
                         <Button
                           key={st.subtype}
                           variant={selectedSubtype === st.subtype ? 'secondary' : 'ghost'}

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Verify 4 Critical Fixes', () => {
   test.setTimeout(120000);
@@ -8,7 +8,7 @@ test.describe('Verify 4 Critical Fixes', () => {
 
     // Monitor console errors
     const consoleErrors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
@@ -30,20 +30,32 @@ test.describe('Verify 4 Critical Fixes', () => {
     await page.waitForTimeout(5000);
 
     // Check for content (either flagged images or "No flagged images")
-    const hasContent = await page.locator('text=/No flagged images|image/i').first().isVisible().catch(() => false);
+    const hasContent = await page
+      .locator('text=/No flagged images|image/i')
+      .first()
+      .isVisible()
+      .catch(() => false);
 
     console.log('✓ Content loaded:', hasContent ? 'Yes' : 'Loading...');
-    console.log('✓ Console errors:', consoleErrors.length === 0 ? 'None' : consoleErrors.join(', '));
+    console.log(
+      '✓ Console errors:',
+      consoleErrors.length === 0 ? 'None' : consoleErrors.join(', ')
+    );
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix1-admin.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix1-admin.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix1-admin.png');
   });
 
   test('Fix 2: Recipe Ingredients - No [object Object]', async ({ page }) => {
     console.log('\n=== Testing Fix 2: Recipe Ingredients ===');
 
-    await page.goto('http://localhost:3002/recipes/kale-white-bean-stew-2', { waitUntil: 'networkidle' });
+    await page.goto('http://localhost:3002/recipes/kale-white-bean-stew-2', {
+      waitUntil: 'networkidle',
+    });
 
     // Wait for ingredients section
     await page.waitForTimeout(3000);
@@ -66,7 +78,10 @@ test.describe('Verify 4 Critical Fixes', () => {
     console.log('✓ Sample ingredients:', sampleIngredients);
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix2-ingredients.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix2-ingredients.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix2-ingredients.png');
 
     expect(hasObjectObject).toBe(false);
@@ -77,7 +92,7 @@ test.describe('Verify 4 Critical Fixes', () => {
 
     // Monitor network for 404s
     const failedRequests: string[] = [];
-    page.on('response', response => {
+    page.on('response', (response) => {
       if (response.status() === 404 && response.url().includes('/images/recipes/')) {
         failedRequests.push(response.url());
       }
@@ -107,7 +122,7 @@ test.describe('Verify 4 Critical Fixes', () => {
         brokenImages++;
         console.log('✗ Broken image:', src);
       } else {
-        console.log('✓ Image loaded:', src?.substring(0, 60) + '...');
+        console.log('✓ Image loaded:', `${src?.substring(0, 60)}...`);
       }
     }
 
@@ -115,7 +130,10 @@ test.describe('Verify 4 Critical Fixes', () => {
     console.log('✓ 404 errors for /images/recipes/:', failedRequests.length);
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix3-chef-images.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix3-chef-images.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix3-chef-images.png');
 
     expect(failedRequests.length).toBe(0);
@@ -138,7 +156,9 @@ test.describe('Verify 4 Critical Fixes', () => {
     console.log('✓ Entered ingredients: chicken, rice, tomatoes');
 
     // Find and click submit button
-    const submitButton = page.locator('button[type="submit"], button:has-text("Search"), button:has-text("Find")').first();
+    const submitButton = page
+      .locator('button[type="submit"], button:has-text("Search"), button:has-text("Find")')
+      .first();
 
     const startTime = Date.now();
     await submitButton.click();
@@ -157,19 +177,30 @@ test.describe('Verify 4 Critical Fixes', () => {
       await page.waitForTimeout(3000);
 
       // Check for timeout error or results
-      const hasTimeout = await page.locator('text=/timeout|timed out/i').isVisible().catch(() => false);
-      const hasResults = await page.locator('text=/recipe|found/i').isVisible().catch(() => false);
+      const hasTimeout = await page
+        .locator('text=/timeout|timed out/i')
+        .isVisible()
+        .catch(() => false);
+      const hasResults = await page
+        .locator('text=/recipe|found/i')
+        .isVisible()
+        .catch(() => false);
 
       console.log('✓ Has timeout error:', hasTimeout ? 'YES' : 'NO');
       console.log('✓ Has results:', hasResults ? 'YES' : 'NO');
 
       // Screenshot for evidence
-      await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge.png', fullPage: true });
+      await page.screenshot({
+        path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge.png',
+        fullPage: true,
+      });
       console.log('✓ Screenshot saved: fix4-fridge.png');
-
     } catch (error) {
       console.log('✗ Search did not complete within 35 seconds');
-      await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge-timeout.png', fullPage: true });
+      await page.screenshot({
+        path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge-timeout.png',
+        fullPage: true,
+      });
       throw error;
     }
   });

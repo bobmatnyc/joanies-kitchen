@@ -180,8 +180,9 @@ export default function BatchImportPage() {
           } else {
             setProgress((prev) => [...prev, `❌ FAILED: ${result.error}`]);
           }
-        } catch (error: any) {
-          setProgress((prev) => [...prev, `❌ ERROR: ${error.message}`]);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          setProgress((prev) => [...prev, `❌ ERROR: ${message}`]);
         }
 
         // Rate limit: 2 seconds between requests

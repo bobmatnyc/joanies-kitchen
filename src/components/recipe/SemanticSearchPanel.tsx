@@ -77,7 +77,7 @@ export function SemanticSearchPanel({
         setError(result.error || 'Search failed');
         setResults([]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'An error occurred during search');
       setResults([]);
     } finally {
@@ -166,7 +166,7 @@ export function SemanticSearchPanel({
             <Label htmlFor="search-mode" className="text-sm font-medium">
               Search Mode:
             </Label>
-            <Select value={searchMode} onValueChange={(value: any) => setSearchMode(value)}>
+            <Select value={searchMode} onValueChange={(value: unknown) => setSearchMode(value)}>
               <SelectTrigger id="search-mode" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>

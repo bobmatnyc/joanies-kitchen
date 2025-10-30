@@ -13,11 +13,11 @@
  * 4. Unauthenticated
  */
 
-import type { NextRequest } from 'next/server';
 import { auth as clerkAuth } from '@clerk/nextjs/server';
+import type { NextRequest } from 'next/server';
 import { validateApiKey } from './key-service';
 import { hasScope, SCOPE_GROUPS } from './scopes';
-import type { AuthContext, AuthMetadata, AuthType, AuthFailureReason } from './types';
+import type { AuthContext, AuthFailureReason, AuthMetadata, AuthType } from './types';
 
 // ============================================================================
 // MAIN AUTHENTICATION FUNCTION
@@ -117,7 +117,7 @@ async function authenticateWithApiKey(
       apiKeyName: validation.apiKey?.name,
       metadata: {
         ...metadata,
-        environment: (validation.apiKey?.environment as 'production' | 'development' | undefined),
+        environment: validation.apiKey?.environment as 'production' | 'development' | undefined,
       },
     };
   } catch (error) {

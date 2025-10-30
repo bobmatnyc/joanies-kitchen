@@ -26,8 +26,8 @@ async function displayRecipe() {
   const instructions = JSON.parse(recipe.instructions as string);
   const tags = JSON.parse(recipe.tags as string);
 
-  console.log('\n' + '═'.repeat(70));
-  console.log('🍖  ' + recipe.name.toUpperCase());
+  console.log(`\n${'═'.repeat(70)}`);
+  console.log(`🍖  ${recipe.name.toUpperCase()}`);
   console.log('═'.repeat(70));
 
   console.log(`\n👨‍🍳 Chef: ${recipe.chef_name}`);
@@ -38,13 +38,15 @@ async function displayRecipe() {
   console.log(`   Difficulty: ${recipe.difficulty.toUpperCase()}`);
   console.log(`   Cuisine: ${recipe.cuisine}`);
   console.log(`   Prep Time: ${recipe.prep_time} minutes`);
-  console.log(`   Cook Time: ${recipe.cook_time} minutes (${Math.floor(recipe.cook_time / 60)} hours)`);
+  console.log(
+    `   Cook Time: ${recipe.cook_time} minutes (${Math.floor(recipe.cook_time / 60)} hours)`
+  );
   console.log(`   Total Time: ${recipe.prep_time + recipe.cook_time} minutes`);
   console.log(`   Servings: ${recipe.servings}`);
   console.log(`   License: ${recipe.license}`);
 
   console.log(`\n📖 STORY`);
-  console.log('   ' + recipe.description.replace(/\n/g, '\n   '));
+  console.log(`   ${recipe.description.replace(/\n/g, '\n   ')}`);
 
   console.log(`\n🥘 INGREDIENTS (${ingredients.length} items)`);
   ingredients.forEach((ing: string, idx: number) => {
@@ -55,7 +57,7 @@ async function displayRecipe() {
   instructions.forEach((step: string, idx: number) => {
     console.log(`\n   STEP ${idx + 1}:`);
     const wrapped = step.match(/.{1,65}(\s|$)/g) || [step];
-    wrapped.forEach(line => console.log(`   ${line.trim()}`));
+    wrapped.forEach((line) => console.log(`   ${line.trim()}`));
   });
 
   console.log(`\n🏷️  TAGS`);
@@ -65,7 +67,7 @@ async function displayRecipe() {
   console.log(`   Recipe: /recipes/${recipe.slug}`);
   console.log(`   Chef: /chef/${recipe.chef_slug}`);
 
-  console.log('\n' + '═'.repeat(70));
+  console.log(`\n${'═'.repeat(70)}`);
   console.log('✅ Recipe successfully stored in database!\n');
 }
 

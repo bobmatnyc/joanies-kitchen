@@ -15,17 +15,15 @@
  * - Error rate
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
 import { auth as clerkAuth } from '@clerk/nextjs/server';
-import { ZodError } from 'zod';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { type NextRequest, NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { getApiKeyById } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { apiKeyUsage } from '@/lib/db/api-keys-schema';
-import {
-  usageQuerySchema,
-  type UsageQueryParams,
-} from '@/lib/validations/api-key-validation';
+import { type UsageQueryParams, usageQuerySchema } from '@/lib/validations/api-key-validation';
+
 /**
  * Helper function to verify ownership and authenticate
  */
@@ -137,10 +135,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
  * - 400: Invalid query parameters
  * - 500: Internal server error
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     // Await params to comply with Next.js 15
     const params = await context.params;

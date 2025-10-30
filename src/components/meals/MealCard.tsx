@@ -73,103 +73,103 @@ export const MealCard = memo(function MealCard({ meal }: MealCardProps) {
       onClick={handleCardClick}
       className="h-full flex flex-col hover:shadow-xl md:hover:-translate-y-1 transition-all duration-200 border-jk-sage cursor-pointer"
     >
-        {/* Image - Fixed aspect ratio */}
-        {meal.image_url && (
-          <div className="aspect-[4/3] relative overflow-hidden rounded-t-jk bg-jk-sage/10">
-            <Image
-              src={meal.image_url}
-              alt={meal.name}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-200"
-              loading="lazy"
-              quality={75}
-              unoptimized={isExternalImage}
-            />
+      {/* Image - Fixed aspect ratio */}
+      {meal.image_url && (
+        <div className="aspect-[4/3] relative overflow-hidden rounded-t-jk bg-jk-sage/10">
+          <Image
+            src={meal.image_url}
+            alt={meal.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-200"
+            loading="lazy"
+            quality={75}
+            unoptimized={isExternalImage}
+          />
+        </div>
+      )}
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <CardTitle className="font-heading text-jk-olive text-xl line-clamp-2 flex-1">
+            {meal.name}
+          </CardTitle>
+          {meal.meal_type && (
+            <Badge
+              variant="outline"
+              className={`${mealTypeColor} font-ui text-xs whitespace-nowrap`}
+            >
+              {meal.meal_type}
+            </Badge>
+          )}
+        </div>
+        {meal.description && (
+          <CardDescription className="font-body text-jk-charcoal/70 line-clamp-2">
+            {meal.description}
+          </CardDescription>
+        )}
+        {meal.occasion && (
+          <div className="flex items-center gap-2 mt-2">
+            <Utensils className="w-3.5 h-3.5 text-jk-clay" />
+            <span className="text-sm text-jk-clay font-ui">{meal.occasion}</span>
           </div>
         )}
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <CardTitle className="font-heading text-jk-olive text-xl line-clamp-2 flex-1">
-              {meal.name}
-            </CardTitle>
-            {meal.meal_type && (
-              <Badge
-                variant="outline"
-                className={`${mealTypeColor} font-ui text-xs whitespace-nowrap`}
-              >
-                {meal.meal_type}
-              </Badge>
-            )}
-          </div>
-          {meal.description && (
-            <CardDescription className="font-body text-jk-charcoal/70 line-clamp-2">
-              {meal.description}
-            </CardDescription>
-          )}
-          {meal.occasion && (
-            <div className="flex items-center gap-2 mt-2">
-              <Utensils className="w-3.5 h-3.5 text-jk-clay" />
-              <span className="text-sm text-jk-clay font-ui">{meal.occasion}</span>
+      </CardHeader>
+
+      <CardContent className="flex-grow space-y-4">
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          {totalTime > 0 && (
+            <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
+              <Clock className="w-4 h-4 text-jk-clay" />
+              <span className="font-ui">{totalTime} min</span>
             </div>
           )}
-        </CardHeader>
-
-        <CardContent className="flex-grow space-y-4">
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            {totalTime > 0 && (
-              <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
-                <Clock className="w-4 h-4 text-jk-clay" />
-                <span className="font-ui">{totalTime} min</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
-              <Users className="w-4 h-4 text-jk-clay" />
-              <span className="font-ui">{meal.serves} servings</span>
-            </div>
+          <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
+            <Users className="w-4 h-4 text-jk-clay" />
+            <span className="font-ui">{meal.serves} servings</span>
           </div>
+        </div>
 
-          {/* Recipe count */}
-          {meal.recipeCount !== undefined && (
+        {/* Recipe count */}
+        {meal.recipeCount !== undefined && (
+          <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
+            <Utensils className="w-4 h-4 text-jk-sage" />
+            <span className="font-ui">
+              {meal.recipeCount} {meal.recipeCount === 1 ? 'recipe' : 'recipes'}
+            </span>
+          </div>
+        )}
+
+        {/* Cost estimation */}
+        {meal.estimated_total_cost && (
+          <div className="space-y-1">
             <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
-              <Utensils className="w-4 h-4 text-jk-sage" />
-              <span className="font-ui">
-                {meal.recipeCount} {meal.recipeCount === 1 ? 'recipe' : 'recipes'}
+              <DollarSign className="w-4 h-4 text-jk-clay" />
+              <span className="font-ui font-semibold">
+                ${parseFloat(meal.estimated_total_cost).toFixed(2)} total
               </span>
             </div>
-          )}
-
-          {/* Cost estimation */}
-          {meal.estimated_total_cost && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
-                <DollarSign className="w-4 h-4 text-jk-clay" />
-                <span className="font-ui font-semibold">
-                  ${parseFloat(meal.estimated_total_cost).toFixed(2)} total
-                </span>
+            {meal.estimated_cost_per_serving && (
+              <div className="text-xs text-jk-charcoal/60 ml-6 font-ui">
+                ${parseFloat(meal.estimated_cost_per_serving).toFixed(2)} per serving
               </div>
-              {meal.estimated_cost_per_serving && (
-                <div className="text-xs text-jk-charcoal/60 ml-6 font-ui">
-                  ${parseFloat(meal.estimated_cost_per_serving).toFixed(2)} per serving
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex justify-end pt-2">
-            <Button
-              variant="outline"
-              onClick={handleGenerateShoppingList}
-              disabled={isGenerating}
-              className="min-h-[44px] touch-manipulation border-jk-tomato text-jk-tomato hover:bg-jk-tomato/10 font-ui"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {isGenerating ? 'Generating...' : 'Shop'}
-            </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        )}
+
+        {/* Actions */}
+        <div className="flex justify-end pt-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateShoppingList}
+            disabled={isGenerating}
+            className="min-h-[44px] touch-manipulation border-jk-tomato text-jk-tomato hover:bg-jk-tomato/10 font-ui"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            {isGenerating ? 'Generating...' : 'Shop'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 });

@@ -7,15 +7,15 @@
  * Authorization: Scope-based permissions
  */
 
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
-import { eq, and, desc, asc } from 'drizzle-orm';
 import {
-  listShoppingListsQuerySchema,
   type ListShoppingListsQuery,
+  listShoppingListsQuerySchema,
 } from '@/lib/validations/meal-api';
 
 /**

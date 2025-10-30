@@ -5,7 +5,7 @@
  * Test 2: Recipe Ingredient Display - [object Object] Fix
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:3002';
 
@@ -16,7 +16,9 @@ const BASE_URL = 'http://localhost:3002';
  * Fix: Added handling for structured ingredient format {name, quantity, unit, notes, preparation}
  */
 test.describe('Recipe Ingredient Display Fix', () => {
-  test('should display ingredients as readable strings on kale-white-bean-stew-2', async ({ page }) => {
+  test('should display ingredients as readable strings on kale-white-bean-stew-2', async ({
+    page,
+  }) => {
     // Track console messages
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
@@ -31,7 +33,7 @@ test.describe('Recipe Ingredient Display Fix', () => {
     // Navigate to the specific recipe
     await page.goto(`${BASE_URL}/recipes/kale-white-bean-stew-2`, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 30000,
     });
 
     // Wait a bit for hydration
@@ -59,7 +61,9 @@ test.describe('Recipe Ingredient Display Fix', () => {
 
     // Look for ingredients heading
     const ingredientsHeading = page.locator('text=Ingredients').first();
-    const hasIngredientsHeading = await ingredientsHeading.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasIngredientsHeading = await ingredientsHeading
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     console.log(`   Ingredients heading found: ${hasIngredientsHeading ? '✅' : '❌'}`);
 
@@ -90,7 +94,7 @@ test.describe('Recipe Ingredient Display Fix', () => {
     console.log(`\n🖥️  Console errors: ${consoleErrors.length}`);
     if (consoleErrors.length > 0) {
       console.log('   Errors:');
-      consoleErrors.forEach(err => console.log(`   - ${err}`));
+      consoleErrors.forEach((err) => console.log(`   - ${err}`));
     }
 
     console.log('\n✅ TEST PASSED: No [object Object] found on page');
@@ -104,7 +108,7 @@ test.describe('Recipe Ingredient Display Fix', () => {
 
     await page.goto(`${BASE_URL}/recipes`, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 30000,
     });
 
     await page.waitForTimeout(2000);
@@ -128,7 +132,7 @@ test.describe('Recipe Ingredient Display Fix', () => {
 
       await page.goto(`${BASE_URL}${href}`, {
         waitUntil: 'domcontentloaded',
-        timeout: 30000
+        timeout: 30000,
       });
 
       await page.waitForTimeout(1500);
@@ -144,7 +148,7 @@ test.describe('Recipe Ingredient Display Fix', () => {
     }
 
     console.log('\n📊 Regression Test Summary:');
-    testedRecipes.forEach(recipe => {
+    testedRecipes.forEach((recipe) => {
       console.log(`   ${recipe.hasObjectObject ? '❌' : '✅'} ${recipe.slug}`);
     });
 
@@ -163,7 +167,7 @@ test.describe('Performance Check', () => {
 
     await page.goto(`${BASE_URL}/recipes/kale-white-bean-stew-2`, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 30000,
     });
 
     const loadTime = Date.now() - startTime;

@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db/index';
 import { recipes } from '../src/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 async function main() {
   const recipe = await db

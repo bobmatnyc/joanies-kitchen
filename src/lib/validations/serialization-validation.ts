@@ -7,7 +7,7 @@
  * @module lib/validations/serialization-validation
  */
 
-import type { ValidationResult, ValidationError } from './validation-types';
+import type { ValidationError, ValidationResult } from './validation-types';
 import { SerializationErrorCode } from './validation-types';
 
 // ============================================================================

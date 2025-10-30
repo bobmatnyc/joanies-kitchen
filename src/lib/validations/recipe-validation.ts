@@ -8,17 +8,12 @@
  */
 
 import type {
-  ValidationResult,
-  ValidationError,
-  ValidationWarning,
-  IngredientObject,
   SanitizationResult,
+  ValidationError,
+  ValidationResult,
+  ValidationWarning,
 } from './validation-types';
-import {
-  StructureErrorCode,
-  IngredientErrorCode,
-  InstructionErrorCode,
-} from './validation-types';
+import { IngredientErrorCode, InstructionErrorCode, StructureErrorCode } from './validation-types';
 
 // ============================================================================
 // CORE VALIDATION
@@ -82,12 +77,8 @@ export function validateParsedRecipe(recipe: any): ValidationResult {
     });
 
     // Check for duplicates (warning only)
-    const names = recipe.ingredients
-      .map((ing: any) => ing?.name?.toLowerCase())
-      .filter(Boolean);
-    const duplicates = names.filter(
-      (name: string, index: number) => names.indexOf(name) !== index
-    );
+    const names = recipe.ingredients.map((ing: any) => ing?.name?.toLowerCase()).filter(Boolean);
+    const duplicates = names.filter((name: string, index: number) => names.indexOf(name) !== index);
     if (duplicates.length > 0) {
       warnings.push({
         field: 'ingredients',

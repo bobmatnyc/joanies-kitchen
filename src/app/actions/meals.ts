@@ -33,6 +33,7 @@ import {
   parseIngredientString,
 } from '@/lib/utils/ingredient-consolidation';
 import { ensureUniqueSlug, generateMealSlug } from '@/lib/utils/meal-slug';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Create a new meal
@@ -71,7 +72,7 @@ export async function createMeal(data: unknown) {
     return { success: true, data: newMeal };
   } catch (error) {
     console.error('Failed to create meal:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -114,7 +115,7 @@ export async function updateMeal(id: unknown, updates: unknown) {
     return { success: true, data: updatedMeal };
   } catch (error) {
     console.error('Failed to update meal:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -141,7 +142,7 @@ export async function deleteMeal(id: unknown) {
     return { success: true };
   } catch (error) {
     console.error('Failed to delete meal:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -178,7 +179,7 @@ export async function getUserMeals(params?: unknown) {
     return { success: true, data: userMeals };
   } catch (error) {
     console.error('Failed to fetch meals:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meals';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -211,7 +212,7 @@ export async function getPublicMeals(params?: unknown) {
     return { success: true, data: publicMeals };
   } catch (error) {
     console.error('Failed to fetch public meals:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch public meals';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -236,10 +237,7 @@ export async function getMealById(id: unknown) {
       ? and(eq(meals.id, validatedId), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
       : and(eq(meals.id, validatedId), eq(meals.is_public, true));
 
-    const [meal] = await db
-      .select()
-      .from(meals)
-      .where(whereConditions);
+    const [meal] = await db.select().from(meals).where(whereConditions);
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
@@ -264,7 +262,7 @@ export async function getMealById(id: unknown) {
     return { success: true, data: mealWithRecipes };
   } catch (error) {
     console.error('Failed to fetch meal:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -286,10 +284,7 @@ export async function getMealBySlug(slug: string) {
       ? and(eq(meals.slug, slug), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
       : and(eq(meals.slug, slug), eq(meals.is_public, true));
 
-    const [meal] = await db
-      .select()
-      .from(meals)
-      .where(whereConditions);
+    const [meal] = await db.select().from(meals).where(whereConditions);
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
@@ -314,7 +309,7 @@ export async function getMealBySlug(slug: string) {
     return { success: true, data: mealWithRecipes };
   } catch (error) {
     console.error('Failed to fetch meal by slug:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -355,7 +350,7 @@ export async function addRecipeToMeal(data: unknown) {
     return { success: true, data: newMealRecipe };
   } catch (error) {
     console.error('Failed to add recipe to meal:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to add recipe to meal';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -394,7 +389,7 @@ export async function removeRecipeFromMeal(id: unknown) {
   } catch (error) {
     console.error('Failed to remove recipe from meal:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to remove recipe from meal';
+      toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -434,7 +429,7 @@ export async function updateMealRecipe(id: unknown, updates: unknown) {
     return { success: true, data: updatedMealRecipe };
   } catch (error) {
     console.error('Failed to update meal recipe:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update meal recipe';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -504,7 +499,7 @@ export async function generateShoppingList(data: unknown) {
     const consolidatedItems = consolidateShoppingListItems(rawItems);
 
     // Filter out non-purchaseable ingredients
-    const ingredientNames = consolidatedItems.map(item => item.name.toLowerCase());
+    const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
 
     // Query which items are non-purchaseable
     const nonPurchaseableIngredients = await db
@@ -512,16 +507,18 @@ export async function generateShoppingList(data: unknown) {
       .from(ingredients)
       .where(
         and(
-          sql`LOWER(${ingredients.name}) IN (${sql.join(ingredientNames.map(n => sql`${n}`), sql`, `)})`,
+          sql`LOWER(${ingredients.name}) IN (${sql.join(
+            ingredientNames.map((n) => sql`${n}`),
+            sql`, `
+          )})`,
           eq(ingredients.is_purchaseable, false)
         )
       );
 
     // Filter out non-purchaseable items
-    const purchaseableItems = consolidatedItems.filter(item =>
-      !nonPurchaseableIngredients.some(ni =>
-        ni.name.toLowerCase() === item.name.toLowerCase()
-      )
+    const purchaseableItems = consolidatedItems.filter(
+      (item) =>
+        !nonPurchaseableIngredients.some((ni) => ni.name.toLowerCase() === item.name.toLowerCase())
     );
 
     // Create shopping list
@@ -542,7 +539,7 @@ export async function generateShoppingList(data: unknown) {
   } catch (error) {
     console.error('Failed to generate shopping list:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to generate shopping list';
+      toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -575,7 +572,7 @@ export async function getShoppingListById(id: unknown) {
     return { success: true, data: shoppingList };
   } catch (error) {
     console.error('Failed to fetch shopping list:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch shopping list';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -617,7 +614,7 @@ export async function updateShoppingList(id: unknown, updates: unknown) {
     return { success: true, data: updatedList };
   } catch (error) {
     console.error('Failed to update shopping list:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update shopping list';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -649,7 +646,7 @@ export async function getMealTemplates(params?: unknown) {
     return { success: true, data: templates };
   } catch (error) {
     console.error('Failed to fetch meal templates:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch meal templates';
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -704,7 +701,7 @@ export async function createMealFromTemplate(data: unknown) {
   } catch (error) {
     console.error('Failed to create meal from template:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to create meal from template';
+      toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -863,7 +860,7 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
   } catch (error) {
     console.error('Failed to generate recommendations:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to generate recommendations';
+      toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }

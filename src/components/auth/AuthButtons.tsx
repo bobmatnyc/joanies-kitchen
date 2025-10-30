@@ -1,7 +1,7 @@
 'use client';
 
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
-import { FolderHeart, Heart, LogIn, Shield, User } from 'lucide-react';
+import { ChefHat, FolderHeart, Heart, LogIn, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,11 @@ function ClerkAuthButtons() {
               label="My Profile"
               labelIcon={<User className="h-4 w-4" />}
               onClick={() => router.push('/profile/edit')}
+            />
+            <UserButton.Action
+              label="Share Recipe"
+              labelIcon={<ChefHat className="h-4 w-4" />}
+              onClick={() => router.push('/recipes/upload')}
             />
             <UserButton.Action
               label="My Recipes"

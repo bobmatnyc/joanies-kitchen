@@ -31,17 +31,19 @@ export const createRecipeSchema = z.object({
   nutrition_info: z.record(z.any()).optional(),
   video_url: z.string().url().optional(),
   source: z.string().optional(),
-  license: z.enum([
-    'PUBLIC_DOMAIN',
-    'CC_BY',
-    'CC_BY_SA',
-    'CC_BY_NC',
-    'CC_BY_NC_SA',
-    'EDUCATIONAL_USE',
-    'PERSONAL_USE',
-    'ALL_RIGHTS_RESERVED',
-    'FAIR_USE',
-  ]).default('ALL_RIGHTS_RESERVED'),
+  license: z
+    .enum([
+      'PUBLIC_DOMAIN',
+      'CC_BY',
+      'CC_BY_SA',
+      'CC_BY_NC',
+      'CC_BY_NC_SA',
+      'EDUCATIONAL_USE',
+      'PERSONAL_USE',
+      'ALL_RIGHTS_RESERVED',
+      'FAIR_USE',
+    ])
+    .default('ALL_RIGHTS_RESERVED'),
 });
 
 /**
@@ -66,17 +68,19 @@ export const updateRecipeSchema = z.object({
   nutrition_info: z.record(z.any()).optional(),
   video_url: z.string().url().optional(),
   source: z.string().optional(),
-  license: z.enum([
-    'PUBLIC_DOMAIN',
-    'CC_BY',
-    'CC_BY_SA',
-    'CC_BY_NC',
-    'CC_BY_NC_SA',
-    'EDUCATIONAL_USE',
-    'PERSONAL_USE',
-    'ALL_RIGHTS_RESERVED',
-    'FAIR_USE',
-  ]).optional(),
+  license: z
+    .enum([
+      'PUBLIC_DOMAIN',
+      'CC_BY',
+      'CC_BY_SA',
+      'CC_BY_NC',
+      'CC_BY_NC_SA',
+      'EDUCATIONAL_USE',
+      'PERSONAL_USE',
+      'ALL_RIGHTS_RESERVED',
+      'FAIR_USE',
+    ])
+    .optional(),
 });
 
 /**

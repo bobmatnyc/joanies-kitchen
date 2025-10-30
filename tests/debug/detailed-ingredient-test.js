@@ -27,8 +27,8 @@ async function extractIngredientsFromHtml(html) {
   while ((match = liPattern.exec(ingredientsHtml)) !== null) {
     // Remove HTML tags from content
     const text = match[1]
-      .replace(/<[^>]+>/g, '')  // Remove all HTML tags
-      .replace(/&amp;/g, '&')   // Decode entities
+      .replace(/<[^>]+>/g, '') // Remove all HTML tags
+      .replace(/&amp;/g, '&') // Decode entities
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
@@ -101,21 +101,27 @@ async function testRecipeIngredientDetail() {
     console.log('\n📊 ANALYSIS:');
 
     // Check for quantities
-    const withQuantities = ingredients.filter(i =>
-      /\d+/.test(i) || /½|¼|¾|⅓|⅔/.test(i)
-    ).length;
+    const withQuantities = ingredients.filter((i) => /\d+/.test(i) || /½|¼|¾|⅓|⅔/.test(i)).length;
 
     // Check for units
-    const withUnits = ingredients.filter(i =>
-      /\b(cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|pound|pounds|lb|lbs|ounce|ounces|oz|gram|grams|g|kilogram|kilograms|kg|milliliter|milliliters|ml|liter|liters|l)\b/i.test(i)
+    const withUnits = ingredients.filter((i) =>
+      /\b(cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|pound|pounds|lb|lbs|ounce|ounces|oz|gram|grams|g|kilogram|kilograms|kg|milliliter|milliliters|ml|liter|liters|l)\b/i.test(
+        i
+      )
     ).length;
 
     // Check for preparation notes (comma-separated details)
-    const withPreparation = ingredients.filter(i => i.includes(',')).length;
+    const withPreparation = ingredients.filter((i) => i.includes(',')).length;
 
-    console.log(`   Ingredients with quantities: ${withQuantities}/${ingredients.length} (${Math.round(withQuantities/ingredients.length*100)}%)`);
-    console.log(`   Ingredients with units: ${withUnits}/${ingredients.length} (${Math.round(withUnits/ingredients.length*100)}%)`);
-    console.log(`   Ingredients with preparation: ${withPreparation}/${ingredients.length} (${Math.round(withPreparation/ingredients.length*100)}%)`);
+    console.log(
+      `   Ingredients with quantities: ${withQuantities}/${ingredients.length} (${Math.round((withQuantities / ingredients.length) * 100)}%)`
+    );
+    console.log(
+      `   Ingredients with units: ${withUnits}/${ingredients.length} (${Math.round((withUnits / ingredients.length) * 100)}%)`
+    );
+    console.log(
+      `   Ingredients with preparation: ${withPreparation}/${ingredients.length} (${Math.round((withPreparation / ingredients.length) * 100)}%)`
+    );
 
     // Expected format examples
     console.log('\n✓ EXPECTED FORMAT EXAMPLES:');
@@ -124,7 +130,7 @@ async function testRecipeIngredientDetail() {
     console.log('   "1 cup carrots, chopped, peeled"');
 
     console.log('\n✓ ACTUAL FORMAT SAMPLES:');
-    ingredients.slice(0, 3).forEach((ing, i) => {
+    ingredients.slice(0, 3).forEach((ing, _i) => {
       console.log(`   "${ing}"`);
     });
 
@@ -152,9 +158,8 @@ async function testRecipeIngredientDetail() {
     return {
       status: 'PASS',
       details: `${ingredients.length} ingredients properly formatted`,
-      samples: ingredients.slice(0, 5)
+      samples: ingredients.slice(0, 5),
     };
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     return { status: 'ERROR', details: error.message };
@@ -165,11 +170,7 @@ async function testMultipleRecipesDetailed() {
   console.log('\n\n🔬 DETAILED REGRESSION TEST');
   console.log('='.repeat(70));
 
-  const testRecipes = [
-    'kale-white-bean-stew-2',
-    'zucchini-carbonara',
-    'garlic-roast-chicken'
-  ];
+  const testRecipes = ['kale-white-bean-stew-2', 'zucchini-carbonara', 'garlic-roast-chicken'];
 
   const results = [];
 
@@ -195,9 +196,8 @@ async function testMultipleRecipesDetailed() {
       results.push({
         slug,
         status: hasObjectObject ? 'FAIL' : 'PASS',
-        ingredientCount: ingredients.length
+        ingredientCount: ingredients.length,
       });
-
     } catch (error) {
       console.log(`   ❌ Error: ${error.message}`);
       results.push({ slug, status: 'ERROR', error: error.message });
@@ -207,12 +207,14 @@ async function testMultipleRecipesDetailed() {
   console.log('\n📊 REGRESSION SUMMARY:');
   console.log('='.repeat(70));
 
-  results.forEach(result => {
+  results.forEach((result) => {
     const icon = result.status === 'PASS' ? '✅' : '❌';
-    console.log(`${icon} ${result.slug}: ${result.status} (${result.ingredientCount || 0} ingredients)`);
+    console.log(
+      `${icon} ${result.slug}: ${result.status} (${result.ingredientCount || 0} ingredients)`
+    );
   });
 
-  const passed = results.filter(r => r.status === 'PASS').length;
+  const passed = results.filter((r) => r.status === 'PASS').length;
   console.log(`\n   Total: ${passed}/${results.length} passed`);
 
   return results;
@@ -246,10 +248,12 @@ async function runTests() {
     });
   }
 
-  const regressionPassed = regressionResults.filter(r => r.status === 'PASS').length;
-  console.log(`\n✅ REGRESSION TEST: ${regressionPassed}/${regressionResults.length} recipes passed`);
+  const regressionPassed = regressionResults.filter((r) => r.status === 'PASS').length;
+  console.log(
+    `\n✅ REGRESSION TEST: ${regressionPassed}/${regressionResults.length} recipes passed`
+  );
 
-  console.log('\n' + '='.repeat(70));
+  console.log(`\n${'='.repeat(70)}`);
   console.log('CONCLUSION:');
 
   if (detailedResult.status === 'PASS' && regressionPassed === regressionResults.length) {
@@ -264,7 +268,7 @@ async function runTests() {
   console.log('\n');
 }
 
-runTests().catch(error => {
+runTests().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

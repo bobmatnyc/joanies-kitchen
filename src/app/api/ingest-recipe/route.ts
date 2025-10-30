@@ -25,19 +25,19 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { requireScopes } from '@/lib/api-auth/require-auth';
-import { SCOPES } from '@/lib/api-auth/scopes';
-import { scrapeRecipePage } from '@/lib/firecrawl';
+import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import {
-  parseRecipeForIngestion,
   type IngestedRecipe,
   type ParsedIngredient,
+  parseRecipeForIngestion,
 } from '@/lib/ai/recipe-ingestion-parser';
-import { generateUniqueSlug } from '@/lib/utils/slug';
+import { requireScopes } from '@/lib/api-auth/require-auth';
+import { SCOPES } from '@/lib/api-auth/scopes';
 import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
+import { recipes } from '@/lib/db/schema';
+import { scrapeRecipePage } from '@/lib/firecrawl';
+import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // ============================================================================
 // TYPES
@@ -88,7 +88,7 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
     }
 
     return { valid: true };
-  } catch (error) {
+  } catch (_error) {
     return { valid: false, error: 'Invalid URL format' };
   }
 }
@@ -133,10 +133,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 
     // Step 3: Parse content with LLM
     console.log(`[Ingest API] Parsing recipe content`);
-    const parsedRecipe: IngestedRecipe = await parseRecipeForIngestion(
-      scrapeResult.markdown,
-      url
-    );
+    const parsedRecipe: IngestedRecipe = await parseRecipeForIngestion(scrapeResult.markdown, url);
 
     console.log(`[Ingest API] Successfully parsed recipe: ${parsedRecipe.name}`);
 
@@ -254,7 +251,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         qa_fixes_applied: null,
       });
       console.log(`[Ingest API] Embedding generated successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`[Ingest API] Failed to generate embedding:`, error.message);
       embeddingResult = null;
     }
@@ -306,7 +303,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           'sentence-transformers/all-MiniLM-L6-v2'
         );
         console.log(`[Ingest API] Embedding saved successfully`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[Ingest API] Failed to save embedding:`, error.message);
       }
     }
@@ -323,7 +320,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         url: `/recipes/${savedRecipe.slug}`,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[Ingest API] Error ingesting recipe from ${url}:`, error);
     return {
       success: false,
@@ -342,136 +339,133 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
  *
  * Requires: write:recipes scope (API key or admin auth)
  */
-export const POST = requireScopes(
-  [SCOPES.WRITE_RECIPES],
-  async (request: NextRequest, auth) => {
-    try {
-      // Parse request body
-      const body: IngestRequest = await request.json();
+export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRequest, auth, _context) => {
+  try {
+    // Parse request body
+    const body: IngestRequest = await request.json();
 
-      // Validate request
-      if (!body) {
+    // Validate request
+    if (!body) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Request body is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle single URL
+    if ('url' in body) {
+      console.log(`[Ingest API] Single URL request: ${body.url}`);
+
+      if (!body.url || typeof body.url !== 'string') {
         return NextResponse.json(
           {
             success: false,
-            error: 'Request body is required',
+            error: 'URL is required and must be a string',
           },
           { status: 400 }
         );
       }
 
-      // Handle single URL
-      if ('url' in body) {
-        console.log(`[Ingest API] Single URL request: ${body.url}`);
+      const result = await ingestSingleRecipe(body.url, auth.userId!);
 
-        if (!body.url || typeof body.url !== 'string') {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'URL is required and must be a string',
-            },
-            { status: 400 }
-          );
-        }
-
-        const result = await ingestSingleRecipe(body.url, auth.userId!);
-
-        if (result.success) {
-          return NextResponse.json(
-            {
-              success: true,
-              recipe: result.recipe,
-            },
-            { status: 201 }
-          );
-        } else {
-          return NextResponse.json(
-            {
-              success: false,
-              error: result.error,
-            },
-            { status: 400 }
-          );
-        }
-      }
-
-      // Handle batch URLs
-      if ('urls' in body) {
-        console.log(`[Ingest API] Batch request: ${body.urls.length} URLs`);
-
-        if (!Array.isArray(body.urls) || body.urls.length === 0) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'URLs must be a non-empty array',
-            },
-            { status: 400 }
-          );
-        }
-
-        // Process all URLs
-        const results: RecipeIngestionResult[] = [];
-        for (const url of body.urls) {
-          if (typeof url !== 'string') {
-            results.push({
-              success: false,
-              url: String(url),
-              error: 'URL must be a string',
-            });
-            continue;
-          }
-
-          const result = await ingestSingleRecipe(url, auth.userId!);
-          results.push(result);
-
-          // Rate limiting: 1 second between requests
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-
-        // Calculate statistics
-        const successCount = results.filter((r) => r.success).length;
-        const failedCount = results.filter((r) => !r.success).length;
-
+      if (result.success) {
         return NextResponse.json(
           {
             success: true,
-            stats: {
-              total: results.length,
-              success: successCount,
-              failed: failedCount,
-              successRate: `${((successCount / results.length) * 100).toFixed(1)}%`,
-            },
-            results: results.map((r) => ({
-              url: r.url,
-              success: r.success,
-              recipe: r.recipe,
-              error: r.error,
-            })),
+            recipe: result.recipe,
           },
-          { status: 200 }
+          { status: 201 }
+        );
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: result.error,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Handle batch URLs
+    if ('urls' in body) {
+      console.log(`[Ingest API] Batch request: ${body.urls.length} URLs`);
+
+      if (!Array.isArray(body.urls) || body.urls.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'URLs must be a non-empty array',
+          },
+          { status: 400 }
         );
       }
 
-      // Invalid request format
+      // Process all URLs
+      const results: RecipeIngestionResult[] = [];
+      for (const url of body.urls) {
+        if (typeof url !== 'string') {
+          results.push({
+            success: false,
+            url: String(url),
+            error: 'URL must be a string',
+          });
+          continue;
+        }
+
+        const result = await ingestSingleRecipe(url, auth.userId!);
+        results.push(result);
+
+        // Rate limiting: 1 second between requests
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      // Calculate statistics
+      const successCount = results.filter((r) => r.success).length;
+      const failedCount = results.filter((r) => !r.success).length;
+
       return NextResponse.json(
         {
-          success: false,
-          error: 'Request must include either "url" or "urls" field',
+          success: true,
+          stats: {
+            total: results.length,
+            success: successCount,
+            failed: failedCount,
+            successRate: `${((successCount / results.length) * 100).toFixed(1)}%`,
+          },
+          results: results.map((r) => ({
+            url: r.url,
+            success: r.success,
+            recipe: r.recipe,
+            error: r.error,
+          })),
         },
-        { status: 400 }
-      );
-    } catch (error: any) {
-      console.error('[Ingest API] Fatal error:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message || 'Internal server error',
-        },
-        { status: 500 }
+        { status: 200 }
       );
     }
+
+    // Invalid request format
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Request must include either "url" or "urls" field',
+      },
+      { status: 400 }
+    );
+  } catch (error: unknown) {
+    console.error('[Ingest API] Fatal error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || 'Internal server error',
+      },
+      { status: 500 }
+    );
   }
-);
+});
 
 /**
  * GET /api/ingest-recipe

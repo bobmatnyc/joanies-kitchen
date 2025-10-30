@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
   test.setTimeout(120000);
@@ -8,14 +8,17 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
 
     // Monitor console errors
     const consoleErrors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
     });
 
     // Navigate to admin page
-    await page.goto('http://localhost:3002/admin', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('http://localhost:3002/admin', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
 
     // Wait for page to load
     await page.waitForTimeout(5000);
@@ -31,20 +34,35 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
 
     // Wait another 5 seconds and check if spinners persist
     await page.waitForTimeout(5000);
-    const stillSpinning = await spinners.first().isVisible().catch(() => false);
-    console.log('✓ Still showing spinner after 10s:', stillSpinning ? 'YES (might be issue)' : 'NO (good)');
+    const stillSpinning = await spinners
+      .first()
+      .isVisible()
+      .catch(() => false);
+    console.log(
+      '✓ Still showing spinner after 10s:',
+      stillSpinning ? 'YES (might be issue)' : 'NO (good)'
+    );
 
-    console.log('✓ Console errors:', consoleErrors.length === 0 ? 'None' : consoleErrors.slice(0, 3).join(', '));
+    console.log(
+      '✓ Console errors:',
+      consoleErrors.length === 0 ? 'None' : consoleErrors.slice(0, 3).join(', ')
+    );
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix1-admin.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix1-admin.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix1-admin.png');
   });
 
   test('Fix 2: Recipe Ingredients - No [object Object]', async ({ page }) => {
     console.log('\n=== Testing Fix 2: Recipe Ingredients ===');
 
-    await page.goto('http://localhost:3002/recipes/kale-white-bean-stew-2', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('http://localhost:3002/recipes/kale-white-bean-stew-2', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
 
     // Wait for content to load
     await page.waitForTimeout(5000);
@@ -58,19 +76,29 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
     console.log('✓ Contains [object Object]:', hasObjectObject ? 'YES (FAIL)' : 'NO (PASS)');
 
     // Try to find ingredients section
-    const ingredientsHeading = page.locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")').first();
+    const ingredientsHeading = page
+      .locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")')
+      .first();
     const hasIngredientsSection = await ingredientsHeading.isVisible().catch(() => false);
     console.log('✓ Ingredients section visible:', hasIngredientsSection ? 'Yes' : 'No');
 
     if (hasIngredientsSection) {
       // Get text near ingredients section
-      const ingredientsContainer = page.locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")').first().locator('xpath=following-sibling::*[1]');
-      const ingredientsText = await ingredientsContainer.textContent().catch(() => 'Could not get text');
+      const ingredientsContainer = page
+        .locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")')
+        .first()
+        .locator('xpath=following-sibling::*[1]');
+      const ingredientsText = await ingredientsContainer
+        .textContent()
+        .catch(() => 'Could not get text');
       console.log('✓ Ingredients preview:', ingredientsText?.substring(0, 200));
     }
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix2-ingredients.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix2-ingredients.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix2-ingredients.png');
 
     expect(hasObjectObject).toBe(false);
@@ -83,7 +111,7 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
     const failedRequests: string[] = [];
     const imageRequests: string[] = [];
 
-    page.on('response', response => {
+    page.on('response', (response) => {
       const url = response.url();
       if (url.includes('/images/') || url.includes('blob.vercel')) {
         imageRequests.push(`${response.status()} - ${url}`);
@@ -93,7 +121,10 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
       }
     });
 
-    await page.goto('http://localhost:3002/chef/vivian-li', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('http://localhost:3002/chef/vivian-li', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
 
     // Wait for images to load
     await page.waitForTimeout(8000);
@@ -107,8 +138,14 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
     console.log('✓ Total images found:', imageCount);
 
     // Check recipe card images specifically
-    const recipeImages = page.locator('[data-testid*="recipe-card"] img, .recipe-card img, article img, [class*="recipe"] img').first();
-    const recipeImageCount = await page.locator('[data-testid*="recipe-card"] img, .recipe-card img, article img').count();
+    const _recipeImages = page
+      .locator(
+        '[data-testid*="recipe-card"] img, .recipe-card img, article img, [class*="recipe"] img'
+      )
+      .first();
+    const recipeImageCount = await page
+      .locator('[data-testid*="recipe-card"] img, .recipe-card img, article img')
+      .count();
 
     console.log('✓ Recipe-related images:', recipeImageCount);
 
@@ -131,9 +168,12 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
           console.log(`✗ Broken image [${i}]:`, alt || src?.substring(0, 60));
         } else {
           loadedCount++;
-          console.log(`✓ Loaded image [${i}]: ${naturalWidth}x${naturalHeight}`, src?.substring(0, 60));
+          console.log(
+            `✓ Loaded image [${i}]: ${naturalWidth}x${naturalHeight}`,
+            src?.substring(0, 60)
+          );
         }
-      } catch (e) {
+      } catch (_e) {
         console.log(`? Cannot check image [${i}]:`, alt || src?.substring(0, 60));
       }
     }
@@ -153,7 +193,10 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
     console.log('✓ Sample image requests:', imageRequests.slice(0, 5));
 
     // Screenshot for evidence
-    await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix3-chef-images.png', fullPage: true });
+    await page.screenshot({
+      path: '/Users/masa/Projects/joanies-kitchen/tests/fix3-chef-images.png',
+      fullPage: true,
+    });
     console.log('✓ Screenshot saved: fix3-chef-images.png');
 
     expect(failedRequests.length).toBe(0);
@@ -162,7 +205,10 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
   test('Fix 4: Fridge Search Timeout', async ({ page }) => {
     console.log('\n=== Testing Fix 4: Fridge Search Timeout ===');
 
-    await page.goto('http://localhost:3002/fridge', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('http://localhost:3002/fridge', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
 
     // Wait for page to load
     await page.waitForTimeout(3000);
@@ -185,7 +231,11 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
       console.log('✓ Entered ingredients: chicken, rice, tomatoes');
 
       // Find and click submit button
-      const submitButton = page.locator('button[type="submit"], button:has-text("Search"), button:has-text("Find"), button:has-text("Submit")').first();
+      const submitButton = page
+        .locator(
+          'button[type="submit"], button:has-text("Search"), button:has-text("Find"), button:has-text("Submit")'
+        )
+        .first();
       const buttonExists = await submitButton.isVisible().catch(() => false);
       console.log('✓ Submit button found:', buttonExists ? 'Yes' : 'No');
 
@@ -211,21 +261,30 @@ test.describe('Verify 4 Critical Fixes (No Auth Required)', () => {
 
           // Check for timeout error or results
           const pageContent = await page.content();
-          const hasTimeout = pageContent.toLowerCase().includes('timeout') || pageContent.toLowerCase().includes('timed out');
-          const hasResults = pageContent.toLowerCase().includes('recipe') || pageContent.toLowerCase().includes('found');
+          const hasTimeout =
+            pageContent.toLowerCase().includes('timeout') ||
+            pageContent.toLowerCase().includes('timed out');
+          const hasResults =
+            pageContent.toLowerCase().includes('recipe') ||
+            pageContent.toLowerCase().includes('found');
 
           console.log('✓ Has timeout error:', hasTimeout ? 'YES' : 'NO');
           console.log('✓ Has results:', hasResults ? 'YES' : 'NO');
           console.log('✓ Current URL:', page.url());
 
           // Screenshot for evidence
-          await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge.png', fullPage: true });
+          await page.screenshot({
+            path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge.png',
+            fullPage: true,
+          });
           console.log('✓ Screenshot saved: fix4-fridge.png');
-
         } catch (error) {
           console.log('✗ Search did not complete within 35 seconds');
           console.log('✗ Current URL:', page.url());
-          await page.screenshot({ path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge-timeout.png', fullPage: true });
+          await page.screenshot({
+            path: '/Users/masa/Projects/joanies-kitchen/tests/fix4-fridge-timeout.png',
+            fullPage: true,
+          });
           throw new Error(`Fridge search timeout: ${error}`);
         }
       } else {

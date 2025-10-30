@@ -3,7 +3,7 @@
 import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getUserRating, getRecipeRatings } from '@/app/actions/rate-recipe';
+import { getRecipeRatings, getUserRating } from '@/app/actions/rate-recipe';
 import { RatingDisplay } from '@/components/recipe/RatingDisplay';
 import { RatingInput } from '@/components/recipe/RatingInput';
 import { ReviewsList } from '@/components/recipe/ReviewsList';

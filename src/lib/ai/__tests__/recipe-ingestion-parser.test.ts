@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Test helper to extract JSON from LLM responses with markdown code fences
@@ -91,7 +91,7 @@ describe('extractJSON', () => {
       '```\n{"test": true}\n```',
     ];
 
-    variations.forEach(input => {
+    variations.forEach((input) => {
       const result = extractJSON(input);
       expect(() => JSON.parse(result)).not.toThrow();
     });

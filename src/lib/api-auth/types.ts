@@ -98,7 +98,7 @@ export type AuthFailureReason =
  * For routes without dynamic segments, it's an empty object
  */
 export type RouteContext = {
-  params?: Promise<Record<string, string | string[]>>;
+  params: Promise<Record<string, string | string[]>>;
 };
 
 /**

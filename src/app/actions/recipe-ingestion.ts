@@ -1,11 +1,7 @@
 'use server';
 
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
-import { invalidateRecipeCaches } from '@/lib/cache';
-import { db } from '@/lib/db';
-import { chefs } from '@/lib/db/chef-schema';
-import { type NewRecipe, recipes } from '@/lib/db/schema';
 import {
   type IngestedRecipe,
   parseRecipeForIngestion,
@@ -13,9 +9,14 @@ import {
   serializeInstructions,
   serializeTags,
 } from '@/lib/ai/recipe-ingestion-parser';
+import { auth } from '@/lib/auth';
+import { invalidateRecipeCaches } from '@/lib/cache';
+import { db } from '@/lib/db';
+import { chefs } from '@/lib/db/chef-schema';
+import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { generateUniqueSlug } from '@/lib/utils/slug';
-import { eq } from 'drizzle-orm';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Check if a URL is valid and scrapeable
@@ -36,7 +37,7 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
     }
 
     return { valid: true };
-  } catch (error) {
+  } catch (_error) {
     return { valid: false, error: 'Invalid URL format' };
   }
 }
@@ -93,7 +94,7 @@ export async function fetchRecipeFromUrl(url: string): Promise<{
     console.error('Error fetching recipe from URL:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -128,7 +129,7 @@ export async function parseRecipeContent(
     console.error('Error parsing recipe content:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to parse recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -233,7 +234,7 @@ export async function saveIngestedRecipe(recipeData: {
     console.error('Error saving ingested recipe:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to save recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -272,7 +273,7 @@ export async function getChefsList(): Promise<{
     console.error('Error fetching chefs list:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch chefs',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -327,7 +328,7 @@ export async function ingestRecipeFromUrl(url: string): Promise<{
     console.error('Error in recipe ingestion workflow:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Recipe ingestion failed',
+      error: toErrorMessage(error),
     };
   }
 }

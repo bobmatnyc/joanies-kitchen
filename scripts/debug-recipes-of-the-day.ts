@@ -1,6 +1,6 @@
+import { and, eq, isNull, like, or, sql } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { recipes } from '../src/lib/db/schema';
-import { and, eq, isNull, like, or, sql } from 'drizzle-orm';
 
 async function checkRecipes() {
   console.log('Checking for recipes with semantic tags...\n');

@@ -18,6 +18,7 @@ import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { recipes } from '@/lib/db/schema';
 import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
@@ -131,12 +132,13 @@ export async function searchRecipesOnline(
       success: true,
       results: mappedResults,
     };
-  } catch (error: any) {
-    console.error('[Search] Error:', error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error('[Search] Error:', errorMsg);
     return {
       success: false,
       results: [],
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
@@ -238,11 +240,12 @@ Important:
       success: true,
       recipe: extracted,
     };
-  } catch (error: any) {
-    console.error(`[Convert] Error extracting from ${url}:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error(`[Convert] Error extracting from ${url}:`, errorMsg);
     return {
       success: false,
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
@@ -465,15 +468,21 @@ export async function storeRecipe(
         qa_notes: null,
         qa_issues_found: null,
         qa_fixes_applied: null,
+        // Moderation fields (v0.7.4)
+        moderation_status: 'pending',
+        moderation_notes: null,
+        moderated_by: null,
+        moderated_at: null,
+        submission_notes: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
       );
-    } catch (error: any) {
-      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, error.message);
+    } catch (error: unknown) {
+      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, toErrorMessage(error));
       console.error(
         `[Store] Error details:`,
-        JSON.stringify(error.details || {}).substring(0, 300)
+        JSON.stringify((error as any).details || {}).substring(0, 300)
       );
       console.warn(
         `[Store] Continuing without embedding - recipe will be saved but won't be searchable`
@@ -525,8 +534,8 @@ export async function storeRecipe(
           'sentence-transformers/all-MiniLM-L6-v2'
         );
         console.log(`[Store] Successfully saved embedding to database`);
-      } catch (error: any) {
-        console.error(`[Store] Failed to save embedding to database:`, error.message);
+      } catch (error: unknown) {
+        console.error(`[Store] Failed to save embedding to database:`, toErrorMessage(error));
         console.warn(`[Store] Recipe saved but embedding not stored - can be regenerated later`);
       }
     } else {
@@ -541,11 +550,12 @@ export async function storeRecipe(
       success: true,
       recipeId: savedRecipe.id,
     };
-  } catch (error: any) {
-    console.error(`[Store] Error storing recipe:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error(`[Store] Error storing recipe:`, errorMsg);
     return {
       success: false,
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
@@ -724,15 +734,21 @@ async function storeRecipeWithWeek(
         qa_notes: null,
         qa_issues_found: null,
         qa_fixes_applied: null,
+        // Moderation fields (v0.7.4)
+        moderation_status: 'pending',
+        moderation_notes: null,
+        moderated_by: null,
+        moderated_at: null,
+        submission_notes: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
       );
-    } catch (error: any) {
-      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, error.message);
+    } catch (error: unknown) {
+      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, toErrorMessage(error));
       console.error(
         `[Store] Error details:`,
-        JSON.stringify(error.details || {}).substring(0, 300)
+        JSON.stringify((error as any).details || {}).substring(0, 300)
       );
       console.warn(
         `[Store] Continuing without embedding - recipe will be saved but won't be searchable`
@@ -806,8 +822,8 @@ async function storeRecipeWithWeek(
           'sentence-transformers/all-MiniLM-L6-v2'
         );
         console.log(`[Store] Successfully saved embedding to database`);
-      } catch (error: any) {
-        console.error(`[Store] Failed to save embedding to database:`, error.message);
+      } catch (error: unknown) {
+        console.error(`[Store] Failed to save embedding to database:`, toErrorMessage(error));
         console.warn(`[Store] Recipe saved but embedding not stored - can be regenerated later`);
       }
     } else {
@@ -824,18 +840,19 @@ async function storeRecipeWithWeek(
       success: true,
       recipeId: savedRecipe.id,
     };
-  } catch (error: any) {
-    console.error(`[Store] Error storing recipe:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error(`[Store] Error storing recipe:`, errorMsg);
     console.error(`[Store] Error details:`, {
       recipeName: recipe.name,
       publishedDateInput: metadata.publishedDate,
       parsedPublishedDate: validateAndParseDate(metadata.publishedDate),
       weekInfo: metadata.weekInfo,
-      errorStack: error.stack?.substring(0, 500),
+      errorStack: (error as any).stack?.substring(0, 500),
     });
     return {
       success: false,
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
@@ -963,13 +980,13 @@ export async function crawlWeeklyRecipes(
 
         // Rate limiting: wait 2 seconds between requests
         await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error: any) {
-        console.error(`[Weekly Pipeline] Error processing ${result.url}:`, error.message);
+      } catch (error: unknown) {
+        console.error(`[Weekly Pipeline] Error processing ${result.url}:`, toErrorMessage(error));
         recipeResults.push({
           url: result.url,
           name: result.title,
           status: 'failed',
-          reason: error.message,
+          reason: toErrorMessage(error),
         });
         stats.failed++;
       }
@@ -983,14 +1000,15 @@ export async function crawlWeeklyRecipes(
       stats,
       recipes: recipeResults,
     };
-  } catch (error: any) {
-    console.error(`[Weekly Pipeline] Fatal error:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error(`[Store] Error storing recipe:`, errorMsg);
     return {
       success: false,
       weekInfo,
       stats,
       recipes: recipeResults,
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
@@ -1112,13 +1130,13 @@ export async function crawlAndStoreRecipes(
 
         // Rate limiting: wait 2 seconds between requests
         await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error: any) {
-        console.error(`[Pipeline] Error processing ${result.url}:`, error.message);
+      } catch (error: unknown) {
+        console.error(`[Pipeline] Error processing ${result.url}:`, toErrorMessage(error));
         recipeResults.push({
           url: result.url,
           name: result.title,
           status: 'failed',
-          reason: error.message,
+          reason: toErrorMessage(error),
         });
         stats.failed++;
       }
@@ -1131,8 +1149,9 @@ export async function crawlAndStoreRecipes(
       stats,
       recipes: recipeResults,
     };
-  } catch (error: any) {
-    console.error(`[Pipeline] Fatal error:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = toErrorMessage(error);
+    console.error(`[Pipeline] Fatal error:`, errorMsg);
     return {
       success: false,
       stats,

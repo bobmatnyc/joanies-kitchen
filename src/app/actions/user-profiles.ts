@@ -10,6 +10,7 @@ import {
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * User Profile Server Actions
@@ -74,15 +75,14 @@ export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
   } catch (error) {
     console.error('Error creating/updating profile:', error);
 
-    if (error instanceof Error) {
-      // Check for unique constraint violations
-      if (error.message.includes('unique')) {
-        return { success: false, error: 'Username already taken' };
-      }
-      return { success: false, error: error.message };
+    const errorMsg = toErrorMessage(error);
+
+    // Check for unique constraint violations
+    if (errorMsg.includes('unique')) {
+      return { success: false, error: 'Username already taken' };
     }
 
-    return { success: false, error: 'Failed to save profile' };
+    return { success: false, error: errorMsg };
   }
 }
 

@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { addFavorite } from './favorites';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Recipe Cloning Server Actions
@@ -145,7 +146,7 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
     console.error('Error cloning recipe:', error);
 
     if (error instanceof Error) {
-      return { success: false, error: error.message };
+      return { success: false, error: toErrorMessage(error) };
     }
 
     return { success: false, error: 'Failed to clone recipe' };

@@ -1,8 +1,8 @@
 import 'server-only';
+import { sanitizeIngredients, validateParsedRecipe } from '@/lib/validations/recipe-validation';
+import { validateSerialization } from '@/lib/validations/serialization-validation';
 import { MODELS } from './openrouter';
 import { getOpenRouterClient } from './openrouter-server';
-import { validateParsedRecipe, sanitizeIngredients } from '@/lib/validations/recipe-validation';
-import { validateSerialization } from '@/lib/validations/serialization-validation';
 
 /**
  * Structured ingredient object for recipe ingestion
@@ -193,12 +193,18 @@ Be thorough and accurate. This data will be used directly in a production databa
     }
 
     // Sanitize numeric fields (auto-fix invalid values)
-    if (parsed.prep_time !== null && (typeof parsed.prep_time !== 'number' || parsed.prep_time < 0)) {
+    if (
+      parsed.prep_time !== null &&
+      (typeof parsed.prep_time !== 'number' || parsed.prep_time < 0)
+    ) {
       console.warn('[parseRecipeForIngestion] Invalid prep_time, setting to null');
       parsed.prep_time = null;
     }
 
-    if (parsed.cook_time !== null && (typeof parsed.cook_time !== 'number' || parsed.cook_time < 0)) {
+    if (
+      parsed.cook_time !== null &&
+      (typeof parsed.cook_time !== 'number' || parsed.cook_time < 0)
+    ) {
       console.warn('[parseRecipeForIngestion] Invalid cook_time, setting to null');
       parsed.cook_time = null;
     }

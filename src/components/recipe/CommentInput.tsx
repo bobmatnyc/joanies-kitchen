@@ -55,7 +55,7 @@ export function CommentInput({
     textarea.style.height = 'auto';
     // Set height to scrollHeight (content height)
     textarea.style.height = `${textarea.scrollHeight}px`;
-  }, [content]);
+  }, []);
 
   const handleSubmit = () => {
     if (!content.trim()) {

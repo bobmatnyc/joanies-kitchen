@@ -1,4 +1,14 @@
-import { boolean, index, integer, json, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  json,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 
 /**
@@ -159,7 +169,10 @@ export const apiKeyUsage = pgTable(
       table.api_key_id,
       table.requested_at.desc()
     ),
-    endpointStatusIdx: index('api_key_usage_endpoint_status_idx').on(table.endpoint, table.status_code),
+    endpointStatusIdx: index('api_key_usage_endpoint_status_idx').on(
+      table.endpoint,
+      table.status_code
+    ),
 
     // Index for error analysis
     errorIdx: index('api_key_usage_error_idx').on(table.error_code),

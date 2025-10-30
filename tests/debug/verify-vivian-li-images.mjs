@@ -10,7 +10,7 @@
 import puppeteer from 'puppeteer';
 
 const TEST_URL = 'http://localhost:3002/chef/vivian-li';
-const EXPECTED_RECIPES = ['Carrot Soup', 'Sugar Cookie Icing', 'Indian Shrimp Curry'];
+const _EXPECTED_RECIPES = ['Carrot Soup', 'Sugar Cookie Icing', 'Indian Shrimp Curry'];
 
 async function runTest() {
   console.log('\n🧪 Starting Vivian Li Chef Page Image Verification Test\n');
@@ -18,7 +18,7 @@ async function runTest() {
 
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
   try {
@@ -60,7 +60,7 @@ async function runTest() {
     // Get all recipe cards
     const recipes = await page.evaluate(() => {
       const cards = Array.from(document.querySelectorAll('.recipe-card'));
-      return cards.map(card => {
+      return cards.map((card) => {
         const title = card.querySelector('h3')?.textContent?.trim() || 'Unknown';
         const imgElement = card.querySelector('img');
         const imgSrc = imgElement?.src || '';
@@ -96,9 +96,9 @@ async function runTest() {
     console.log('|--------|--------|----------|--------|--------|');
 
     let passCount = 0;
-    let failCount = 0;
+    let _failCount = 0;
 
-    recipes.forEach(recipe => {
+    recipes.forEach((recipe) => {
       const hasImage = recipe.hasImage ? 'YES' : 'NO';
       const visible = recipe.isVisible ? 'YES' : 'NO';
       let source = 'none';
@@ -116,7 +116,7 @@ async function runTest() {
       }
 
       if (status === 'PASS') passCount++;
-      else if (status === 'FAIL') failCount++;
+      else if (status === 'FAIL') _failCount++;
 
       const recipeName = recipe.title.substring(0, 30).padEnd(30);
       console.log(`| ${recipeName} | ${hasImage} | ${visible} | ${source} | ${status} |`);
@@ -129,11 +129,12 @@ async function runTest() {
     recipes.forEach((recipe, idx) => {
       console.log(`${idx + 1}. ${recipe.title}`);
       if (recipe.imgSrc) {
-        const shortUrl = recipe.imgSrc.length > 80
-          ? recipe.imgSrc.substring(0, 77) + '...'
-          : recipe.imgSrc;
+        const shortUrl =
+          recipe.imgSrc.length > 80 ? `${recipe.imgSrc.substring(0, 77)}...` : recipe.imgSrc;
         console.log(`   URL: ${shortUrl}`);
-        console.log(`   Type: ${recipe.isVercelStorage ? '✅ Vercel Storage' : recipe.isLocalPath ? '❌ Local Path' : '⚠️  Other'}`);
+        console.log(
+          `   Type: ${recipe.isVercelStorage ? '✅ Vercel Storage' : recipe.isLocalPath ? '❌ Local Path' : '⚠️  Other'}`
+        );
       } else {
         console.log(`   URL: ❌ NO IMAGE`);
       }
@@ -145,8 +146,8 @@ async function runTest() {
     console.log(`Vercel Blob Storage requests: ${imageRequests.length}`);
     if (imageRequests.length > 0) {
       console.log('✅ All Vercel Storage requests:');
-      imageRequests.forEach(req => {
-        const shortUrl = req.url.substring(0, 80) + '...';
+      imageRequests.forEach((req) => {
+        const shortUrl = `${req.url.substring(0, 80)}...`;
         console.log(`   [${req.status}] ${shortUrl}`);
       });
     }
@@ -158,7 +159,7 @@ async function runTest() {
       console.log('✅ No 404 errors for /images/ paths');
     } else {
       console.log(`❌ Found ${failedRequests.length} 404 errors:`);
-      failedRequests.forEach(req => {
+      failedRequests.forEach((req) => {
         console.log(`   [${req.status}] ${req.url}`);
       });
     }
@@ -170,7 +171,7 @@ async function runTest() {
       console.log('✅ No console errors or warnings');
     } else {
       console.log(`⚠️  Found ${consoleMessages.length} console messages:`);
-      consoleMessages.slice(0, 10).forEach(msg => {
+      consoleMessages.slice(0, 10).forEach((msg) => {
         console.log(`   ${msg}`);
       });
       if (consoleMessages.length > 10) {
@@ -184,11 +185,11 @@ async function runTest() {
     console.log('🎯 FINAL VERDICT\n');
     console.log('═══════════════════════════════════════════════════════════════\n');
 
-    const allHaveImages = recipes.every(r => r.hasImage);
-    const allVisible = recipes.every(r => r.isVisible);
-    const noLocalPaths = recipes.every(r => !r.isLocalPath);
+    const allHaveImages = recipes.every((r) => r.hasImage);
+    const allVisible = recipes.every((r) => r.isVisible);
+    const noLocalPaths = recipes.every((r) => !r.isLocalPath);
     const no404Errors = failedRequests.length === 0;
-    const hasVercelStorage = recipes.some(r => r.isVercelStorage);
+    const hasVercelStorage = recipes.some((r) => r.isVercelStorage);
 
     console.log(`✅ All recipes have images: ${allHaveImages ? 'YES' : 'NO'}`);
     console.log(`✅ All images visible: ${allVisible ? 'YES' : 'NO'}`);
@@ -197,7 +198,9 @@ async function runTest() {
     console.log(`✅ Using Vercel Storage: ${hasVercelStorage ? 'YES' : 'NO'}`);
     console.log('');
 
-    console.log(`📊 Pass Rate: ${passCount}/${recipes.length} (${Math.round(passCount/recipes.length*100)}%)`);
+    console.log(
+      `📊 Pass Rate: ${passCount}/${recipes.length} (${Math.round((passCount / recipes.length) * 100)}%)`
+    );
     console.log('');
 
     if (allHaveImages && noLocalPaths && no404Errors) {
@@ -212,7 +215,6 @@ async function runTest() {
     const success = allHaveImages && noLocalPaths && no404Errors;
     await browser.close();
     process.exit(success ? 0 : 1);
-
   } catch (error) {
     console.error('\n❌ Test failed with error:', error.message);
     console.error(error.stack);

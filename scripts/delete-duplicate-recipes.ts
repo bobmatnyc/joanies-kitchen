@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Delete Duplicate Recipes Script
  *
@@ -6,8 +7,8 @@
  * Uses the list of IDs from /tmp/duplicate-recipe-ids.json
  */
 
+import * as fs from 'node:fs';
 import { neon } from '@neondatabase/serverless';
-import * as fs from 'fs';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -57,7 +58,7 @@ async function main() {
           id,
           name: 'Unknown',
           success: false,
-          error: 'Recipe not found'
+          error: 'Recipe not found',
         });
         errorCount++;
       } else {
@@ -65,7 +66,7 @@ async function main() {
         results.push({
           id,
           name: recipe[0].name,
-          success: false
+          success: false,
         });
       }
     } catch (error: any) {
@@ -74,18 +75,18 @@ async function main() {
         id,
         name: 'Unknown',
         success: false,
-        error: error.message
+        error: error.message,
       });
       errorCount++;
     }
   }
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('\n⚠️  WARNING: This will permanently delete these recipes!');
   console.log('   Press Ctrl+C to cancel, or wait 5 seconds to proceed...\n');
 
   // Wait 5 seconds
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   console.log('🚀 Starting deletion...\n');
 
@@ -110,7 +111,6 @@ async function main() {
       result.success = true;
       successCount++;
       console.log(`       ✅ Deleted successfully`);
-
     } catch (error: any) {
       result.success = false;
       result.error = error.message;
@@ -120,7 +120,7 @@ async function main() {
   }
 
   // Summary
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log('\n📊 Deletion Summary:\n');
   console.log(`   ✅ Successfully deleted: ${successCount}`);
   console.log(`   ❌ Errors: ${errorCount}`);
@@ -129,8 +129,8 @@ async function main() {
   if (errorCount > 0) {
     console.log('\n❌ Errors encountered:');
     results
-      .filter(r => !r.success)
-      .forEach(r => {
+      .filter((r) => !r.success)
+      .forEach((r) => {
         console.log(`   • ${r.name} (${r.id})`);
         console.log(`     Error: ${r.error || 'Unknown error'}`);
       });
@@ -144,7 +144,7 @@ async function main() {
   console.log('\n✅ Deletion complete!');
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -4,6 +4,7 @@ import { Check, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   addRecipeToCollection,
+  getRecipeCollectionIds,
   getUserCollections,
   removeRecipeFromCollection,
 } from '@/app/actions/collections';
@@ -39,18 +40,20 @@ export function AddToCollectionButton({
   const loadCollections = useCallback(async () => {
     setLoading(true);
     try {
-      const userCollections = await getUserCollections();
-      setCollections(userCollections);
+      // Parallel fetch: user collections + recipe membership
+      const [userCollections, recipeCollectionIds] = await Promise.all([
+        getUserCollections(),
+        getRecipeCollectionIds(recipeId),
+      ]);
 
-      // TODO: Load which collections already contain this recipe
-      // This would require a new server action to check recipe membership
-      setCollectionIds(new Set());
+      setCollections(userCollections);
+      setCollectionIds(new Set(recipeCollectionIds));
     } catch (error) {
       console.error('Error loading collections:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [recipeId]);
 
   useEffect(() => {
     if (open) {
@@ -140,6 +143,7 @@ export function AddToCollectionButton({
 
                   return (
                     <button
+                      type="button"
                       key={collection.id}
                       onClick={() => handleToggleCollection(collection.id)}
                       className={`w-full text-left p-3 rounded border transition-colors ${

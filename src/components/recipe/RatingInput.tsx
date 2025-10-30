@@ -3,7 +3,7 @@
 import { Star } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { rateRecipe, deleteRating } from '@/app/actions/rate-recipe';
+import { deleteRating, rateRecipe } from '@/app/actions/rate-recipe';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -227,17 +227,8 @@ export function RatingInput({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="flex-1"
-            type="button"
-          >
-            {isPending
-              ? 'Saving...'
-              : currentRating
-                ? 'Update Rating'
-                : 'Submit Rating'}
+          <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1" type="button">
+            {isPending ? 'Saving...' : currentRating ? 'Update Rating' : 'Submit Rating'}
           </Button>
 
           {currentRating > 0 && (
@@ -255,9 +246,7 @@ export function RatingInput({
 
         {/* Success Feedback */}
         {!hasChanges && currentRating > 0 && (
-          <p className="text-sm text-muted-foreground text-center">
-            Your rating has been saved
-          </p>
+          <p className="text-sm text-muted-foreground text-center">Your rating has been saved</p>
         )}
       </div>
     </Card>

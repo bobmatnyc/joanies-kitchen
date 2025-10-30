@@ -13,6 +13,7 @@ import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { type RankingMode, rankRecipes } from '@/lib/search';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Search options for semantic and hybrid search
@@ -213,12 +214,12 @@ export async function semanticSearchRecipes(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Semantic search failed:', error);
     return {
       success: false,
       recipes: [],
-      error: error.message || 'Failed to perform semantic search',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -371,12 +372,12 @@ export async function findSimilarToRecipe(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Find similar failed:', error);
     return {
       success: false,
       recipes: [],
-      error: error.message || 'Failed to find similar recipes',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -528,12 +529,12 @@ export async function hybridSearchRecipes(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Hybrid search failed:', error);
     return {
       success: false,
       recipes: [],
-      error: error.message || 'Failed to perform hybrid search',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -623,7 +624,7 @@ export async function getSearchSuggestions(
       success: true,
       suggestions: Array.from(suggestions).slice(0, limit),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get suggestions failed:', error);
     return {
       success: false,

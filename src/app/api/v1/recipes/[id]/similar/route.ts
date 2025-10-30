@@ -7,24 +7,24 @@
  * Authorization: Scope-based permissions
  */
 
+import { eq, or } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
-import { requireScopes, SCOPES } from '@/lib/api-auth';
-import type { RouteContext } from '@/lib/api-auth/types';
-import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
-import { similarRecipesQuerySchema, type SimilarRecipesQuery } from '@/lib/validations/recipe-api';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { eq, isNull, or } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
 import {
-  apiSuccess,
   apiError,
   apiNotFound,
+  apiSuccess,
   getRequiredParam,
-  parseQueryParams,
   handleActionResult,
+  parseQueryParams,
 } from '@/lib/api';
+import { requireScopes, SCOPES } from '@/lib/api-auth';
+import type { RouteContext } from '@/lib/api-auth/types';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
+import { recipes } from '@/lib/db/schema';
+import { similarRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
  * GET /api/v1/recipes/:id/similar
@@ -56,7 +56,7 @@ import {
  */
 export const GET = requireScopes(
   [SCOPES.READ_RECIPES],
-  async (request: NextRequest, authContext, context: RouteContext) => {
+  async (request: NextRequest, _authContext, context: RouteContext) => {
     try {
       // Extract recipe ID and parse query parameters
       const idResult = await getRequiredParam(context, 'id');
@@ -106,17 +106,15 @@ export const GET = requireScopes(
       }
 
       // Build access condition
-      const accessCondition = userId
+      const _accessCondition = userId
         ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
         : eq(recipes.is_public, true);
 
       // Fetch similar recipes with proper access control
-      const similarRecipesData = await db
+      const _similarRecipesData = await db
         .select()
         .from(recipes)
-        .where(
-          eq(recipes.id, similarRecipeIds[0])
-        );
+        .where(eq(recipes.id, similarRecipeIds[0]));
 
       // Fetch all similar recipes
       const allSimilarRecipes = await Promise.all(

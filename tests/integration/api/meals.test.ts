@@ -4,14 +4,14 @@
  * Tests for /api/v1/meals/* and /api/v1/shopping-lists/* endpoints
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  createTestApiKey,
-  makeAuthenticatedRequest,
-  assertStatus,
   assertJsonResponse,
+  assertStatus,
+  createTestApiKey,
   globalSetup,
   globalTeardown,
+  makeAuthenticatedRequest,
   type TestContext,
 } from './setup.js';
 
@@ -163,13 +163,10 @@ describe('API Meals Endpoints', () => {
       const mealId = createData.id;
 
       // Retrieve it
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -210,18 +207,15 @@ describe('API Meals Endpoints', () => {
       const mealId = createData.id;
 
       // Update it
-      const updateResponse = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}`,
-        {
-          method: 'PATCH',
-          apiKey: writeContext.testApiKey,
-          body: {
-            name: 'Updated Meal Name',
-            servings: 6,
-            notes: 'Updated notes',
-          },
-        }
-      );
+      const updateResponse = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}`, {
+        method: 'PATCH',
+        apiKey: writeContext.testApiKey,
+        body: {
+          name: 'Updated Meal Name',
+          servings: 6,
+          notes: 'Updated notes',
+        },
+      });
 
       assertStatus(updateResponse, 200);
       const updateData = await assertJsonResponse(updateResponse);
@@ -248,24 +242,18 @@ describe('API Meals Endpoints', () => {
       const mealId = createData.id;
 
       // Delete it
-      const deleteResponse = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}`,
-        {
-          method: 'DELETE',
-          apiKey: writeContext.testApiKey,
-        }
-      );
+      const deleteResponse = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}`, {
+        method: 'DELETE',
+        apiKey: writeContext.testApiKey,
+      });
 
       assertStatus(deleteResponse, 204);
 
       // Verify it's gone
-      const getResponse = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const getResponse = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(getResponse, 404);
     });
@@ -302,17 +290,14 @@ describe('API Meals Endpoints', () => {
       const recipeId = recipesData.recipes[0].id;
 
       // Add recipe to meal
-      const addResponse = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}/recipes`,
-        {
-          method: 'POST',
-          apiKey: writeContext.testApiKey,
-          body: {
-            recipeId,
-            course: 'main',
-          },
-        }
-      );
+      const addResponse = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}/recipes`, {
+        method: 'POST',
+        apiKey: writeContext.testApiKey,
+        body: {
+          recipeId,
+          course: 'main',
+        },
+      });
 
       assertStatus(addResponse, 201);
       const addData = await assertJsonResponse(addResponse);
@@ -342,13 +327,10 @@ describe('API Meals Endpoints', () => {
       const mealId = mealData.id;
 
       // Get recipes in meal
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}/recipes`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}/recipes`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -381,13 +363,10 @@ describe('API Meals Endpoints', () => {
       const mealId = mealData.id;
 
       // Generate shopping list
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/meals/${mealId}/shopping-list`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/meals/${mealId}/shopping-list`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -449,13 +428,10 @@ describe('API Shopping Lists Endpoints', () => {
 
   describe('GET /api/v1/shopping-lists', () => {
     it('should list all shopping lists', async () => {
-      const response = await makeAuthenticatedRequest(
-        '/api/v1/shopping-lists',
-        {
-          method: 'GET',
-          apiKey: writeContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest('/api/v1/shopping-lists', {
+        method: 'GET',
+        apiKey: writeContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -468,17 +444,14 @@ describe('API Shopping Lists Endpoints', () => {
   describe('PATCH /api/v1/shopping-lists/:id/items/:itemId', () => {
     it('should mark item as checked', async () => {
       // Create a shopping list
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/shopping-lists',
-        {
-          method: 'POST',
-          apiKey: writeContext.testApiKey,
-          body: {
-            name: 'Test List',
-            items: [{ name: 'Item 1', quantity: '1' }],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/shopping-lists', {
+        method: 'POST',
+        apiKey: writeContext.testApiKey,
+        body: {
+          name: 'Test List',
+          items: [{ name: 'Item 1', quantity: '1' }],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const listId = createData.id;

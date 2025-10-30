@@ -8,13 +8,13 @@
  * Authorization: Scope-based permissions + ownership verification
  */
 
+import { and, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { generateShoppingList, getMealById } from '@/app/actions/meals';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 
 /**
  * GET /api/v1/meals/:id/shopping-list
@@ -38,10 +38,10 @@ import { eq, and } from 'drizzle-orm';
  */
 export const GET = requireScopes(
   [SCOPES.READ_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const mealId = params?.id as string;
 
       if (!mealId) {
@@ -84,12 +84,7 @@ export const GET = requireScopes(
       const [shoppingList] = await db
         .select()
         .from(shoppingLists)
-        .where(
-          and(
-            eq(shoppingLists.meal_id, mealId),
-            eq(shoppingLists.user_id, auth.userId!)
-          )
-        )
+        .where(and(eq(shoppingLists.meal_id, mealId), eq(shoppingLists.user_id, auth.userId!)))
         .limit(1);
 
       // Parse items if found
@@ -165,10 +160,10 @@ export const GET = requireScopes(
  */
 export const POST = requireScopes(
   [SCOPES.WRITE_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const mealId = params?.id as string;
 
       if (!mealId) {

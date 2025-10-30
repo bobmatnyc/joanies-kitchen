@@ -1,19 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import {
-  fetchRecipeFromUrl,
   getChefsList,
   ingestRecipeFromUrl,
-  parseRecipeContent,
   saveIngestedRecipe,
 } from '@/app/actions/recipe-ingestion';
-import type { IngestedRecipe } from '@/lib/ai/recipe-ingestion-parser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import type { IngestedRecipe } from '@/lib/ai/recipe-ingestion-parser';
 
 type IngestionStep = 'input' | 'fetching' | 'parsing' | 'preview' | 'saving' | 'complete';
 
@@ -29,7 +27,7 @@ export default function IngestRecipePage() {
   const router = useRouter();
   const [step, setStep] = useState<IngestionStep>('input');
   const [url, setUrl] = useState('');
-  const [fetchedContent, setFetchedContent] = useState<string>('');
+  const [_fetchedContent, setFetchedContent] = useState<string>('');
   const [parsedRecipe, setParsedRecipe] = useState<IngestedRecipe | null>(null);
   const [chefsList, setChefsList] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [savedRecipeId, setSavedRecipeId] = useState<string>('');
@@ -124,7 +122,10 @@ export default function IngestRecipePage() {
         servings: editableServings ? parseInt(editableServings, 10) : null,
         difficulty: editableDifficulty || null,
         cuisine: editableCuisine || null,
-        tags: editableTags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        tags: editableTags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
         image_url: editableImageUrl || null,
         video_url: editableVideoUrl || null,
         source: url,
@@ -313,7 +314,10 @@ export default function IngestRecipePage() {
 
             <div>
               <Label htmlFor="difficulty">Difficulty</Label>
-              <Select value={editableDifficulty} onValueChange={(value: any) => setEditableDifficulty(value)}>
+              <Select
+                value={editableDifficulty}
+                onValueChange={(value) => setEditableDifficulty(value as '' | 'easy' | 'medium' | 'hard')}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
@@ -469,10 +473,7 @@ export default function IngestRecipePage() {
           </div>
 
           <div className="flex gap-3">
-            <Button
-              onClick={() => router.push(`/recipes/${savedRecipeId}`)}
-              className="flex-1"
-            >
+            <Button onClick={() => router.push(`/recipes/${savedRecipeId}`)} className="flex-1">
               View Recipe
             </Button>
             <Button onClick={handleReset} variant="outline" className="flex-1">
@@ -501,7 +502,11 @@ export default function IngestRecipePage() {
         <ul className="space-y-2 text-sm">
           <li>
             <button
-              onClick={() => setUrl('https://www.epicurious.com/recipes/food/views/kale-and-white-bean-stew-351254')}
+              onClick={() =>
+                setUrl(
+                  'https://www.epicurious.com/recipes/food/views/kale-and-white-bean-stew-351254'
+                )
+              }
               className="text-red-600 hover:text-red-700 underline"
             >
               Epicurious: Kale and White Bean Stew
@@ -509,7 +514,9 @@ export default function IngestRecipePage() {
           </li>
           <li>
             <button
-              onClick={() => setUrl('https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/')}
+              onClick={() =>
+                setUrl('https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/')
+              }
               className="text-red-600 hover:text-red-700 underline"
             >
               AllRecipes: Chocolate Chip Cookies
@@ -517,7 +524,11 @@ export default function IngestRecipePage() {
           </li>
           <li>
             <button
-              onClick={() => setUrl('https://www.foodnetwork.com/recipes/alton-brown/baked-macaroni-and-cheese-recipe-1939524')}
+              onClick={() =>
+                setUrl(
+                  'https://www.foodnetwork.com/recipes/alton-brown/baked-macaroni-and-cheese-recipe-1939524'
+                )
+              }
               className="text-red-600 hover:text-red-700 underline"
             >
               Food Network: Baked Mac and Cheese

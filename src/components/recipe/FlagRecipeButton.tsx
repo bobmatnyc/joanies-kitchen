@@ -107,7 +107,7 @@ export function FlagRecipeButton({
       } else {
         setError(result.error || 'Failed to submit flag');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);

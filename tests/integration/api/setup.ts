@@ -4,10 +4,10 @@
  * Provides utilities for testing API endpoints end-to-end
  */
 
-import { db } from '../../../src/lib/db/index.js';
-import { apiKeys } from '../../../src/lib/db/api-keys-schema.js';
-import { generateApiKey } from '../../../src/lib/api-auth/key-generator.js';
 import { eq } from 'drizzle-orm';
+import { generateApiKey } from '../../../src/lib/api-auth/key-generator.js';
+import { apiKeys } from '../../../src/lib/db/api-keys-schema.js';
+import { db } from '../../../src/lib/db/index.js';
 
 export interface TestContext {
   testApiKey: string;
@@ -20,11 +20,7 @@ export interface TestContext {
  * Create a test API key for integration testing
  */
 export async function createTestApiKey(
-  options: {
-    userId?: string;
-    scopes?: string[];
-    expiresInDays?: number;
-  } = {}
+  options: { userId?: string; scopes?: string[]; expiresInDays?: number } = {}
 ): Promise<TestContext> {
   const userId = options.userId || `test-user-${Date.now()}`;
   const scopes = options.scopes || ['read:recipes', 'read:meals'];
@@ -74,7 +70,7 @@ export async function makeAuthenticatedRequest(
   }
 
   const headers: HeadersInit = {
-    'Authorization': `Bearer ${apiKey}`,
+    Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
   };
 
@@ -95,18 +91,14 @@ export async function makeAuthenticatedRequest(
  */
 export function assertStatus(response: Response, expected: number) {
   if (response.status !== expected) {
-    throw new Error(
-      `Expected status ${expected}, got ${response.status}: ${response.statusText}`
-    );
+    throw new Error(`Expected status ${expected}, got ${response.status}: ${response.statusText}`);
   }
 }
 
 /**
  * Assert response has JSON body
  */
-export async function assertJsonResponse<T = any>(
-  response: Response
-): Promise<T> {
+export async function assertJsonResponse<T = any>(response: Response): Promise<T> {
   const contentType = response.headers.get('content-type');
   if (!contentType?.includes('application/json')) {
     throw new Error(`Expected JSON response, got ${contentType}`);
@@ -119,9 +111,7 @@ export async function assertJsonResponse<T = any>(
  */
 export async function cleanupAllTestData() {
   // Delete all test API keys (user_id starts with "test-user-")
-  await db.execute(
-    `DELETE FROM api_keys WHERE user_id LIKE 'test-user-%'`
-  );
+  await db.execute(`DELETE FROM api_keys WHERE user_id LIKE 'test-user-%'`);
 
   // Add more cleanup as needed for other test data
   console.log('✅ Test data cleaned up');

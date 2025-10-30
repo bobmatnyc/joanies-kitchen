@@ -18,10 +18,10 @@
  * ```
  */
 
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { authenticateRequest, authHasAllScopes, getAuthTypeLabel } from './middleware';
+import { NextResponse } from 'next/server';
 import { trackApiUsage } from './key-service';
+import { authenticateRequest, authHasAllScopes } from './middleware';
 import type {
   AuthContext,
   AuthenticatedHandler,
@@ -90,10 +90,7 @@ export function requireAuth(
         );
       }
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -161,10 +158,7 @@ export function requireScopes(
         );
       }
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -239,10 +233,7 @@ export function requireAnyScope(
         );
       }
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -284,7 +275,12 @@ export function optionalAuth(
       const response = await handler(request, auth, context?.params);
 
       // Track usage for authenticated API keys
-      if (auth.authenticated && auth.authType === 'api_key' && auth.apiKeyId && options?.trackUsage !== false) {
+      if (
+        auth.authenticated &&
+        auth.authType === 'api_key' &&
+        auth.apiKeyId &&
+        options?.trackUsage !== false
+      ) {
         await trackRequestUsage(request, auth, response, startTime, options);
       }
 
@@ -293,7 +289,12 @@ export function optionalAuth(
       console.error('Error in optional-auth handler:', error);
 
       // Track failed request
-      if (auth.authenticated && auth.authType === 'api_key' && auth.apiKeyId && options?.trackUsage !== false) {
+      if (
+        auth.authenticated &&
+        auth.authType === 'api_key' &&
+        auth.apiKeyId &&
+        options?.trackUsage !== false
+      ) {
         await trackRequestUsage(
           request,
           auth,
@@ -304,10 +305,7 @@ export function optionalAuth(
         );
       }
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -399,7 +397,7 @@ async function trackRequestUsage(
     const statusCode = response.status;
 
     // Build tracking info
-    const trackingInfo: RequestTrackingInfo = {
+    const _trackingInfo: RequestTrackingInfo = {
       apiKeyId: auth.apiKeyId,
       userId: auth.userId || undefined,
       endpoint,

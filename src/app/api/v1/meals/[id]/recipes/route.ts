@@ -13,10 +13,7 @@ import { ZodError } from 'zod';
 import { addRecipeToMeal, getMealById, removeRecipeFromMeal } from '@/app/actions/meals';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
-import {
-  addRecipeToMealSchema,
-  type AddRecipeToMealInput,
-} from '@/lib/validations/meal-api';
+import { type AddRecipeToMealInput, addRecipeToMealSchema } from '@/lib/validations/meal-api';
 
 /**
  * POST /api/v1/meals/:id/recipes
@@ -53,7 +50,7 @@ export const POST = requireScopes(
   async (request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const mealId = params?.id as string;
 
       if (!mealId) {
@@ -186,7 +183,7 @@ export const DELETE = requireScopes(
   async (request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const mealId = params?.id as string;
 
       if (!mealId) {

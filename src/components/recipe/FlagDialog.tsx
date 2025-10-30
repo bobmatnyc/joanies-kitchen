@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { flagRecipe, type FlagReason } from '@/app/actions/flag-recipe';
+import { type FlagReason, flagRecipe } from '@/app/actions/flag-recipe';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -64,8 +64,7 @@ export function FlagDialog({ recipeId, recipeName, open, onOpenChange }: FlagDia
 
   const MAX_DESCRIPTION_LENGTH = 500;
   const isDescriptionRequired = reason === 'other';
-  const isSubmitDisabled =
-    !reason || isPending || (isDescriptionRequired && !description.trim());
+  const isSubmitDisabled = !reason || isPending || (isDescriptionRequired && !description.trim());
 
   const handleSubmit = () => {
     if (!reason || isSubmitDisabled) return;

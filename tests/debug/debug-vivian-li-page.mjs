@@ -16,12 +16,12 @@ async function debug() {
   const page = await context.newPage();
 
   // Track console messages
-  page.on('console', msg => {
+  page.on('console', (msg) => {
     console.log(`[BROWSER ${msg.type()}] ${msg.text()}`);
   });
 
   // Track network errors
-  page.on('response', response => {
+  page.on('response', (response) => {
     if (response.status() >= 400) {
       console.log(`[NETWORK ERROR] ${response.status()} ${response.url()}`);
     }
@@ -61,7 +61,9 @@ async function debug() {
       // Check for error messages
       const errorText = await page.evaluate(() => {
         const errorElements = document.querySelectorAll('[class*="error"], [class*="Error"]');
-        return Array.from(errorElements).map(el => el.textContent).join('\n');
+        return Array.from(errorElements)
+          .map((el) => el.textContent)
+          .join('\n');
       });
 
       if (errorText) {
@@ -72,13 +74,13 @@ async function debug() {
       // Get recipe info
       const recipes = await page.evaluate(() => {
         const cards = Array.from(document.querySelectorAll('.recipe-card'));
-        return cards.map(card => {
+        return cards.map((card) => {
           const title = card.querySelector('h3')?.textContent?.trim() || 'Unknown';
           const img = card.querySelector('img');
           return {
             title,
             hasSrc: !!img?.src,
-            src: img?.src?.substring(0, 100) || 'NO IMAGE'
+            src: img?.src?.substring(0, 100) || 'NO IMAGE',
           };
         });
       });
@@ -86,14 +88,13 @@ async function debug() {
       console.log('Recipes found:');
       recipes.forEach((r, i) => {
         console.log(`${i + 1}. ${r.title}`);
-        console.log(`   Image: ${r.hasSrc ? r.src + '...' : 'NO IMAGE'}`);
+        console.log(`   Image: ${r.hasSrc ? `${r.src}...` : 'NO IMAGE'}`);
       });
     }
 
     // Wait for user to see the browser
     console.log('\n⏳ Keeping browser open for 5 seconds...\n');
     await page.waitForTimeout(5000);
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     await page.screenshot({ path: '/tmp/vivian-li-error.png', fullPage: true });
