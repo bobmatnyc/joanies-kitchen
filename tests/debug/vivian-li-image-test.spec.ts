@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
   test('should display recipe images from Vercel Blob Storage', async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       const card = recipeCards[i];
 
       // Get recipe name
-      const recipeName = await card.locator('h3').first().textContent() || `Recipe ${i + 1}`;
+      const recipeName = (await card.locator('h3').first().textContent()) || `Recipe ${i + 1}`;
       console.log(`\n=== Checking: ${recipeName} ===`);
 
       // Find the image within this card
@@ -45,7 +45,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
           hasImage: false,
           imageUrl: 'NONE',
           isVercelStorage: false,
-          status: 'FAIL - No image'
+          status: 'FAIL - No image',
         });
         continue;
       }
@@ -55,7 +55,8 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       console.log(`Image src: ${imageSrc}`);
 
       // Check if image is from Vercel Blob Storage
-      const isVercelStorage = imageSrc?.includes('ljqhvy0frzhuigv1.public.blob.vercel-storage.com') || false;
+      const isVercelStorage =
+        imageSrc?.includes('ljqhvy0frzhuigv1.public.blob.vercel-storage.com') || false;
       const hasImage = !!imageSrc && imageSrc !== '';
 
       // Check if image loaded successfully (not broken)
@@ -79,7 +80,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
         hasImage,
         imageUrl: imageSrc || 'NONE',
         isVercelStorage,
-        status
+        status,
       });
 
       // Verify image displays
@@ -90,7 +91,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
     console.log('\n\n=== IMAGE VERIFICATION SUMMARY ===');
     console.log('| Recipe | Image Displays? | Image URL Source | Status |');
     console.log('|--------|----------------|------------------|--------|');
-    imageResults.forEach(result => {
+    imageResults.forEach((result) => {
       const displays = result.hasImage ? 'YES' : 'NO';
       const source = result.isVercelStorage ? 'vercel-storage' : 'other/none';
       console.log(`| ${result.recipeName} | ${displays} | ${source} | ${result.status} |`);
@@ -98,7 +99,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
 
     // Check console for 404 errors
     const consoleErrors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
@@ -106,11 +107,11 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
 
     // Check for network errors
     const failedRequests: Array<{ url: string; status: number }> = [];
-    page.on('response', response => {
+    page.on('response', (response) => {
       if (response.status() === 404 && response.url().includes('/images/')) {
         failedRequests.push({
           url: response.url(),
-          status: response.status()
+          status: response.status(),
         });
       }
     });
@@ -123,7 +124,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       console.log('✅ No console errors detected');
     } else {
       console.log('❌ Console errors found:');
-      consoleErrors.forEach(err => console.log(`  - ${err}`));
+      consoleErrors.forEach((err) => console.log(`  - ${err}`));
     }
 
     console.log('\n=== NETWORK 404 ERRORS ===');
@@ -131,17 +132,19 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       console.log('✅ No 404 errors for image requests');
     } else {
       console.log('❌ 404 errors found:');
-      failedRequests.forEach(req => console.log(`  - ${req.url} (${req.status})`));
+      failedRequests.forEach((req) => console.log(`  - ${req.url} (${req.status})`));
     }
 
     // Verify at least some images are from Vercel Storage
-    const vercelStorageCount = imageResults.filter(r => r.isVercelStorage).length;
-    console.log(`\n✅ ${vercelStorageCount}/${imageResults.length} images from Vercel Blob Storage`);
+    const vercelStorageCount = imageResults.filter((r) => r.isVercelStorage).length;
+    console.log(
+      `\n✅ ${vercelStorageCount}/${imageResults.length} images from Vercel Blob Storage`
+    );
 
     // Take screenshot for evidence
     await page.screenshot({
       path: '/tmp/vivian-li-chef-page.png',
-      fullPage: true
+      fullPage: true,
     });
     console.log('\n📸 Screenshot saved to: /tmp/vivian-li-chef-page.png');
   });
@@ -149,11 +152,11 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
   test('should not have 404 errors for local image paths', async ({ page }) => {
     const failedRequests: Array<{ url: string; status: number }> = [];
 
-    page.on('response', response => {
+    page.on('response', (response) => {
       if (response.status() === 404 && response.url().includes('/images/recipes/')) {
         failedRequests.push({
           url: response.url(),
-          status: response.status()
+          status: response.status(),
         });
       }
     });
@@ -167,7 +170,7 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       console.log('✅ No 404 errors for /images/recipes/ paths');
     } else {
       console.log('❌ Found 404 errors:');
-      failedRequests.forEach(req => {
+      failedRequests.forEach((req) => {
         console.log(`  - ${req.url}`);
       });
     }
@@ -178,11 +181,11 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
   test('should check network requests for Vercel Blob Storage', async ({ page }) => {
     const imageRequests: Array<{ url: string; status: number }> = [];
 
-    page.on('response', async response => {
+    page.on('response', async (response) => {
       if (response.url().includes('ljqhvy0frzhuigv1.public.blob.vercel-storage.com')) {
         imageRequests.push({
           url: response.url(),
-          status: response.status()
+          status: response.status(),
         });
       }
     });
@@ -196,19 +199,21 @@ test.describe('Vivian Li Chef Page - Recipe Image Verification', () => {
       console.log('⚠️  No requests to Vercel Blob Storage detected');
     } else {
       console.log(`✅ Found ${imageRequests.length} Vercel Blob Storage requests:`);
-      imageRequests.forEach(req => {
+      imageRequests.forEach((req) => {
         console.log(`  - ${req.url.substring(0, 80)}... (${req.status})`);
       });
     }
 
     // All Vercel Storage requests should be 200 OK
-    const failed = imageRequests.filter(req => req.status !== 200);
+    const failed = imageRequests.filter((req) => req.status !== 200);
     if (failed.length > 0) {
       console.log('\n❌ Failed Vercel Storage requests:');
-      failed.forEach(req => console.log(`  - ${req.url} (${req.status})`));
+      failed.forEach((req) => console.log(`  - ${req.url} (${req.status})`));
     }
 
-    expect(imageRequests.length, 'Should have at least one Vercel Storage request').toBeGreaterThan(0);
+    expect(imageRequests.length, 'Should have at least one Vercel Storage request').toBeGreaterThan(
+      0
+    );
     expect(failed.length, 'All Vercel Storage requests should return 200').toBe(0);
   });
 });

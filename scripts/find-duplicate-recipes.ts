@@ -36,7 +36,10 @@ function calculateQualityScore(recipe: Recipe): number {
   let score = 0;
 
   // Image quality (prefer Vercel Blob over external)
-  if (recipe.image_url?.includes('vercel-storage.com') || recipe.image_url?.includes('blob.vercel-app.com')) {
+  if (
+    recipe.image_url?.includes('vercel-storage.com') ||
+    recipe.image_url?.includes('blob.vercel-app.com')
+  ) {
     score += 20;
   } else if (recipe.image_url) {
     score += 10;
@@ -47,7 +50,7 @@ function calculateQualityScore(recipe: Recipe): number {
     try {
       const imgs = JSON.parse(recipe.images);
       score += Math.min(imgs.length * 5, 15);
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Description quality
@@ -62,7 +65,7 @@ function calculateQualityScore(recipe: Recipe): number {
     try {
       const ing = JSON.parse(recipe.ingredients);
       score += Math.min(ing.length * 2, 20);
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Instructions completeness
@@ -70,7 +73,7 @@ function calculateQualityScore(recipe: Recipe): number {
     try {
       const inst = JSON.parse(recipe.instructions);
       score += Math.min(inst.length * 2, 20);
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Has chef association
@@ -95,13 +98,13 @@ async function main() {
   console.log('🔍 Finding duplicate recipes based on title and description...\n');
 
   // Get all recipes
-  const recipes = await sql`
+  const recipes = (await sql`
     SELECT
       id, name, description, image_url, images, ingredients,
       instructions, chef_id, created_at, is_public, source, source_id
     FROM recipes
     ORDER BY name
-  ` as Recipe[];
+  `) as Recipe[];
 
   console.log(`Total recipes: ${recipes.length}\n`);
 
@@ -113,7 +116,7 @@ async function main() {
     if (!groups.has(key)) {
       groups.set(key, []);
     }
-    groups.get(key)!.push(recipe);
+    groups.get(key)?.push(recipe);
   }
 
   // Find duplicates (groups with more than one recipe)
@@ -135,10 +138,12 @@ async function main() {
     totalDuplicateRecipes += recipeGroup.length - 1;
 
     // Calculate quality scores
-    const withScores = recipeGroup.map(recipe => ({
-      recipe,
-      score: calculateQualityScore(recipe),
-    })).sort((a, b) => b.score - a.score);
+    const withScores = recipeGroup
+      .map((recipe) => ({
+        recipe,
+        score: calculateQualityScore(recipe),
+      }))
+      .sort((a, b) => b.score - a.score);
 
     // Show all copies with scores
     withScores.forEach((item, index) => {
@@ -153,7 +158,9 @@ async function main() {
       console.log(`   ${icon} [Score: ${score}]`);
       console.log(`       ID: ${recipe.id}`);
       console.log(`       Created: ${recipe.created_at.toISOString().split('T')[0]}`);
-      console.log(`       Image: ${recipe.image_url ? (recipe.image_url.includes('vercel') ? 'Vercel Blob' : 'External') : 'None'}`);
+      console.log(
+        `       Image: ${recipe.image_url ? (recipe.image_url.includes('vercel') ? 'Vercel Blob' : 'External') : 'None'}`
+      );
       console.log(`       Chef: ${recipe.chef_id ? 'Yes' : 'No'}`);
       console.log(`       Public: ${recipe.is_public ? 'Yes' : 'No'}`);
       console.log(`       Source: ${recipe.source || recipe.source_id ? 'Yes' : 'No'}`);
@@ -174,14 +181,14 @@ async function main() {
 
   // Save delete IDs to file
   if (deleteIds.length > 0) {
-    const fs = require('fs');
+    const fs = require('node:fs');
     fs.writeFileSync('/tmp/duplicate-recipe-ids.json', JSON.stringify(deleteIds, null, 2));
     console.log(`✅ Saved ${deleteIds.length} duplicate IDs to /tmp/duplicate-recipe-ids.json`);
     console.log(`\nTo delete these duplicates, run: npx tsx scripts/delete-duplicate-recipes.ts`);
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

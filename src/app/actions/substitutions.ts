@@ -8,6 +8,7 @@
 
 import { getBatchSubstitutions, getSubstitutions } from '@/lib/substitutions/substitution-service';
 import type { SubstitutionContext, SubstitutionResult } from '@/lib/substitutions/types';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Server action result wrapper
@@ -75,7 +76,7 @@ export async function getIngredientSubstitutions(
     console.error('Error getting ingredient substitutions:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get substitutions',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -147,7 +148,7 @@ export async function getMultipleIngredientSubstitutions(
     console.error('Error getting multiple ingredient substitutions:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get substitutions',
+      error: toErrorMessage(error),
     };
   }
 }

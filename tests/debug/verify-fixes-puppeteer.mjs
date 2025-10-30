@@ -51,9 +51,7 @@ async function testFix1AdminInfiniteLoop(browser) {
 
     const stillSpinning = await page
       .evaluate(() => {
-        const spinners = document.querySelectorAll(
-          '[role="status"], .animate-spin'
-        );
+        const spinners = document.querySelectorAll('[role="status"], .animate-spin');
         return Array.from(spinners).some((el) => el.offsetHeight > 0);
       })
       .catch(() => false);
@@ -110,7 +108,9 @@ async function testFix2RecipeIngredients(browser) {
     const content = await page.content();
     const hasObjectObject = content.includes('[object Object]');
 
-    console.log(`${hasObjectObject ? '✗' : '✓'} Contains [object Object]: ${hasObjectObject ? 'YES (FAIL)' : 'NO (PASS)'}`);
+    console.log(
+      `${hasObjectObject ? '✗' : '✓'} Contains [object Object]: ${hasObjectObject ? 'YES (FAIL)' : 'NO (PASS)'}`
+    );
 
     // Look for ingredients section
     const ingredientsText = await page
@@ -126,7 +126,7 @@ async function testFix2RecipeIngredients(browser) {
         if (!ingredientsHeading) return 'Ingredients section not found';
 
         // Get next sibling or parent's next sibling
-        let container =
+        const container =
           ingredientsHeading.nextElementSibling ||
           ingredientsHeading.parentElement.nextElementSibling;
 
@@ -134,7 +134,9 @@ async function testFix2RecipeIngredients(browser) {
       })
       .catch(() => 'Could not extract ingredients');
 
-    console.log(`✓ Ingredients preview:\n  ${ingredientsText.substring(0, 200).replace(/\n/g, ' ')}`);
+    console.log(
+      `✓ Ingredients preview:\n  ${ingredientsText.substring(0, 200).replace(/\n/g, ' ')}`
+    );
 
     // Take screenshot
     await page.screenshot({
@@ -172,10 +174,7 @@ async function testFix3ChefImages(browser) {
 
     page.on('response', (response) => {
       const url = response.url();
-      if (
-        url.includes('/images/recipes/') ||
-        url.includes('blob.vercel-storage.com')
-      ) {
+      if (url.includes('/images/recipes/') || url.includes('blob.vercel-storage.com')) {
         if (response.status() === 404) {
           failedImages.push(url);
         } else if (response.status() === 200) {
@@ -215,7 +214,12 @@ async function testFix3ChefImages(browser) {
     console.log(`✗ 404 errors: ${failedImages.length}`);
 
     if (brokenImages.length > 0) {
-      console.log(`  Broken: ${brokenImages.slice(0, 3).map((i) => i.alt || i.src.substring(0, 60)).join(', ')}`);
+      console.log(
+        `  Broken: ${brokenImages
+          .slice(0, 3)
+          .map((i) => i.alt || i.src.substring(0, 60))
+          .join(', ')}`
+      );
     }
 
     if (failedImages.length > 0) {
@@ -223,9 +227,7 @@ async function testFix3ChefImages(browser) {
     }
 
     // Check if images are from Vercel Blob Storage
-    const blobImages = validImages.filter((img) =>
-      img.src.includes('blob.vercel-storage.com')
-    );
+    const blobImages = validImages.filter((img) => img.src.includes('blob.vercel-storage.com'));
     console.log(`✓ Images from Vercel Blob: ${blobImages.length}`);
 
     // Take screenshot
@@ -304,8 +306,7 @@ async function testFix4FridgeTimeout(browser) {
       const content = await page.content();
       const hasTimeout = content.toLowerCase().includes('timeout');
       const hasResults =
-        content.toLowerCase().includes('recipe') ||
-        content.toLowerCase().includes('found');
+        content.toLowerCase().includes('recipe') || content.toLowerCase().includes('found');
 
       console.log(`✓ Has timeout error: ${hasTimeout ? 'YES' : 'NO'}`);
       console.log(`✓ Has results: ${hasResults ? 'YES' : 'NO'}`);
@@ -373,9 +374,7 @@ async function runAllTests() {
   const allPassed = Object.values(results).every((r) => r.pass);
   console.log(`\n${'='.repeat(50)}`);
   console.log(
-    allPassed
-      ? '✅ ALL TESTS PASSED'
-      : '⚠️  SOME TESTS NEED REVIEW - Check screenshots in tests/'
+    allPassed ? '✅ ALL TESTS PASSED' : '⚠️  SOME TESTS NEED REVIEW - Check screenshots in tests/'
   );
   console.log(`${'='.repeat(50)}\n`);
 

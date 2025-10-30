@@ -81,18 +81,14 @@ describe('hashApiKey', () => {
 
 describe('validateApiKeyFormat', () => {
   it('should validate correct production key format', () => {
-    const result = validateApiKeyFormat(
-      'jk_live_' + 'a'.repeat(64)
-    );
+    const result = validateApiKeyFormat(`jk_live_${'a'.repeat(64)}`);
 
     expect(result.valid).toBe(true);
     expect(result.environment).toBe('production');
   });
 
   it('should validate correct development key format', () => {
-    const result = validateApiKeyFormat(
-      'jk_test_' + 'b'.repeat(64)
-    );
+    const result = validateApiKeyFormat(`jk_test_${'b'.repeat(64)}`);
 
     expect(result.valid).toBe(true);
     expect(result.environment).toBe('development');
@@ -113,9 +109,7 @@ describe('validateApiKeyFormat', () => {
   });
 
   it('should reject key with non-hex random portion', () => {
-    const result = validateApiKeyFormat(
-      'jk_live_' + 'xyz'.repeat(22)
-    );
+    const result = validateApiKeyFormat(`jk_live_${'xyz'.repeat(22)}`);
 
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('hexadecimal');
@@ -154,13 +148,13 @@ describe('extractKeyPrefix', () => {
 
 describe('isProductionKey', () => {
   it('should identify production keys', () => {
-    const key = 'jk_live_' + 'a'.repeat(64);
+    const key = `jk_live_${'a'.repeat(64)}`;
 
     expect(isProductionKey(key)).toBe(true);
   });
 
   it('should reject development keys', () => {
-    const key = 'jk_test_' + 'a'.repeat(64);
+    const key = `jk_test_${'a'.repeat(64)}`;
 
     expect(isProductionKey(key)).toBe(false);
   });
@@ -172,13 +166,13 @@ describe('isProductionKey', () => {
 
 describe('isDevelopmentKey', () => {
   it('should identify development keys', () => {
-    const key = 'jk_test_' + 'a'.repeat(64);
+    const key = `jk_test_${'a'.repeat(64)}`;
 
     expect(isDevelopmentKey(key)).toBe(true);
   });
 
   it('should reject production keys', () => {
-    const key = 'jk_live_' + 'a'.repeat(64);
+    const key = `jk_live_${'a'.repeat(64)}`;
 
     expect(isDevelopmentKey(key)).toBe(false);
   });
@@ -209,7 +203,7 @@ describe('constantTimeCompare', () => {
     // This is a basic test - real timing attack resistance
     // would require more sophisticated timing analysis
     const hash1 = 'a'.repeat(64);
-    const hash2 = 'a'.repeat(63) + 'b';
+    const hash2 = `${'a'.repeat(63)}b`;
 
     const result1 = constantTimeCompare(hash1, hash2);
     const result2 = constantTimeCompare(hash1, 'b'.repeat(64));
@@ -242,13 +236,13 @@ describe('maskApiKey', () => {
 
 describe('getKeyEnvironment', () => {
   it('should identify production environment', () => {
-    const key = 'jk_live_' + 'a'.repeat(64);
+    const key = `jk_live_${'a'.repeat(64)}`;
 
     expect(getKeyEnvironment(key)).toBe('production');
   });
 
   it('should identify development environment', () => {
-    const key = 'jk_test_' + 'a'.repeat(64);
+    const key = `jk_test_${'a'.repeat(64)}`;
 
     expect(getKeyEnvironment(key)).toBe('development');
   });

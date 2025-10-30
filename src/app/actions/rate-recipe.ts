@@ -12,10 +12,12 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipeRatings, recipes } from '@/lib/db/schema';
+import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export interface RateRecipeResult {
   success: boolean;
@@ -127,11 +129,11 @@ export async function rateRecipe(
       avgUserRating: parseFloat(avgRating.toFixed(1)),
       totalRatings,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Rate Recipe] Error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to save rating',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -171,49 +173,67 @@ export async function getUserRating(recipeId: string): Promise<{
       createdAt: userRating[0].created_at || undefined,
       updatedAt: userRating[0].updated_at || undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Get User Rating] Error:', error);
     return null;
   }
 }
 
 /**
- * Get all ratings for a recipe (for display/analysis)
+ * Get all ratings for a recipe with user profile data (for display)
  *
  * @param recipeId - Recipe ID
  * @param limit - Max number of ratings to return
+ * @param offset - Number of ratings to skip (for pagination)
  * @returns Array of ratings with user info
  */
 export async function getRecipeRatings(
   recipeId: string,
-  limit: number = 10
+  limit: number = 10,
+  offset: number = 0
 ): Promise<
   {
     id: string;
-    user_id: string;
+    userId: string;
     rating: number;
-    review?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+    review: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    userName: string;
+    userAvatar?: string;
   }[]
 > {
   try {
-    const ratings = await db
-      .select()
+    // Get ratings with left join to user profiles for display names
+    const ratingsWithProfiles = await db
+      .select({
+        id: recipeRatings.id,
+        userId: recipeRatings.user_id,
+        rating: recipeRatings.rating,
+        review: recipeRatings.review,
+        createdAt: recipeRatings.created_at,
+        updatedAt: recipeRatings.updated_at,
+        displayName: userProfiles.display_name,
+        avatar: userProfiles.profile_image_url,
+      })
       .from(recipeRatings)
+      .leftJoin(userProfiles, eq(recipeRatings.user_id, userProfiles.user_id))
       .where(eq(recipeRatings.recipe_id, recipeId))
-      .orderBy(sql`${recipeRatings.created_at} DESC`)
-      .limit(limit);
+      .orderBy(desc(recipeRatings.created_at))
+      .limit(limit)
+      .offset(offset);
 
-    return ratings.map((r) => ({
+    return ratingsWithProfiles.map((r) => ({
       id: r.id,
-      user_id: r.user_id,
+      userId: r.userId,
       rating: r.rating,
-      review: r.review || undefined,
-      created_at: r.created_at || undefined,
-      updated_at: r.updated_at || undefined,
+      review: r.review,
+      createdAt: r.createdAt || new Date(),
+      updatedAt: r.updatedAt || new Date(),
+      userName: r.displayName || 'Anonymous User',
+      userAvatar: r.avatar || undefined,
     }));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Get Recipe Ratings] Error:', error);
     return [];
   }
@@ -283,11 +303,11 @@ export async function deleteRating(
     revalidatePath('/recipes');
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Delete Rating] Error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete rating',
+      error: toErrorMessage(error),
     };
   }
 }

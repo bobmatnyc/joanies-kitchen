@@ -19,6 +19,7 @@ import { searchRecipes as braveSearchRecipes } from '@/lib/brave-search';
 import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
 // Type Definitions
@@ -270,7 +271,7 @@ Set confidenceScore (0.0-1.0) based on:
     console.error(`Extraction error for ${url}:`, error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown extraction error',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -567,7 +568,7 @@ export async function discoverRecipes(
         errors.push({
           url: result.url,
           step: 'pipeline',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: toErrorMessage(error),
         });
         console.error(`Pipeline error for ${result.url}:`, error);
       }
@@ -601,7 +602,7 @@ export async function discoverRecipes(
         {
           url: 'pipeline',
           step: 'initialization',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: toErrorMessage(error),
         },
       ],
     };
@@ -658,7 +659,7 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
     console.error('Single URL discovery error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: toErrorMessage(error),
     };
   }
 }

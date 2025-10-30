@@ -12,7 +12,7 @@
  * - Best case: < 500ms for typical queries
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:3002';
 
@@ -218,7 +218,7 @@ test.describe('Fridge Ingredient Search Performance', () => {
         const { timing } = await measureSearchPerformance(page, ingredients, name);
         const status = timing < 1000 ? '✅ PASS' : '⚠️  WARN';
         results.push({ name, timing, status });
-      } catch (error) {
+      } catch (_error) {
         results.push({ name, timing: -1, status: '❌ FAIL' });
       }
     }
@@ -238,8 +238,7 @@ test.describe('Fridge Ingredient Search Performance', () => {
 
     // Calculate average
     const validTimings = results.filter((r) => r.timing >= 0);
-    const avgTiming =
-      validTimings.reduce((sum, r) => sum + r.timing, 0) / validTimings.length;
+    const avgTiming = validTimings.reduce((sum, r) => sum + r.timing, 0) / validTimings.length;
     console.log(`\n📊 Average Performance: ${avgTiming.toFixed(0)}ms`);
 
     // Performance verdict

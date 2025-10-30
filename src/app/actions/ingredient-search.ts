@@ -21,6 +21,7 @@ import {
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/consolidation-map';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import type {
   IngredientSearchResult,
   RecipeWithMatch,
@@ -430,13 +431,13 @@ export async function searchRecipesByIngredients(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Ingredient search failed:', error);
     return {
       success: false,
       recipes: [],
       totalCount: 0,
-      error: error.message || 'Failed to search recipes by ingredients',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -553,12 +554,12 @@ export async function getIngredientSuggestions(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get ingredient suggestions failed:', error);
     return {
       success: false,
       suggestions: [],
-      error: error.message || 'Failed to get ingredient suggestions',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -617,12 +618,12 @@ export async function getIngredientsByCategory(categories: string | string[]): P
       success: true,
       ingredients: ingredientsWithStats,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get ingredients by category failed:', error);
     return {
       success: false,
       ingredients: [],
-      error: error.message || 'Failed to get ingredients by category',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -694,12 +695,12 @@ export async function getRecipeIngredients(recipeId: string): Promise<RecipeIngr
       success: true,
       ingredients: ingredientsWithDetails,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get recipe ingredients failed:', error);
     return {
       success: false,
       ingredients: [],
-      error: error.message || 'Failed to get recipe ingredients',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -787,12 +788,12 @@ export async function getPopularIngredients(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get popular ingredients failed:', error);
     return {
       success: false,
       ingredients: [],
-      error: error.message || 'Failed to get popular ingredients',
+      error: toErrorMessage(error),
     };
   }
 }

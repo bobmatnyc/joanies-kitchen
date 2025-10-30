@@ -4,14 +4,14 @@
  * Tests for /api/v1/auth/* endpoints
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  createTestApiKey,
-  makeAuthenticatedRequest,
-  assertStatus,
   assertJsonResponse,
+  assertStatus,
+  createTestApiKey,
   globalSetup,
   globalTeardown,
+  makeAuthenticatedRequest,
   type TestContext,
 } from './setup.js';
 
@@ -145,29 +145,23 @@ describe('API Authentication Endpoints', () => {
   describe('GET /api/v1/auth/keys/:id', () => {
     it('should retrieve specific API key details', async () => {
       // First create a key to retrieve
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/auth/keys',
-        {
-          method: 'POST',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Key for Retrieval Test',
-            scopes: ['read:recipes'],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/auth/keys', {
+        method: 'POST',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Key for Retrieval Test',
+          scopes: ['read:recipes'],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const keyId = createData.id;
 
       // Now retrieve it
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}`,
-        {
-          method: 'GET',
-          apiKey: testContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}`, {
+        method: 'GET',
+        apiKey: testContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -193,34 +187,28 @@ describe('API Authentication Endpoints', () => {
   describe('PATCH /api/v1/auth/keys/:id', () => {
     it('should update API key name and description', async () => {
       // Create a key
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/auth/keys',
-        {
-          method: 'POST',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Original Name',
-            description: 'Original Description',
-            scopes: ['read:recipes'],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/auth/keys', {
+        method: 'POST',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Original Name',
+          description: 'Original Description',
+          scopes: ['read:recipes'],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const keyId = createData.id;
 
       // Update it
-      const updateResponse = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}`,
-        {
-          method: 'PATCH',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Updated Name',
-            description: 'Updated Description',
-          },
-        }
-      );
+      const updateResponse = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}`, {
+        method: 'PATCH',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Updated Name',
+          description: 'Updated Description',
+        },
+      });
 
       assertStatus(updateResponse, 200);
       const updateData = await assertJsonResponse(updateResponse);
@@ -231,33 +219,27 @@ describe('API Authentication Endpoints', () => {
 
     it('should revoke API key', async () => {
       // Create a key
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/auth/keys',
-        {
-          method: 'POST',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Key to Revoke',
-            scopes: ['read:recipes'],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/auth/keys', {
+        method: 'POST',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Key to Revoke',
+          scopes: ['read:recipes'],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const keyId = createData.id;
 
       // Revoke it
-      const revokeResponse = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}`,
-        {
-          method: 'PATCH',
-          apiKey: testContext.testApiKey,
-          body: {
-            isActive: false,
-            revocationReason: 'Test revocation',
-          },
-        }
-      );
+      const revokeResponse = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}`, {
+        method: 'PATCH',
+        apiKey: testContext.testApiKey,
+        body: {
+          isActive: false,
+          revocationReason: 'Test revocation',
+        },
+      });
 
       assertStatus(revokeResponse, 200);
       const revokeData = await assertJsonResponse(revokeResponse);
@@ -271,40 +253,31 @@ describe('API Authentication Endpoints', () => {
   describe('DELETE /api/v1/auth/keys/:id', () => {
     it('should delete API key permanently', async () => {
       // Create a key
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/auth/keys',
-        {
-          method: 'POST',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Key to Delete',
-            scopes: ['read:recipes'],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/auth/keys', {
+        method: 'POST',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Key to Delete',
+          scopes: ['read:recipes'],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const keyId = createData.id;
 
       // Delete it
-      const deleteResponse = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}`,
-        {
-          method: 'DELETE',
-          apiKey: testContext.testApiKey,
-        }
-      );
+      const deleteResponse = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}`, {
+        method: 'DELETE',
+        apiKey: testContext.testApiKey,
+      });
 
       assertStatus(deleteResponse, 204);
 
       // Verify it's gone
-      const getResponse = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}`,
-        {
-          method: 'GET',
-          apiKey: testContext.testApiKey,
-        }
-      );
+      const getResponse = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}`, {
+        method: 'GET',
+        apiKey: testContext.testApiKey,
+      });
 
       assertStatus(getResponse, 404);
     });
@@ -313,29 +286,23 @@ describe('API Authentication Endpoints', () => {
   describe('GET /api/v1/auth/keys/:id/usage', () => {
     it('should retrieve usage statistics for API key', async () => {
       // Create a key
-      const createResponse = await makeAuthenticatedRequest(
-        '/api/v1/auth/keys',
-        {
-          method: 'POST',
-          apiKey: testContext.testApiKey,
-          body: {
-            name: 'Key for Usage Test',
-            scopes: ['read:recipes'],
-          },
-        }
-      );
+      const createResponse = await makeAuthenticatedRequest('/api/v1/auth/keys', {
+        method: 'POST',
+        apiKey: testContext.testApiKey,
+        body: {
+          name: 'Key for Usage Test',
+          scopes: ['read:recipes'],
+        },
+      });
 
       const createData = await assertJsonResponse(createResponse);
       const keyId = createData.id;
 
       // Get usage stats
-      const usageResponse = await makeAuthenticatedRequest(
-        `/api/v1/auth/keys/${keyId}/usage`,
-        {
-          method: 'GET',
-          apiKey: testContext.testApiKey,
-        }
-      );
+      const usageResponse = await makeAuthenticatedRequest(`/api/v1/auth/keys/${keyId}/usage`, {
+        method: 'GET',
+        apiKey: testContext.testApiKey,
+      });
 
       assertStatus(usageResponse, 200);
       const usageData = await assertJsonResponse(usageResponse);

@@ -31,11 +31,7 @@ interface RecipeCommentsProps {
  *   isAuthenticated={true}
  * />
  */
-export function RecipeComments({
-  recipeId,
-  currentUserId,
-  isAuthenticated,
-}: RecipeCommentsProps) {
+export function RecipeComments({ recipeId, currentUserId, isAuthenticated }: RecipeCommentsProps) {
   const [comments, setComments] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +63,7 @@ export function RecipeComments({
   useEffect(() => {
     loadCommentsData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipeId]);
+  }, [loadCommentsData]);
 
   // Refresh comments after new comment added
   const handleCommentAdded = async () => {
@@ -83,7 +79,9 @@ export function RecipeComments({
             Comments {commentCount > 0 && `(${commentCount})`}
           </CardTitle>
         </div>
-        <CardDescription>Share your thoughts, tips, and experiences with this recipe</CardDescription>
+        <CardDescription>
+          Share your thoughts, tips, and experiences with this recipe
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">

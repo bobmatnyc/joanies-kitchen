@@ -84,7 +84,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
       } else {
         setError(result.error || 'Failed to update flag');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);

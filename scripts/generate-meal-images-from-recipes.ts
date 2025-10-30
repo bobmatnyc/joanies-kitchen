@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Meal Image Generation Script
  *
@@ -10,12 +11,12 @@
  *   npx tsx scripts/generate-meal-images-from-recipes.ts --all
  */
 
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
 import { put } from '@vercel/blob';
-import fs from 'fs/promises';
-import path from 'path';
-import crypto from 'crypto';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -44,8 +45,8 @@ interface MealRecipe {
  * Generate a detailed prompt for meal image generation
  */
 function generateMealPrompt(meal: Meal, recipes: Recipe[]): string {
-  const recipeTitles = recipes.map(r => r.name).join(', ');
-  const cuisines = [...new Set(recipes.map(r => r.cuisine).filter(Boolean))];
+  const recipeTitles = recipes.map((r) => r.name).join(', ');
+  const cuisines = [...new Set(recipes.map((r) => r.cuisine).filter(Boolean))];
   const cuisineText = cuisines.length > 0 ? cuisines.join(' and ') : 'gourmet';
 
   // Extract key ingredients from recipes
@@ -62,7 +63,10 @@ function generateMealPrompt(meal: Meal, recipes: Recipe[]): string {
   // Get prominent ingredients (mentioned in multiple recipes or unique items)
   const ingredientCounts = new Map<string, number>();
   for (const ing of allIngredients) {
-    const cleaned = ing.toLowerCase().replace(/^\d+.*?(cup|tablespoon|teaspoon|lb|oz|g|kg)\s+/i, '').trim();
+    const cleaned = ing
+      .toLowerCase()
+      .replace(/^\d+.*?(cup|tablespoon|teaspoon|lb|oz|g|kg)\s+/i, '')
+      .trim();
     const key = cleaned.split(',')[0].trim();
     ingredientCounts.set(key, (ingredientCounts.get(key) || 0) + 1);
   }
@@ -93,24 +97,29 @@ async function generateImage(prompt: string, outputPath: string): Promise<void> 
     const sdxlScript = path.join(process.cwd(), 'scripts/image-gen/meal_image_generator.py');
 
     // Check if SD XL script exists
-    if (!require('fs').existsSync(sdxlScript)) {
+    if (!require('node:fs').existsSync(sdxlScript)) {
       reject(new Error(`SD XL script not found at ${sdxlScript}`));
       return;
     }
 
     // Check if venv Python exists
-    if (!require('fs').existsSync(venvPython)) {
+    if (!require('node:fs').existsSync(venvPython)) {
       reject(new Error(`Python venv not found at ${venvPython}`));
       return;
     }
 
     const args = [
       sdxlScript,
-      '--prompt', prompt,
-      '--output', outputPath,
-      '--width', '1024',
-      '--height', '1024',
-      '--steps', '30'
+      '--prompt',
+      prompt,
+      '--output',
+      outputPath,
+      '--width',
+      '1024',
+      '--height',
+      '1024',
+      '--steps',
+      '30',
     ];
 
     console.log('🎨 Starting Stable Diffusion XL image generation...');
@@ -118,12 +127,12 @@ async function generateImage(prompt: string, outputPath: string): Promise<void> 
 
     const childProcess = spawn(venvPython, args);
 
-    let stdout = '';
+    let _stdout = '';
     let stderr = '';
 
     childProcess.stdout.on('data', (data) => {
       const text = data.toString();
-      stdout += text;
+      _stdout += text;
       console.log(text);
     });
 
@@ -269,9 +278,9 @@ async function updateMealImage(mealId: string, imageUrl: string): Promise<void> 
 async function processMeal(mealData: MealRecipe): Promise<void> {
   const { meal, recipes } = mealData;
 
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${'='.repeat(80)}`);
   console.log(`📋 Processing: ${meal.name}`);
-  console.log(`   Recipes: ${recipes.map(r => r.name).join(', ')}`);
+  console.log(`   Recipes: ${recipes.map((r) => r.name).join(', ')}`);
   console.log('='.repeat(80));
 
   // Generate prompt
@@ -342,10 +351,9 @@ Requirements:
         await processMeal(mealData);
       }
 
-      console.log('\n' + '='.repeat(80));
+      console.log(`\n${'='.repeat(80)}`);
       console.log(`✅ Completed ${meals.length} meals!`);
       console.log('='.repeat(80));
-
     } else {
       const mealSlugIndex = args.indexOf('--meal-slug');
       if (mealSlugIndex === -1 || !args[mealSlugIndex + 1]) {
@@ -365,7 +373,6 @@ Requirements:
 
       await processMeal(mealData);
     }
-
   } catch (error) {
     console.error('\n❌ Error:', error);
     process.exit(1);

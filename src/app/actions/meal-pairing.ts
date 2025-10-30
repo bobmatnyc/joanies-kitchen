@@ -7,6 +7,7 @@ import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/me
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
 // Input Validation Schemas
@@ -124,11 +125,11 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
       success: true,
       data: result.mealPlan,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in generateBalancedMeal:', error);
     return {
       success: false,
-      error: error.message || 'An unexpected error occurred while generating the meal plan',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -243,11 +244,11 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
       data: createdMeal.id,
       message: `Meal plan "${name}" saved successfully`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in saveMealPlanFromPairing:', error);
     return {
       success: false,
-      error: error.message || 'Failed to save meal plan',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -326,11 +327,11 @@ export async function getMealPairingHistory(
         hasMore: validOffset + validLimit < allUserMeals.length,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in getMealPairingHistory:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve meal plan history',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -394,11 +395,11 @@ export async function deleteMealPlan(mealId: string) {
       success: true,
       message: 'Meal plan deleted successfully',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in deleteMealPlan:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete meal plan',
+      error: toErrorMessage(error),
     };
   }
 }

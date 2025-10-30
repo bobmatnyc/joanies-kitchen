@@ -39,7 +39,7 @@ export function SimilarRecipesWidget({
       } else {
         setError(result.error || 'Failed to find similar recipes');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);

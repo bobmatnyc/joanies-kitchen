@@ -152,7 +152,7 @@ export function hasScope(userScopes: string[], requiredScope: string): boolean {
   }
 
   // Check for resource wildcard (e.g., "recipes:*" matching "read:recipes")
-  const [requiredAction, requiredResource] = requiredScope.split(':');
+  const [_requiredAction, requiredResource] = requiredScope.split(':');
 
   for (const userScope of userScopes) {
     // Check if user has wildcard for this resource

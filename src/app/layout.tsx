@@ -5,13 +5,13 @@ import { Inter, Lora, Playfair_Display } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
-import { AlphaStamp } from '@/components/AlphaStamp';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
 import { MobileNav } from '@/components/mobile/MobileNav';
 import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
+import { AlphaStamp } from '@/components/shared/AlphaStamp';
 import './globals.css';
 
 // Joanie's Kitchen Typography

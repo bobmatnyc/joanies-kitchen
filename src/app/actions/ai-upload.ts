@@ -6,6 +6,7 @@ import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser'
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Upload and parse recipe using AI
@@ -74,7 +75,7 @@ export async function uploadRecipeWithAI(params: {
     console.error('Error uploading recipe with AI:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to parse and upload recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -144,7 +145,7 @@ export async function uploadRecipeFromUrl(url: string) {
     console.error('Error uploading recipe from URL:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to import recipe from URL',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -183,7 +184,7 @@ export async function previewRecipeParse(params: {
     console.error('Error previewing recipe parse:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to parse recipe',
+      error: toErrorMessage(error),
     };
   }
 }

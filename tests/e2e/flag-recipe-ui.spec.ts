@@ -276,7 +276,7 @@ test.describe('Recipe Flagging UI', () => {
 
       // Focus should be inside dialog
       const dialog = page.getByRole('dialog');
-      const focusedElement = page.locator(':focus');
+      const _focusedElement = page.locator(':focus');
 
       // Focused element should be within dialog
       await expect(dialog.locator(':focus')).toBeTruthy();
@@ -314,7 +314,6 @@ test.describe('Recipe Flagging UI', () => {
     test('should not show flag button to recipe owner', async ({ page }) => {
       // Note: This test assumes authentication as recipe owner
       // In real implementation, you'd mock the auth state
-
       // For recipes owned by current user, flag button should not appear
       // await page.goto('/recipes/my-own-recipe');
       // const flagButton = page.getByRole('button', { name: /report/i });

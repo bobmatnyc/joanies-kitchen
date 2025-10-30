@@ -27,7 +27,10 @@ export function normalizeIngredientName(name: string): string {
   if (parentheticalMatch) {
     const content = parentheticalMatch[1];
     // Keep if it looks like a brand name (capitalized words) or "or similar"
-    if (!/^for |^to |^as /i.test(content) && (content.match(/[A-Z]/) || content.includes('similar'))) {
+    if (
+      !/^for |^to |^as /i.test(content) &&
+      (content.match(/[A-Z]/) || content.includes('similar'))
+    ) {
       // Keep the brand name but move it to the front if it's a jarred/canned item
       if (normalized.match(/tablespoons?\s+jarred|canned|bottled/i)) {
         // Convert "3.5 tablespoons jarred sauce (Brand)" to "jar of Brand sauce"
@@ -42,7 +45,10 @@ export function normalizeIngredientName(name: string): string {
   // Remove preparation instructions after comma
   // "onion, roughly chopped" → "onion"
   // "onion, chopped" → "onion"
-  normalized = normalized.replace(/,\s*(roughly\s+|finely\s+|thinly\s+|thickly\s+)?(\w+ed|sliced|diced|chopped|minced|grated|shredded|cubed)(\s+.*)?$/i, '');
+  normalized = normalized.replace(
+    /,\s*(roughly\s+|finely\s+|thinly\s+|thickly\s+)?(\w+ed|sliced|diced|chopped|minced|grated|shredded|cubed)(\s+.*)?$/i,
+    ''
+  );
 
   // Remove usage notes after comma: "oil, for chicken" → "oil"
   normalized = normalized.replace(/,\s*(for|to|as)\s+[^,]+$/i, '');
@@ -65,7 +71,9 @@ export function normalizeIngredientName(name: string): string {
  */
 function convertToContainerUnit(name: string): string {
   // Match patterns like "X tablespoons jarred/canned Y (Brand)"
-  const match = name.match(/^[\d.\/\s]+\s*(tablespoons?|teaspoons?|cups?)\s+(jarred|canned|bottled)\s+(.+?)\s*\(([^)]+)\)/i);
+  const match = name.match(
+    /^[\d./\s]+\s*(tablespoons?|teaspoons?|cups?)\s+(jarred|canned|bottled)\s+(.+?)\s*\(([^)]+)\)/i
+  );
 
   if (match) {
     const [, , containerType, product, brand] = match;
@@ -99,12 +107,12 @@ function normalizeCommonVariations(name: string): string {
     'sunflower oil': 'neutral oil',
     'safflower oil': 'neutral oil',
     'extra virgin olive oil': 'olive oil',
-    'evoo': 'olive oil',
+    evoo: 'olive oil',
   };
 
   // Check oil normalizations
   for (const [variant, standard] of Object.entries(oilNormalizations)) {
-    if (lowerName === variant || lowerName.startsWith(variant + ' ')) {
+    if (lowerName === variant || lowerName.startsWith(`${variant} `)) {
       return standard + name.slice(variant.length);
     }
   }

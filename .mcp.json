@@ -3,10 +3,7 @@
     "kuzu-memory": {
       "type": "stdio",
       "command": "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/python",
-      "args": [
-        "-m",
-        "kuzu_memory.mcp.server"
-      ],
+      "args": ["-m", "kuzu_memory.mcp.server"],
       "env": {
         "KUZU_MEMORY_PROJECT_ROOT": "/Users/masa/Projects/joanies-kitchen",
         "KUZU_MEMORY_DB": "/Users/masa/Projects/joanies-kitchen/kuzu-memories"

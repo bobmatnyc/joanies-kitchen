@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         : await semanticSearchRecipes(query, options as SearchOptions);
 
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API semantic search error:', error);
     return NextResponse.json(
       {
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         : await semanticSearchRecipes(query, options);
 
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API semantic search error:', error);
     return NextResponse.json(
       {

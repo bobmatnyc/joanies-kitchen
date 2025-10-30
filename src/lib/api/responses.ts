@@ -8,7 +8,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import type { ZodError } from 'zod';
 
 // ============================================================================
 // RESPONSE TYPES

@@ -1,5 +1,6 @@
 import { BookOpen } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -31,10 +32,13 @@ export default function AboutPage() {
         <div className="bg-white border-2 border-jk-sage rounded-jk p-8 lg:p-12 mb-12 shadow-sm">
           {/* Portrait */}
           <div className="float-left mr-8 mb-6 w-64 lg:w-80">
-            <img
+            <Image
               src="/joanie-portrait.png"
               alt="Joanie in her kitchen"
+              width={320}
+              height={400}
               className="w-full rounded-jk border-4 border-jk-sage shadow-md"
+              priority
             />
             <p className="text-sm text-jk-clay italic mt-2 text-center font-body">
               Joanie in her element — cooking with the seasons

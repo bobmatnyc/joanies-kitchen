@@ -92,7 +92,7 @@ export function CommentsList({
       loadComments(0, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialComments.length, loadComments]);
 
   const handleLoadMore = () => {
     loadComments(offset, false);

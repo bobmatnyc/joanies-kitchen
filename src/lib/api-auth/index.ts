@@ -39,91 +39,6 @@
  * ```
  */
 
-// Key generation and validation
-export {
-  constantTimeCompare,
-  extractKeyPrefix,
-  generateApiKey,
-  type GeneratedApiKey,
-  getKeyEnvironment,
-  hashApiKey,
-  isDevelopmentKey,
-  isProductionKey,
-  maskApiKey,
-  validateApiKeyFormat,
-} from './key-generator';
-
-// Key service operations
-export {
-  checkApiKeyPermission,
-  cleanupExpiredKeys,
-  createApiKey,
-  type CreateApiKeyParams,
-  type CreateApiKeyResult,
-  deleteApiKey,
-  getApiKeyById,
-  getApiKeyUsage,
-  type ApiKeyUsageParams,
-  type ApiKeyUsageStats,
-  getRecentUsageLogs,
-  listUserApiKeys,
-  revokeApiKey,
-  trackApiUsage,
-  updateApiKey,
-  validateApiKey,
-  type ValidateApiKeyResult,
-} from './key-service';
-
-// Scope management
-export {
-  expandWildcard,
-  getScopeDescription,
-  hasAllScopes,
-  hasAnyScope,
-  hasScope,
-  isValidScopeFormat,
-  type Scope,
-  SCOPE_GROUPS,
-  SCOPES,
-  validateScopes,
-} from './scopes';
-
-// Authentication middleware
-export {
-  authenticateRequest,
-  authHasAllScopes,
-  authHasAnyScope,
-  authHasScope,
-  createUnauthenticatedContext,
-  getAuthTypeLabel,
-} from './middleware';
-
-// Authentication wrappers for API routes
-export {
-  getAuthContext,
-  getUserId,
-  isAuthenticated,
-  optionalAuth,
-  requireAnyScope,
-  requireAuth,
-  requireScopes,
-} from './require-auth';
-
-// Type definitions
-export type {
-  AuthContext,
-  AuthError,
-  AuthFailureReason,
-  AuthenticatedHandler,
-  AuthenticatedRequest,
-  AuthMetadata,
-  AuthMiddlewareOptions,
-  AuthType,
-  RequestTrackingInfo,
-  ScopeValidationOptions,
-  UnauthenticatedHandler,
-} from './types';
-
 // Re-export database types for convenience
 export type {
   ApiKey,
@@ -135,5 +50,83 @@ export type {
   NewApiKey,
   NewApiKeyUsage,
 } from '../db/api-keys-schema';
-
 export { API_KEY_ENVIRONMENTS, API_KEY_SCOPES } from '../db/api-keys-schema';
+// Key generation and validation
+export {
+  constantTimeCompare,
+  extractKeyPrefix,
+  type GeneratedApiKey,
+  generateApiKey,
+  getKeyEnvironment,
+  hashApiKey,
+  isDevelopmentKey,
+  isProductionKey,
+  maskApiKey,
+  validateApiKeyFormat,
+} from './key-generator';
+// Key service operations
+export {
+  type ApiKeyUsageParams,
+  type ApiKeyUsageStats,
+  type CreateApiKeyParams,
+  type CreateApiKeyResult,
+  checkApiKeyPermission,
+  cleanupExpiredKeys,
+  createApiKey,
+  deleteApiKey,
+  getApiKeyById,
+  getApiKeyUsage,
+  getRecentUsageLogs,
+  listUserApiKeys,
+  revokeApiKey,
+  trackApiUsage,
+  updateApiKey,
+  type ValidateApiKeyResult,
+  validateApiKey,
+} from './key-service';
+// Authentication middleware
+export {
+  authenticateRequest,
+  authHasAllScopes,
+  authHasAnyScope,
+  authHasScope,
+  createUnauthenticatedContext,
+  getAuthTypeLabel,
+} from './middleware';
+// Authentication wrappers for API routes
+export {
+  getAuthContext,
+  getUserId,
+  isAuthenticated,
+  optionalAuth,
+  requireAnyScope,
+  requireAuth,
+  requireScopes,
+} from './require-auth';
+// Scope management
+export {
+  expandWildcard,
+  getScopeDescription,
+  hasAllScopes,
+  hasAnyScope,
+  hasScope,
+  isValidScopeFormat,
+  SCOPE_GROUPS,
+  SCOPES,
+  type Scope,
+  validateScopes,
+} from './scopes';
+// Type definitions
+export type {
+  AuthContext,
+  AuthError,
+  AuthenticatedHandler,
+  AuthenticatedRequest,
+  AuthFailureReason,
+  AuthMetadata,
+  AuthMiddlewareOptions,
+  AuthType,
+  RequestTrackingInfo,
+  ScopeValidationOptions,
+  UnauthenticatedHandler,
+} from './types';

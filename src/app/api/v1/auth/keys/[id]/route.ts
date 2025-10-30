@@ -15,14 +15,12 @@
  * - Key hash and user_id cannot be modified
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
 import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { getApiKeyById, updateApiKey, revokeApiKey } from '@/lib/api-auth';
-import {
-  updateApiKeySchema,
-  type UpdateApiKeyInput,
-} from '@/lib/validations/api-key-validation';
+import { getApiKeyById, revokeApiKey, updateApiKey } from '@/lib/api-auth';
+import { type UpdateApiKeyInput, updateApiKeySchema } from '@/lib/validations/api-key-validation';
+
 /**
  * Helper function to verify ownership and authenticate
  */
@@ -118,10 +116,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
  * - 404: Key not found
  * - 500: Internal server error
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     // Await params to comply with Next.js 15
     const params = await context.params;
@@ -211,10 +206,7 @@ export async function GET(
  * - 400: Invalid request body
  * - 500: Internal server error
  */
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     // Await params to comply with Next.js 15
     const params = await context.params;
@@ -351,10 +343,7 @@ export async function PATCH(
  * - 404: Key not found
  * - 500: Internal server error
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     // Await params to comply with Next.js 15
     const params = await context.params;
@@ -377,11 +366,7 @@ export async function DELETE(
     const { userId } = auth;
 
     // Revoke the API key
-    const success = await revokeApiKey(
-      keyId,
-      userId,
-      'Revoked by user via API'
-    );
+    const success = await revokeApiKey(keyId, userId, 'Revoked by user via API');
 
     if (!success) {
       return NextResponse.json(

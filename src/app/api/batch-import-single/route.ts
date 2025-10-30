@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
           url: url,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`[Single Import] ❌ ERROR: ${error.message}`);
       return NextResponse.json({
         success: false,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         url: url,
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Single Import] Fatal error:', error.message);
     return NextResponse.json(
       {

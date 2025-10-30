@@ -40,12 +40,12 @@ import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
 import { FlagButton } from '@/components/recipe/FlagButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { InventoryMatchSection } from '@/components/recipe/InventoryMatchSection';
+import { RatingDisplay } from '@/components/recipe/RatingDisplay';
+import { RecipeComments } from '@/components/recipe/RecipeComments';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
 } from '@/components/recipe/RecipeEngagementStats';
-import { RatingDisplay } from '@/components/recipe/RatingDisplay';
-import { RecipeComments } from '@/components/recipe/RecipeComments';
 import { RecipeRatings } from '@/components/recipe/RecipeRatings';
 import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';

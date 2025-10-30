@@ -62,7 +62,7 @@ export function FlagButton({
   const handleClick = () => {
     if (!isSignedIn) {
       // Redirect to sign-in page
-      router.push('/sign-in?redirect=/recipes/' + recipeId);
+      router.push(`/sign-in?redirect=/recipes/${recipeId}`);
       return;
     }
 

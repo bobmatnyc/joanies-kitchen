@@ -20,6 +20,7 @@ import {
   wasteTracking,
 } from '@/lib/db/inventory-schema';
 import { recipeIngredients, recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
 // VALIDATION SCHEMAS

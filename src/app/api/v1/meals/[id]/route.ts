@@ -14,10 +14,7 @@ import { ZodError } from 'zod';
 import { deleteMeal, getMealById, updateMeal } from '@/app/actions/meals';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
-import {
-  updateMealSchema,
-  type UpdateMealInput,
-} from '@/lib/validations/meal-api';
+import { type UpdateMealInput, updateMealSchema } from '@/lib/validations/meal-api';
 
 /**
  * GET /api/v1/meals/:id
@@ -47,10 +44,10 @@ import {
  */
 export const GET = requireScopes(
   [SCOPES.READ_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, _auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const id = params?.id as string;
 
       if (!id) {
@@ -147,7 +144,7 @@ export const PATCH = requireScopes(
   async (request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const id = params?.id as string;
 
       if (!id) {
@@ -269,10 +266,10 @@ export const PATCH = requireScopes(
  */
 export const DELETE = requireScopes(
   [SCOPES.DELETE_MEALS],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
-      const params = context?.params ? await context.params : {};
+      const params = await context.params;
       const id = params?.id as string;
 
       if (!id) {

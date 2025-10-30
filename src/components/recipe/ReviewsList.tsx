@@ -3,7 +3,7 @@
 import { Edit2, Star, Trash2, User } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { getRecipeRatings, rateRecipe, deleteRating } from '@/app/actions/rate-recipe';
+import { deleteRating, getRecipeRatings, rateRecipe } from '@/app/actions/rate-recipe';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,11 +43,7 @@ interface ReviewsListProps {
  *   initialReviews={reviews}
  * />
  */
-export function ReviewsList({
-  recipeId,
-  currentUserId,
-  initialReviews = [],
-}: ReviewsListProps) {
+export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: ReviewsListProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -63,7 +59,7 @@ export function ReviewsList({
     if (initialReviews.length === 0) {
       loadReviews(0);
     }
-  }, [recipeId]);
+  }, [initialReviews.length, loadReviews]);
 
   const loadReviews = async (offset: number) => {
     setIsLoading(true);
@@ -102,7 +98,7 @@ export function ReviewsList({
     setEditReview('');
   };
 
-  const handleSaveEdit = async (reviewId: string) => {
+  const handleSaveEdit = async (_reviewId: string) => {
     if (editRating === 0) {
       toast.error('Please select a rating');
       return;
@@ -325,9 +321,7 @@ export function ReviewsList({
                         key={value}
                         className={cn(
                           'w-4 h-4',
-                          value <= review.rating
-                            ? 'fill-[#FFD700] text-[#FFD700]'
-                            : 'text-gray-300'
+                          value <= review.rating ? 'fill-[#FFD700] text-[#FFD700]' : 'text-gray-300'
                         )}
                         aria-hidden="true"
                       />

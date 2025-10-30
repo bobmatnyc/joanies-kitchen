@@ -31,7 +31,7 @@ async function checkTableExists(tableName: string): Promise<boolean> {
 async function getTableCount(tableName: string): Promise<number> {
   try {
     const result = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM ${tableName}`));
-    return parseInt((result.rows[0] as any).count);
+    return parseInt((result.rows[0] as any).count, 10);
   } catch {
     return 0;
   }
@@ -138,28 +138,44 @@ async function applyMigration() {
       await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_user_id_idx ON api_keys(user_id);`);
       console.log('    ✓ api_keys_user_id_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys(key_hash);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys(key_hash);`
+      );
       console.log('    ✓ api_keys_key_hash_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_key_prefix_idx ON api_keys(key_prefix);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_key_prefix_idx ON api_keys(key_prefix);`
+      );
       console.log('    ✓ api_keys_key_prefix_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_is_active_idx ON api_keys(is_active);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_is_active_idx ON api_keys(is_active);`
+      );
       console.log('    ✓ api_keys_is_active_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_expires_at_idx ON api_keys(expires_at);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_expires_at_idx ON api_keys(expires_at);`
+      );
       console.log('    ✓ api_keys_expires_at_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_created_at_idx ON api_keys(created_at DESC);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_created_at_idx ON api_keys(created_at DESC);`
+      );
       console.log('    ✓ api_keys_created_at_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_last_used_at_idx ON api_keys(last_used_at DESC);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_last_used_at_idx ON api_keys(last_used_at DESC);`
+      );
       console.log('    ✓ api_keys_last_used_at_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_environment_idx ON api_keys(environment);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_environment_idx ON api_keys(environment);`
+      );
       console.log('    ✓ api_keys_environment_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_keys_user_active_idx ON api_keys(user_id, is_active);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_keys_user_active_idx ON api_keys(user_id, is_active);`
+      );
       console.log('    ✓ api_keys_user_active_idx (composite)');
     }
 
@@ -189,31 +205,49 @@ async function applyMigration() {
       // Create indexes for api_key_usage
       console.log('  Creating indexes...');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_api_key_id_idx ON api_key_usage(api_key_id);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_api_key_id_idx ON api_key_usage(api_key_id);`
+      );
       console.log('    ✓ api_key_usage_api_key_id_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_requested_at_idx ON api_key_usage(requested_at DESC);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_requested_at_idx ON api_key_usage(requested_at DESC);`
+      );
       console.log('    ✓ api_key_usage_requested_at_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_endpoint_idx ON api_key_usage(endpoint);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_endpoint_idx ON api_key_usage(endpoint);`
+      );
       console.log('    ✓ api_key_usage_endpoint_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_status_code_idx ON api_key_usage(status_code);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_status_code_idx ON api_key_usage(status_code);`
+      );
       console.log('    ✓ api_key_usage_status_code_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_method_idx ON api_key_usage(method);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_method_idx ON api_key_usage(method);`
+      );
       console.log('    ✓ api_key_usage_method_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_api_key_date_idx ON api_key_usage(api_key_id, requested_at DESC);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_api_key_date_idx ON api_key_usage(api_key_id, requested_at DESC);`
+      );
       console.log('    ✓ api_key_usage_api_key_date_idx (composite)');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_endpoint_status_idx ON api_key_usage(endpoint, status_code);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_endpoint_status_idx ON api_key_usage(endpoint, status_code);`
+      );
       console.log('    ✓ api_key_usage_endpoint_status_idx (composite)');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_error_idx ON api_key_usage(error_code);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_error_idx ON api_key_usage(error_code);`
+      );
       console.log('    ✓ api_key_usage_error_idx');
 
-      await db.execute(sql`CREATE INDEX IF NOT EXISTS api_key_usage_response_time_idx ON api_key_usage(response_time_ms DESC);`);
+      await db.execute(
+        sql`CREATE INDEX IF NOT EXISTS api_key_usage_response_time_idx ON api_key_usage(response_time_ms DESC);`
+      );
       console.log('    ✓ api_key_usage_response_time_idx');
     }
 
@@ -260,8 +294,10 @@ async function applyMigration() {
       `);
 
       console.log('\n📇 Indexes created:');
-      const apiKeysIndexes = (indexes.rows as any[]).filter(r => r.tablename === 'api_keys');
-      const apiKeyUsageIndexes = (indexes.rows as any[]).filter(r => r.tablename === 'api_key_usage');
+      const apiKeysIndexes = (indexes.rows as any[]).filter((r) => r.tablename === 'api_keys');
+      const apiKeyUsageIndexes = (indexes.rows as any[]).filter(
+        (r) => r.tablename === 'api_key_usage'
+      );
 
       console.log(`   api_keys: ${apiKeysIndexes.length} indexes`);
       console.log(`   api_key_usage: ${apiKeyUsageIndexes.length} indexes`);

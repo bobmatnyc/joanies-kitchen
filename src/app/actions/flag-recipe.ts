@@ -14,6 +14,7 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipeFlags, recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export type FlagReason = 'inappropriate' | 'spam' | 'copyright' | 'quality' | 'other';
 export type FlagStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
@@ -94,11 +95,11 @@ export async function flagRecipe(
       success: true,
       flagId: newFlag.id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Flag Recipe] Error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to flag recipe',
+      error: toErrorMessage(error) || 'Failed to flag recipe',
     };
   }
 }
@@ -117,7 +118,7 @@ export async function getFlagCount(recipeId: string): Promise<number> {
       .where(and(eq(recipeFlags.recipe_id, recipeId), eq(recipeFlags.status, 'pending')));
 
     return result[0]?.count || 0;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Get Flag Count] Error:', error);
     return 0;
   }
@@ -150,7 +151,7 @@ export async function hasUserFlagged(recipeId: string): Promise<boolean> {
       .limit(1);
 
     return flags.length > 0;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Has User Flagged] Error:', error);
     return false;
   }
@@ -230,7 +231,7 @@ export async function getAllFlags(
       review_notes: flag.review_notes,
       created_at: flag.created_at,
     }));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Get All Flags] Error:', error);
     throw error;
   }
@@ -294,11 +295,11 @@ export async function reviewFlag(
     revalidatePath('/admin/flags');
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Review Flag] Error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to review flag',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -353,7 +354,7 @@ export async function getRecipeFlags(recipeId: string): Promise<
       status: flag.status || 'pending',
       created_at: flag.created_at,
     }));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Get Recipe Flags] Error:', error);
     throw error;
   }

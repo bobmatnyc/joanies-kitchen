@@ -5,7 +5,7 @@
  * Test 2: Recipe Ingredient Display - [object Object] Fix
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Test configuration
 const BASE_URL = 'http://localhost:3002';
@@ -63,17 +63,19 @@ test.describe('Test 1: Admin Flagged Images - Infinite Loop Fix', () => {
 
     // Check for one of the expected end states
     const noFlaggedImages = page.locator('text=No images flagged for regeneration').first();
-    const flaggedImagesGrid = page.locator('div.grid').filter({ has: page.locator('text=Regenerate Image') });
+    const flaggedImagesGrid = page
+      .locator('div.grid')
+      .filter({ has: page.locator('text=Regenerate Image') });
 
     const hasNoFlaggedMessage = await noFlaggedImages.isVisible().catch(() => false);
-    const hasFlaggedGrid = await flaggedImagesGrid.count() > 0;
+    const hasFlaggedGrid = (await flaggedImagesGrid.count()) > 0;
 
     expect(hasNoFlaggedMessage || hasFlaggedGrid).toBe(true);
 
     // Verify no infinite loop by checking network requests
     // Filter for the flagged recipes API calls
-    const flaggedRecipesRequests = networkRequests.filter(url =>
-      url.includes('flagged') || url.includes('admin')
+    const flaggedRecipesRequests = networkRequests.filter(
+      (url) => url.includes('flagged') || url.includes('admin')
     );
 
     console.log(`Total network requests: ${networkRequests.length}`);
@@ -83,10 +85,9 @@ test.describe('Test 1: Admin Flagged Images - Infinite Loop Fix', () => {
     expect(flaggedRecipesRequests.length).toBeLessThan(20);
 
     // Check console for errors
-    const errors = consoleMessages.filter(msg => msg.type === 'error');
-    const infiniteRenderErrors = errors.filter(msg =>
-      msg.text.includes('Maximum update depth') ||
-      msg.text.includes('Too many re-renders')
+    const errors = consoleMessages.filter((msg) => msg.type === 'error');
+    const infiniteRenderErrors = errors.filter(
+      (msg) => msg.text.includes('Maximum update depth') || msg.text.includes('Too many re-renders')
     );
 
     console.log(`Console errors: ${errors.length}`);
@@ -107,7 +108,9 @@ test.describe('Test 1: Admin Flagged Images - Infinite Loop Fix', () => {
  * Fix: Added handling for structured ingredient format {name, quantity, unit, notes, preparation}
  */
 test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
-  test('should display ingredients as readable strings on kale-white-bean-stew-2 page', async ({ page }) => {
+  test('should display ingredients as readable strings on kale-white-bean-stew-2 page', async ({
+    page,
+  }) => {
     // Track console messages
     const consoleMessages: Array<{ type: string; text: string }> = [];
     page.on('console', (msg) => {
@@ -121,7 +124,7 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
     console.log('Navigating to recipe page...');
     await page.goto(`${BASE_URL}/recipes/kale-white-bean-stew-2`, {
       waitUntil: 'networkidle',
-      timeout: TIMEOUT
+      timeout: TIMEOUT,
     });
 
     // Wait for page to load
@@ -129,13 +132,15 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
 
     // Find the ingredients section
     console.log('Locating ingredients section...');
-    const ingredientsHeading = page.locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")').first();
+    const ingredientsHeading = page
+      .locator('h2:has-text("Ingredients"), h3:has-text("Ingredients")')
+      .first();
     await expect(ingredientsHeading).toBeVisible({ timeout: 10000 });
 
     // Get all ingredient text content
     // Look for ingredient list (could be ul, ol, or div with ingredients)
     const ingredientsList = page.locator('ul li, ol li').filter({
-      hasNot: page.locator('h1, h2, h3, h4')
+      hasNot: page.locator('h1, h2, h3, h4'),
     });
 
     // Wait for ingredients to be visible
@@ -149,7 +154,7 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
     // Check each ingredient for [object Object]
     const ingredientsText: string[] = [];
     for (let i = 0; i < ingredientsCount; i++) {
-      const text = await ingredientsList.nth(i).textContent() || '';
+      const text = (await ingredientsList.nth(i).textContent()) || '';
       ingredientsText.push(text);
 
       // Critical check: NO [object Object]
@@ -159,12 +164,13 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
 
     // Verify expected ingredient formats exist
     // Should contain ingredients with quantities and units
-    const hasQuantityPattern = ingredientsText.some(text =>
-      /\d+/.test(text) || // Contains numbers
-      /½|¼|¾|⅓|⅔/.test(text) // Contains fractions
+    const hasQuantityPattern = ingredientsText.some(
+      (text) =>
+        /\d+/.test(text) || // Contains numbers
+        /½|¼|¾|⅓|⅔/.test(text) // Contains fractions
     );
 
-    const hasUnits = ingredientsText.some(text =>
+    const hasUnits = ingredientsText.some((text) =>
       /\b(cup|tbsp|tsp|lb|oz|g|kg|ml|l)\b/i.test(text)
     );
 
@@ -172,22 +178,24 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
     expect(hasUnits).toBe(true);
 
     // Look for specific expected ingredients from kale-white-bean-stew-2
-    const hasKale = ingredientsText.some(text => /kale/i.test(text));
-    const hasOliveOil = ingredientsText.some(text => /olive oil/i.test(text));
+    const hasKale = ingredientsText.some((text) => /kale/i.test(text));
+    const hasOliveOil = ingredientsText.some((text) => /olive oil/i.test(text));
 
     console.log(`Has kale: ${hasKale}`);
     console.log(`Has olive oil: ${hasOliveOil}`);
 
     // Check console for errors
-    const errors = consoleMessages.filter(msg => msg.type === 'error');
+    const errors = consoleMessages.filter((msg) => msg.type === 'error');
     console.log(`Console errors: ${errors.length}`);
 
     if (errors.length > 0) {
-      console.log('Console errors:', errors.map(e => e.text).join('\n'));
+      console.log('Console errors:', errors.map((e) => e.text).join('\n'));
     }
   });
 
-  test('should display ingredients correctly on other recipe pages (regression test)', async ({ page }) => {
+  test('should display ingredients correctly on other recipe pages (regression test)', async ({
+    page,
+  }) => {
     // Test a few other recipe pages to ensure fix is universal
     const testRecipes = [
       'kale-white-bean-stew-2', // Original test case
@@ -199,7 +207,7 @@ test.describe('Test 2: Recipe Ingredient Display - [object Object] Fix', () => {
 
       await page.goto(`${BASE_URL}/recipes/${slug}`, {
         waitUntil: 'networkidle',
-        timeout: TIMEOUT
+        timeout: TIMEOUT,
       });
 
       // Quick check for [object Object]

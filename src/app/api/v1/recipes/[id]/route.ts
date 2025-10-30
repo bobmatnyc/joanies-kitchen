@@ -11,20 +11,17 @@
 
 import type { NextRequest } from 'next/server';
 import { deleteRecipe, getRecipe, updateRecipe } from '@/app/actions/recipes';
-import { requireScopes, SCOPES } from '@/lib/api-auth';
-import type { RouteContext } from '@/lib/api-auth/types';
 import {
-  updateRecipeSchema,
-  type UpdateRecipeInput,
-} from '@/lib/validations/recipe-api';
-import {
-  apiSuccess,
   apiError,
+  apiSuccess,
   getRequiredParam,
+  handleActionResult,
   parseParamAndBody,
   verifyResourceOwnership,
-  handleActionResult,
 } from '@/lib/api';
+import { requireScopes, SCOPES } from '@/lib/api-auth';
+import type { RouteContext } from '@/lib/api-auth/types';
+import { updateRecipeSchema } from '@/lib/validations/recipe-api';
 
 /**
  * GET /api/v1/recipes/:id
@@ -48,7 +45,7 @@ import {
  */
 export const GET = requireScopes(
   [SCOPES.READ_RECIPES],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, _auth, context: RouteContext) => {
     try {
       // Extract recipe ID from route params
       const idResult = await getRequiredParam(context, 'id');
@@ -165,7 +162,7 @@ export const PATCH = requireScopes(
  */
 export const DELETE = requireScopes(
   [SCOPES.DELETE_RECIPES],
-  async (request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract recipe ID from route params
       const idResult = await getRequiredParam(context, 'id');

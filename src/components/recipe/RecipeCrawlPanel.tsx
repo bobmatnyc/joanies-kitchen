@@ -320,7 +320,7 @@ export function RecipeCrawlPanel() {
       }
 
       setWeeklyResults(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to discover recipes');
       setWeeklyProgress((prev) => (prev ? { ...prev, currentStep: 'idle' } : prev));
     } finally {
@@ -472,7 +472,7 @@ export function RecipeCrawlPanel() {
       }
 
       setResults(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to crawl recipes');
       setSearchProgress((prev) => (prev ? { ...prev, currentStep: 'idle' } : prev));
     } finally {

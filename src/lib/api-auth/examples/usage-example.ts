@@ -8,15 +8,15 @@
 import type { NextRequest } from 'next/server';
 import {
   createApiKey,
-  validateApiKey,
-  trackApiUsage,
-  revokeApiKey,
-  listUserApiKeys,
   getApiKeyUsage,
-  hasScope,
   hasAllScopes,
-  SCOPES,
+  hasScope,
+  listUserApiKeys,
+  revokeApiKey,
   SCOPE_GROUPS,
+  SCOPES,
+  trackApiUsage,
+  validateApiKey,
 } from '@/lib/api-auth';
 
 // ============================================================================
@@ -28,12 +28,7 @@ export async function exampleCreateApiKey(userId: string) {
   const result = await createApiKey({
     userId,
     name: 'Mobile App',
-    scopes: [
-      SCOPES.READ_RECIPES,
-      SCOPES.WRITE_RECIPES,
-      SCOPES.READ_MEALS,
-      SCOPES.WRITE_MEALS,
-    ],
+    scopes: [SCOPES.READ_RECIPES, SCOPES.WRITE_RECIPES, SCOPES.READ_MEALS, SCOPES.WRITE_MEALS],
     description: 'API key for mobile app access',
     expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
     environment: 'production',
@@ -100,7 +95,7 @@ export async function exampleApiRouteWithAuth(request: NextRequest) {
   if (!hasScope(auth.scopes!, SCOPES.READ_RECIPES)) {
     // Track unauthorized attempt
     await trackApiUsage({
-      keyId: auth.apiKey!.id,
+      keyId: auth.apiKey?.id,
       endpoint: '/api/recipes',
       method: 'GET',
       statusCode: 403,
@@ -118,7 +113,7 @@ export async function exampleApiRouteWithAuth(request: NextRequest) {
 
   // Track successful request
   await trackApiUsage({
-    keyId: auth.apiKey!.id,
+    keyId: auth.apiKey?.id,
     endpoint: '/api/recipes',
     method: 'GET',
     statusCode: 200,
@@ -153,10 +148,7 @@ export async function exampleAdminEndpoint(request: NextRequest) {
   }
 
   // Require ALL of these scopes for admin operations
-  const requiredScopes = [
-    SCOPES.ADMIN_CONTENT,
-    SCOPES.WRITE_RECIPES,
-  ];
+  const requiredScopes = [SCOPES.ADMIN_CONTENT, SCOPES.WRITE_RECIPES];
 
   if (!hasAllScopes(auth.scopes!, requiredScopes)) {
     return Response.json(
@@ -290,35 +282,26 @@ export function withApiKeyAuth(requiredScopes: string[]) {
     const apiKey = request.headers.get('x-api-key');
 
     if (!apiKey) {
-      return Response.json(
-        { error: 'API key required' },
-        { status: 401 }
-      );
+      return Response.json({ error: 'API key required' }, { status: 401 });
     }
 
     const auth = await validateApiKey(apiKey);
 
     if (!auth.valid) {
-      return Response.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
-      );
+      return Response.json({ error: 'Invalid API key' }, { status: 401 });
     }
 
     // Check scopes
     if (!hasAllScopes(auth.scopes!, requiredScopes)) {
       await trackApiUsage({
-        keyId: auth.apiKey!.id,
+        keyId: auth.apiKey?.id,
         endpoint: request.url,
         method: request.method,
         statusCode: 403,
         responseTimeMs: Date.now() - startTime,
       });
 
-      return Response.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      );
+      return Response.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Call the actual handler with auth context
@@ -326,7 +309,7 @@ export function withApiKeyAuth(requiredScopes: string[]) {
 
     // Track successful request
     await trackApiUsage({
-      keyId: auth.apiKey!.id,
+      keyId: auth.apiKey?.id,
       endpoint: request.url,
       method: request.method,
       statusCode: 200,

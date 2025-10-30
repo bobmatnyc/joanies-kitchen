@@ -51,7 +51,10 @@ export default function Home() {
 
       // Log errors (optional - helps with debugging)
       if (recipesOfTheDayResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch recipes of the day:', recipesOfTheDayResult.reason);
+        console.error(
+          '[Homepage] Failed to fetch recipes of the day:',
+          recipesOfTheDayResult.reason
+        );
       }
       if (backgroundImagesResult.status === 'rejected') {
         console.error(

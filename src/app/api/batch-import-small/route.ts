@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         if (i < urls.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[Batch Import Small] ❌ ERROR: ${error.message}`);
         failCount++;
         results.push({
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       },
       results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Batch Import Small] Fatal error:', error.message);
     return NextResponse.json(
       {

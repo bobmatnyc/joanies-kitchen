@@ -202,7 +202,7 @@ export async function POST(_request: NextRequest) {
 
           // Rate limiting: 2 seconds between requests
           await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`[Batch Import API] ❌ ERROR: ${error.message}`);
           failCount++;
           results.push({
@@ -230,7 +230,7 @@ export async function POST(_request: NextRequest) {
       },
       results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Batch Import API] Fatal error:', error.message);
     return NextResponse.json(
       {

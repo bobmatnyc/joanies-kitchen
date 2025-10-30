@@ -13,10 +13,10 @@ import { ZodError } from 'zod';
 import { addRecipeToMeal, createMeal, getUserMeals } from '@/app/actions/meals';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import {
-  createMealSchema,
-  listMealsQuerySchema,
   type CreateMealInput,
+  createMealSchema,
   type ListMealsQuery,
+  listMealsQuerySchema,
 } from '@/lib/validations/meal-api';
 
 /**
@@ -54,7 +54,7 @@ import {
  * - 400: Invalid query parameters
  * - 500: Internal server error
  */
-export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextRequest, auth) => {
+export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextRequest, _auth) => {
   try {
     // Parse and validate query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -186,7 +186,7 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
  * - 400: Invalid request body
  * - 500: Internal server error
  */
-export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequest, auth) => {
+export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequest, _auth) => {
   try {
     // Parse request body
     const body = await request.json();

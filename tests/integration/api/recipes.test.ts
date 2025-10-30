@@ -4,14 +4,14 @@
  * Tests for /api/v1/recipes/* endpoints
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  createTestApiKey,
-  makeAuthenticatedRequest,
-  assertStatus,
   assertJsonResponse,
+  assertStatus,
+  createTestApiKey,
   globalSetup,
   globalTeardown,
+  makeAuthenticatedRequest,
   type TestContext,
 } from './setup.js';
 
@@ -168,13 +168,10 @@ describe('API Recipe Endpoints', () => {
       const recipeId = listData.recipes[0].id;
 
       // Get specific recipe
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -215,13 +212,10 @@ describe('API Recipe Endpoints', () => {
 
       const recipeId = listData.recipes[0].id;
 
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       const data = await assertJsonResponse(response);
 
@@ -250,13 +244,10 @@ describe('API Recipe Endpoints', () => {
       const recipeId = listData.recipes[0].id;
 
       // Get similar recipes
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}/similar`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}/similar`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(response, 200);
       const data = await assertJsonResponse(response);
@@ -293,14 +284,11 @@ describe('API Recipe Endpoints', () => {
 
       const recipeId = listData.recipes[0].id;
 
-      const response = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}/similar`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-          query: { limit: '5' },
-        }
-      );
+      const response = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}/similar`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+        query: { limit: '5' },
+      });
 
       const data = await assertJsonResponse(response);
       expect(data.similar.length).toBeLessThanOrEqual(5);
@@ -387,17 +375,14 @@ describe('API Recipe Endpoints', () => {
       const recipeId = createData.id;
 
       // Update it
-      const updateResponse = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}`,
-        {
-          method: 'PATCH',
-          apiKey: writeContext.testApiKey,
-          body: {
-            title: 'Updated Recipe Title',
-            description: 'Updated description',
-          },
-        }
-      );
+      const updateResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}`, {
+        method: 'PATCH',
+        apiKey: writeContext.testApiKey,
+        body: {
+          title: 'Updated Recipe Title',
+          description: 'Updated description',
+        },
+      });
 
       assertStatus(updateResponse, 200);
       const updateData = await assertJsonResponse(updateResponse);
@@ -424,24 +409,18 @@ describe('API Recipe Endpoints', () => {
       const recipeId = createData.id;
 
       // Delete it
-      const deleteResponse = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}`,
-        {
-          method: 'DELETE',
-          apiKey: writeContext.testApiKey,
-        }
-      );
+      const deleteResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}`, {
+        method: 'DELETE',
+        apiKey: writeContext.testApiKey,
+      });
 
       assertStatus(deleteResponse, 204);
 
       // Verify it's gone
-      const getResponse = await makeAuthenticatedRequest(
-        `/api/v1/recipes/${recipeId}`,
-        {
-          method: 'GET',
-          apiKey: readContext.testApiKey,
-        }
-      );
+      const getResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${recipeId}`, {
+        method: 'GET',
+        apiKey: readContext.testApiKey,
+      });
 
       assertStatus(getResponse, 404);
     });

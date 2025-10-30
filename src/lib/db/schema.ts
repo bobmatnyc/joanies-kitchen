@@ -218,6 +218,19 @@ export const recipes = pgTable(
     qa_notes: text('qa_notes'), // Free-form human notes or validation details
     qa_issues_found: text('qa_issues_found'), // JSON array: ["missing_ingredient:salt", "instruction_mismatch:butter"]
     qa_fixes_applied: text('qa_fixes_applied'), // JSON array: ["added_ingredient:salt", "updated_quantity:2_cups_flour"]
+
+    // Recipe Moderation Fields (Admin Moderation Queue Workflow)
+    // Purpose: Track moderation status for user-uploaded recipes before public visibility
+    // Workflow: pending → approved (visible) | pending → rejected (not visible) | approved → flagged (investigation needed)
+    moderation_status: text('moderation_status', {
+      enum: ['pending', 'approved', 'rejected', 'flagged'],
+    })
+      .notNull()
+      .default('pending'), // Default to pending for user-uploaded recipes
+    moderation_notes: text('moderation_notes'), // Admin notes about rejection/flagging reasons
+    moderated_by: text('moderated_by'), // Clerk user ID of moderator who took action
+    moderated_at: timestamp('moderated_at'), // When moderation action was taken
+    submission_notes: text('submission_notes'), // User's notes when submitting recipe for review
   },
   (table) => ({
     // Performance indexes for pagination and filtering
@@ -257,6 +270,11 @@ export const recipes = pgTable(
     qaStatusIdx: index('idx_recipes_qa_status').on(table.qa_status), // Index for QA status filtering
     qaTimestampIdx: index('idx_recipes_qa_timestamp').on(table.qa_timestamp), // Index for QA timestamp sorting
     qaMethodIdx: index('idx_recipes_qa_method').on(table.qa_method), // Index for QA method filtering
+    moderationStatusIdx: index('idx_recipes_moderation_status').on(table.moderation_status), // Index for moderation queue filtering
+    moderationPendingIdx: index('idx_recipes_moderation_pending').on(
+      table.moderation_status,
+      table.created_at.desc()
+    ), // Composite index for pending queue sorted by submission time
   })
 );
 

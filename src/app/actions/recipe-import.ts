@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth-guard';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Import a single recipe from markdown
@@ -59,7 +60,7 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
     console.error('Import error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to import recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -92,7 +93,7 @@ export async function importRecipesFromMarkdown(
     } catch (error) {
       errors.push({
         filename: file.name,
-        error: error instanceof Error ? error.message : 'Import failed',
+        error: toErrorMessage(error),
       });
     }
   }
@@ -122,7 +123,7 @@ export async function previewMarkdownRecipe(markdownContent: string) {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to parse recipe',
+      error: toErrorMessage(error),
     };
   }
 }

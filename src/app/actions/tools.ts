@@ -3,6 +3,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipeTools, tools } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export interface Tool {
   id: string;
@@ -198,7 +199,7 @@ export async function getAllTools(options: GetToolsOptions = {}): Promise<{
       success: false,
       tools: [],
       totalCount: 0,
-      error: error instanceof Error ? error.message : 'Failed to fetch tools',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -265,7 +266,7 @@ export async function getToolById(toolId: string): Promise<{
     return {
       success: false,
       tool: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch tool',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -326,7 +327,7 @@ export async function getToolsByCategory(category: string): Promise<{
     return {
       success: false,
       tools: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch tools',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -394,7 +395,7 @@ export async function getRecipeTools(recipeId: string): Promise<{
     return {
       success: false,
       tools: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch recipe tools',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -455,7 +456,7 @@ export async function getToolsByType(type: string): Promise<{
     return {
       success: false,
       tools: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch tools',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -501,7 +502,7 @@ export async function getToolCategories(): Promise<{
     return {
       success: false,
       categories: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch tool categories',
+      error: toErrorMessage(error),
     };
   }
 }

@@ -7,10 +7,10 @@
  * @module lib/api/request-helpers
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
+import type { NextRequest, NextResponse } from 'next/server';
 import { ZodError, type ZodSchema } from 'zod';
-import { apiValidationError, apiError } from './responses';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { apiError, apiValidationError } from './responses';
 
 // ============================================================================
 // QUERY PARAMETER PARSING
@@ -141,10 +141,7 @@ export async function parseJsonBody<T>(
 export async function getRouteParams(
   context: RouteContext
 ): Promise<Record<string, string | string[]>> {
-  if (!context?.params) {
-    return {};
-  }
-
+  // In Next.js 15, params is always a Promise (empty object for routes without dynamic segments)
   return await context.params;
 }
 

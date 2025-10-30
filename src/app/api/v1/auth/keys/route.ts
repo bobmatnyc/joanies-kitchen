@@ -14,14 +14,11 @@
  * - After creation, only key prefix is visible
  */
 
-import { type NextRequest, NextResponse } from 'next/server';
 import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { createApiKey, listUserApiKeys } from '@/lib/api-auth';
-import {
-  createApiKeySchema,
-  type CreateApiKeyInput,
-} from '@/lib/validations/api-key-validation';
+import { type CreateApiKeyInput, createApiKeySchema } from '@/lib/validations/api-key-validation';
 
 /**
  * GET /api/v1/auth/keys
@@ -53,7 +50,7 @@ import {
  * - 401: Not authenticated (must use Clerk session)
  * - 500: Internal server error
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // CRITICAL: Only allow Clerk session authentication (not API keys)
     const session = await clerkAuth();

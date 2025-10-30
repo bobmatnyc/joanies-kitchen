@@ -10,23 +10,18 @@
 
 import type { NextRequest } from 'next/server';
 import { createRecipe, getRecipes, searchRecipes } from '@/app/actions/recipes';
-import { requireScopes, SCOPES } from '@/lib/api-auth';
 import {
-  createRecipeSchema,
-  listRecipesQuerySchema,
-  type CreateRecipeInput,
-  type ListRecipesQuery,
-} from '@/lib/validations/recipe-api';
-import {
+  apiError,
   apiSuccess,
   apiSuccessPaginated,
-  apiError,
-  parseQueryParams,
-  parseJsonBody,
   applyFilters,
-  applySorting,
   applyPagination,
+  applySorting,
+  parseJsonBody,
+  parseQueryParams,
 } from '@/lib/api';
+import { requireScopes, SCOPES } from '@/lib/api-auth';
+import { createRecipeSchema, listRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
  * GET /api/v1/recipes
@@ -65,7 +60,7 @@ import {
  * - 400: Invalid query parameters
  * - 500: Internal server error
  */
-export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequest, auth) => {
+export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequest, _auth) => {
   try {
     // Parse and validate query parameters
     const parsed = parseQueryParams(request, listRecipesQuerySchema);
@@ -105,7 +100,12 @@ export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequ
       validatedQuery.limit!
     );
 
-    return apiSuccessPaginated(paginatedRecipes, validatedQuery.page!, validatedQuery.limit!, total);
+    return apiSuccessPaginated(
+      paginatedRecipes,
+      validatedQuery.page!,
+      validatedQuery.limit!,
+      total
+    );
   } catch (error) {
     console.error('Error fetching recipes:', error);
     return apiError('Internal server error');
@@ -150,7 +150,7 @@ export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequ
  * - 400: Invalid request body
  * - 500: Internal server error
  */
-export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRequest, auth) => {
+export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRequest, _auth) => {
   try {
     // Parse and validate request body
     const parsed = await parseJsonBody(request, createRecipeSchema);

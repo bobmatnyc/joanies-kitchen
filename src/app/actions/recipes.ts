@@ -7,6 +7,7 @@ import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { generateUniqueSlug } from '@/lib/utils/slug';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // Get all unique tags from recipes
 export async function getAllTags() {
@@ -877,9 +878,9 @@ export async function getRecipesOfTheDay() {
     const seed = parseInt(numericSeed, 10);
 
     // Step 1: Select a main course using date-based deterministic selection
-    const mainCourseConditions = ['dinner', 'main-course', 'lunch', 'main'].map((tag) =>
-      or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`))
-    ).filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
+    const mainCourseConditions = ['dinner', 'main-course', 'lunch', 'main']
+      .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
+      .filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
 
     const mainCandidates = await db
       .select()
@@ -911,8 +912,8 @@ export async function getRecipesOfTheDay() {
     // Build search queries for complementary recipes
     // Extract cuisine and key characteristics from main dish
     const mainCuisine = selectedMain.cuisine || '';
-    const mainTags = selectedMain.tags ? JSON.parse(selectedMain.tags) : [];
-    const mainDescription = selectedMain.description || '';
+    const _mainTags = selectedMain.tags ? JSON.parse(selectedMain.tags) : [];
+    const _mainDescription = selectedMain.description || '';
 
     // Search for complementary appetizer (light, acidic, stimulating)
     const appetizerQuery = `light appetizer starter ${mainCuisine} acidic fresh`;
@@ -925,9 +926,7 @@ export async function getRecipesOfTheDay() {
     const appetizerCandidates = appetizerResult.success
       ? appetizerResult.recipes.filter(
           (r) =>
-            r.id !== selectedMain.id &&
-            (r.image_url || r.images) &&
-            r.tags?.includes('appetizer')
+            r.id !== selectedMain.id && (r.image_url || r.images) && r.tags?.includes('appetizer')
         )
       : [];
 
@@ -958,7 +957,8 @@ export async function getRecipesOfTheDay() {
 
     const dessertCandidates = dessertResult.success
       ? dessertResult.recipes.filter(
-          (r) => r.id !== selectedMain.id && (r.image_url || r.images) && r.tags?.includes('dessert')
+          (r) =>
+            r.id !== selectedMain.id && (r.image_url || r.images) && r.tags?.includes('dessert')
         )
       : [];
 

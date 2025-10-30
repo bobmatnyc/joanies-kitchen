@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Admin Recipe Image Management Actions
@@ -290,7 +291,7 @@ export async function regenerateAllFlaggedImages() {
       } catch (error) {
         results.failed++;
         results.errors.push(
-          `${recipe.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `${recipe.name}: ${toErrorMessage(error)}`
         );
       }
 

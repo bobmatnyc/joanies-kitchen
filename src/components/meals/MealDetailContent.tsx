@@ -258,7 +258,10 @@ export function MealDetailContent({
                   {meal.name}
                 </h1>
                 {meal.meal_type && (
-                  <Badge variant="outline" className="bg-white/90 backdrop-blur-sm text-jk-olive border-white/50 font-ui">
+                  <Badge
+                    variant="outline"
+                    className="bg-white/90 backdrop-blur-sm text-jk-olive border-white/50 font-ui"
+                  >
                     {meal.meal_type}
                   </Badge>
                 )}
@@ -271,7 +274,9 @@ export function MealDetailContent({
               {meal.occasion && (
                 <div className="flex items-center gap-2 mt-3">
                   <Utensils className="w-4 h-4 text-white/90" />
-                  <span className="text-sm text-white/90 font-ui drop-shadow-md">{meal.occasion}</span>
+                  <span className="text-sm text-white/90 font-ui drop-shadow-md">
+                    {meal.occasion}
+                  </span>
                 </div>
               )}
             </div>

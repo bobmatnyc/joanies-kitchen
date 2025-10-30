@@ -122,11 +122,12 @@ async function FlagsContent({
     }
 
     return <FlagList flags={flags} />;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return (
       <div className="text-center py-12 text-red-600">
         <p>Failed to load flags</p>
-        <p className="text-sm text-gray-500 mt-2">{error.message}</p>
+        <p className="text-sm text-gray-500 mt-2">{message}</p>
       </div>
     );
   }

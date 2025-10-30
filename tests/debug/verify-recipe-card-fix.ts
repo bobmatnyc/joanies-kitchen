@@ -3,9 +3,9 @@
  * Checks that Vivian Li's recipes have proper image URLs
  */
 
+import { eq } from 'drizzle-orm';
 import { db } from '../src/lib/db';
 import { chefs, recipes } from '../src/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 async function verifyRecipeCardFix() {
   console.log('\n🔍 Verifying RecipeCard Image Fix\n');
@@ -25,10 +25,7 @@ async function verifyRecipeCardFix() {
     console.log(`✅ Found chef: ${chef.name} (ID: ${chef.id})\n`);
 
     // Get Vivian Li's recipes
-    const vivianRecipes = await db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.chef_id, chef.id));
+    const vivianRecipes = await db.select().from(recipes).where(eq(recipes.chef_id, chef.id));
 
     console.log(`📊 Total recipes: ${vivianRecipes.length}\n`);
 
@@ -45,34 +42,34 @@ async function verifyRecipeCardFix() {
     let hasLocalPaths = 0;
     let hasNoImages = 0;
 
-    vivianRecipes.forEach(recipe => {
+    vivianRecipes.forEach((recipe) => {
       let imagesArray: string[] = [];
       try {
         imagesArray = recipe.images ? JSON.parse(recipe.images as string) : [];
-      } catch (e) {
+      } catch (_e) {
         console.warn(`Failed to parse images for ${recipe.name}`);
       }
 
       // Apply the same logic as RecipeCard.tsx lines 58-62
-      const workingImages = imagesArray.filter(img =>
-        img.startsWith('http://') || img.startsWith('https://')
+      const workingImages = imagesArray.filter(
+        (img) => img.startsWith('http://') || img.startsWith('https://')
       );
       const displayImage = workingImages[0] || recipe.image_url || imagesArray[0] || 'PLACEHOLDER';
 
       // Analyze image source
       let imageSource = 'none';
-      let isValid = false;
+      let _isValid = false;
 
       if (displayImage.includes('ljqhvy0frzhuigv1.public.blob.vercel-storage.com')) {
         imageSource = '✅ Vercel Storage';
-        isValid = true;
+        _isValid = true;
         hasVercelStorage++;
       } else if (displayImage.includes('/images/recipes/')) {
         imageSource = '❌ Local Path';
         hasLocalPaths++;
       } else if (displayImage.startsWith('http')) {
         imageSource = '⚠️  Other HTTPS';
-        isValid = true;
+        _isValid = true;
       } else if (displayImage === 'PLACEHOLDER') {
         imageSource = '⚠️  Placeholder';
         hasNoImages++;
@@ -83,7 +80,9 @@ async function verifyRecipeCardFix() {
       const imageUrlPreview = recipe.image_url ? recipe.image_url.substring(0, 30) : 'null';
       const displayPreview = displayImage.substring(0, 50);
 
-      console.log(`| ${recipeName} | ${imagesCount} images | ${imageUrlPreview}... | ${imageSource} |`);
+      console.log(
+        `| ${recipeName} | ${imagesCount} images | ${imageUrlPreview}... | ${imageSource} |`
+      );
       console.log(`  Display: ${displayPreview}...`);
     });
 
@@ -122,7 +121,7 @@ async function verifyRecipeCardFix() {
       let imagesArray: string[] = [];
       try {
         imagesArray = recipe.images ? JSON.parse(recipe.images as string) : [];
-      } catch (e) {
+      } catch (_e) {
         imagesArray = [];
       }
 
@@ -138,15 +137,14 @@ async function verifyRecipeCardFix() {
       });
 
       // Show what RecipeCard will display
-      const workingImages = imagesArray.filter(img =>
-        img.startsWith('http://') || img.startsWith('https://')
+      const workingImages = imagesArray.filter(
+        (img) => img.startsWith('http://') || img.startsWith('https://')
       );
       const displayImage = workingImages[0] || recipe.image_url || imagesArray[0] || 'PLACEHOLDER';
       console.log(`   → RecipeCard will display: ${displayImage}`);
     });
 
     console.log('\n═══════════════════════════════════════════════════════════════\n');
-
   } catch (error) {
     console.error('❌ Error:', error);
     throw error;

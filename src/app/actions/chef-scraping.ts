@@ -9,6 +9,7 @@ import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
 import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Start a scraping job for a chef's recipes
@@ -51,7 +52,7 @@ export async function startChefScraping(params: {
     console.error('Error starting scraping job:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to start scraping',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -209,7 +210,7 @@ async function scrapeAndParseRecipes(
       .update(scrapingJobs)
       .set({
         status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: toErrorMessage(error),
         completed_at: new Date(),
         updated_at: new Date(),
       })
@@ -284,7 +285,7 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     console.error('Error scraping single recipe:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to scrape recipe',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -400,7 +401,7 @@ export async function scrapeChefRecipes(params: {
     console.error('Error scraping chef recipes:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to scrape recipes',
+      error: toErrorMessage(error),
     };
   }
 }

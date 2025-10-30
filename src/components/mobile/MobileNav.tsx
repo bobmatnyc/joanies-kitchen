@@ -1,6 +1,15 @@
 'use client';
 
-import { BookOpen, CalendarDays, GraduationCap, Leaf, Menu, Package, Sparkles } from 'lucide-react';
+import {
+  Bookmark,
+  BookOpen,
+  CalendarDays,
+  GraduationCap,
+  Leaf,
+  Menu,
+  Package,
+  Sparkles,
+} from 'lucide-react';
 import { useState } from 'react';
 import { AuthButtons } from '@/components/auth/AuthButtons';
 import { NavLink } from '@/components/navigation/NavLink';
@@ -59,6 +68,15 @@ export function MobileNav() {
             href="/recipes"
             icon={BookOpen}
             label="Recipes"
+            variant="mobile"
+            onClick={handleLinkClick}
+          />
+
+          {/* Collections */}
+          <NavLink
+            href="/collections"
+            icon={Bookmark}
+            label="Collections"
             variant="mobile"
             onClick={handleLinkClick}
           />

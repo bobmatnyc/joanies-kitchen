@@ -13,6 +13,7 @@ import {
   insertCollectionSchema,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Collection Server Actions
@@ -73,14 +74,12 @@ export async function createCollection(data: {
   } catch (error) {
     console.error('Error creating collection:', error);
 
-    if (error instanceof Error) {
-      if (error.message.includes('unique')) {
-        return { success: false, error: 'You already have a collection with this name' };
-      }
-      return { success: false, error: error.message };
+    const errorMsg = toErrorMessage(error);
+    if (errorMsg.includes('unique')) {
+      return { success: false, error: 'You already have a collection with this name' };
     }
 
-    return { success: false, error: 'Failed to create collection' };
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -507,11 +506,12 @@ export async function addRecipeToCollection(
   } catch (error) {
     console.error('Error adding recipe to collection:', error);
 
-    if (error instanceof Error && error.message.includes('unique')) {
+    const errorMsg = toErrorMessage(error);
+    if (errorMsg.includes('unique')) {
       return { success: false, error: 'Recipe already in this collection' };
     }
 
-    return { success: false, error: 'Failed to add recipe to collection' };
+    return { success: false, error: errorMsg };
   }
 }
 

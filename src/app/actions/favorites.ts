@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { favorites } from '@/lib/db/user-discovery-schema';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Favorites Server Actions
@@ -68,11 +69,12 @@ export async function addFavorite(recipeId: string) {
   } catch (error) {
     console.error('Error adding favorite:', error);
 
-    if (error instanceof Error && error.message.includes('unique')) {
+    const errorMsg = toErrorMessage(error);
+    if (errorMsg.includes('unique')) {
       return { success: false, error: 'Recipe already in favorites' };
     }
 
-    return { success: false, error: 'Failed to add favorite' };
+    return { success: false, error: errorMsg };
   }
 }
 

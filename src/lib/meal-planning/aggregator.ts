@@ -189,15 +189,18 @@ function consolidateIngredients(
   mealRecipes: MealRecipe[]
 ): ConsolidatedIngredient[] {
   // Use normalized name as the consolidation key instead of ingredient ID
-  const ingredientMap = new Map<string, {
-    ingredient: Ingredient;
-    totalAmount: number;
-    unit: string;
-    usedIn: string[];
-    category: string;
-    originalNames: string[];
-    usageNotes: (string | null)[];
-  }>();
+  const ingredientMap = new Map<
+    string,
+    {
+      ingredient: Ingredient;
+      totalAmount: number;
+      unit: string;
+      usedIn: string[];
+      category: string;
+      originalNames: string[];
+      usageNotes: (string | null)[];
+    }
+  >();
 
   for (const data of ingredientsData) {
     const { recipeIngredient, ingredient, recipe } = data;

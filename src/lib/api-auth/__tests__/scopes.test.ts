@@ -62,21 +62,15 @@ describe('hasAllScopes', () => {
   it('should require all scopes', () => {
     const userScopes = ['read:recipes', 'write:recipes', 'read:meals'];
 
-    expect(
-      hasAllScopes(userScopes, ['read:recipes', 'write:recipes'])
-    ).toBe(true);
+    expect(hasAllScopes(userScopes, ['read:recipes', 'write:recipes'])).toBe(true);
 
-    expect(
-      hasAllScopes(userScopes, ['read:recipes', 'delete:recipes'])
-    ).toBe(false);
+    expect(hasAllScopes(userScopes, ['read:recipes', 'delete:recipes'])).toBe(false);
   });
 
   it('should work with wildcards', () => {
     const userScopes = ['recipes:*'];
 
-    expect(
-      hasAllScopes(userScopes, ['read:recipes', 'write:recipes'])
-    ).toBe(true);
+    expect(hasAllScopes(userScopes, ['read:recipes', 'write:recipes'])).toBe(true);
   });
 
   it('should return true for empty requirements', () => {
@@ -88,21 +82,15 @@ describe('hasAnyScope', () => {
   it('should allow if any scope matches', () => {
     const userScopes = ['read:recipes'];
 
-    expect(
-      hasAnyScope(userScopes, ['read:recipes', 'write:recipes'])
-    ).toBe(true);
+    expect(hasAnyScope(userScopes, ['read:recipes', 'write:recipes'])).toBe(true);
 
-    expect(
-      hasAnyScope(userScopes, ['write:recipes', 'delete:recipes'])
-    ).toBe(false);
+    expect(hasAnyScope(userScopes, ['write:recipes', 'delete:recipes'])).toBe(false);
   });
 
   it('should work with wildcards', () => {
     const userScopes = ['recipes:*'];
 
-    expect(
-      hasAnyScope(userScopes, ['read:recipes', 'admin:users'])
-    ).toBe(true);
+    expect(hasAnyScope(userScopes, ['read:recipes', 'admin:users'])).toBe(true);
   });
 
   it('should return true for empty requirements', () => {
