@@ -37,12 +37,16 @@ import { AddToCollectionButton } from '@/components/collections/AddToCollectionB
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { BackToChef } from '@/components/recipe/BackToChef';
 import { CloneRecipeButton } from '@/components/recipe/CloneRecipeButton';
+import { FlagButton } from '@/components/recipe/FlagButton';
 import { ImageCarousel } from '@/components/recipe/ImageCarousel';
 import { InventoryMatchSection } from '@/components/recipe/InventoryMatchSection';
 import {
   RecipeEngagementStats,
   RecipeForkAttribution,
 } from '@/components/recipe/RecipeEngagementStats';
+import { RatingDisplay } from '@/components/recipe/RatingDisplay';
+import { RecipeComments } from '@/components/recipe/RecipeComments';
+import { RecipeRatings } from '@/components/recipe/RecipeRatings';
 import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SimilarRecipesWidget } from '@/components/recipe/SimilarRecipesWidget';
 import { SubstitutionSuggestionsWrapper } from '@/components/recipe/SubstitutionSuggestionsWrapper';
@@ -508,6 +512,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
               variant="outline"
             />
           )}
+          {/* Report Button - available to all users except recipe owner */}
+          {!isOwner && <FlagButton recipeId={recipe.id} recipeName={recipe.name} />}
 
           {/* Utility Actions */}
           <Link href={`/recipes/${recipe.id}/similar`} className="contents">
@@ -655,6 +661,18 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
                   {viewCount.toLocaleString()} {viewCount === 1 ? 'view' : 'views'}
                 </span>
               </div>
+            )}
+            {(recipe.avg_user_rating || recipe.total_user_ratings > 0) && (
+              <RatingDisplay
+                averageRating={recipe.avg_user_rating}
+                totalRatings={recipe.total_user_ratings || 0}
+                size="sm"
+                showCount
+                onClick={() => {
+                  const ratingsSection = document.getElementById('ratings-and-reviews');
+                  ratingsSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
             )}
             {recipe.cuisine && (
               <div
@@ -831,6 +849,26 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
             />
           </div>
         )}
+
+        {/* RATINGS & REVIEWS SECTION */}
+        <div className="mb-8">
+          <RecipeRatings
+            recipeId={recipe.id}
+            averageRating={recipe.avg_user_rating}
+            totalRatings={recipe.total_user_ratings || 0}
+            currentUserId={user?.id}
+            isAuthenticated={isSignedIn || false}
+          />
+        </div>
+
+        {/* COMMENTS SECTION */}
+        <div className="mb-8">
+          <RecipeComments
+            recipeId={recipe.id}
+            currentUserId={user?.id}
+            isAuthenticated={isSignedIn || false}
+          />
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
