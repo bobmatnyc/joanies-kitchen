@@ -237,3 +237,5 @@ public/images/**
 # Added by Claude MPM /mpm-init
 .claude/cache/
 .claude/sessions/
+# MCP configuration (contains secrets)
+.mcp/

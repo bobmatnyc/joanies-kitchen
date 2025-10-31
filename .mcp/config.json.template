@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-ticketer": {
+      "command": "/path/to/mcp-ticketer",
+      "args": ["serve"],
+      "cwd": "/path/to/project",
+      "env": {
+        "LINEAR_API_KEY": "your-linear-api-key-here"
+      }
+    }
+  }
+}
