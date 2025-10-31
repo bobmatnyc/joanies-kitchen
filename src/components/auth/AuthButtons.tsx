@@ -1,7 +1,7 @@
 'use client';
 
-import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
-import { ChefHat, FolderHeart, Heart, LogIn, Shield, User } from 'lucide-react';
+import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/nextjs';
+import { ChefHat, FolderHeart, Heart, LogIn, Shield, User, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,12 @@ const isClerkConfigured =
 function DevelopmentAuthButtons() {
   return (
     <div className="flex items-center gap-2">
+      <Link href="/sign-up">
+        <Button variant="ghost" size="sm">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Register
+        </Button>
+      </Link>
       <Link href="/sign-in">
         <Button variant="ghost" size="sm">
           <LogIn className="h-4 w-4 mr-2" />
@@ -99,9 +105,15 @@ function ClerkAuthButtons() {
     );
   }
 
-  // Show Sign In button if not signed in
+  // Show Sign Up and Sign In buttons if not signed in
   return (
     <div className="flex items-center gap-2">
+      <SignUpButton mode="modal" forceRedirectUrl="/">
+        <Button variant="ghost" size="sm">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Register
+        </Button>
+      </SignUpButton>
       <SignInButton mode="modal" forceRedirectUrl="/">
         <Button variant="ghost" size="sm">
           <LogIn className="h-4 w-4 mr-2" />
