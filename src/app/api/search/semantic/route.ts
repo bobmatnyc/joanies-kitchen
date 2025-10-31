@@ -4,6 +4,7 @@ import {
   type SearchOptions,
   semanticSearchRecipes,
 } from '@/app/actions/semantic-search';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * POST /api/search/semantic
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         recipes: [],
-        error: error.message || 'Internal server error',
+        error: toErrorMessage(error),
       },
       { status: 500 }
     );
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         recipes: [],
-        error: error.message || 'Internal server error',
+        error: toErrorMessage(error),
       },
       { status: 500 }
     );

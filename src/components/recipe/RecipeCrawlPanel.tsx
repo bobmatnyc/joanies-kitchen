@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { formatWeekInfo, getWeekInfo } from '@/lib/week-utils';
 
 interface CrawlResult {
@@ -321,7 +322,7 @@ export function RecipeCrawlPanel() {
 
       setWeeklyResults(result);
     } catch (err: unknown) {
-      setError(err.message || 'Failed to discover recipes');
+      setError(toErrorMessage(err) || 'Failed to discover recipes');
       setWeeklyProgress((prev) => (prev ? { ...prev, currentStep: 'idle' } : prev));
     } finally {
       setWeeklyLoading(false);
@@ -473,7 +474,7 @@ export function RecipeCrawlPanel() {
 
       setResults(result);
     } catch (err: unknown) {
-      setError(err.message || 'Failed to crawl recipes');
+      setError(toErrorMessage(err) || 'Failed to crawl recipes');
       setSearchProgress((prev) => (prev ? { ...prev, currentStep: 'idle' } : prev));
     } finally {
       setLoading(false);

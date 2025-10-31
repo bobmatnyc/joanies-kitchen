@@ -180,6 +180,7 @@ export function MealBuilder() {
             tags: tags.length > 0 ? JSON.stringify(tags) : null,
             is_template: false,
             is_public: false,
+            image_url: null,
             total_prep_time: null,
             total_cook_time: null,
             estimated_total_cost: null,

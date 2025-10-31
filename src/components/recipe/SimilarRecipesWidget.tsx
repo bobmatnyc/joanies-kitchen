@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { findSimilarToRecipe, type RecipeWithSimilarity } from '@/app/actions/semantic-search';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +41,7 @@ export function SimilarRecipesWidget({
         setError(result.error || 'Failed to find similar recipes');
       }
     } catch (err: unknown) {
-      setError(err.message || 'An error occurred');
+      setError(toErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 interface FlagData {
   id: string;
@@ -85,7 +86,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
         setError(result.error || 'Failed to update flag');
       }
     } catch (err: unknown) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(toErrorMessage(err));
     } finally {
       setLoading(false);
     }

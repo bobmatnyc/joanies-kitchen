@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { convertUrlToRecipe } from '@/app/actions/recipe-crawl';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,12 +52,13 @@ export async function POST(request: NextRequest) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       } catch (error: unknown) {
-        console.error(`[Batch Import Small] ❌ ERROR: ${error.message}`);
+        const errorMessage = toErrorMessage(error);
+        console.error(`[Batch Import Small] ❌ ERROR: ${errorMessage}`);
         failCount++;
         results.push({
           url,
           status: 'error',
-          error: error.message,
+          error: errorMessage,
         });
       }
     }
@@ -75,11 +77,12 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error: unknown) {
-    console.error('[Batch Import Small] Fatal error:', error.message);
+    const errorMessage = toErrorMessage(error);
+    console.error('[Batch Import Small] Fatal error:', errorMessage);
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: errorMessage,
       },
       { status: 500 }
     );

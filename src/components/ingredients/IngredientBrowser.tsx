@@ -176,18 +176,20 @@ export function IngredientBrowser() {
                   {/* Subtypes */}
                   {selectedType === typeKey && typeData.subtypes && (
                     <div className="ml-4 space-y-1">
-                      {typeData.subtypes.slice(0, 10).map((st: unknown) => (
-                        <Button
-                          key={st.subtype}
-                          variant={selectedSubtype === st.subtype ? 'secondary' : 'ghost'}
-                          size="sm"
-                          className="w-full justify-between text-xs"
-                          onClick={() => setSelectedSubtype(st.subtype)}
-                        >
-                          <span className="truncate">{formatSubtypeName(st.subtype)}</span>
-                          <span className="text-gray-500">{st.count}</span>
-                        </Button>
-                      ))}
+                      {typeData.subtypes
+                        .slice(0, 10)
+                        .map((st: { subtype: string; count: number }) => (
+                          <Button
+                            key={st.subtype}
+                            variant={selectedSubtype === st.subtype ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="w-full justify-between text-xs"
+                            onClick={() => setSelectedSubtype(st.subtype)}
+                          >
+                            <span className="truncate">{formatSubtypeName(st.subtype)}</span>
+                            <span className="text-gray-500">{st.count}</span>
+                          </Button>
+                        ))}
                     </div>
                   )}
                 </div>

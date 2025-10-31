@@ -8,6 +8,7 @@ import {
   type SearchOptions,
   semanticSearchRecipes,
 } from '@/app/actions/semantic-search';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,7 +79,7 @@ export function SemanticSearchPanel({
         setResults([]);
       }
     } catch (err: unknown) {
-      setError(err.message || 'An error occurred during search');
+      setError(toErrorMessage(err));
       setResults([]);
     } finally {
       setLoading(false);
