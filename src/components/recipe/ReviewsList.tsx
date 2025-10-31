@@ -1,7 +1,7 @@
 'use client';
 
 import { Edit2, Star, Trash2, User } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteRating, getRecipeRatings, rateRecipe } from '@/app/actions/rate-recipe';
 import { Button } from '@/components/ui/button';
@@ -54,14 +54,7 @@ export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: Re
 
   const REVIEWS_PER_PAGE = 10;
 
-  // Load initial reviews on mount if not provided
-  useEffect(() => {
-    if (initialReviews.length === 0) {
-      loadReviews(0);
-    }
-  }, [initialReviews.length, loadReviews]);
-
-  const loadReviews = async (offset: number) => {
+  const loadReviews = useCallback(async (offset: number) => {
     setIsLoading(true);
     try {
       const newReviews = await getRecipeRatings(recipeId, REVIEWS_PER_PAGE, offset);
@@ -80,7 +73,14 @@ export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: Re
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [recipeId]);
+
+  // Load initial reviews on mount if not provided
+  useEffect(() => {
+    if (initialReviews.length === 0) {
+      loadReviews(0);
+    }
+  }, [initialReviews.length, loadReviews]);
 
   const handleLoadMore = () => {
     loadReviews(reviews.length);

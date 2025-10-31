@@ -272,7 +272,7 @@ export function optionalAuth(
 
     try {
       // Call the handler with auth context (even if not authenticated)
-      const response = await handler(request, auth, context?.params);
+      const response = await handler(request, auth, context);
 
       // Track usage for authenticated API keys
       if (

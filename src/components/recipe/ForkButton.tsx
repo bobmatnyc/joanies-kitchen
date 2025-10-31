@@ -40,12 +40,12 @@ export function ForkButton({
     startTransition(async () => {
       const result = await forkRecipe(recipeId);
 
-      if (result.success && result.data) {
+      if (result.success && 'data' in result && result.data) {
         toast.success('Recipe forked successfully!', {
           description: `"${recipeName}" has been added to your recipes.`,
           action: {
             label: 'View',
-            onClick: () => router.push(`/recipes/${result.data?.id}`),
+            onClick: () => router.push(`/recipes/${result.data.id}`),
           },
         });
         setForkCount((prev) => prev + 1);

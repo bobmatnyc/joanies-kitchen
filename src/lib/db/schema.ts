@@ -16,6 +16,9 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { chefs } from './chef-schema';
 
+// Re-export chefs for types.ts
+export { chefs };
+
 // ====================
 // RECIPE LICENSE ONTOLOGY
 // ====================

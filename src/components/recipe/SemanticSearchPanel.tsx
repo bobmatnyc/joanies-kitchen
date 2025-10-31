@@ -167,7 +167,7 @@ export function SemanticSearchPanel({
             <Label htmlFor="search-mode" className="text-sm font-medium">
               Search Mode:
             </Label>
-            <Select value={searchMode} onValueChange={(value: unknown) => setSearchMode(value)}>
+            <Select value={searchMode} onValueChange={(value) => setSearchMode(value as 'semantic' | 'hybrid')}>
               <SelectTrigger id="search-mode" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
