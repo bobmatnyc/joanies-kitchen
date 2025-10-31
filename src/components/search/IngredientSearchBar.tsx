@@ -112,6 +112,7 @@ export function IngredientSearchBar({
         storage_tips: null,
         substitutions: null,
         usage_count: 0,
+        is_purchaseable: false,
       };
       onIngredientsChange([...selectedIngredients, ingredient]);
       setQuery('');
