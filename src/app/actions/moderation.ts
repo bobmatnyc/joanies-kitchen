@@ -31,7 +31,7 @@ export interface PendingRecipe {
   created_at: Date;
   moderation_status: string;
   submission_notes: string | null;
-  is_public: boolean;
+  is_public: boolean | null;
 }
 
 export interface ModerationHistoryEntry {

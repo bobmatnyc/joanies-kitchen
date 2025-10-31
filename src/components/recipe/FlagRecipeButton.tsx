@@ -14,6 +14,7 @@ import { Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { type FlagReason, flagRecipe } from '@/app/actions/flag-recipe';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -108,7 +109,7 @@ export function FlagRecipeButton({
         setError(result.error || 'Failed to submit flag');
       }
     } catch (err: unknown) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(toErrorMessage(err));
     } finally {
       setLoading(false);
     }

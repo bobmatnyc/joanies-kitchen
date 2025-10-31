@@ -37,6 +37,7 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // ============================================================================
@@ -249,10 +250,15 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         qa_notes: null,
         qa_issues_found: null,
         qa_fixes_applied: null,
+        moderation_status: 'pending',
+        moderation_notes: null,
+        moderated_by: null,
+        moderated_at: null,
+        submission_notes: null,
       });
       console.log(`[Ingest API] Embedding generated successfully`);
     } catch (error: unknown) {
-      console.error(`[Ingest API] Failed to generate embedding:`, error.message);
+      console.error(`[Ingest API] Failed to generate embedding:`, toErrorMessage(error));
       embeddingResult = null;
     }
 
@@ -304,7 +310,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         );
         console.log(`[Ingest API] Embedding saved successfully`);
       } catch (error: unknown) {
-        console.error(`[Ingest API] Failed to save embedding:`, error.message);
+        console.error(`[Ingest API] Failed to save embedding:`, toErrorMessage(error));
       }
     }
 
@@ -325,7 +331,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     return {
       success: false,
       url,
-      error: error.message || 'Unknown error occurred',
+      error: toErrorMessage(error),
     };
   }
 }
@@ -460,7 +466,7 @@ export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRe
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Internal server error',
+        error: toErrorMessage(error),
       },
       { status: 500 }
     );

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { convertUrlToRecipe } from '@/app/actions/recipe-crawl';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,19 +37,21 @@ export async function POST(request: NextRequest) {
         });
       }
     } catch (error: unknown) {
-      console.error(`[Single Import] ❌ ERROR: ${error.message}`);
+      const errorMessage = toErrorMessage(error);
+      console.error(`[Single Import] ❌ ERROR: ${errorMessage}`);
       return NextResponse.json({
         success: false,
-        error: error.message,
+        error: errorMessage,
         url: url,
       });
     }
   } catch (error: unknown) {
-    console.error('[Single Import] Fatal error:', error.message);
+    const errorMessage = toErrorMessage(error);
+    console.error('[Single Import] Fatal error:', errorMessage);
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: errorMessage,
       },
       { status: 500 }
     );

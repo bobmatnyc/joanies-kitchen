@@ -14,6 +14,7 @@ import { Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { rateRecipe } from '@/app/actions/rate-recipe';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 interface RecipeRatingProps {
   recipeId: string;
@@ -162,8 +163,8 @@ export function RecipeRating({
         setError(result.error || 'Failed to save rating');
       }
     } catch (err: unknown) {
-      setError(err.message || 'An unexpected error occurred');
-    } finally {
+      setError(toErrorMessage(err));
+    } finally{
       setLoading(false);
     }
   };

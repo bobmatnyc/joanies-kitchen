@@ -26,10 +26,10 @@ interface Recipe {
   created_at: Date;
   moderation_status: string;
   submission_notes: string | null;
+  is_public: boolean | null;
   moderation_notes?: string | null;
   moderated_by?: string | null;
   moderated_at?: Date | null;
-  is_public?: boolean;
 }
 
 interface RecipeQueueProps {

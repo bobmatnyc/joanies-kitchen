@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { convertUrlToRecipe } from '@/app/actions/recipe-crawl';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 const CHEF_RECIPES = {
   'alton-brown': {
@@ -203,13 +204,14 @@ export async function POST(_request: NextRequest) {
           // Rate limiting: 2 seconds between requests
           await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (error: unknown) {
-          console.error(`[Batch Import API] ❌ ERROR: ${error.message}`);
+          const errorMessage = toErrorMessage(error);
+          console.error(`[Batch Import API] ❌ ERROR: ${errorMessage}`);
           failCount++;
           results.push({
             chef: data.name,
             url,
             status: 'error',
-            error: error.message,
+            error: errorMessage,
           });
         }
       }
@@ -231,11 +233,12 @@ export async function POST(_request: NextRequest) {
       results,
     });
   } catch (error: unknown) {
-    console.error('[Batch Import API] Fatal error:', error.message);
+    const errorMessage = toErrorMessage(error);
+    console.error('[Batch Import API] Fatal error:', errorMessage);
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: errorMessage,
       },
       { status: 500 }
     );
