@@ -68,7 +68,6 @@ export async function middleware(request: NextRequest) {
     '/recipes$', // My Recipes listing (personal collection)
     '/meals/new(.*)', // Creating new meals
     '/meal-plans(.*)', // Meal planning
-    '/shopping-lists(.*)', // Shopping lists
   ]);
 
   // Define admin routes that require admin access
@@ -82,7 +81,6 @@ export async function middleware(request: NextRequest) {
     '/api/recipes/update',
     '/api/recipes/delete',
     '/api/meal-plans(.*)',
-    '/api/shopping-lists(.*)',
   ]);
 
   // Use the clerkMiddleware with route protection logic
