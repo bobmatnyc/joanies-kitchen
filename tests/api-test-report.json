@@ -1,0 +1,98 @@
+{
+  "timestamp": "2025-11-01T15:10:33.116Z",
+  "summary": {
+    "recipes": {
+      "passed": [
+        {
+          "test": "GET /api/recipes/paginated",
+          "status": 200,
+          "summary": "Status 200"
+        },
+        {
+          "test": "Recipe search (semantic)",
+          "status": 200,
+          "summary": "Status 200",
+          "resultCount": 0
+        }
+      ],
+      "failed": [
+        {
+          "test": "GET /api/v1/recipes - List recipes",
+          "status": 401,
+          "summary": "FAILED - 401",
+          "count": 0
+        },
+        {
+          "test": "Pagination (limit & offset)",
+          "status": 401,
+          "summary": "Page 1: 0 items, Page 2: 0 items"
+        }
+      ],
+      "total": 4
+    },
+    "meals": {
+      "passed": [],
+      "failed": [
+        {
+          "test": "GET /api/v1/meals - List meals",
+          "status": 401,
+          "summary": "FAILED - 401",
+          "count": 0
+        }
+      ],
+      "total": 1
+    },
+    "chefs": {
+      "passed": [],
+      "failed": [
+        {
+          "test": "Chef API endpoint discovery",
+          "summary": "No public /api/v1/chefs endpoint found",
+          "note": "Chefs may be server-action only"
+        }
+      ],
+      "total": 1
+    },
+    "collections": {
+      "passed": [],
+      "failed": [
+        {
+          "test": "Collections API endpoint discovery",
+          "summary": "No public /api/v1/collections endpoint found",
+          "note": "Collections may be server-action only"
+        }
+      ],
+      "total": 1
+    },
+    "ingredients": {
+      "passed": [
+        {
+          "test": "GET /api/ingredients/filter",
+          "status": 200,
+          "summary": "Search for \"tomato\"",
+          "resultCount": 0
+        },
+        {
+          "test": "GET /api/ingredients/ontology",
+          "status": 200,
+          "summary": "Status 200"
+        }
+      ],
+      "failed": [],
+      "total": 2
+    },
+    "overall": {
+      "passed": 4,
+      "failed": 5,
+      "total": 9
+    }
+  },
+  "imageIssues": {
+    "nullImageUrl": [],
+    "emptyImageUrl": [],
+    "http404": [],
+    "invalidFormat": []
+  },
+  "mealSlugIssues": [],
+  "dataQualityIssues": []
+}
