@@ -71,7 +71,6 @@ export const authConfig = {
       '/recipes/.*/edit(.*)',
       '/recipes$',
       '/meal-plans(.*)',
-      '/shopping-lists(.*)',
       '/user-profile(.*)',
     ],
     apiProtected: [
@@ -79,7 +78,6 @@ export const authConfig = {
       '/api/recipes/update',
       '/api/recipes/delete',
       '/api/meal-plans(.*)',
-      '/api/shopping-lists(.*)',
     ],
   },
 };
