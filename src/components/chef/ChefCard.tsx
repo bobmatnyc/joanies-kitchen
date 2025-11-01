@@ -55,12 +55,12 @@ export function ChefCard({ chef }: ChefCardProps) {
 
               {/* Specialties */}
               {chef.specialties && chef.specialties.length > 0 && (
-                <div className="flex gap-2 mb-3 flex-wrap">
+                <div className="flex gap-2 mb-3 flex-wrap max-w-full overflow-hidden">
                   {chef.specialties.slice(0, 3).map((specialty) => (
                     <Badge
                       key={specialty}
                       variant="secondary"
-                      className="text-xs bg-jk-sage/30 text-jk-olive border-jk-olive/20"
+                      className="text-xs bg-jk-sage/30 text-jk-olive border-jk-olive/20 truncate"
                     >
                       {specialty}
                     </Badge>
