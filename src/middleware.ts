@@ -48,12 +48,13 @@ export async function middleware(request: NextRequest) {
 
   // Define public routes that don't require authentication
   // These routes are accessible to everyone
-  const _isPublicRoute = createRouteMatcher([
+  const isPublicRoute = createRouteMatcher([
     '/', // Homepage
     '/sign-in(.*)', // Sign in pages
     '/sign-up(.*)', // Sign up pages
     '/shared(.*)', // Shared recipes browsing
-    '/discover(.*)', // Discover/AI recipe generation (read-only browsing)
+    '/discover(.*)', // Discover pages (chefs, AI recipe generation - read-only browsing)
+    '/meals', // Public meals browsing
     '/api/webhooks(.*)', // Webhooks
   ]);
 
@@ -66,7 +67,6 @@ export async function middleware(request: NextRequest) {
     '/recipes/edit(.*)', // Editing recipes (simplified pattern)
     '/recipes$', // My Recipes listing (personal collection)
     '/meals/new(.*)', // Creating new meals
-    '/meals$', // My Meals listing (personal collection)
     '/meal-plans(.*)', // Meal planning
     '/shopping-lists(.*)', // Shopping lists
   ]);
@@ -96,6 +96,11 @@ export async function middleware(request: NextRequest) {
 
     // Check if this is a meal view route (e.g., /meals/slug) but NOT /meals/new
     const isViewingMeal = path.match(/^\/meals\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new');
+
+    // If it's a public route, allow it
+    if (isPublicRoute(req)) {
+      return NextResponse.next();
+    }
 
     // If it's a recipe or meal view route, allow it (the page itself will check if the content is public)
     if (isViewingRecipe || isViewingMeal) {
