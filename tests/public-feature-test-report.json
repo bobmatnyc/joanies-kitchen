@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-11-01T15:12:08.327Z",
+  "summary": {
+    "recipes": {
+      "passed": [
+        {
+          "test": "Recipes page loads",
+          "summary": "Page title: \"Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge\""
+        },
+        {
+          "test": "Recipe data extraction",
+          "summary": "24 recipes found on page",
+          "count": 24
+        },
+        {
+          "test": "Recipe images validation",
+          "summary": "22/24 with images (91.67%)",
+          "withImages": 22,
+          "withoutImages": 2,
+          "total": 24
+        }
+      ],
+      "failed": [
+        {
+          "test": "Database image data quality",
+          "summary": "99.00% of recipes have image problems",
+          "validImages": 1,
+          "nullImages": 99,
+          "emptyImages": 0,
+          "totalRecipes": 100
+        }
+      ],
+      "total": 4
+    },
+    "meals": {
+      "passed": [
+        {
+          "test": "Meals page loads",
+          "summary": "Page title: \"Browse Meals | Joanie's Kitchen | Joanie's Kitchen\""
+        }
+      ],
+      "failed": [
+        {
+          "test": "Meal data extraction",
+          "summary": "0 meals found on page",
+          "count": 0
+        }
+      ],
+      "total": 2
+    },
+    "chefs": {
+      "passed": [
+        {
+          "test": "Chefs page loads",
+          "summary": "Page title: \"Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge\""
+        }
+      ],
+      "failed": [
+        {
+          "test": "Chef data extraction",
+          "summary": "0 chefs found",
+          "count": 0
+        }
+      ],
+      "total": 2
+    },
+    "overall": {
+      "passed": 5,
+      "failed": 3,
+      "total": 8
+    }
+  },
+  "imageIssues": {
+    "recipesWithoutImages": [
+      {
+        "title": "Kale and White Bean Stew"
+      },
+      {
+        "title": "Zucchini Carbonara"
+      }
+    ],
+    "mealsWithoutImages": [],
+    "brokenImageUrls": []
+  },
+  "mealIssues": []
+}

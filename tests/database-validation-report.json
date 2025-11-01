@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-11-01T15:13:59.041Z",
+  "recipes": {
+    "totalRecipes": 4733,
+    "nullImageUrl": 4429,
+    "hasImageUrl": 304,
+    "hasImagesArray": 608
+  },
+  "meals": {
+    "totalMeals": 10,
+    "withSlugs": 10,
+    "withoutSlugs": 0,
+    "publicMeals": 9,
+    "withImages": 10,
+    "allSlugs": [
+      "joanies-sunday-lunch",
+      "quick-weeknight-dinners-2025-3",
+      "healthy-week-meal-plan-2025-3",
+      "quick-weeknight-dinners-2025-2",
+      "healthy-week-meal-plan-2025-2",
+      "quick-weeknight-dinners-2025-1",
+      "healthy-week-meal-plan-2025-1",
+      "quick-weeknight-dinners-2025",
+      "healthy-week-meal-plan-2025",
+      "chili-party-2025"
+    ]
+  },
+  "chefs": {
+    "totalChefs": 31,
+    "withSpecialties": 31
+  }
+}

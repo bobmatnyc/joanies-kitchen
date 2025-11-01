@@ -1,0 +1,144 @@
+🔍 Starting Database Validation
+Time: 2025-11-01T15:13:58.696Z
+
+
+================================================================================
+DATABASE SCHEMA CHECK
+================================================================================
+
+📋 Recipes table relevant columns:
+   - deleted_at: timestamp without time zone (nullable: YES)
+   - image_url: text (nullable: YES)
+   - images: text (nullable: YES)
+
+📋 Meals table relevant columns:
+   - image_url: text (nullable: YES)
+   - is_public: boolean (nullable: YES)
+   - slug: character varying (nullable: YES)
+
+================================================================================
+RECIPE DATA VALIDATION
+================================================================================
+
+📊 Recipe Image URL (image_url field):
+   Total recipes: 4733
+   NULL image_url: 4429 (93.58%)
+   Empty image_url: 0
+   Has image_url: 304 (6.42%)
+
+📊 Recipe Images Field (images TEXT field):
+   NULL or empty: 4120
+   Has images data: 608
+
+📋 Sample recipes with NULL image_url (first 10):
+   - ID: fd903b38-d751-4ffa-8a4d-7017a455618c
+     Name: "Falafel"
+     Slug: falafel
+     image_url: NULL
+     images field: empty/null
+   - ID: 782eaae4-7ce1-45d5-8490-548b900eeb23
+     Name: "Moroccan Spice Blend"
+     Slug: moroccan-spice-blend
+     image_url: NULL
+     images field: empty/null
+   - ID: b961e291-814b-4906-a99f-d198acc0ec5d
+     Name: "Brown-Rice Flour Mix"
+     Slug: brown-rice-flour-mix
+     image_url: NULL
+     images field: empty/null
+   - ID: bf197e80-cec5-44b9-aa05-604b476bdf48
+     Name: "Roasted Red Peppers with Garlic"
+     Slug: roasted-red-peppers-garlic
+     image_url: NULL
+     images field: empty/null
+   - ID: 765e1001-6db3-4593-bdc5-abefb4e1db3f
+     Name: "1977 Coconut Angel Food Cake "
+     Slug: null
+     image_url: NULL
+     images field: 1 images
+   - ID: a71bdb7d-d5f8-46b9-a72a-157b8fbc6335
+     Name: "Cheese Ravioli with Fresh Tomato Sauce "
+     Slug: null
+     image_url: NULL
+     images field: empty/null
+   - ID: c4c61500-dc91-462c-b735-39243726c360
+     Name: "Michael Lewis's Cassoulet de Canard "
+     Slug: null
+     image_url: NULL
+     images field: empty/null
+   - ID: 68a6a103-605c-4e4c-b4ab-127887e5827f
+     Name: "Herbed Oyster Crackers"
+     Slug: herbed-oyster-crackers
+     image_url: NULL
+     images field: empty/null
+   - ID: 5c25e4e0-88f8-42f1-a27b-7542824b769c
+     Name: "Italian Mac and Cheese"
+     Slug: null
+     image_url: NULL
+     images field: 1 images
+   - ID: cb162218-f118-4f16-a267-e5252d60eb55
+     Name: "Green Olive Relish "
+     Slug: null
+     image_url: NULL
+     images field: empty/null
+
+================================================================================
+MEAL DATA VALIDATION
+================================================================================
+
+📊 Total meals in database: 10
+   Meals with slugs: 10
+   Meals without slugs: 0
+   Public meals: 9
+   Meals with image_url: 10 (100.00%)
+   Meals without image_url: 0 (0.00%)
+
+📋 All meal slugs (for routing tests):
+   - Slug: "joanies-sunday-lunch", Name: "Joanie's Sunday Lunch", Public: true
+   - Slug: "quick-weeknight-dinners-2025-3", Name: "Quick Weeknight Dinners", Public: true
+   - Slug: "healthy-week-meal-plan-2025-3", Name: "Healthy Week Meal Plan", Public: true
+   - Slug: "quick-weeknight-dinners-2025-2", Name: "Quick Weeknight Dinners", Public: true
+   - Slug: "healthy-week-meal-plan-2025-2", Name: "Healthy Week Meal Plan", Public: true
+   - Slug: "quick-weeknight-dinners-2025-1", Name: "Quick Weeknight Dinners", Public: true
+   - Slug: "healthy-week-meal-plan-2025-1", Name: "Healthy Week Meal Plan", Public: true
+   - Slug: "quick-weeknight-dinners-2025", Name: "Quick Weeknight Dinners", Public: true
+   - Slug: "healthy-week-meal-plan-2025", Name: "Healthy Week Meal Plan", Public: true
+   - Slug: "chili-party-2025", Name: "Chili Party", Public: false
+
+================================================================================
+CHEF DATA VALIDATION
+================================================================================
+
+📊 Total chefs in database: 31
+   Chefs with specialties: 31
+
+📋 Chef list:
+   - Name: "Alice Waters", Slug: alice-waters, Specialties: 5
+   - Name: "Alton Brown", Slug: alton-brown, Specialties: 4
+   - Name: "Anne-Marie Bonneau", Slug: anne-marie-bonneau, Specialties: 6
+   - Name: "Bren Smith", Slug: bren-smith, Specialties: 5
+   - Name: "Bryant Terry", Slug: bryant-terry, Specialties: 5
+   - Name: "Cristina Scarpaleggia", Slug: cristina-scarpaleggia, Specialties: 5
+   - Name: "Dan Barber", Slug: dan-barber, Specialties: 5
+   - Name: "David Zilber", Slug: david-zilber, Specialties: 5
+   - Name: "Gordon Ramsay", Slug: gordon-ramsay, Specialties: 5
+   - Name: "Ina Garten", Slug: ina-garten, Specialties: 5
+
+================================================================================
+VALIDATION SUMMARY
+================================================================================
+
+🚨 CRITICAL ISSUES FOUND:
+   ✗ 93.58% of recipes have NULL image_url
+     → This explains the "broken images" issue in production
+     → Action: Run migration to populate image_url from images array
+
+💡 RECOMMENDED FIXES:
+   1. Recipe images: Migrate image_url from images[0] where NULL
+   2. Meal slugs: Generate slugs for meals with NULL slugs
+   3. Meal images: Populate from first recipe image or default
+   4. Consider adding DB constraints to prevent NULL slugs
+
+📄 Report saved to: tests/database-validation-report.json
+
+✅ Validation complete
