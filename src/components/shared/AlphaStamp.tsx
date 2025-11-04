@@ -3,7 +3,7 @@
 /**
  * AlphaStamp - Top Secret style overlay for alpha phase
  *
- * Displays a diagonal "ALPHA - BETA LAUNCH 12/1" stamp
+ * Displays a diagonal "ALPHA - BETA LAUNCH 12/1/25" stamp
  * across the top corner of all pages during alpha testing.
  *
  * Features:
@@ -33,7 +33,7 @@ export function AlphaStamp() {
                 ALPHA
               </div>
               <div className="mt-2 text-xl font-bold text-red-700 tracking-wider">
-                BETA LAUNCH 12/1
+                BETA LAUNCH 12/1/25
               </div>
             </div>
           </div>

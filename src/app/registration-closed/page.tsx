@@ -50,7 +50,7 @@ export default function RegistrationClosedPage() {
                 🎉 Beta Launch Coming Soon!
               </p>
               <p className="text-lg font-heading font-bold text-amber-700 dark:text-amber-300">
-                December 1, 2024
+                December 1, 2025
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                 Public registration opens with beta release
