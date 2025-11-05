@@ -2,6 +2,7 @@
 
 import { Wrench } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Tool } from '@/app/actions/tools';
 
 interface ToolCardProps {
@@ -16,6 +17,7 @@ interface ToolCardProps {
  * - Tool image with fallback
  * - Display name and category
  * - Usage count
+ * - Clickable link to tool detail page
  *
  * Design:
  * - Matches IngredientCard style
@@ -25,9 +27,11 @@ interface ToolCardProps {
  */
 export function ToolCard({ tool, className = '' }: ToolCardProps) {
   const usageCount = tool.usageCount || 0;
+  const href = tool.slug ? `/tools/${tool.slug}` : '#';
 
   return (
-    <div
+    <Link
+      href={href}
       className={`group block rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600 overflow-hidden ${className}`}
     >
       {/* Image Section */}
@@ -85,6 +89,6 @@ export function ToolCard({ tool, className = '' }: ToolCardProps) {
           {usageCount} {usageCount === 1 ? 'recipe' : 'recipes'}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

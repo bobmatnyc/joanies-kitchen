@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.7] - 2025-11-05
+
+### Added
+
+- update beta launch date to December 1, 2024
+- add database migration scripts and audit tools
+- update beta launch date to November 16, 2024
+- add Register button alongside Sign In
+- major TypeScript improvements, collections integration, and project reorganization
+- implement Epic 7.2 Recipe Interactions (ratings, comments, flagging)
+- add 30-second timeout protection for fridge ingredient search
+- Add comprehensive API v1 foundation with authentication system
+- enhance recipe extraction with local AI and image domain support
+
+### Fixed
+
+- correct beta launch year to 2025
+- replace ROADMAP.md symlink with actual file for Vercel deployment
+- enable guest access to shopping lists
+- enhanced mobile chef tags overflow fix with explicit max-width
+- enable public access to meals and chefs pages
+- prevent chef tags from overflowing on mobile
+- suppress hydration warning for browser extension classes
+- exclude test/example files from build and add ROADMAP.md symlink
+- resolve remaining 11 production TypeScript errors
+- resolve 56 TypeScript errors for v0.7.5 release
+- prioritize external image URLs over broken local paths in RecipeCard
+- handle structured ingredient objects to prevent [object Object] display
+- resolve infinite loading loop in FlaggedImagesManager
+
+### Changed
+
+- Phase 1 - Eliminate 40% code duplication in API v1
+
+
 ## [0.7.4] - 2025-10-27
 
 ### Added
