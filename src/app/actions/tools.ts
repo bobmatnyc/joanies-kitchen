@@ -17,6 +17,7 @@ export interface Tool {
   alternatives: string | null;
   typicalPriceUsd: string | null;
   description: string | null;
+  slug: string | null;
   createdAt: Date;
   updatedAt: Date;
   usageCount?: number; // Count of recipes using this tool
@@ -99,6 +100,7 @@ export async function getAllTools(options: GetToolsOptions = {}): Promise<{
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
         imageUrl: tools.image_url,
+        slug: tools.slug,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
         usageCount: sql<number>`COALESCE(COUNT(DISTINCT ${recipeTools.recipe_id}), 0)`,
@@ -126,6 +128,7 @@ export async function getAllTools(options: GetToolsOptions = {}): Promise<{
       tools.typical_price_usd,
       tools.description,
       tools.image_url,
+      tools.slug,
       tools.created_at,
       tools.updated_at
     );
@@ -173,6 +176,7 @@ export async function getAllTools(options: GetToolsOptions = {}): Promise<{
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
       imageUrl: row.imageUrl,
+      slug: row.slug,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       usageCount: Number(row.usageCount) || 0,
@@ -227,6 +231,7 @@ export async function getToolById(toolId: string): Promise<{
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
         imageUrl: tools.image_url,
+        slug: tools.slug,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -257,6 +262,7 @@ export async function getToolById(toolId: string): Promise<{
         typicalPriceUsd: tool.typicalPriceUsd,
         description: tool.description,
         imageUrl: tool.imageUrl,
+        slug: tool.slug,
         createdAt: tool.createdAt,
         updatedAt: tool.updatedAt,
       },
@@ -266,6 +272,132 @@ export async function getToolById(toolId: string): Promise<{
     return {
       success: false,
       tool: null,
+      error: toErrorMessage(error),
+    };
+  }
+}
+
+/**
+ * Get a single tool by slug (for detail pages)
+ */
+export async function getToolBySlug(slug: string): Promise<{
+  success: boolean;
+  tool?: Tool;
+  recipesUsingTool?: any[];
+  error?: string;
+}> {
+  try {
+    if (!slug) {
+      return {
+        success: false,
+        error: 'Slug is required',
+      };
+    }
+
+    // Fetch tool with usage count
+    const [toolResult] = await db
+      .select({
+        id: tools.id,
+        name: tools.name,
+        displayName: tools.display_name,
+        category: tools.category,
+        type: tools.type,
+        subtype: tools.subtype,
+        isEssential: tools.is_essential,
+        isSpecialized: tools.is_specialized,
+        alternatives: tools.alternatives,
+        typicalPriceUsd: tools.typical_price_usd,
+        description: tools.description,
+        imageUrl: tools.image_url,
+        slug: tools.slug,
+        createdAt: tools.created_at,
+        updatedAt: tools.updated_at,
+        usageCount: sql<number>`COALESCE(COUNT(DISTINCT ${recipeTools.recipe_id}), 0)`,
+      })
+      .from(tools)
+      .leftJoin(recipeTools, eq(tools.id, recipeTools.tool_id))
+      .where(eq(tools.slug, slug))
+      .groupBy(
+        tools.id,
+        tools.name,
+        tools.display_name,
+        tools.category,
+        tools.type,
+        tools.subtype,
+        tools.is_essential,
+        tools.is_specialized,
+        tools.alternatives,
+        tools.typical_price_usd,
+        tools.description,
+        tools.image_url,
+        tools.slug,
+        tools.created_at,
+        tools.updated_at
+      )
+      .limit(1);
+
+    if (!toolResult) {
+      return {
+        success: false,
+        error: 'Tool not found',
+      };
+    }
+
+    const tool: Tool = {
+      id: toolResult.id,
+      name: toolResult.name,
+      displayName: toolResult.displayName,
+      category: toolResult.category,
+      type: toolResult.type,
+      subtype: toolResult.subtype,
+      isEssential: toolResult.isEssential ?? false,
+      isSpecialized: toolResult.isSpecialized ?? false,
+      alternatives: toolResult.alternatives,
+      typicalPriceUsd: toolResult.typicalPriceUsd,
+      description: toolResult.description,
+      imageUrl: toolResult.imageUrl,
+      slug: toolResult.slug,
+      createdAt: toolResult.createdAt,
+      updatedAt: toolResult.updatedAt,
+      usageCount: Number(toolResult.usageCount) || 0,
+    };
+
+    // Fetch recipes using this tool (limit to 12 for display)
+    const recipeLinks = await db
+      .select({
+        recipeId: recipeTools.recipe_id,
+      })
+      .from(recipeTools)
+      .where(eq(recipeTools.tool_id, tool.id))
+      .limit(12);
+
+    const recipeIds = recipeLinks.map((link) => link.recipeId);
+
+    let recipesUsingTool: any[] = [];
+    if (recipeIds.length > 0) {
+      const { recipes } = await import('@/lib/db/schema');
+      recipesUsingTool = await db
+        .select()
+        .from(recipes)
+        .where(
+          sql`${recipes.id} IN (${sql.join(
+            recipeIds.map((id) => sql`${id}`),
+            sql`, `
+          )})`
+        )
+        .orderBy(sql`${recipes.like_count} DESC`, sql`${recipes.system_rating} DESC`)
+        .limit(12);
+    }
+
+    return {
+      success: true,
+      tool,
+      recipesUsingTool,
+    };
+  } catch (error) {
+    console.error('Error fetching tool by slug:', error);
+    return {
+      success: false,
       error: toErrorMessage(error),
     };
   }
@@ -294,6 +426,7 @@ export async function getToolsByCategory(category: string): Promise<{
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
         imageUrl: tools.image_url,
+        slug: tools.slug,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -314,6 +447,7 @@ export async function getToolsByCategory(category: string): Promise<{
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
       imageUrl: row.imageUrl,
+      slug: row.slug,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -355,6 +489,7 @@ export async function getRecipeTools(recipeId: string): Promise<{
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
         imageUrl: tools.image_url,
+        slug: tools.slug,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
         isOptional: recipeTools.is_optional,
@@ -379,6 +514,7 @@ export async function getRecipeTools(recipeId: string): Promise<{
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
       imageUrl: row.imageUrl,
+      slug: row.slug,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       isOptional: row.isOptional ?? false,
@@ -423,6 +559,7 @@ export async function getToolsByType(type: string): Promise<{
         typicalPriceUsd: tools.typical_price_usd,
         description: tools.description,
         imageUrl: tools.image_url,
+        slug: tools.slug,
         createdAt: tools.created_at,
         updatedAt: tools.updated_at,
       })
@@ -443,6 +580,7 @@ export async function getToolsByType(type: string): Promise<{
       typicalPriceUsd: row.typicalPriceUsd,
       description: row.description,
       imageUrl: row.imageUrl,
+      slug: row.slug,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));

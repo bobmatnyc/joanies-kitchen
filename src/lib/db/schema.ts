@@ -545,6 +545,9 @@ export const tools = pgTable(
     description: text('description'),
     image_url: text('image_url'), // Tool image (/images/tools/...)
 
+    // SEO slug for friendly URLs
+    slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "large-pot")
+
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -555,6 +558,7 @@ export const tools = pgTable(
     typeIdx: index('tools_type_idx').on(table.type),
     subtypeIdx: index('tools_subtype_idx').on(table.subtype),
     typeSubtypeIdx: index('tools_type_subtype_idx').on(table.type, table.subtype),
+    slugIdx: index('tools_slug_idx').on(table.slug),
   })
 );
 
