@@ -7,8 +7,12 @@
     "project_root": "/Users/masa/Projects/joanies-kitchen"
   },
   "hooks": {
-    "pre_response": ["/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory enhance"],
-    "post_response": ["/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory learn --quiet"]
+    "pre_response": [
+      "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory enhance"
+    ],
+    "post_response": [
+      "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory learn --quiet"
+    ]
   },
   "settings": {
     "max_context_size": 5,

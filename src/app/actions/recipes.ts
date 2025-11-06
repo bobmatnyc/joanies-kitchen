@@ -6,8 +6,8 @@ import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
-import { generateUniqueSlug } from '@/lib/utils/slug';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // Get all unique tags from recipes
 export async function getAllTags() {

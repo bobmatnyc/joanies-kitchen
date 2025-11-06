@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { resolve } from 'path';
 
 // Load environment variables
@@ -152,18 +152,19 @@ async function fixRecipeImageUrls() {
       LIMIT 10
     `;
 
-    console.table(verification.map(r => ({
-      id: r.id,
-      name: r.name?.substring(0, 40) || 'N/A',
-      image_url: r.image_url?.substring(0, 50) || 'N/A',
-      has_images_array: r.images ? 'Yes' : 'No'
-    })));
+    console.table(
+      verification.map((r) => ({
+        id: r.id,
+        name: r.name?.substring(0, 40) || 'N/A',
+        image_url: r.image_url?.substring(0, 50) || 'N/A',
+        has_images_array: r.images ? 'Yes' : 'No',
+      }))
+    );
     console.log('');
 
     console.log('='.repeat(80));
     console.log('✓ MIGRATION COMPLETED SUCCESSFULLY');
     console.log('='.repeat(80));
-
   } catch (error) {
     console.error('ERROR during migration:', error);
     throw error;

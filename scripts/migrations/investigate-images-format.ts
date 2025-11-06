@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { resolve } from 'path';
 
 // Load environment variables
@@ -57,7 +57,6 @@ async function investigateImagesFormat() {
         }
       }
     }
-
   } catch (error) {
     console.error('ERROR:', error);
     throw error;

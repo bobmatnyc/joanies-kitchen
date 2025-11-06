@@ -157,7 +157,9 @@ export async function hasUserLikedRecipe(recipeId: string): Promise<DataResult<b
 /**
  * Get recipes liked by current user
  */
-export async function getUserLikedRecipes(): Promise<DataResult<Array<{recipe: typeof recipes.$inferSelect; likedAt: Date | null}>>> {
+export async function getUserLikedRecipes(): Promise<
+  DataResult<Array<{ recipe: typeof recipes.$inferSelect; likedAt: Date | null }>>
+> {
   try {
     const { userId } = await auth();
 
@@ -196,7 +198,9 @@ export async function getUserLikedRecipes(): Promise<DataResult<Array<{recipe: t
 /**
  * Fork a recipe (create a copy with attribution to original)
  */
-export async function forkRecipe(originalRecipeId: string): Promise<DataResult<typeof recipes.$inferSelect> | SuccessResult> {
+export async function forkRecipe(
+  originalRecipeId: string
+): Promise<DataResult<typeof recipes.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -290,7 +294,11 @@ export async function getRecipeForkCount(recipeId: string): Promise<DataResult<n
 /**
  * Get original recipe info for a forked recipe
  */
-export async function getOriginalRecipe(forkedRecipeId: string): Promise<DataResult<{originalRecipe: typeof recipes.$inferSelect; forkedAt: Date | null} | null>> {
+export async function getOriginalRecipe(
+  forkedRecipeId: string
+): Promise<
+  DataResult<{ originalRecipe: typeof recipes.$inferSelect; forkedAt: Date | null } | null>
+> {
   try {
     const forkInfo = await db
       .select({
@@ -327,7 +335,10 @@ export async function getOriginalRecipe(forkedRecipeId: string): Promise<DataRes
 /**
  * Add a comment to a recipe
  */
-export async function addRecipeComment(recipeId: string, content: string): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
+export async function addRecipeComment(
+  recipeId: string,
+  content: string
+): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 
@@ -379,7 +390,9 @@ export interface RecipeCommentWithProfile {
 /**
  * Get comments for a recipe with user profile data
  */
-export async function getRecipeComments(recipeId: string): Promise<DataResult<RecipeCommentWithProfile[]>> {
+export async function getRecipeComments(
+  recipeId: string
+): Promise<DataResult<RecipeCommentWithProfile[]>> {
   try {
     const commentsWithProfiles = await db
       .select({
@@ -434,7 +447,10 @@ export async function getRecipeComments(recipeId: string): Promise<DataResult<Re
 /**
  * Update a comment
  */
-export async function updateRecipeComment(commentId: string, content: string): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
+export async function updateRecipeComment(
+  commentId: string,
+  content: string
+): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
     const { userId } = await auth();
 

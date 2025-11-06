@@ -48,8 +48,10 @@ function processFile(filePath) {
       let lastImportIndex = -1;
 
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim().startsWith('import ') ||
-            (i > 0 && lines[i-1].trim().startsWith('import ') && lines[i].includes('from'))) {
+        if (
+          lines[i].trim().startsWith('import ') ||
+          (i > 0 && lines[i - 1].trim().startsWith('import ') && lines[i].includes('from'))
+        ) {
           lastImportIndex = i;
         }
       }
@@ -86,11 +88,11 @@ function processFile(filePath) {
     }
 
     // Pattern 4: just error.message (without fallback) - be careful with this one
-    const pattern4 = /error\.message(?!\s*[\|\?])/g;
+    const pattern4 = /error\.message(?!\s*[|?])/g;
     const matches4Before = content.match(pattern4);
     if (matches4Before) {
       // Only replace if it's in a return statement for error property
-      const pattern4Safe = /error:\s*error\.message(?!\s*[\|\?])/g;
+      const pattern4Safe = /error:\s*error\.message(?!\s*[|?])/g;
       const matches4 = content.match(pattern4Safe);
       if (matches4) {
         content = content.replace(pattern4Safe, 'error: toErrorMessage(error)');

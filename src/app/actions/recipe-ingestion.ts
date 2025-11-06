@@ -15,8 +15,8 @@ import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
-import { generateUniqueSlug } from '@/lib/utils/slug';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { generateUniqueSlug } from '@/lib/utils/slug';
 
 /**
  * Check if a URL is valid and scrapeable

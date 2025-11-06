@@ -316,7 +316,9 @@ export default function IngestRecipePage() {
               <Label htmlFor="difficulty">Difficulty</Label>
               <Select
                 value={editableDifficulty}
-                onValueChange={(value) => setEditableDifficulty(value as '' | 'easy' | 'medium' | 'hard')}
+                onValueChange={(value) =>
+                  setEditableDifficulty(value as '' | 'easy' | 'medium' | 'hard')
+                }
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select difficulty" />

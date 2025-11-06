@@ -18,10 +18,10 @@ import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
-import { toErrorMessage } from '@/lib/utils/error-handling';
 import { recipes } from '@/lib/db/schema';
 import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { formatWeekInfo, getWeekInfo, type WeekInfo } from '@/lib/week-utils';
 
 // Types
@@ -479,7 +479,10 @@ export async function storeRecipe(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
       );
     } catch (error: unknown) {
-      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, toErrorMessage(error));
+      console.error(
+        `[Store] Failed to generate embedding for "${recipe.name}":`,
+        toErrorMessage(error)
+      );
       console.error(
         `[Store] Error details:`,
         JSON.stringify((error as any).details || {}).substring(0, 300)
@@ -745,7 +748,10 @@ async function storeRecipeWithWeek(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
       );
     } catch (error: unknown) {
-      console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, toErrorMessage(error));
+      console.error(
+        `[Store] Failed to generate embedding for "${recipe.name}":`,
+        toErrorMessage(error)
+      );
       console.error(
         `[Store] Error details:`,
         JSON.stringify((error as any).details || {}).substring(0, 300)

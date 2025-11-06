@@ -12,13 +12,13 @@ const testResults = {
   recipes: { passed: [], failed: [], total: 0 },
   meals: { passed: [], failed: [], total: 0 },
   chefs: { passed: [], failed: [], total: 0 },
-  overall: { passed: 0, failed: 0, total: 0 }
+  overall: { passed: 0, failed: 0, total: 0 },
 };
 
 const imageIssues = {
   recipesWithoutImages: [],
   mealsWithoutImages: [],
-  brokenImageUrls: []
+  brokenImageUrls: [],
 };
 
 const mealIssues = [];
@@ -68,7 +68,7 @@ async function testRecipesPublic() {
     await page.goto(`${BASE_URL}/recipes`, { waitUntil: 'networkidle' });
     const title = await page.title();
     recordResult('recipes', 'Recipes page loads', true, {
-      summary: `Page title: "${title}"`
+      summary: `Page title: "${title}"`,
     });
 
     // Test 2: Extract recipe data from the page
@@ -77,7 +77,7 @@ async function testRecipesPublic() {
       const recipeElements = document.querySelectorAll('[data-recipe-id], .recipe-card, article');
       const recipes = [];
 
-      recipeElements.forEach(el => {
+      recipeElements.forEach((el) => {
         const recipeId = el.getAttribute('data-recipe-id');
         const titleEl = el.querySelector('h2, h3, [data-recipe-title]');
         const imgEl = el.querySelector('img');
@@ -89,7 +89,7 @@ async function testRecipesPublic() {
             title: titleEl?.textContent?.trim(),
             imageUrl: imgEl?.src,
             imageAlt: imgEl?.alt,
-            link: linkEl?.href
+            link: linkEl?.href,
           });
         }
       });
@@ -97,42 +97,45 @@ async function testRecipesPublic() {
       return {
         recipes,
         hasRecipes: recipes.length > 0,
-        totalVisible: recipes.length
+        totalVisible: recipes.length,
       };
     });
 
-    recordResult('recipes', 'Recipe data extraction',
-      recipeData.hasRecipes, {
-        summary: `${recipeData.totalVisible} recipes found on page`,
-        count: recipeData.totalVisible
-      }
-    );
+    recordResult('recipes', 'Recipe data extraction', recipeData.hasRecipes, {
+      summary: `${recipeData.totalVisible} recipes found on page`,
+      count: recipeData.totalVisible,
+    });
 
     // Test 3: Image validation
     if (recipeData.recipes.length > 0) {
       let recipesWithImages = 0;
       let recipesWithoutImages = 0;
 
-      recipeData.recipes.forEach(recipe => {
+      recipeData.recipes.forEach((recipe) => {
         if (recipe.imageUrl && recipe.imageUrl !== '' && !recipe.imageUrl.includes('placeholder')) {
           recipesWithImages++;
         } else {
           recipesWithoutImages++;
           imageIssues.recipesWithoutImages.push({
             title: recipe.title,
-            link: recipe.link
+            link: recipe.link,
           });
         }
       });
 
-      const imageHealthPercentage = ((recipesWithImages / recipeData.recipes.length) * 100).toFixed(2);
+      const imageHealthPercentage = ((recipesWithImages / recipeData.recipes.length) * 100).toFixed(
+        2
+      );
 
-      recordResult('recipes', 'Recipe images validation',
-        recipesWithImages > recipesWithoutImages, {
+      recordResult(
+        'recipes',
+        'Recipe images validation',
+        recipesWithImages > recipesWithoutImages,
+        {
           summary: `${recipesWithImages}/${recipeData.recipes.length} with images (${imageHealthPercentage}%)`,
           withImages: recipesWithImages,
           withoutImages: recipesWithoutImages,
-          total: recipeData.recipes.length
+          total: recipeData.recipes.length,
         }
       );
     }
@@ -148,22 +151,19 @@ async function testRecipesPublic() {
           hasImage: !!document.querySelector('img[alt*="recipe"], img[src*="recipe"]'),
           hasIngredients: !!document.querySelector('[data-ingredients], .ingredients'),
           hasInstructions: !!document.querySelector('[data-instructions], .instructions'),
-          url: window.location.href
+          url: window.location.href,
         };
       });
 
-      recordResult('recipes', 'Recipe detail page',
-        detailPageData.hasTitle, {
-          summary: `Title: ${detailPageData.hasTitle}, Image: ${detailPageData.hasImage}, Ingredients: ${detailPageData.hasIngredients}`,
-          ...detailPageData
-        }
-      );
+      recordResult('recipes', 'Recipe detail page', detailPageData.hasTitle, {
+        summary: `Title: ${detailPageData.hasTitle}, Image: ${detailPageData.hasImage}, Ingredients: ${detailPageData.hasIngredients}`,
+        ...detailPageData,
+      });
     }
-
   } catch (error) {
     recordResult('recipes', 'Public recipes test', false, {
       summary: `Error: ${error.message}`,
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -180,15 +180,17 @@ async function testMealsPublic() {
     await page.goto(`${BASE_URL}/meals`, { waitUntil: 'networkidle' });
     const title = await page.title();
     recordResult('meals', 'Meals page loads', true, {
-      summary: `Page title: "${title}"`
+      summary: `Page title: "${title}"`,
     });
 
     // Test 2: Extract meal data
     const mealData = await page.evaluate(() => {
-      const mealElements = document.querySelectorAll('[data-meal-slug], [data-meal-id], .meal-card, article');
+      const mealElements = document.querySelectorAll(
+        '[data-meal-slug], [data-meal-id], .meal-card, article'
+      );
       const meals = [];
 
-      mealElements.forEach(el => {
+      mealElements.forEach((el) => {
         const slug = el.getAttribute('data-meal-slug');
         const mealId = el.getAttribute('data-meal-id');
         const titleEl = el.querySelector('h2, h3, [data-meal-title]');
@@ -201,7 +203,7 @@ async function testMealsPublic() {
             slug: slug || linkEl?.href?.split('/meals/')[1]?.split('?')[0],
             title: titleEl?.textContent?.trim(),
             imageUrl: imgEl?.src,
-            link: linkEl?.href
+            link: linkEl?.href,
           });
         }
       });
@@ -209,23 +211,21 @@ async function testMealsPublic() {
       return {
         meals,
         hasMeals: meals.length > 0,
-        totalVisible: meals.length
+        totalVisible: meals.length,
       };
     });
 
-    recordResult('meals', 'Meal data extraction',
-      mealData.hasMeals, {
-        summary: `${mealData.totalVisible} meals found on page`,
-        count: mealData.totalVisible
-      }
-    );
+    recordResult('meals', 'Meal data extraction', mealData.hasMeals, {
+      summary: `${mealData.totalVisible} meals found on page`,
+      count: mealData.totalVisible,
+    });
 
     // Test 3: Image validation for meals
     if (mealData.meals.length > 0) {
       let mealsWithImages = 0;
       let mealsWithoutImages = 0;
 
-      mealData.meals.forEach(meal => {
+      mealData.meals.forEach((meal) => {
         if (meal.imageUrl && meal.imageUrl !== '' && !meal.imageUrl.includes('placeholder')) {
           mealsWithImages++;
         } else {
@@ -233,21 +233,19 @@ async function testMealsPublic() {
           imageIssues.mealsWithoutImages.push({
             slug: meal.slug,
             title: meal.title,
-            link: meal.link
+            link: meal.link,
           });
         }
       });
 
       const imageHealthPercentage = ((mealsWithImages / mealData.meals.length) * 100).toFixed(2);
 
-      recordResult('meals', 'Meal images validation',
-        mealsWithImages >= mealsWithoutImages, {
-          summary: `${mealsWithImages}/${mealData.meals.length} with images (${imageHealthPercentage}%)`,
-          withImages: mealsWithImages,
-          withoutImages: mealsWithoutImages,
-          total: mealData.meals.length
-        }
-      );
+      recordResult('meals', 'Meal images validation', mealsWithImages >= mealsWithoutImages, {
+        summary: `${mealsWithImages}/${mealData.meals.length} with images (${imageHealthPercentage}%)`,
+        withImages: mealsWithImages,
+        withoutImages: mealsWithoutImages,
+        total: mealData.meals.length,
+      });
     }
 
     // Test 4: CRITICAL - Test each meal slug (the "meal not found" issue)
@@ -257,14 +255,15 @@ async function testMealsPublic() {
       let slugsPassed = 0;
       let slugsFailed = 0;
 
-      for (const meal of mealData.meals.slice(0, 10)) { // Test first 10
+      for (const meal of mealData.meals.slice(0, 10)) {
+        // Test first 10
         if (!meal.slug) {
           slugsFailed++;
           mealIssues.push({
             slug: null,
             title: meal.title,
             error: 'No slug found',
-            link: meal.link
+            link: meal.link,
           });
           continue;
         }
@@ -272,16 +271,18 @@ async function testMealsPublic() {
         try {
           const response = await page.goto(`${BASE_URL}/meals/${meal.slug}`, {
             waitUntil: 'networkidle',
-            timeout: 10000
+            timeout: 10000,
           });
 
           const pageContent = await page.evaluate(() => {
             const bodyText = document.body.textContent || '';
             return {
-              hasNotFoundError: bodyText.toLowerCase().includes('not found') || bodyText.toLowerCase().includes('404'),
+              hasNotFoundError:
+                bodyText.toLowerCase().includes('not found') ||
+                bodyText.toLowerCase().includes('404'),
               hasTitle: !!document.querySelector('h1'),
               title: document.querySelector('h1')?.textContent,
-              url: window.location.href
+              url: window.location.href,
             };
           });
 
@@ -292,9 +293,11 @@ async function testMealsPublic() {
               title: meal.title,
               error: pageContent.hasNotFoundError ? 'Page shows "not found"' : 'Missing h1 title',
               pageTitle: pageContent.title,
-              url: pageContent.url
+              url: pageContent.url,
             });
-            console.log(`  ✗ Meal "${meal.title}" (slug: ${meal.slug}) - ${pageContent.hasNotFoundError ? 'NOT FOUND' : 'NO TITLE'}`);
+            console.log(
+              `  ✗ Meal "${meal.title}" (slug: ${meal.slug}) - ${pageContent.hasNotFoundError ? 'NOT FOUND' : 'NO TITLE'}`
+            );
           } else {
             slugsPassed++;
             console.log(`  ✓ Meal "${meal.title}" (slug: ${meal.slug})`);
@@ -304,26 +307,23 @@ async function testMealsPublic() {
           mealIssues.push({
             slug: meal.slug,
             title: meal.title,
-            error: `Navigation error: ${error.message}`
+            error: `Navigation error: ${error.message}`,
           });
           console.log(`  ✗ Meal "${meal.title}" (slug: ${meal.slug}) - ERROR: ${error.message}`);
         }
       }
 
-      recordResult('meals', 'Meal slug navigation (CRITICAL)',
-        slugsFailed === 0, {
-          summary: `${slugsPassed}/${slugsPassed + slugsFailed} slugs working, ${slugsFailed} failed`,
-          passed: slugsPassed,
-          failed: slugsFailed,
-          total: slugsPassed + slugsFailed
-        }
-      );
+      recordResult('meals', 'Meal slug navigation (CRITICAL)', slugsFailed === 0, {
+        summary: `${slugsPassed}/${slugsPassed + slugsFailed} slugs working, ${slugsFailed} failed`,
+        passed: slugsPassed,
+        failed: slugsFailed,
+        total: slugsPassed + slugsFailed,
+      });
     }
-
   } catch (error) {
     recordResult('meals', 'Public meals test', false, {
       summary: `Error: ${error.message}`,
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -339,14 +339,14 @@ async function testChefsPublic() {
     await page.goto(`${BASE_URL}/chefs`, { waitUntil: 'networkidle' });
     const title = await page.title();
     recordResult('chefs', 'Chefs page loads', true, {
-      summary: `Page title: "${title}"`
+      summary: `Page title: "${title}"`,
     });
 
     const chefData = await page.evaluate(() => {
       const chefElements = document.querySelectorAll('[data-chef-id], .chef-card');
       const chefs = [];
 
-      chefElements.forEach(el => {
+      chefElements.forEach((el) => {
         const nameEl = el.querySelector('h2, h3');
         const imgEl = el.querySelector('img');
         const specialtiesEl = el.querySelector('[data-specialties]');
@@ -354,28 +354,25 @@ async function testChefsPublic() {
         chefs.push({
           name: nameEl?.textContent?.trim(),
           hasImage: !!imgEl?.src,
-          specialties: specialtiesEl?.textContent?.trim()
+          specialties: specialtiesEl?.textContent?.trim(),
         });
       });
 
       return {
         chefs,
         hasChefs: chefs.length > 0,
-        totalVisible: chefs.length
+        totalVisible: chefs.length,
       };
     });
 
-    recordResult('chefs', 'Chef data extraction',
-      chefData.hasChefs, {
-        summary: `${chefData.totalVisible} chefs found`,
-        count: chefData.totalVisible
-      }
-    );
-
+    recordResult('chefs', 'Chef data extraction', chefData.hasChefs, {
+      summary: `${chefData.totalVisible} chefs found`,
+      count: chefData.totalVisible,
+    });
   } catch (error) {
     recordResult('chefs', 'Public chefs test', false, {
       summary: `Error: ${error.message}`,
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -400,7 +397,7 @@ async function testDatabaseData() {
       let emptyImages = 0;
       let validImages = 0;
 
-      recipes.forEach(recipe => {
+      recipes.forEach((recipe) => {
         if (recipe.image_url === null || recipe.image_url === undefined) {
           nullImages++;
         } else if (recipe.image_url === '') {
@@ -415,19 +412,23 @@ async function testDatabaseData() {
 
       console.log(`\n📊 Recipe Image Data Quality:`);
       console.log(`   Total recipes: ${totalRecipes}`);
-      console.log(`   Valid image URLs: ${validImages} (${((validImages / totalRecipes) * 100).toFixed(2)}%)`);
-      console.log(`   NULL image URLs: ${nullImages} (${((nullImages / totalRecipes) * 100).toFixed(2)}%)`);
-      console.log(`   Empty image URLs: ${emptyImages} (${((emptyImages / totalRecipes) * 100).toFixed(2)}%)`);
-
-      recordResult('recipes', 'Database image data quality',
-        problemPercentage < 10, {
-          summary: `${problemPercentage}% of recipes have image problems`,
-          validImages,
-          nullImages,
-          emptyImages,
-          totalRecipes
-        }
+      console.log(
+        `   Valid image URLs: ${validImages} (${((validImages / totalRecipes) * 100).toFixed(2)}%)`
       );
+      console.log(
+        `   NULL image URLs: ${nullImages} (${((nullImages / totalRecipes) * 100).toFixed(2)}%)`
+      );
+      console.log(
+        `   Empty image URLs: ${emptyImages} (${((emptyImages / totalRecipes) * 100).toFixed(2)}%)`
+      );
+
+      recordResult('recipes', 'Database image data quality', problemPercentage < 10, {
+        summary: `${problemPercentage}% of recipes have image problems`,
+        validImages,
+        nullImages,
+        emptyImages,
+        totalRecipes,
+      });
     }
   } catch (error) {
     console.log(`Error in database validation: ${error.message}`);
@@ -444,16 +445,23 @@ function generateReport() {
   console.log('\n📊 OVERALL RESULTS');
   console.log('-'.repeat(80));
   console.log(`Total Tests: ${testResults.overall.total}`);
-  console.log(`Passed: ${testResults.overall.passed} (${((testResults.overall.passed / testResults.overall.total) * 100).toFixed(2)}%)`);
-  console.log(`Failed: ${testResults.overall.failed} (${((testResults.overall.failed / testResults.overall.total) * 100).toFixed(2)}%)`);
+  console.log(
+    `Passed: ${testResults.overall.passed} (${((testResults.overall.passed / testResults.overall.total) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `Failed: ${testResults.overall.failed} (${((testResults.overall.failed / testResults.overall.total) * 100).toFixed(2)}%)`
+  );
 
   // Category breakdown
   console.log('\n📋 RESULTS BY CATEGORY');
   console.log('-'.repeat(80));
   for (const [category, results] of Object.entries(testResults)) {
     if (category === 'overall') continue;
-    const passRate = results.total > 0 ? ((results.passed.length / results.total) * 100).toFixed(2) : 0;
-    console.log(`${category.toUpperCase()}: ${results.passed.length}/${results.total} passed (${passRate}%)`);
+    const passRate =
+      results.total > 0 ? ((results.passed.length / results.total) * 100).toFixed(2) : 0;
+    console.log(
+      `${category.toUpperCase()}: ${results.passed.length}/${results.total} passed (${passRate}%)`
+    );
   }
 
   // Image issues
@@ -469,7 +477,7 @@ function generateReport() {
 
   if (mealIssues.length > 0) {
     console.log('\nFailed meal slugs:');
-    mealIssues.forEach(issue => {
+    mealIssues.forEach((issue) => {
       console.log(`  ✗ Slug: "${issue.slug}", Title: "${issue.title}"`);
       console.log(`    Error: ${issue.error}`);
     });
@@ -481,13 +489,17 @@ function generateReport() {
 
   if (imageIssues.recipesWithoutImages.length > 0) {
     console.log('1. RECIPE IMAGE FIXES:');
-    console.log(`   - ${imageIssues.recipesWithoutImages.length} recipes are displaying without images`);
+    console.log(
+      `   - ${imageIssues.recipesWithoutImages.length} recipes are displaying without images`
+    );
     console.log('   - Review image_url field population in database');
   }
 
   if (imageIssues.mealsWithoutImages.length > 0) {
     console.log('\n2. MEAL IMAGE FIXES:');
-    console.log(`   - ${imageIssues.mealsWithoutImages.length} meals are displaying without images`);
+    console.log(
+      `   - ${imageIssues.mealsWithoutImages.length} meals are displaying without images`
+    );
     console.log('   - Review meal image_url field population');
   }
 
@@ -503,7 +515,7 @@ function generateReport() {
     timestamp: new Date().toISOString(),
     summary: testResults,
     imageIssues,
-    mealIssues
+    mealIssues,
   };
 }
 
@@ -537,7 +549,6 @@ async function runAllTests() {
     const reportPath = '/Users/masa/Projects/joanies-kitchen/tests/public-feature-test-report.json';
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     console.log(`\n📄 Full report saved to: ${reportPath}`);
-
   } catch (error) {
     console.error('❌ Test suite failed:', error);
   } finally {

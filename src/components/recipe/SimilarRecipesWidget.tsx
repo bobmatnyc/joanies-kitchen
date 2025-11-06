@@ -4,10 +4,10 @@ import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { findSimilarToRecipe, type RecipeWithSimilarity } from '@/app/actions/semantic-search';
-import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { RecipeCard } from './RecipeCard';
 
 export interface SimilarRecipesWidgetProps {

@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
-import { createRecipe } from './recipes';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { createRecipe } from './recipes';
 
 // Schema for web search results
 const WebRecipeSchema = z.object({

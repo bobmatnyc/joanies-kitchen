@@ -28,12 +28,12 @@ import {
   updateShoppingListSchema,
   validateInput,
 } from '@/lib/meals/validation';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import {
   consolidateShoppingListItems,
   parseIngredientString,
 } from '@/lib/utils/ingredient-consolidation';
 import { ensureUniqueSlug, generateMealSlug } from '@/lib/utils/meal-slug';
-import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Create a new meal
@@ -388,8 +388,7 @@ export async function removeRecipeFromMeal(id: unknown) {
     return { success: true };
   } catch (error) {
     console.error('Failed to remove recipe from meal:', error);
-    const errorMessage =
-      toErrorMessage(error);
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -538,8 +537,7 @@ export async function generateShoppingList(data: unknown) {
     return { success: true, data: newShoppingList };
   } catch (error) {
     console.error('Failed to generate shopping list:', error);
-    const errorMessage =
-      toErrorMessage(error);
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -700,8 +698,7 @@ export async function createMealFromTemplate(data: unknown) {
     return { success: true, data: newMeal };
   } catch (error) {
     console.error('Failed to create meal from template:', error);
-    const errorMessage =
-      toErrorMessage(error);
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }
@@ -859,8 +856,7 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
     return { success: true, data: recommendations };
   } catch (error) {
     console.error('Failed to generate recommendations:', error);
-    const errorMessage =
-      toErrorMessage(error);
+    const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }
 }

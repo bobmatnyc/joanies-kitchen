@@ -12,14 +12,14 @@ const testResults = {
   chefs: { passed: [], failed: [], total: 0 },
   collections: { passed: [], failed: [], total: 0 },
   ingredients: { passed: [], failed: [], total: 0 },
-  overall: { passed: 0, failed: 0, total: 0 }
+  overall: { passed: 0, failed: 0, total: 0 },
 };
 
 const imageIssues = {
   nullImageUrl: [],
   emptyImageUrl: [],
   http404: [],
-  invalidFormat: []
+  invalidFormat: [],
 };
 
 const mealSlugIssues = [];
@@ -61,8 +61,8 @@ async function makeRequest(endpoint, options = {}) {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers
-      }
+        ...options.headers,
+      },
     });
 
     const contentType = response.headers.get('content-type');
@@ -78,14 +78,14 @@ async function makeRequest(endpoint, options = {}) {
       status: response.status,
       ok: response.ok,
       data,
-      headers: Object.fromEntries(response.headers.entries())
+      headers: Object.fromEntries(response.headers.entries()),
     };
   } catch (error) {
     return {
       status: 0,
       ok: false,
       error: error.message,
-      data: null
+      data: null,
     };
   }
 }
@@ -99,23 +99,26 @@ async function testRecipesAPI() {
 
   // Test 1: GET /api/v1/recipes (list)
   const listResponse = await makeRequest('/api/v1/recipes?limit=50');
-  recordResult('recipes', 'GET /api/v1/recipes - List recipes',
-    listResponse.ok && Array.isArray(listResponse.data), {
+  recordResult(
+    'recipes',
+    'GET /api/v1/recipes - List recipes',
+    listResponse.ok && Array.isArray(listResponse.data),
+    {
       status: listResponse.status,
       summary: `${listResponse.ok ? 'OK' : 'FAILED'} - ${listResponse.status}`,
-      count: Array.isArray(listResponse.data) ? listResponse.data.length : 0
+      count: Array.isArray(listResponse.data) ? listResponse.data.length : 0,
     }
   );
 
   // Test 2: Pagination
   const page1 = await makeRequest('/api/v1/recipes?limit=10&offset=0');
   const page2 = await makeRequest('/api/v1/recipes?limit=10&offset=10');
-  const paginationWorks = page1.ok && page2.ok &&
-    Array.isArray(page1.data) && Array.isArray(page2.data);
+  const paginationWorks =
+    page1.ok && page2.ok && Array.isArray(page1.data) && Array.isArray(page2.data);
 
   recordResult('recipes', 'Pagination (limit & offset)', paginationWorks, {
     status: page1.status,
-    summary: `Page 1: ${page1.data?.length || 0} items, Page 2: ${page2.data?.length || 0} items`
+    summary: `Page 1: ${page1.data?.length || 0} items, Page 2: ${page2.data?.length || 0} items`,
   });
 
   // Test 3: Image URL validation (CRITICAL)
@@ -131,14 +134,14 @@ async function testRecipesAPI() {
         imageIssues.nullImageUrl.push({
           id: recipe.id,
           title: recipe.title,
-          slug: recipe.slug
+          slug: recipe.slug,
         });
       } else if (recipe.image_url === '') {
         emptyCount++;
         imageIssues.emptyImageUrl.push({
           id: recipe.id,
           title: recipe.title,
-          slug: recipe.slug
+          slug: recipe.slug,
         });
       } else {
         validCount++;
@@ -150,7 +153,7 @@ async function testRecipesAPI() {
               id: recipe.id,
               title: recipe.title,
               url: recipe.image_url,
-              status: imgTest.status
+              status: imgTest.status,
             });
           }
         }
@@ -160,15 +163,13 @@ async function testRecipesAPI() {
     const totalRecipes = recipes.length;
     const healthyPercentage = ((validCount / totalRecipes) * 100).toFixed(2);
 
-    recordResult('recipes', 'Recipe image URLs validation',
-      validCount > nullCount + emptyCount, {
-        summary: `${validCount}/${totalRecipes} valid (${healthyPercentage}%), ${nullCount} null, ${emptyCount} empty`,
-        nullCount,
-        emptyCount,
-        validCount,
-        totalRecipes
-      }
-    );
+    recordResult('recipes', 'Recipe image URLs validation', validCount > nullCount + emptyCount, {
+      summary: `${validCount}/${totalRecipes} valid (${healthyPercentage}%), ${nullCount} null, ${emptyCount} empty`,
+      nullCount,
+      emptyCount,
+      validCount,
+      totalRecipes,
+    });
   }
 
   // Test 4: Individual recipe detail
@@ -176,13 +177,11 @@ async function testRecipesAPI() {
     const firstRecipe = listResponse.data[0];
     const detailResponse = await makeRequest(`/api/v1/recipes/${firstRecipe.id}`);
 
-    recordResult('recipes', `GET /api/v1/recipes/:id - Recipe detail`,
-      detailResponse.ok, {
-        status: detailResponse.status,
-        summary: `Recipe ID ${firstRecipe.id}`,
-        recipeId: firstRecipe.id
-      }
-    );
+    recordResult('recipes', `GET /api/v1/recipes/:id - Recipe detail`, detailResponse.ok, {
+      status: detailResponse.status,
+      summary: `Recipe ID ${firstRecipe.id}`,
+      recipeId: firstRecipe.id,
+    });
 
     // Test 5: Recipe data structure validation
     if (detailResponse.ok && detailResponse.data) {
@@ -191,11 +190,14 @@ async function testRecipesAPI() {
       const hasIngredients = Array.isArray(recipe.ingredients);
       const hasInstructions = Array.isArray(recipe.instructions);
 
-      recordResult('recipes', 'Recipe data structure',
-        hasRequiredFields && hasIngredients && hasInstructions, {
+      recordResult(
+        'recipes',
+        'Recipe data structure',
+        hasRequiredFields && hasIngredients && hasInstructions,
+        {
           summary: `Required fields: ${hasRequiredFields}, Ingredients: ${hasIngredients}, Instructions: ${hasInstructions}`,
           ingredientCount: recipe.ingredients?.length || 0,
-          instructionCount: recipe.instructions?.length || 0
+          instructionCount: recipe.instructions?.length || 0,
         }
       );
     }
@@ -203,22 +205,18 @@ async function testRecipesAPI() {
 
   // Test 6: Paginated recipes endpoint
   const paginatedResponse = await makeRequest('/api/recipes/paginated?page=1&limit=20');
-  recordResult('recipes', 'GET /api/recipes/paginated',
-    paginatedResponse.ok, {
-      status: paginatedResponse.status,
-      summary: `Status ${paginatedResponse.status}`
-    }
-  );
+  recordResult('recipes', 'GET /api/recipes/paginated', paginatedResponse.ok, {
+    status: paginatedResponse.status,
+    summary: `Status ${paginatedResponse.status}`,
+  });
 
   // Test 7: Search functionality
   const searchResponse = await makeRequest('/api/search/semantic?q=chicken');
-  recordResult('recipes', 'Recipe search (semantic)',
-    searchResponse.ok, {
-      status: searchResponse.status,
-      summary: `Status ${searchResponse.status}`,
-      resultCount: Array.isArray(searchResponse.data) ? searchResponse.data.length : 0
-    }
-  );
+  recordResult('recipes', 'Recipe search (semantic)', searchResponse.ok, {
+    status: searchResponse.status,
+    summary: `Status ${searchResponse.status}`,
+    resultCount: Array.isArray(searchResponse.data) ? searchResponse.data.length : 0,
+  });
 }
 
 // ============================================================================
@@ -230,11 +228,14 @@ async function testMealsAPI() {
 
   // Test 1: GET /api/v1/meals (list all meals)
   const listResponse = await makeRequest('/api/v1/meals');
-  recordResult('meals', 'GET /api/v1/meals - List meals',
-    listResponse.ok && Array.isArray(listResponse.data), {
+  recordResult(
+    'meals',
+    'GET /api/v1/meals - List meals',
+    listResponse.ok && Array.isArray(listResponse.data),
+    {
       status: listResponse.status,
       summary: `${listResponse.ok ? 'OK' : 'FAILED'} - ${listResponse.status}`,
-      count: Array.isArray(listResponse.data) ? listResponse.data.length : 0
+      count: Array.isArray(listResponse.data) ? listResponse.data.length : 0,
     }
   );
 
@@ -264,24 +265,24 @@ async function testMealsAPI() {
           title: meal.title,
           apiStatus: apiResponse.status,
           pageStatus: pageResponse.status,
-          apiError: apiResponse.error || (apiResponse.data?.error),
-          pageError: pageResponse.error
+          apiError: apiResponse.error || apiResponse.data?.error,
+          pageError: pageResponse.error,
         });
 
-        console.log(`  ✗ Meal "${meal.title}" (slug: ${meal.slug}): API=${apiResponse.status}, Page=${pageResponse.status}`);
+        console.log(
+          `  ✗ Meal "${meal.title}" (slug: ${meal.slug}): API=${apiResponse.status}, Page=${pageResponse.status}`
+        );
       } else {
         slugTestsPassed++;
       }
     }
 
-    recordResult('meals', 'Meal slug resolution',
-      slugTestsFailed === 0, {
-        summary: `${slugTestsPassed}/${meals.length} slugs working, ${slugTestsFailed} failed`,
-        passed: slugTestsPassed,
-        failed: slugTestsFailed,
-        total: meals.length
-      }
-    );
+    recordResult('meals', 'Meal slug resolution', slugTestsFailed === 0, {
+      summary: `${slugTestsPassed}/${meals.length} slugs working, ${slugTestsFailed} failed`,
+      passed: slugTestsPassed,
+      failed: slugTestsFailed,
+      total: meals.length,
+    });
   }
 
   // Test 3: Meal image URLs
@@ -301,15 +302,13 @@ async function testMealsAPI() {
       }
     }
 
-    recordResult('meals', 'Meal image URLs validation',
-      validImages > nullImages + emptyImages, {
-        summary: `${validImages}/${meals.length} valid, ${nullImages} null, ${emptyImages} empty`,
-        validImages,
-        nullImages,
-        emptyImages,
-        totalMeals: meals.length
-      }
-    );
+    recordResult('meals', 'Meal image URLs validation', validImages > nullImages + emptyImages, {
+      summary: `${validImages}/${meals.length} valid, ${nullImages} null, ${emptyImages} empty`,
+      validImages,
+      nullImages,
+      emptyImages,
+      totalMeals: meals.length,
+    });
   }
 
   // Test 4: Meal recipes endpoint
@@ -317,13 +316,11 @@ async function testMealsAPI() {
     const firstMeal = listResponse.data[0];
     const recipesResponse = await makeRequest(`/api/v1/meals/${firstMeal.id}/recipes`);
 
-    recordResult('meals', 'GET /api/v1/meals/:id/recipes',
-      recipesResponse.ok, {
-        status: recipesResponse.status,
-        summary: `Meal ID ${firstMeal.id}`,
-        recipeCount: Array.isArray(recipesResponse.data) ? recipesResponse.data.length : 0
-      }
-    );
+    recordResult('meals', 'GET /api/v1/meals/:id/recipes', recipesResponse.ok, {
+      status: recipesResponse.status,
+      summary: `Meal ID ${firstMeal.id}`,
+      recipeCount: Array.isArray(recipesResponse.data) ? recipesResponse.data.length : 0,
+    });
   }
 
   // Test 5: Meal shopping list endpoint
@@ -331,12 +328,10 @@ async function testMealsAPI() {
     const firstMeal = listResponse.data[0];
     const shoppingResponse = await makeRequest(`/api/v1/meals/${firstMeal.id}/shopping-list`);
 
-    recordResult('meals', 'GET /api/v1/meals/:id/shopping-list',
-      shoppingResponse.ok, {
-        status: shoppingResponse.status,
-        summary: `Meal ID ${firstMeal.id}`
-      }
-    );
+    recordResult('meals', 'GET /api/v1/meals/:id/shopping-list', shoppingResponse.ok, {
+      status: shoppingResponse.status,
+      summary: `Meal ID ${firstMeal.id}`,
+    });
   }
 }
 
@@ -353,7 +348,7 @@ async function testChefsAPI() {
 
   recordResult('chefs', 'Chef API endpoint discovery', false, {
     summary: 'No public /api/v1/chefs endpoint found',
-    note: 'Chefs may be server-action only'
+    note: 'Chefs may be server-action only',
   });
 }
 
@@ -367,7 +362,7 @@ async function testCollectionsAPI() {
   // Similar to chefs, collections might be server-action based
   recordResult('collections', 'Collections API endpoint discovery', false, {
     summary: 'No public /api/v1/collections endpoint found',
-    note: 'Collections may be server-action only'
+    note: 'Collections may be server-action only',
   });
 }
 
@@ -380,22 +375,18 @@ async function testIngredientsAPI() {
 
   // Test 1: Ingredient filter
   const filterResponse = await makeRequest('/api/ingredients/filter?q=tomato');
-  recordResult('ingredients', 'GET /api/ingredients/filter',
-    filterResponse.ok, {
-      status: filterResponse.status,
-      summary: `Search for "tomato"`,
-      resultCount: Array.isArray(filterResponse.data) ? filterResponse.data.length : 0
-    }
-  );
+  recordResult('ingredients', 'GET /api/ingredients/filter', filterResponse.ok, {
+    status: filterResponse.status,
+    summary: `Search for "tomato"`,
+    resultCount: Array.isArray(filterResponse.data) ? filterResponse.data.length : 0,
+  });
 
   // Test 2: Ingredient ontology
   const ontologyResponse = await makeRequest('/api/ingredients/ontology');
-  recordResult('ingredients', 'GET /api/ingredients/ontology',
-    ontologyResponse.ok, {
-      status: ontologyResponse.status,
-      summary: `Status ${ontologyResponse.status}`
-    }
-  );
+  recordResult('ingredients', 'GET /api/ingredients/ontology', ontologyResponse.ok, {
+    status: ontologyResponse.status,
+    summary: `Status ${ontologyResponse.status}`,
+  });
 }
 
 // ============================================================================
@@ -408,16 +399,23 @@ function generateReport() {
   console.log('\n📊 OVERALL RESULTS');
   console.log('-'.repeat(80));
   console.log(`Total Tests: ${testResults.overall.total}`);
-  console.log(`Passed: ${testResults.overall.passed} (${((testResults.overall.passed / testResults.overall.total) * 100).toFixed(2)}%)`);
-  console.log(`Failed: ${testResults.overall.failed} (${((testResults.overall.failed / testResults.overall.total) * 100).toFixed(2)}%)`);
+  console.log(
+    `Passed: ${testResults.overall.passed} (${((testResults.overall.passed / testResults.overall.total) * 100).toFixed(2)}%)`
+  );
+  console.log(
+    `Failed: ${testResults.overall.failed} (${((testResults.overall.failed / testResults.overall.total) * 100).toFixed(2)}%)`
+  );
 
   // Category breakdown
   console.log('\n📋 RESULTS BY CATEGORY');
   console.log('-'.repeat(80));
   for (const [category, results] of Object.entries(testResults)) {
     if (category === 'overall') continue;
-    const passRate = results.total > 0 ? ((results.passed.length / results.total) * 100).toFixed(2) : 0;
-    console.log(`${category.toUpperCase()}: ${results.passed.length}/${results.total} passed (${passRate}%)`);
+    const passRate =
+      results.total > 0 ? ((results.passed.length / results.total) * 100).toFixed(2) : 0;
+    console.log(
+      `${category.toUpperCase()}: ${results.passed.length}/${results.total} passed (${passRate}%)`
+    );
   }
 
   // Image issues
@@ -429,7 +427,7 @@ function generateReport() {
 
   if (imageIssues.nullImageUrl.length > 0) {
     console.log('\nSample recipes with null images (first 10):');
-    imageIssues.nullImageUrl.slice(0, 10).forEach(issue => {
+    imageIssues.nullImageUrl.slice(0, 10).forEach((issue) => {
       console.log(`  - ID: ${issue.id}, Title: "${issue.title}", Slug: ${issue.slug}`);
     });
   }
@@ -441,7 +439,7 @@ function generateReport() {
 
   if (mealSlugIssues.length > 0) {
     console.log('\nFailed meal slugs:');
-    mealSlugIssues.forEach(issue => {
+    mealSlugIssues.forEach((issue) => {
       console.log(`  - Slug: "${issue.slug}", Title: "${issue.title}"`);
       console.log(`    API: ${issue.apiStatus}, Page: ${issue.pageStatus}`);
       if (issue.apiError) console.log(`    Error: ${issue.apiError}`);
@@ -455,7 +453,7 @@ function generateReport() {
     if (category === 'overall') continue;
     if (results.failed.length > 0) {
       console.log(`\n${category.toUpperCase()}:`);
-      results.failed.forEach(failure => {
+      results.failed.forEach((failure) => {
         console.log(`  ✗ ${failure.test}`);
         console.log(`    ${failure.summary || 'No details'}`);
       });
@@ -469,7 +467,9 @@ function generateReport() {
   if (imageIssues.nullImageUrl.length > 0 || imageIssues.emptyImageUrl.length > 0) {
     console.log('1. IMAGE URL FIXES:');
     console.log('   - Run data migration to populate missing image_url fields');
-    console.log(`   - ${imageIssues.nullImageUrl.length + imageIssues.emptyImageUrl.length} recipes need image URLs`);
+    console.log(
+      `   - ${imageIssues.nullImageUrl.length + imageIssues.emptyImageUrl.length} recipes need image URLs`
+    );
     console.log('   - Consider default placeholder images for recipes without images');
   }
 
@@ -493,7 +493,7 @@ function generateReport() {
     summary: testResults,
     imageIssues,
     mealSlugIssues,
-    dataQualityIssues
+    dataQualityIssues,
   };
 
   return reportData;
@@ -522,7 +522,6 @@ async function runAllTests() {
     const reportPath = '/Users/masa/Projects/joanies-kitchen/tests/api-test-report.json';
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     console.log(`\n📄 Full report saved to: ${reportPath}`);
-
   } catch (error) {
     console.error('❌ Test suite failed:', error);
     process.exit(1);

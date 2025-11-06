@@ -6,8 +6,8 @@ import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
-import { addFavorite } from './favorites';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { addFavorite } from './favorites';
 
 /**
  * Recipe Cloning Server Actions
