@@ -14,7 +14,6 @@ import { Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { type FlagReason, flagRecipe } from '@/app/actions/flag-recipe';
-import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 
 interface FlagRecipeButtonProps {
   recipeId: string;

@@ -8,8 +8,8 @@ import { db } from '@/lib/db';
 import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
-import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
 
 /**
  * Start a scraping job for a chef's recipes

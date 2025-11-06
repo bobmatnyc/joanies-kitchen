@@ -54,26 +54,29 @@ export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: Re
 
   const REVIEWS_PER_PAGE = 10;
 
-  const loadReviews = useCallback(async (offset: number) => {
-    setIsLoading(true);
-    try {
-      const newReviews = await getRecipeRatings(recipeId, REVIEWS_PER_PAGE, offset);
+  const loadReviews = useCallback(
+    async (offset: number) => {
+      setIsLoading(true);
+      try {
+        const newReviews = await getRecipeRatings(recipeId, REVIEWS_PER_PAGE, offset);
 
-      if (offset === 0) {
-        setReviews(newReviews);
-      } else {
-        setReviews((prev) => [...prev, ...newReviews]);
+        if (offset === 0) {
+          setReviews(newReviews);
+        } else {
+          setReviews((prev) => [...prev, ...newReviews]);
+        }
+
+        // If we got fewer reviews than requested, there are no more
+        setHasMore(newReviews.length === REVIEWS_PER_PAGE);
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+        toast.error('Failed to load reviews');
+      } finally {
+        setIsLoading(false);
       }
-
-      // If we got fewer reviews than requested, there are no more
-      setHasMore(newReviews.length === REVIEWS_PER_PAGE);
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-      toast.error('Failed to load reviews');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [recipeId]);
+    },
+    [recipeId]
+  );
 
   // Load initial reviews on mount if not provided
   useEffect(() => {

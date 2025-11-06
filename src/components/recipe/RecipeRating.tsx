@@ -164,7 +164,7 @@ export function RecipeRating({
       }
     } catch (err: unknown) {
       setError(toErrorMessage(err));
-    } finally{
+    } finally {
       setLoading(false);
     }
   };

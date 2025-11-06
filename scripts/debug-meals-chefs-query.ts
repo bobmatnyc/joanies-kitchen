@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Debug script to investigate why meals and chefs pages show 0 results
  *
@@ -10,14 +11,14 @@
  * 5. Sample records to verify field values
  */
 
-import { db } from '../src/lib/db';
-import { meals } from '../src/lib/db/meals-schema';
-import { chefs } from '../src/lib/db/chef-schema';
 import { eq, sql } from 'drizzle-orm';
+import { db } from '../src/lib/db';
+import { chefs } from '../src/lib/db/chef-schema';
+import { meals } from '../src/lib/db/meals-schema';
 
 async function debugMealsAndChefs() {
   console.log('🔍 Debugging Meals and Chefs Queries\n');
-  console.log('=' .repeat(80));
+  console.log('='.repeat(80));
 
   try {
     // ========================================================================
@@ -27,9 +28,7 @@ async function debugMealsAndChefs() {
     console.log('-'.repeat(80));
 
     // Total meal count
-    const totalMealsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(meals);
+    const totalMealsResult = await db.select({ count: sql<number>`count(*)::int` }).from(meals);
     const totalMeals = totalMealsResult[0]?.count || 0;
     console.log(`\n✅ Total meals in database: ${totalMeals}`);
 
@@ -85,9 +84,7 @@ async function debugMealsAndChefs() {
     console.log('-'.repeat(80));
 
     // Total chef count
-    const totalChefsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(chefs);
+    const totalChefsResult = await db.select({ count: sql<number>`count(*)::int` }).from(chefs);
     const totalChefs = totalChefsResult[0]?.count || 0;
     console.log(`\n✅ Total chefs in database: ${totalChefs}`);
 

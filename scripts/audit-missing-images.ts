@@ -284,9 +284,7 @@ function generateCsvReport(report: AuditReport): string {
   // Meal issues detail
   if (report.meal_issues.length > 0) {
     lines.push('=== MEAL ISSUES DETAIL ===');
-    lines.push(
-      'Meal ID,Meal Name,Issue Type,Issue Details,Image URL,User ID,Created At,Meal Type'
-    );
+    lines.push('Meal ID,Meal Name,Issue Type,Issue Details,Image URL,User ID,Created At,Meal Type');
 
     for (const issue of report.meal_issues) {
       const escapeCsv = (value: string | null | undefined): string => {
@@ -353,10 +351,7 @@ async function auditRecipes(
     // Check 1: No images at all
     if (
       (!imageUrl || imageUrl.trim() === '') &&
-      (!imagesJson ||
-        imagesJson === 'null' ||
-        imagesJson === '[]' ||
-        imagesArray.length === 0)
+      (!imagesJson || imagesJson === 'null' || imagesJson === '[]' || imagesArray.length === 0)
     ) {
       recipeIssues.push({
         id: recipe.id as string,
@@ -591,8 +586,7 @@ function generateReport(
   // Calculate issue breakdown
   const recipeIssueBreakdown: Record<string, number> = {};
   for (const issue of recipeAudit.issues) {
-    recipeIssueBreakdown[issue.issue_type] =
-      (recipeIssueBreakdown[issue.issue_type] || 0) + 1;
+    recipeIssueBreakdown[issue.issue_type] = (recipeIssueBreakdown[issue.issue_type] || 0) + 1;
   }
 
   const mealIssueBreakdown: Record<string, number> = {};

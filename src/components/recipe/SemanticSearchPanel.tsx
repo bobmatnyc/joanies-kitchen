@@ -8,7 +8,6 @@ import {
   type SearchOptions,
   semanticSearchRecipes,
 } from '@/app/actions/semantic-search';
-import { toErrorMessage } from '@/lib/utils/error-handling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { toErrorMessage } from '@/lib/utils/error-handling';
 import { RecipeCard } from './RecipeCard';
 
 export interface SemanticSearchPanelProps {
@@ -167,7 +167,10 @@ export function SemanticSearchPanel({
             <Label htmlFor="search-mode" className="text-sm font-medium">
               Search Mode:
             </Label>
-            <Select value={searchMode} onValueChange={(value) => setSearchMode(value as 'semantic' | 'hybrid')}>
+            <Select
+              value={searchMode}
+              onValueChange={(value) => setSearchMode(value as 'semantic' | 'hybrid')}
+            >
               <SelectTrigger id="search-mode" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>

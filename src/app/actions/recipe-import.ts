@@ -3,8 +3,8 @@
 import { requireAuth } from '@/lib/auth-guard';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
 
 /**
  * Import a single recipe from markdown

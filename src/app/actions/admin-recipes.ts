@@ -290,9 +290,7 @@ export async function regenerateAllFlaggedImages() {
         }
       } catch (error) {
         results.failed++;
-        results.errors.push(
-          `${recipe.name}: ${toErrorMessage(error)}`
-        );
+        results.errors.push(`${recipe.name}: ${toErrorMessage(error)}`);
       }
 
       // Add a small delay to avoid rate limiting

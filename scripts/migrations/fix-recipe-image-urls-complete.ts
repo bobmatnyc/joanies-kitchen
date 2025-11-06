@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { resolve } from 'path';
 
 // Load environment variables
@@ -63,12 +63,14 @@ async function fixRecipeImageUrlsComplete() {
 
     console.log(`Found ${setNotationPreview.length} records with PostgreSQL set notation`);
     if (setNotationPreview.length > 0) {
-      console.table(setNotationPreview.map(r => ({
-        id: r.id,
-        name: r.name?.substring(0, 40),
-        images: String(r.images).substring(0, 60),
-        extracted_url: r.extracted_url?.substring(0, 60)
-      })));
+      console.table(
+        setNotationPreview.map((r) => ({
+          id: r.id,
+          name: r.name?.substring(0, 40),
+          images: String(r.images).substring(0, 60),
+          extracted_url: r.extracted_url?.substring(0, 60),
+        }))
+      );
     }
     console.log('');
 
@@ -133,7 +135,9 @@ async function fixRecipeImageUrlsComplete() {
     console.log('Summary:');
     console.log(`  Before: ${beforePercentage}% of recipes had image_url populated`);
     console.log(`  After:  ${afterPercentage}% of recipes have image_url populated`);
-    console.log(`  Improvement: +${improvement.toFixed(2)}% (${totalUpdated} records updated in this run)`);
+    console.log(
+      `  Improvement: +${improvement.toFixed(2)}% (${totalUpdated} records updated in this run)`
+    );
     console.log('');
 
     // Step 7: Show remaining null breakdown
@@ -175,12 +179,14 @@ async function fixRecipeImageUrlsComplete() {
     `;
 
     console.log('Sample of records updated with AI recipe images:');
-    console.table(verification.map(r => ({
-      id: r.id,
-      name: r.name?.substring(0, 40) || 'N/A',
-      image_url: r.image_url?.substring(0, 60) || 'N/A',
-      images: String(r.images).substring(0, 60)
-    })));
+    console.table(
+      verification.map((r) => ({
+        id: r.id,
+        name: r.name?.substring(0, 40) || 'N/A',
+        image_url: r.image_url?.substring(0, 60) || 'N/A',
+        images: String(r.images).substring(0, 60),
+      }))
+    );
     console.log('');
 
     console.log('='.repeat(80));
@@ -189,11 +195,12 @@ async function fixRecipeImageUrlsComplete() {
     console.log('');
     console.log('Summary of what was fixed:');
     console.log(`  - Stage 1 (previous run): Fixed 304 JSON array records`);
-    console.log(`  - Stage 2 (this run): Fixed ${setNotationCount} PostgreSQL set notation records`);
+    console.log(
+      `  - Stage 2 (this run): Fixed ${setNotationCount} PostgreSQL set notation records`
+    );
     console.log(`  - Total fixed: ${304 + setNotationCount} records`);
     console.log(`  - Remaining null: ${afterStats[0].null_count} records (mostly no image data)`);
     console.log('');
-
   } catch (error) {
     console.error('ERROR during migration:', error);
     throw error;

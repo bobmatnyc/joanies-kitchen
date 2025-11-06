@@ -1,9 +1,9 @@
+import * as dotenv from 'dotenv';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { sql } from 'drizzle-orm';
-import pg from 'pg';
-import * as dotenv from 'dotenv';
 import * as path from 'path';
+import pg from 'pg';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });

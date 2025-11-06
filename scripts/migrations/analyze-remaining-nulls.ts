@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { resolve } from 'path';
 
 // Load environment variables
@@ -51,11 +51,13 @@ async function analyzeRemainingNulls() {
     `;
 
     console.log('Sample records with images IS NULL:');
-    console.table(nullImages.map(r => ({
-      id: r.id,
-      name: r.name?.substring(0, 50),
-      images: String(r.images)
-    })));
+    console.table(
+      nullImages.map((r) => ({
+        id: r.id,
+        name: r.name?.substring(0, 50),
+        images: String(r.images),
+      }))
+    );
     console.log('');
 
     const emptyArrays = await sql`
@@ -66,11 +68,13 @@ async function analyzeRemainingNulls() {
     `;
 
     console.log('Sample records with images = []:');
-    console.table(emptyArrays.map(r => ({
-      id: r.id,
-      name: r.name?.substring(0, 50),
-      images: String(r.images)
-    })));
+    console.table(
+      emptyArrays.map((r) => ({
+        id: r.id,
+        name: r.name?.substring(0, 50),
+        images: String(r.images),
+      }))
+    );
     console.log('');
 
     // Check for any other patterns we might have missed
@@ -86,17 +90,18 @@ async function analyzeRemainingNulls() {
 
     if (otherPatterns.length > 0) {
       console.log('Sample records with other/unexpected patterns:');
-      console.table(otherPatterns.map(r => ({
-        id: r.id,
-        name: r.name?.substring(0, 50),
-        type: r.type,
-        images: String(r.images).substring(0, 100)
-      })));
+      console.table(
+        otherPatterns.map((r) => ({
+          id: r.id,
+          name: r.name?.substring(0, 50),
+          type: r.type,
+          images: String(r.images).substring(0, 100),
+        }))
+      );
     } else {
       console.log('No unexpected patterns found.');
     }
     console.log('');
-
   } catch (error) {
     console.error('ERROR:', error);
     throw error;

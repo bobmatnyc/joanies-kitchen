@@ -6,7 +6,9 @@
 
 import postgres from 'postgres';
 
-const sql = postgres(process.env.DATABASE_URL || 'postgresql://masa@localhost:5432/joanies_kitchen_dev');
+const sql = postgres(
+  process.env.DATABASE_URL || 'postgresql://masa@localhost:5432/joanies_kitchen_dev'
+);
 
 async function validateRecipes() {
   console.log('\n' + '='.repeat(80));
@@ -35,9 +37,13 @@ async function validateRecipes() {
 
     console.log('\n📊 Recipe Image URL (image_url field):');
     console.log(`   Total recipes: ${imageUrlStats[0].total}`);
-    console.log(`   NULL image_url: ${imageUrlStats[0].null_image_url} (${((imageUrlStats[0].null_image_url / imageUrlStats[0].total) * 100).toFixed(2)}%)`);
+    console.log(
+      `   NULL image_url: ${imageUrlStats[0].null_image_url} (${((imageUrlStats[0].null_image_url / imageUrlStats[0].total) * 100).toFixed(2)}%)`
+    );
     console.log(`   Empty image_url: ${imageUrlStats[0].empty_image_url}`);
-    console.log(`   Has image_url: ${imageUrlStats[0].has_image_url} (${((imageUrlStats[0].has_image_url / imageUrlStats[0].total) * 100).toFixed(2)}%)`);
+    console.log(
+      `   Has image_url: ${imageUrlStats[0].has_image_url} (${((imageUrlStats[0].has_image_url / imageUrlStats[0].total) * 100).toFixed(2)}%)`
+    );
 
     // Check images field (TEXT field that may contain JSON)
     const imagesFieldStats = await sql`
@@ -62,7 +68,7 @@ async function validateRecipes() {
     `;
 
     console.log('\n📋 Sample recipes with NULL image_url (first 10):');
-    recipesWithoutImages.forEach(recipe => {
+    recipesWithoutImages.forEach((recipe) => {
       let hasImagesArray = false;
       let imageCount = 0;
 
@@ -87,9 +93,8 @@ async function validateRecipes() {
       totalRecipes,
       nullImageUrl: parseInt(imageUrlStats[0].null_image_url),
       hasImageUrl: parseInt(imageUrlStats[0].has_image_url),
-      hasImagesArray: parseInt(imagesFieldStats[0].has_images)
+      hasImagesArray: parseInt(imagesFieldStats[0].has_images),
     };
-
   } catch (error) {
     console.error('Error validating recipes:', error);
     throw error;
@@ -112,32 +117,36 @@ async function validateMeals() {
     console.log(`\n📊 Total meals in database: ${meals.length}`);
 
     // Check slug presence
-    const mealsWithSlugs = meals.filter(m => m.slug && m.slug !== '');
-    const mealsWithoutSlugs = meals.filter(m => !m.slug || m.slug === '');
+    const mealsWithSlugs = meals.filter((m) => m.slug && m.slug !== '');
+    const mealsWithoutSlugs = meals.filter((m) => !m.slug || m.slug === '');
 
     console.log(`   Meals with slugs: ${mealsWithSlugs.length}`);
     console.log(`   Meals without slugs: ${mealsWithoutSlugs.length}`);
 
     // Check public meals
-    const publicMeals = meals.filter(m => m.is_public);
+    const publicMeals = meals.filter((m) => m.is_public);
     console.log(`   Public meals: ${publicMeals.length}`);
 
     // Check image URLs
-    const mealsWithImages = meals.filter(m => m.image_url && m.image_url !== '');
-    const mealsWithoutImages = meals.filter(m => !m.image_url || m.image_url === '');
+    const mealsWithImages = meals.filter((m) => m.image_url && m.image_url !== '');
+    const mealsWithoutImages = meals.filter((m) => !m.image_url || m.image_url === '');
 
-    console.log(`   Meals with image_url: ${mealsWithImages.length} (${((mealsWithImages.length / meals.length) * 100).toFixed(2)}%)`);
-    console.log(`   Meals without image_url: ${mealsWithoutImages.length} (${((mealsWithoutImages.length / meals.length) * 100).toFixed(2)}%)`);
+    console.log(
+      `   Meals with image_url: ${mealsWithImages.length} (${((mealsWithImages.length / meals.length) * 100).toFixed(2)}%)`
+    );
+    console.log(
+      `   Meals without image_url: ${mealsWithoutImages.length} (${((mealsWithoutImages.length / meals.length) * 100).toFixed(2)}%)`
+    );
 
     // List all meal slugs for testing
     console.log('\n📋 All meal slugs (for routing tests):');
-    mealsWithSlugs.slice(0, 20).forEach(meal => {
+    mealsWithSlugs.slice(0, 20).forEach((meal) => {
       console.log(`   - Slug: "${meal.slug}", Name: "${meal.name}", Public: ${meal.is_public}`);
     });
 
     if (mealsWithoutSlugs.length > 0) {
       console.log('\n⚠️  Meals WITHOUT slugs (CRITICAL ISSUE):');
-      mealsWithoutSlugs.forEach(meal => {
+      mealsWithoutSlugs.forEach((meal) => {
         console.log(`   - ID: ${meal.id}, Name: "${meal.name}", Slug: ${meal.slug || 'NULL'}`);
       });
     }
@@ -148,9 +157,8 @@ async function validateMeals() {
       withoutSlugs: mealsWithoutSlugs.length,
       publicMeals: publicMeals.length,
       withImages: mealsWithImages.length,
-      allSlugs: mealsWithSlugs.map(m => m.slug)
+      allSlugs: mealsWithSlugs.map((m) => m.slug),
     };
-
   } catch (error) {
     console.error('Error validating meals:', error);
     throw error;
@@ -173,20 +181,21 @@ async function validateChefs() {
 
     if (chefs.length > 0) {
       // Check specialties
-      const chefsWithSpecialties = chefs.filter(c => c.specialties && c.specialties.length > 0);
+      const chefsWithSpecialties = chefs.filter((c) => c.specialties && c.specialties.length > 0);
       console.log(`   Chefs with specialties: ${chefsWithSpecialties.length}`);
 
       console.log('\n📋 Chef list:');
-      chefs.slice(0, 10).forEach(chef => {
-        console.log(`   - Name: "${chef.name}", Slug: ${chef.slug}, Specialties: ${chef.specialties?.length || 0}`);
+      chefs.slice(0, 10).forEach((chef) => {
+        console.log(
+          `   - Name: "${chef.name}", Slug: ${chef.slug}, Specialties: ${chef.specialties?.length || 0}`
+        );
       });
     }
 
     return {
       totalChefs: chefs.length,
-      withSpecialties: chefs.filter(c => c.specialties && c.specialties.length > 0).length
+      withSpecialties: chefs.filter((c) => c.specialties && c.specialties.length > 0).length,
     };
-
   } catch (error) {
     console.error('Error validating chefs:', error);
     throw error;
@@ -209,7 +218,7 @@ async function checkDatabaseSchema() {
     `;
 
     console.log('\n📋 Recipes table relevant columns:');
-    recipeColumns.forEach(col => {
+    recipeColumns.forEach((col) => {
       console.log(`   - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
     });
 
@@ -223,10 +232,9 @@ async function checkDatabaseSchema() {
     `;
 
     console.log('\n📋 Meals table relevant columns:');
-    mealColumns.forEach(col => {
+    mealColumns.forEach((col) => {
       console.log(`   - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
     });
-
   } catch (error) {
     console.error('Error checking schema:', error);
   }
@@ -250,7 +258,9 @@ async function runValidation() {
     console.log('\n🚨 CRITICAL ISSUES FOUND:');
 
     if (recipeStats.nullImageUrl / recipeStats.totalRecipes > 0.5) {
-      console.log(`   ✗ ${((recipeStats.nullImageUrl / recipeStats.totalRecipes) * 100).toFixed(2)}% of recipes have NULL image_url`);
+      console.log(
+        `   ✗ ${((recipeStats.nullImageUrl / recipeStats.totalRecipes) * 100).toFixed(2)}% of recipes have NULL image_url`
+      );
       console.log('     → This explains the "broken images" issue in production');
       console.log('     → Action: Run migration to populate image_url from images array');
     }
@@ -262,7 +272,9 @@ async function runValidation() {
     }
 
     if (mealStats.withImages / mealStats.totalMeals < 0.5) {
-      console.log(`   ✗ ${((mealStats.withImages / mealStats.totalMeals) * 100).toFixed(2)}% of meals have no image_url`);
+      console.log(
+        `   ✗ ${((mealStats.withImages / mealStats.totalMeals) * 100).toFixed(2)}% of meals have no image_url`
+      );
       console.log('     → This explains missing meal images');
       console.log('     → Action: Populate meal images from associated recipes');
     }
@@ -279,7 +291,7 @@ async function runValidation() {
       timestamp: new Date().toISOString(),
       recipes: recipeStats,
       meals: mealStats,
-      chefs: chefStats
+      chefs: chefStats,
     };
     fs.writeFileSync(
       '/Users/masa/Projects/joanies-kitchen/tests/database-validation-report.json',
@@ -287,7 +299,6 @@ async function runValidation() {
     );
 
     console.log('\n📄 Report saved to: tests/database-validation-report.json');
-
   } catch (error) {
     console.error('❌ Validation failed:', error);
     process.exit(1);

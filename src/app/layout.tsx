@@ -138,7 +138,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
-      <body className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
+      <body
+        className={`${playfair.variable} ${lora.variable} ${inter.variable} antialiased`}
+        suppressHydrationWarning
+      >
         {/* Alpha Stamp (Production Only) */}
         <AlphaStamp />
 

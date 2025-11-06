@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { resolve } from 'path';
 
 // Load environment variables
@@ -109,11 +109,13 @@ async function verifyFinalState() {
     `;
 
     console.log('Vercel Blob Storage (3 samples):');
-    console.table(vercelSample.map(r => ({
-      id: r.id.substring(0, 8),
-      name: r.name?.substring(0, 40),
-      image_url: r.image_url?.substring(0, 60)
-    })));
+    console.table(
+      vercelSample.map((r) => ({
+        id: r.id.substring(0, 8),
+        name: r.name?.substring(0, 40),
+        image_url: r.image_url?.substring(0, 60),
+      }))
+    );
     console.log('');
 
     // AI Generated
@@ -125,11 +127,13 @@ async function verifyFinalState() {
     `;
 
     console.log('AI Generated Images (3 samples):');
-    console.table(aiSample.map(r => ({
-      id: r.id.substring(0, 8),
-      name: r.name?.substring(0, 40),
-      image_url: r.image_url
-    })));
+    console.table(
+      aiSample.map((r) => ({
+        id: r.id.substring(0, 8),
+        name: r.name?.substring(0, 40),
+        image_url: r.image_url,
+      }))
+    );
     console.log('');
 
     // No images
@@ -141,11 +145,13 @@ async function verifyFinalState() {
     `;
 
     console.log('No Images (3 samples):');
-    console.table(noImagesSample.map(r => ({
-      id: r.id.substring(0, 8),
-      name: r.name?.substring(0, 40),
-      images: String(r.images)
-    })));
+    console.table(
+      noImagesSample.map((r) => ({
+        id: r.id.substring(0, 8),
+        name: r.name?.substring(0, 40),
+        images: String(r.images),
+      }))
+    );
     console.log('');
 
     console.log('='.repeat(80));
@@ -154,11 +160,16 @@ async function verifyFinalState() {
     console.log('');
     console.log('Key Findings:');
     console.log(`  - ${overallStats[0].percentage_populated}% of recipes have image URLs`);
-    console.log(`  - ${sourceBreakdown.find(s => s.source === 'Vercel Blob Storage')?.count || 0} recipes use Vercel Blob Storage`);
-    console.log(`  - ${sourceBreakdown.find(s => s.source === 'AI Generated Images')?.count || 0} recipes use AI-generated images`);
-    console.log(`  - ${sourceBreakdown.find(s => s.source === 'No Image URL')?.count || 0} recipes have no images`);
+    console.log(
+      `  - ${sourceBreakdown.find((s) => s.source === 'Vercel Blob Storage')?.count || 0} recipes use Vercel Blob Storage`
+    );
+    console.log(
+      `  - ${sourceBreakdown.find((s) => s.source === 'AI Generated Images')?.count || 0} recipes use AI-generated images`
+    );
+    console.log(
+      `  - ${sourceBreakdown.find((s) => s.source === 'No Image URL')?.count || 0} recipes have no images`
+    );
     console.log('');
-
   } catch (error) {
     console.error('ERROR during verification:', error);
     throw error;
