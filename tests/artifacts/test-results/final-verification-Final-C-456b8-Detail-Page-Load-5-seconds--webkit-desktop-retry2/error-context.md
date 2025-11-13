@@ -1,0 +1,455 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic: ALPHA
+            - generic: BETA LAUNCH 12/1/25
+  - banner [ref=e2]:
+    - navigation [ref=e4]:
+      - link "Joanie's Kitchen - AI Tomato Logo Joanie's Kitchen Zero Food Waste" [ref=e5]:
+        - /url: /
+        - img "Joanie's Kitchen - AI Tomato Logo" [ref=e6]
+        - generic [ref=e7]:
+          - generic [ref=e8]: Joanie's Kitchen
+          - generic [ref=e9]: Zero Food Waste
+      - generic [ref=e10]:
+        - link "Learn" [ref=e11]:
+          - /url: /learn
+          - button "Learn" [ref=e12]:
+            - img
+            - text: Learn
+        - link "Recipes" [ref=e13]:
+          - /url: /recipes
+          - button "Recipes" [ref=e14]:
+            - img
+            - text: Recipes
+        - link "Collections" [ref=e15]:
+          - /url: /collections
+          - button "Collections" [ref=e16]:
+            - img
+            - text: Collections
+        - link "Meals" [ref=e17]:
+          - /url: /meal-plans
+          - button "Meals" [ref=e18]:
+            - img
+            - text: Meals
+        - link "Ingredients" [ref=e19]:
+          - /url: /ingredients
+          - button "Ingredients" [ref=e20]:
+            - img
+            - text: Ingredients
+        - link "Chefs" [ref=e21]:
+          - /url: /discover/chefs
+          - button "Chefs" [ref=e22]:
+            - img
+            - text: Chefs
+  - main [ref=e25]:
+    - generic [ref=e26]:
+      - link "Back to Recipes" [ref=e27]:
+        - /url: /recipes
+        - img [ref=e28]
+        - text: Back to Recipes
+      - generic [ref=e30]:
+        - button "🍴 Fork Recipe" [ref=e31]:
+          - generic [ref=e32]: 🍴
+          - text: Fork Recipe
+        - link "View similar recipes" [ref=e33]:
+          - /url: /recipes/d388dd90-cd43-43b4-a57d-3eab4c10efa9/similar
+          - button "View similar recipes" [ref=e34]:
+            - img
+            - generic [ref=e35]: Similar
+        - button "Copy recipe to clipboard" [ref=e36]:
+          - img
+          - generic [ref=e37]: Copy
+        - button "Export recipe" [ref=e38]:
+          - img
+          - generic [ref=e39]: Export
+        - button "Print recipe" [ref=e40]:
+          - img
+          - generic [ref=e41]: Print
+        - button "Sign in to report this recipe" [ref=e42]:
+          - img
+      - generic [ref=e43]:
+        - heading "Kale and White Bean Stew" [level=1] [ref=e44]
+        - paragraph [ref=e45]: A vegetable stew with pure, bright flavors enhanced by Sherry wine vinegar and fresh herbs added at the end of cooking.
+        - generic [ref=e46]:
+          - generic "9 views" [ref=e47]:
+            - img [ref=e48]
+            - generic [ref=e51]: 9 views
+          - 'generic "Meal type: Dinner" [ref=e52]':
+            - img [ref=e53]
+            - generic [ref=e56]: Dinner
+          - 'generic "Main ingredient: White Beans" [ref=e57]':
+            - img [ref=e58]
+            - generic [ref=e61]: White Beans
+          - 'generic "Total time: 70 minutes" [ref=e62]':
+            - img [ref=e63]
+            - generic [ref=e66]: 20 min prep + 50 min cook
+          - 'generic "Servings: 6" [ref=e67]':
+            - img [ref=e68]
+            - generic [ref=e73]: 6 servings
+          - 'generic "Difficulty: easy" [ref=e74]': easy
+          - generic "Shared System Recipe" [ref=e75]:
+            - img
+            - text: Shared
+        - generic [ref=e77]:
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - text: leaf
+              - generic [ref=e80]: Dietary Preferences
+            - generic [ref=e81]:
+              - generic [ref=e84]: Vegetarian
+              - generic [ref=e87]: Vegan
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - text: plate
+              - generic [ref=e90]: Course
+            - generic [ref=e91]:
+              - generic [ref=e94]: Stew
+              - generic [ref=e97]: Soup
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - text: calendar
+              - generic [ref=e100]: Season
+            - generic [ref=e101]:
+              - generic [ref=e104]: Fall
+              - generic [ref=e107]: Winter
+          - button "Other Tags (7)" [ref=e109]:
+            - img [ref=e110]
+            - generic [ref=e112]: Other Tags (7)
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e117]:
+            - generic [ref=e118]: Ingredients
+            - generic [ref=e119]: Everything you'll need
+          - list [ref=e121]:
+            - listitem [ref=e122]:
+              - generic [ref=e125]:
+                - generic [ref=e126]: "1"
+                - text: 1/2 lb kale leaves, center ribs and stems removed
+            - listitem [ref=e127]:
+              - generic [ref=e130]:
+                - generic [ref=e131]: 3 tbsp
+                - text: olive oil
+            - listitem [ref=e132]:
+              - generic [ref=e135]:
+                - generic [ref=e136]: 1 cup
+                - text: carrots, chopped
+                - generic [ref=e137]: ", peeled"
+            - listitem [ref=e138]:
+              - generic [ref=e141]:
+                - generic [ref=e142]: 1 cup
+                - text: celery
+                - generic [ref=e143]: ", chopped"
+            - listitem [ref=e144]:
+              - generic [ref=e147]:
+                - generic [ref=e148]: 1 cup
+                - text: shallots, chopped, about 4
+            - listitem [ref=e149]:
+              - generic [ref=e152]:
+                - generic [ref=e153]: "2"
+                - text: garlic cloves
+                - generic [ref=e154]: ", finely chopped"
+            - listitem [ref=e155]:
+              - generic [ref=e158]:
+                - generic [ref=e159]: 1 cup
+                - text: dry white wine
+            - listitem [ref=e160]:
+              - generic [ref=e163]:
+                - generic [ref=e164]: "2"
+                - text: 15-ounce cans white beans, preferably organic, drained
+            - listitem [ref=e165]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: 4 cup
+                - text: vegetable broth, or more
+            - listitem [ref=e170]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: "3"
+                - text: fresh thyme sprigs
+            - listitem [ref=e175]:
+              - generic [ref=e178]:
+                - generic [ref=e179]: "1"
+                - text: bay leaf
+            - listitem [ref=e180]:
+              - generic [ref=e183]:
+                - generic [ref=e184]: 1 tbsp
+                - text: Sherry wine vinegar
+            - listitem [ref=e185]:
+              - generic [ref=e188]:
+                - generic [ref=e189]: 2 tbsp
+                - text: assorted fresh herbs, chopped, such as tarragon, parsley, and chives
+        - generic [ref=e190]:
+          - generic [ref=e193]:
+            - generic [ref=e194]: Instructions
+            - generic [ref=e195]: Step-by-step directions
+          - list [ref=e197]:
+            - listitem [ref=e198]:
+              - generic [ref=e199]: "1."
+              - generic [ref=e200]: Cook kale in large pot of boiling salted water 1 minute. Drain. Transfer to bowl of ice water to cool. Drain. Squeeze out excess water. Coarsely chop kale.
+            - listitem [ref=e201]:
+              - generic [ref=e202]: "2."
+              - generic [ref=e203]: Heat olive oil in medium pot over medium heat. Add chopped carrots, celery, shallots, and garlic; cook until soft, stirring, about 15 minutes (do not brown vegetables).
+            - listitem [ref=e204]:
+              - generic [ref=e205]: "3."
+              - generic [ref=e206]: Add white wine and simmer until liquid is slightly reduced, about 7 minutes.
+            - listitem [ref=e207]:
+              - generic [ref=e208]: "4."
+              - generic [ref=e209]: Add white beans, 4 cups broth, thyme sprigs, and bay leaf and bring to boil. Reduce heat to medium-low and simmer 20 minutes.
+            - listitem [ref=e210]:
+              - generic [ref=e211]: "5."
+              - generic [ref=e212]: Add kale and simmer 5 minutes longer.
+            - listitem [ref=e213]:
+              - generic [ref=e214]: "6."
+              - generic [ref=e215]: Remove thyme sprigs and bay leaf. Add more broth by 1/2 cupfuls to thin stew, if desired.
+            - listitem [ref=e216]:
+              - generic [ref=e217]: "7."
+              - generic [ref=e218]: Mix in Sherry wine vinegar and chopped fresh herbs. Season with salt and pepper.
+      - generic [ref=e220]:
+        - generic [ref=e222]:
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - img [ref=e225]
+              - text: Recipes Like This
+            - generic [ref=e228]: Similar to Kale and White Bean Stew
+          - generic [ref=e229]:
+            - button [disabled]:
+              - img
+            - button [ref=e230]:
+              - img
+        - generic [ref=e231]:
+          - generic [ref=e232]:
+            - link "Central Asian Rice and Bean Stew Top rated recipe Vegetarian + 10 more Central Asian Rice and Bean Stew This hearty stew combines mung beans, rice, and aromatic spices for a comforting Central Asian dish. 0 0 0 82% similar" [ref=e234]:
+              - /url: /recipes/central-asian-rice-bean-stew
+              - generic [ref=e235]:
+                - generic [ref=e237] [cursor=pointer]:
+                  - generic [ref=e238]:
+                    - img "Central Asian Rice and Bean Stew" [ref=e239]
+                    - button [ref=e241]:
+                      - img
+                    - generic "Top rated recipe" [ref=e242]:
+                      - img
+                  - generic [ref=e243]:
+                    - generic [ref=e244]:
+                      - generic [ref=e245]: Vegetarian
+                      - button "+ 10 more" [ref=e246]
+                    - heading "Central Asian Rice and Bean Stew" [level=3] [ref=e247]
+                    - paragraph [ref=e248]: This hearty stew combines mung beans, rice, and aromatic spices for a comforting Central Asian dish.
+                    - generic [ref=e249]:
+                      - generic "Likes" [ref=e250]:
+                        - img [ref=e251]
+                        - text: "0"
+                      - generic "Forks" [ref=e253]:
+                        - img [ref=e254]
+                        - text: "0"
+                      - generic "Collections" [ref=e259]:
+                        - img [ref=e260]
+                        - text: "0"
+                - generic [ref=e262]: 82% similar
+            - link "Veal, Mushroom, and Red Pepper Goulash Top rated recipe Kosher + 10 more Veal, Mushroom, and Red Pepper Goulash We like this stew with egg noodles (12 ounces of dried pasta), cooked and tossed with two tablespoons of reduced-fat sour cream and a quarter cup of chopped fresh dill. 0 0 0 81% similar" [ref=e264]:
+              - /url: /recipes/9c63a3d5-3e46-47f1-ace9-4f1aa6ce3fd3
+              - generic [ref=e265]:
+                - generic [ref=e267] [cursor=pointer]:
+                  - generic [ref=e268]:
+                    - img "Veal, Mushroom, and Red Pepper Goulash" [ref=e269]
+                    - button [ref=e271]:
+                      - img
+                    - generic "Top rated recipe" [ref=e272]:
+                      - img
+                  - generic [ref=e273]:
+                    - generic [ref=e274]:
+                      - generic [ref=e275]: Kosher
+                      - button "+ 10 more" [ref=e276]
+                    - heading "Veal, Mushroom, and Red Pepper Goulash" [level=3] [ref=e277]
+                    - paragraph [ref=e278]: We like this stew with egg noodles (12 ounces of dried pasta), cooked and tossed with two tablespoons of reduced-fat sour cream and a quarter cup of chopped fresh dill.
+                    - generic [ref=e279]:
+                      - generic "Likes" [ref=e280]:
+                        - img [ref=e281]
+                        - text: "0"
+                      - generic "Forks" [ref=e283]:
+                        - img [ref=e284]
+                        - text: "0"
+                      - generic "Collections" [ref=e289]:
+                        - img [ref=e290]
+                        - text: "0"
+                - generic [ref=e292]: 81% similar
+            - link "Three Sisters Stew Top rated recipe Vegetarian + 6 more Three Sisters Stew A delicious vegetarian main dish featuring the classic trio of corn, beans, and squash. 120 min 0 0 0 80% similar" [ref=e294]:
+              - /url: /recipes/three-sisters-stew
+              - generic [ref=e295]:
+                - generic [ref=e297] [cursor=pointer]:
+                  - generic [ref=e298]:
+                    - img "Three Sisters Stew" [ref=e299]
+                    - button [ref=e301]:
+                      - img
+                    - generic "Top rated recipe" [ref=e302]:
+                      - img
+                  - generic [ref=e303]:
+                    - generic [ref=e304]:
+                      - generic [ref=e305]: Vegetarian
+                      - button "+ 6 more" [ref=e306]
+                    - heading "Three Sisters Stew" [level=3] [ref=e307]
+                    - paragraph [ref=e308]: A delicious vegetarian main dish featuring the classic trio of corn, beans, and squash.
+                    - generic [ref=e310]:
+                      - img [ref=e311]
+                      - generic [ref=e314]: 120 min
+                    - generic [ref=e315]:
+                      - generic "Likes" [ref=e316]:
+                        - img [ref=e317]
+                        - text: "0"
+                      - generic "Forks" [ref=e319]:
+                        - img [ref=e320]
+                        - text: "0"
+                      - generic "Collections" [ref=e325]:
+                        - img [ref=e326]
+                        - text: "0"
+                - generic [ref=e328]: 80% similar
+            - link "Veal, Mushroom, and Red Pepper Goulash Top rated recipe Kosher + 10 more Veal, Mushroom, and Red Pepper Goulash This hearty stew is delicious served over egg noodles tossed with reduced-fat sour cream and fresh dill. 0 0 0 80% similar" [ref=e330]:
+              - /url: /recipes/veal-mushroom-red-pepper-goulash
+              - generic [ref=e331]:
+                - generic [ref=e333] [cursor=pointer]:
+                  - generic [ref=e334]:
+                    - img "Veal, Mushroom, and Red Pepper Goulash" [ref=e335]
+                    - button [ref=e337]:
+                      - img
+                    - generic "Top rated recipe" [ref=e338]:
+                      - img
+                  - generic [ref=e339]:
+                    - generic [ref=e340]:
+                      - generic [ref=e341]: Kosher
+                      - button "+ 10 more" [ref=e342]
+                    - heading "Veal, Mushroom, and Red Pepper Goulash" [level=3] [ref=e343]
+                    - paragraph [ref=e344]: This hearty stew is delicious served over egg noodles tossed with reduced-fat sour cream and fresh dill.
+                    - generic [ref=e345]:
+                      - generic "Likes" [ref=e346]:
+                        - img [ref=e347]
+                        - text: "0"
+                      - generic "Forks" [ref=e349]:
+                        - img [ref=e350]
+                        - text: "0"
+                      - generic "Collections" [ref=e355]:
+                        - img [ref=e356]
+                        - text: "0"
+                - generic [ref=e358]: 80% similar
+            - link "Seva Bean Vegetable Stew Vegetarian + 10 more Seva Bean Vegetable Stew A hearty and flavorful exotic bean and vegetable stew. 50 min 0 0 0 81% similar" [ref=e360]:
+              - /url: /recipes/seva-bean-vegetable-stew
+              - generic [ref=e361]:
+                - generic [ref=e363] [cursor=pointer]:
+                  - generic [ref=e364]:
+                    - img "Seva Bean Vegetable Stew" [ref=e365]
+                    - button [ref=e367]:
+                      - img
+                  - generic [ref=e368]:
+                    - generic [ref=e369]:
+                      - generic [ref=e370]: Vegetarian
+                      - button "+ 10 more" [ref=e371]
+                    - heading "Seva Bean Vegetable Stew" [level=3] [ref=e372]
+                    - paragraph [ref=e373]: A hearty and flavorful exotic bean and vegetable stew.
+                    - generic [ref=e375]:
+                      - img [ref=e376]
+                      - generic [ref=e379]: 50 min
+                    - generic [ref=e380]:
+                      - generic "Likes" [ref=e381]:
+                        - img [ref=e382]
+                        - text: "0"
+                      - generic "Forks" [ref=e384]:
+                        - img [ref=e385]
+                        - text: "0"
+                      - generic "Collections" [ref=e390]:
+                        - img [ref=e391]
+                        - text: "0"
+                - generic [ref=e393]: 81% similar
+            - link "Brown Stew Chicken + 3 more Brown Stew Chicken Squeeze lime over chicken and rub well. Drain off excess lime juice. Jamaican 0 0 0 79% similar" [ref=e395]:
+              - /url: /recipes/brown-stew-chicken
+              - generic [ref=e396]:
+                - generic [ref=e398] [cursor=pointer]:
+                  - generic [ref=e399]:
+                    - img "Brown Stew Chicken" [ref=e400]
+                    - button [ref=e402]:
+                      - img
+                  - generic [ref=e403]:
+                    - button "+ 3 more" [ref=e405]
+                    - heading "Brown Stew Chicken" [level=3] [ref=e406]
+                    - paragraph [ref=e407]: Squeeze lime over chicken and rub well. Drain off excess lime juice.
+                    - generic [ref=e408]:
+                      - img [ref=e409]
+                      - generic [ref=e411]: Jamaican
+                    - generic [ref=e412]:
+                      - generic "Likes" [ref=e413]:
+                        - img [ref=e414]
+                        - text: "0"
+                      - generic "Forks" [ref=e416]:
+                        - img [ref=e417]
+                        - text: "0"
+                      - generic "Collections" [ref=e422]:
+                        - img [ref=e423]
+                        - text: "0"
+                - generic [ref=e425]: 79% similar
+          - link "View All Similar Recipes" [ref=e427]:
+            - /url: /recipes/d388dd90-cd43-43b4-a57d-3eab4c10efa9/similar
+            - button "View All Similar Recipes" [ref=e428]
+      - generic [ref=e430]:
+        - generic [ref=e432]:
+          - img [ref=e433]
+          - text: Ingredient Match
+        - generic [ref=e435]:
+          - paragraph [ref=e436]: Sign in to see which ingredients you already have in your fridge!
+          - link "Sign in to see what you have" [ref=e437]:
+            - /url: /sign-in?redirect=/recipes/d388dd90-cd43-43b4-a57d-3eab4c10efa9
+      - button "Smart Substitutions 44 options Can't find an ingredient? Try these alternatives" [ref=e442]:
+        - generic [ref=e443]:
+          - generic [ref=e444]:
+            - img [ref=e445]
+            - text: Smart Substitutions
+            - generic [ref=e447]: 44 options
+          - generic [ref=e448]: Can't find an ingredient? Try these alternatives
+        - img [ref=e449]
+      - generic [ref=e452]:
+        - generic [ref=e453]:
+          - heading "Ratings & Reviews" [level=2] [ref=e455]
+          - generic [ref=e458]:
+            - img "No ratings yet" [ref=e460]:
+              - generic [ref=e461]:
+                - img [ref=e462]
+                - img [ref=e464]
+                - img [ref=e466]
+                - img [ref=e468]
+                - img [ref=e470]
+              - generic [ref=e472]: No ratings yet
+            - link "Sign in to Rate" [ref=e474]:
+              - /url: /sign-in
+              - button "Sign in to Rate" [ref=e475]:
+                - img
+                - text: Sign in to Rate
+        - generic [ref=e476]:
+          - heading "All Reviews" [level=3] [ref=e478]
+          - paragraph [ref=e480]: No reviews yet. Be the first to review this recipe!
+        - generic [ref=e482]:
+          - generic [ref=e483]: No Reviews Yet
+          - generic [ref=e484]:
+            - text: Be the first to rate and review this recipe!
+            - link "Sign in to leave a review" [ref=e485]:
+              - /url: /sign-in
+      - generic [ref=e487]:
+        - generic [ref=e488]:
+          - generic [ref=e489]:
+            - img [ref=e490]
+            - generic [ref=e492]: Comments
+          - generic [ref=e493]: Share your thoughts, tips, and experiences with this recipe
+        - generic [ref=e495]:
+          - paragraph [ref=e496]: Sign in to leave a comment
+          - link "Sign In" [ref=e497]:
+            - /url: /sign-in
+  - contentinfo [ref=e527]:
+    - generic [ref=e528]:
+      - paragraph [ref=e529]: © 2025 Joanie's Kitchen
+      - paragraph [ref=e530]:
+        - img [ref=e531]
+        - generic [ref=e533]: All AI-generated content on this site (images, recipes, etc.) was created using in-house inference powered by 100% solar energy.
+      - paragraph [ref=e534]: Cook With What You Have. Waste Nothing.
+  - region "Notifications alt+T"
+  - alert [ref=e535]
+```

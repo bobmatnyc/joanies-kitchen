@@ -1,0 +1,113 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e4]:
+      - link "Joanie's Kitchen - AI Tomato Logo Joanie's Kitchen Zero Food Waste" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "Joanie's Kitchen - AI Tomato Logo" [ref=e6]
+        - generic [ref=e7]:
+          - generic [ref=e8]: Joanie's Kitchen
+          - generic [ref=e9]: Zero Food Waste
+      - generic [ref=e10]:
+        - link "Learn" [ref=e11] [cursor=pointer]:
+          - /url: /learn
+          - button "Learn" [ref=e12]:
+            - img
+            - text: Learn
+        - link "Recipes" [ref=e13] [cursor=pointer]:
+          - /url: /recipes
+          - button "Recipes" [ref=e14]:
+            - img
+            - text: Recipes
+        - link "Collections" [ref=e15] [cursor=pointer]:
+          - /url: /collections
+          - button "Collections" [ref=e16]:
+            - img
+            - text: Collections
+        - link "Meals" [ref=e17] [cursor=pointer]:
+          - /url: /meal-plans
+          - button "Meals" [ref=e18]:
+            - img
+            - text: Meals
+        - link "Ingredients" [ref=e19] [cursor=pointer]:
+          - /url: /ingredients
+          - button "Ingredients" [ref=e20]:
+            - img
+            - text: Ingredients
+        - link "Chefs" [ref=e21] [cursor=pointer]:
+          - /url: /discover/chefs
+          - button "Chefs" [ref=e22]:
+            - img
+            - text: Chefs
+        - generic [ref=e23]:
+          - button "Register" [ref=e24]:
+            - img
+            - text: Register
+          - button "Sign In" [ref=e25]:
+            - img
+            - text: Sign In
+  - main [ref=e26]:
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - heading "Sign in to your account" [level=2] [ref=e30]
+        - paragraph [ref=e31]: Or continue with Google for quick access
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e36]:
+            - heading "Sign in to Joanie's Kitchen" [level=1] [ref=e37]
+            - paragraph [ref=e38]: Welcome back! Please sign in to continue
+          - generic [ref=e39]:
+            - generic [ref=e41]:
+              - button "Sign in with Apple" [ref=e42] [cursor=pointer]:
+                - img "Sign in with Apple" [ref=e43]
+              - button "Sign in with Google" [ref=e44] [cursor=pointer]:
+                - img "Sign in with Google" [ref=e45]
+              - button "Sign in with LinkedIn" [ref=e46] [cursor=pointer]:
+                - img "Sign in with LinkedIn" [ref=e47]
+            - paragraph [ref=e50]: or
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e56]:
+                  - generic [ref=e58]: Email address
+                  - textbox "Email address" [ref=e59]:
+                    - /placeholder: Enter your email address
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Password
+                      - generic:
+                        - textbox "Password":
+                          - /placeholder: Enter your password
+                        - button "Show password":
+                          - img
+              - button "Continue" [ref=e62] [cursor=pointer]:
+                - generic [ref=e63]:
+                  - text: Continue
+                  - img [ref=e64]
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: Don’t have an account?
+            - link "Sign up" [ref=e69] [cursor=pointer]:
+              - /url: http://localhost:3002/sign-up
+          - generic [ref=e71]:
+            - generic [ref=e73]:
+              - paragraph [ref=e74]: Secured by
+              - link "Clerk logo" [ref=e75] [cursor=pointer]:
+                - /url: https://go.clerk.com/components
+                - img [ref=e76]
+            - paragraph [ref=e81]: Development mode
+  - contentinfo [ref=e82]:
+    - generic [ref=e83]:
+      - paragraph [ref=e84]: © 2025 Joanie's Kitchen
+      - paragraph [ref=e85]:
+        - img [ref=e86]
+        - generic [ref=e88]: All AI-generated content on this site (images, recipes, etc.) was created using in-house inference powered by 100% solar energy.
+      - paragraph [ref=e89]: Cook With What You Have. Waste Nothing.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e95] [cursor=pointer]:
+    - img [ref=e96]
+  - alert [ref=e99]
+```

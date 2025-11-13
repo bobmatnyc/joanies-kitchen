@@ -1,0 +1,138 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic: ALPHA
+            - generic: BETA LAUNCH 12/1/25
+  - banner [ref=e2]:
+    - navigation [ref=e4]:
+      - link "Joanie's Kitchen - AI Tomato Logo Joanie's Kitchen Zero Food Waste" [ref=e5]:
+        - /url: /
+        - img "Joanie's Kitchen - AI Tomato Logo" [ref=e6]
+        - generic [ref=e7]:
+          - generic [ref=e8]: Joanie's Kitchen
+          - generic [ref=e9]: Zero Food Waste
+      - generic [ref=e10]:
+        - link "Learn" [ref=e11]:
+          - /url: /learn
+          - button "Learn" [ref=e12]:
+            - img
+            - text: Learn
+        - link "Recipes" [ref=e13]:
+          - /url: /recipes
+          - button "Recipes" [ref=e14]:
+            - img
+            - text: Recipes
+        - link "Collections" [ref=e15]:
+          - /url: /collections
+          - button "Collections" [ref=e16]:
+            - img
+            - text: Collections
+        - link "Meals" [ref=e17]:
+          - /url: /meal-plans
+          - button "Meals" [ref=e18]:
+            - img
+            - text: Meals
+        - link "Ingredients" [ref=e19]:
+          - /url: /ingredients
+          - button "Ingredients" [ref=e20]:
+            - img
+            - text: Ingredients
+        - link "Chefs" [ref=e21]:
+          - /url: /discover/chefs
+          - button "Chefs" [ref=e22]:
+            - img
+            - text: Chefs
+  - main [ref=e25]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - heading "What's in Your Fridge?" [level=1] [ref=e29]
+        - paragraph [ref=e30]:
+          - text: Find recipes using ingredients you already have.
+          - generic [ref=e31]: Zero waste. Maximum flavor.
+      - generic [ref=e32]:
+        - heading "Enter Ingredients" [level=2] [ref=e34]
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - textbox "Start typing ingredient names..." [active] [ref=e39]: tom
+            - generic [ref=e40]:
+              - button "Tomato vegetables" [ref=e41]:
+                - generic [ref=e42]: Tomato
+                - generic [ref=e43]: vegetables
+              - button "Tomato Paste vegetables" [ref=e44]:
+                - generic [ref=e45]: Tomato Paste
+                - generic [ref=e46]: vegetables
+              - button "Tomatoes fruits" [ref=e47]:
+                - generic [ref=e48]: Tomatoes
+                - generic [ref=e49]: fruits
+              - button "Can Diced Tomatoes In Juice other" [ref=e50]:
+                - generic [ref=e51]: Can Diced Tomatoes In Juice
+                - generic [ref=e52]: other
+              - button "Canned Whole Tomatoes fruits" [ref=e53]:
+                - generic [ref=e54]: Canned Whole Tomatoes
+                - generic [ref=e55]: fruits
+              - button "Cherry Tomatoes vegetables" [ref=e56]:
+                - generic [ref=e57]: Cherry Tomatoes
+                - generic [ref=e58]: vegetables
+              - button "Cherry Tomato Relish other" [ref=e59]:
+                - generic [ref=e60]: Cherry Tomato Relish
+                - generic [ref=e61]: other
+              - button "Cherry Tomatoes fruits" [ref=e62]:
+                - generic [ref=e63]: Cherry Tomatoes
+                - generic [ref=e64]: fruits
+          - button "Find Recipes" [ref=e65]:
+            - img
+            - text: Find Recipes
+      - generic [ref=e66]:
+        - heading "How It Works" [level=2] [ref=e67]
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e71]: "1"
+            - heading "Enter Ingredients" [level=3] [ref=e72]
+            - paragraph [ref=e73]: Type what you have in your fridge, pantry, or cupboard. We'll autocomplete for you.
+          - generic [ref=e74]:
+            - generic [ref=e76]: "2"
+            - heading "Find Matches" [level=3] [ref=e77]
+            - paragraph [ref=e78]: Our smart search finds recipes that use your ingredients with minimal waste.
+          - generic [ref=e79]:
+            - generic [ref=e81]: "3"
+            - heading "Start Cooking" [level=3] [ref=e82]
+            - paragraph [ref=e83]: Choose a recipe, see what's missing, and get cooking with what you've got!
+      - generic [ref=e84]:
+        - heading "Pro Tips" [level=3] [ref=e85]
+        - list [ref=e86]:
+          - listitem [ref=e87]:
+            - generic [ref=e88]: •
+            - generic [ref=e89]:
+              - strong [ref=e90]: "Start with proteins:"
+              - text: Chicken, beef, tofu, eggs
+          - listitem [ref=e91]:
+            - generic [ref=e92]: •
+            - generic [ref=e93]:
+              - strong [ref=e94]: "Add vegetables:"
+              - text: Whatever needs using up first
+          - listitem [ref=e95]:
+            - generic [ref=e96]: •
+            - generic [ref=e97]:
+              - strong [ref=e98]: "Don't forget pantry staples:"
+              - text: Rice, pasta, canned goods
+          - listitem [ref=e99]:
+            - generic [ref=e100]: •
+            - generic [ref=e101]:
+              - strong [ref=e102]: "Less is more:"
+              - text: Start with 3-5 key ingredients for best results
+  - contentinfo [ref=e103]:
+    - generic [ref=e104]:
+      - paragraph [ref=e105]: © 2025 Joanie's Kitchen
+      - paragraph [ref=e106]:
+        - img [ref=e107]
+        - generic [ref=e109]: All AI-generated content on this site (images, recipes, etc.) was created using in-house inference powered by 100% solar energy.
+      - paragraph [ref=e110]: Cook With What You Have. Waste Nothing.
+  - region "Notifications alt+T"
+  - alert [ref=e111]
+```
