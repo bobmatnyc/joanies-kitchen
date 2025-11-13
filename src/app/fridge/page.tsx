@@ -1,15 +1,28 @@
 'use client';
 
+import { ChefHat, Package } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { getUserInventory } from '@/app/actions/inventory';
 import { FridgeInput } from '@/components/inventory';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@clerk/nextjs';
 
 /**
  * Fridge Page - Zero-Waste Recipe Discovery
  *
- * Enter ingredients from your fridge/pantry and find recipes that use them.
- * Supports autocomplete, ingredient selection, and navigation to results page.
+ * Two modes:
+ * 1. Use My Inventory (authenticated users): Find recipes from tracked inventory
+ * 2. Manual Entry: Type ingredients manually
  *
- * User Flow:
+ * User Flow (Inventory Mode):
+ * 1. User clicks "Find Recipes from My Fridge"
+ * 2. Navigates to /fridge/results?source=inventory
+ * 3. Results page calls matchRecipesToInventory()
+ *
+ * User Flow (Manual Mode):
  * 1. User enters ingredients via autocomplete input
  * 2. Selected ingredients displayed as badge chips
  * 3. User clicks "Find Recipes" button
@@ -22,9 +35,38 @@ import { FridgeInput } from '@/components/inventory';
  */
 export default function FridgePage() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
+
+  const [inventoryCount, setInventoryCount] = useState<number | null>(null);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
+  // Fetch inventory count if user is signed in
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    async function fetchInventoryCount() {
+      setLoadingInventory(true);
+      try {
+        const result = await getUserInventory();
+        if (result.success && 'data' in result && result.data) {
+          // Filter out used/wasted items
+          const activeItems = result.data.filter(
+            (item: any) => item.status !== 'used' && item.status !== 'wasted'
+          );
+          setInventoryCount(activeItems.length);
+        }
+      } catch (error) {
+        console.error('Failed to fetch inventory:', error);
+      } finally {
+        setLoadingInventory(false);
+      }
+    }
+
+    fetchInventoryCount();
+  }, [isSignedIn]);
 
   /**
-   * Handle recipe search navigation
+   * Handle recipe search navigation (manual mode)
    * Redirects to results page with ingredients as query params
    */
   const handleSearch = async (ingredients: string[]) => {
@@ -37,6 +79,14 @@ export default function FridgePage() {
     router.push(`/fridge/results?ingredients=${encodeURIComponent(query)}`);
   };
 
+  /**
+   * Handle inventory-based search
+   * Navigates to results with source=inventory flag
+   */
+  const handleInventorySearch = () => {
+    router.push('/fridge/results?source=inventory');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-jk-cream via-white to-jk-sage/10">
       {/* Hero Section */}
@@ -47,19 +97,70 @@ export default function FridgePage() {
             What's in Your Fridge?
           </h1>
           <p className="text-base sm:text-lg lg:text-xl text-jk-charcoal/70 font-body max-w-2xl mx-auto leading-relaxed">
-            Enter the ingredients you have on hand, and we'll find delicious recipes that help you
-            use them up.
+            Find recipes using ingredients you already have.
             <span className="block mt-2 text-sm sm:text-base text-jk-clay">
               Zero waste. Maximum flavor.
             </span>
           </p>
         </div>
 
-        {/* Fridge Input Component */}
+        {/* Use My Inventory Section (Authenticated Users Only) */}
+        {isSignedIn && (
+          <div className="mb-6 sm:mb-8">
+            <Card className="border-2 border-jk-sage/40 bg-jk-sage/5">
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Package className="w-6 h-6 text-jk-clay flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-heading text-jk-olive">Use My Inventory</h3>
+                      <p className="text-sm text-jk-charcoal/70 mt-1">
+                        {loadingInventory ? (
+                          'Loading your inventory...'
+                        ) : inventoryCount === null || inventoryCount === 0 ? (
+                          <>
+                            No items in inventory.{' '}
+                            <Link href="/inventory" className="text-jk-clay hover:underline">
+                              Add items
+                            </Link>{' '}
+                            to get started.
+                          </>
+                        ) : (
+                          <>
+                            You have{' '}
+                            <span className="font-semibold text-jk-clay">{inventoryCount}</span>{' '}
+                            {inventoryCount === 1 ? 'item' : 'items'} in your fridge.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  {inventoryCount !== null && inventoryCount > 0 && (
+                    <Button
+                      onClick={handleInventorySearch}
+                      disabled={loadingInventory}
+                      className="bg-jk-clay hover:bg-jk-clay/90 text-white gap-2 whitespace-nowrap"
+                    >
+                      <ChefHat className="w-4 h-4" />
+                      Find Recipes from My Fridge
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Manual Input Section */}
         <div className="bg-white rounded-2xl shadow-lg border border-jk-sage/20 p-6 sm:p-8 lg:p-10">
+          <div className="mb-4 text-center">
+            <h2 className="text-xl font-heading text-jk-olive">
+              {isSignedIn ? 'Or Enter Ingredients Manually' : 'Enter Ingredients'}
+            </h2>
+          </div>
           <FridgeInput
             onSearch={handleSearch}
-            placeholder="What's in your fridge?"
+            placeholder="Start typing ingredient names..."
             className="w-full"
           />
         </div>

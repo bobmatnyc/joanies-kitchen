@@ -328,3 +328,18 @@ export function generateIngredientSuggestionsKey(
   const optionsHash = generateHash(options);
   return `ingredient_suggestions:${queryHash}:${optionsHash}`;
 }
+
+/**
+ * Generate a cache key for user inventory
+ *
+ * @param userId - User ID
+ * @param filters - Optional filters
+ * @returns Cache key string
+ */
+export function generateUserInventoryKey(
+  userId: string,
+  filters: Record<string, any> = {}
+): string {
+  const filtersHash = generateHash(filters);
+  return `user_inventory:${userId}:${filtersHash}`;
+}

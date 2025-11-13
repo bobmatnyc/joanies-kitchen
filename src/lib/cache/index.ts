@@ -55,6 +55,7 @@ export {
   generatePopularIngredientsKey,
   generateSemanticSearchKey,
   generateSimilarRecipesKey,
+  generateUserInventoryKey,
   SearchCache,
 } from './search-cache';
 
@@ -77,6 +78,7 @@ export const searchCaches = {
     config.ingredientSuggestions.ttl
   ),
   hybrid: new SearchCache(config.hybridSearch.maxSize, config.hybridSearch.ttl),
+  userInventory: new SearchCache(config.userInventory.maxSize, config.userInventory.ttl),
 };
 
 /**
@@ -145,6 +147,21 @@ export function invalidateRecipeById(recipeId: string): void {
 }
 
 /**
+ * Invalidate inventory cache for a specific user
+ * Call this after inventory CRUD operations
+ *
+ * @param userId - ID of the user whose inventory changed
+ */
+export function invalidateUserInventory(userId: string): void {
+  // Delete all inventory caches for this user
+  searchCaches.userInventory.deletePattern(new RegExp(`^user_inventory:${userId}:`));
+
+  if (ENABLE_CACHE_STATS) {
+    console.log(`[Cache] Invalidated inventory cache for user ${userId}`);
+  }
+}
+
+/**
  * Get cache statistics for all caches
  * Useful for monitoring and debugging
  */
@@ -156,6 +173,7 @@ export function getAllCacheStats() {
     popularIngredients: searchCaches.popularIngredients.getStats(),
     ingredientSuggestions: searchCaches.ingredientSuggestions.getStats(),
     hybrid: searchCaches.hybrid.getStats(),
+    userInventory: searchCaches.userInventory.getStats(),
   };
 }
 
@@ -175,6 +193,7 @@ export function logCacheStats(): void {
     popularIngredients: `${stats.popularIngredients.hits}/${stats.popularIngredients.hits + stats.popularIngredients.misses} (${(stats.popularIngredients.hitRate * 100).toFixed(1)}%)`,
     ingredientSuggestions: `${stats.ingredientSuggestions.hits}/${stats.ingredientSuggestions.hits + stats.ingredientSuggestions.misses} (${(stats.ingredientSuggestions.hitRate * 100).toFixed(1)}%)`,
     hybrid: `${stats.hybrid.hits}/${stats.hybrid.hits + stats.hybrid.misses} (${(stats.hybrid.hitRate * 100).toFixed(1)}%)`,
+    userInventory: `${stats.userInventory.hits}/${stats.userInventory.hits + stats.userInventory.misses} (${(stats.userInventory.hitRate * 100).toFixed(1)}%)`,
   });
 }
 
@@ -191,6 +210,7 @@ function setupCacheCleanup(): void {
       popularIngredients: searchCaches.popularIngredients.cleanup(),
       ingredientSuggestions: searchCaches.ingredientSuggestions.cleanup(),
       hybrid: searchCaches.hybrid.cleanup(),
+      userInventory: searchCaches.userInventory.cleanup(),
     };
 
     const totalRemoved = Object.values(removed).reduce((sum, count) => sum + count, 0);

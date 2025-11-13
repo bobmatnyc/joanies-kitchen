@@ -129,7 +129,20 @@ export default function RecipePage({ params }: RecipePageProps) {
     if (!slugOrId) return;
 
     async function fetchRecipe() {
-      const result = await getRecipe(slugOrId);
+      // Add 5-second timeout to recipe fetch
+      const recipePromise = getRecipe(slugOrId);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Recipe fetch timeout')), 5000)
+      );
+
+      let result;
+      try {
+        result = await Promise.race([recipePromise, timeoutPromise]) as Awaited<ReturnType<typeof getRecipe>>;
+      } catch (error) {
+        console.error('Recipe fetch error:', error);
+        notFound();
+        return;
+      }
 
       if (!result.success || !result.data) {
         // Check if it's an access denied error for private recipe
@@ -144,40 +157,6 @@ export default function RecipePage({ params }: RecipePageProps) {
 
       const parsedRecipe = parseRecipe(result.data);
       setRecipe(parsedRecipe);
-
-      // Track view asynchronously (don't await to avoid blocking UI)
-      trackRecipeView(result.data.id).catch((err) => console.error('Failed to track view:', err));
-
-      // Fetch view count
-      getRecipeViewCount(result.data.id)
-        .then((count) => {
-          setViewCount(count);
-        })
-        .catch((err) => {
-          console.error('Failed to fetch view count:', err);
-        });
-
-      // Fetch author profile
-      getProfileByUserId(result.data.user_id)
-        .then((profile) => {
-          setAuthorProfile(profile);
-        })
-        .catch((err) => {
-          console.error('Failed to fetch author profile:', err);
-        });
-
-      // Fetch original recipe if this is a fork
-      if (result.data.source?.includes('Forked from recipe ID:')) {
-        getOriginalRecipe(result.data.id)
-          .then((original) => {
-            if (original) {
-              setOriginalRecipe(parseRecipe(original));
-            }
-          })
-          .catch((err) => {
-            console.error('Failed to fetch original recipe:', err);
-          });
-      }
 
       // Check if we accessed via UUID but recipe has a slug - redirect to slug URL
       if (isUUID(slugOrId) && result.data.slug) {
@@ -205,7 +184,54 @@ export default function RecipePage({ params }: RecipePageProps) {
         setIsUserAdmin(isAdmin(user.id));
       }
 
+      // Show page immediately - fetch secondary data in background
       setLoading(false);
+
+      // NON-BLOCKING: Track view asynchronously (don't await to avoid blocking UI)
+      trackRecipeView(result.data.id).catch((err) => console.error('Failed to track view:', err));
+
+      // NON-BLOCKING: Fetch view count (with timeout)
+      Promise.race([
+        getRecipeViewCount(result.data.id),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('View count timeout')), 2000))
+      ])
+        .then((count) => {
+          setViewCount(count as number);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch view count:', err);
+          setViewCount(0); // Fallback to 0 instead of hanging
+        });
+
+      // NON-BLOCKING: Fetch author profile (with timeout)
+      Promise.race([
+        getProfileByUserId(result.data.user_id),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 2000))
+      ])
+        .then((profile) => {
+          setAuthorProfile(profile);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch author profile:', err);
+          // Page still works without author profile
+        });
+
+      // NON-BLOCKING: Fetch original recipe if this is a fork (with timeout)
+      if (result.data.source?.includes('Forked from recipe ID:')) {
+        Promise.race([
+          getOriginalRecipe(result.data.id),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Original recipe timeout')), 2000))
+        ])
+          .then((original: any) => {
+            if (original) {
+              setOriginalRecipe(parseRecipe(original));
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to fetch original recipe:', err);
+            // Page still works without original recipe attribution
+          });
+      }
     }
     fetchRecipe();
   }, [slugOrId, isSignedIn, user, router]);
@@ -512,8 +538,6 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
               variant="outline"
             />
           )}
-          {/* Report Button - available to all users except recipe owner */}
-          {!isOwner && <FlagButton recipeId={recipe.id} recipeName={recipe.name} />}
 
           {/* Utility Actions */}
           <Link href={`/recipes/${recipe.id}/similar`} className="contents">
@@ -585,6 +609,9 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
             <Printer className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Print</span>
           </Button>
+
+          {/* Report Button - available to all users except recipe owner */}
+          {!isOwner && <FlagButton recipeId={recipe.id} recipeName={recipe.name} />}
 
           {/* Admin Actions */}
           {isUserAdmin && (

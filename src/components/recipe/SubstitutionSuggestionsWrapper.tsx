@@ -189,7 +189,7 @@ export function SubstitutionSuggestionsWrapper({
       try {
         const result = await getUserInventory();
 
-        if (result.success && result.data && result.data.length > 0) {
+        if (result.success && 'data' in result && result.data && result.data.length > 0) {
           // User has inventory - determine missing ingredients
           const missing = getMissingIngredients(ingredients, result.data);
           const available = getUserIngredientNames(result.data);

@@ -860,3 +860,114 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
     return { success: false, error: errorMessage };
   }
 }
+
+/**
+ * Generate a shopping list from a collection of recipes
+ *
+ * @param data - Object with collectionId
+ * @returns Success response with generated shopping list or error message
+ */
+export async function generateShoppingListFromCollection(data: unknown) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Validate input - expecting { collectionId: string }
+    const validated = generateShoppingListSchema.parse(data);
+    const collectionId = validated.mealId; // Reuse the same schema, treating collectionId as mealId
+
+    // Get the collection with all recipes
+    const { getCollectionById } = await import('./collections');
+    const collection = await getCollectionById(collectionId);
+
+    if (!collection) {
+      return { success: false, error: 'Collection not found' };
+    }
+
+    // Check if user has access
+    if (!collection.is_public && collection.user_id !== userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Collect all ingredients from all recipes in collection
+    const rawItems: ShoppingListItem[] = [];
+
+    for (const recipe of collection.recipes) {
+      const ingredients = JSON.parse(recipe.ingredients);
+
+      for (const ingredientStr of ingredients) {
+        // Parse ingredient using advanced parser
+        const parsed = parseIngredientString(ingredientStr);
+
+        if (parsed) {
+          rawItems.push({
+            name: parsed.name,
+            quantity: parsed.quantity,
+            unit: parsed.unit,
+            category: categorizeIngredient(parsed.name),
+            checked: false,
+            from_recipes: [recipe.id],
+          });
+        } else {
+          // Fallback for unparseable ingredients
+          rawItems.push({
+            name: ingredientStr,
+            quantity: 0,
+            unit: '',
+            category: 'other',
+            checked: false,
+            from_recipes: [recipe.id],
+          });
+        }
+      }
+    }
+
+    // Advanced consolidation with unit conversion and fuzzy matching
+    const consolidatedItems = consolidateShoppingListItems(rawItems);
+
+    // Filter out non-purchaseable ingredients
+    const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
+
+    // Query which items are non-purchaseable
+    const nonPurchaseableIngredients = await db
+      .select({ name: ingredients.name })
+      .from(ingredients)
+      .where(
+        and(
+          sql`LOWER(${ingredients.name}) IN (${sql.join(
+            ingredientNames.map((n) => sql`${n}`),
+            sql`, `
+          )})`,
+          eq(ingredients.is_purchaseable, false)
+        )
+      );
+
+    // Filter out non-purchaseable items
+    const purchaseableItems = consolidatedItems.filter(
+      (item) =>
+        !nonPurchaseableIngredients.some((ni) => ni.name.toLowerCase() === item.name.toLowerCase())
+    );
+
+    // Create shopping list
+    const [newShoppingList] = await db
+      .insert(shoppingLists)
+      .values({
+        user_id: userId,
+        meal_id: null, // No associated meal for collection-based shopping lists
+        name: `${collection.name} - Shopping List`,
+        items: JSON.stringify(purchaseableItems),
+        status: 'draft',
+      })
+      .returning();
+
+    revalidatePath('/collections');
+    revalidatePath(`/collections/${collection.user_id}/${collection.slug}`);
+    return { success: true, data: newShoppingList };
+  } catch (error) {
+    console.error('Failed to generate shopping list from collection:', error);
+    const errorMessage = toErrorMessage(error);
+    return { success: false, error: errorMessage };
+  }
+}

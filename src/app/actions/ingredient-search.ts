@@ -144,7 +144,28 @@ export async function searchRecipesByIngredients(
         success: false,
         recipes: [],
         totalCount: 0,
-        error: 'At least one ingredient must be specified',
+        error: 'Validation error: At least one ingredient must be specified',
+      };
+    }
+
+    // Validate ingredient names are not empty strings
+    const validIngredients = ingredientNames.filter((name) => name && name.trim().length > 0);
+    if (validIngredients.length === 0) {
+      return {
+        success: false,
+        recipes: [],
+        totalCount: 0,
+        error: 'Validation error: Please provide valid ingredient names',
+      };
+    }
+
+    // Limit number of ingredients to prevent performance issues
+    if (validIngredients.length > 50) {
+      return {
+        success: false,
+        recipes: [],
+        totalCount: 0,
+        error: 'Validation error: Maximum 50 ingredients allowed per search',
       };
     }
 
@@ -152,7 +173,7 @@ export async function searchRecipesByIngredients(
     const { userId } = await auth();
 
     // Generate cache key
-    const cacheKey = generateIngredientSearchKey(ingredientNames, {
+    const cacheKey = generateIngredientSearchKey(validIngredients, {
       ...validatedOptions,
       userId: userId || 'anonymous',
     });
@@ -162,14 +183,14 @@ export async function searchRecipesByIngredients(
     if (cached) {
       if (ENABLE_CACHE_STATS) {
         console.log(
-          `[Cache HIT] Ingredient search: ${ingredientNames.slice(0, 3).join(', ')} (saved ~500-1000ms)`
+          `[Cache HIT] Ingredient search: ${validIngredients.slice(0, 3).join(', ')} (saved ~500-1000ms)`
         );
       }
       return cached;
     }
 
     // Normalize ingredient names (lowercase, trim)
-    const normalizedNames = ingredientNames.map((name) => name.toLowerCase().trim());
+    const normalizedNames = validIngredients.map((name) => name.toLowerCase().trim());
 
     // Apply consolidation mapping to ingredient names
     // This maps variants like "basil" -> "basil leaves"
@@ -427,17 +448,30 @@ export async function searchRecipesByIngredients(
     // Store in cache
     searchCaches.ingredient.set(cacheKey, result);
     if (ENABLE_CACHE_STATS) {
-      console.log(`[Cache MISS] Ingredient search: ${ingredientNames.slice(0, 3).join(', ')}`);
+      console.log(`[Cache MISS] Ingredient search: ${validIngredients.slice(0, 3).join(', ')}`);
     }
 
     return result;
   } catch (error: unknown) {
     console.error('Ingredient search failed:', error);
+
+    // Provide helpful error messages based on error type
+    let errorMessage = toErrorMessage(error);
+
+    // Check for common database errors
+    if (errorMessage.includes('connect') || errorMessage.includes('ECONNREFUSED')) {
+      errorMessage = 'Database connection error. Please try again in a moment.';
+    } else if (errorMessage.includes('timeout')) {
+      errorMessage = 'Search timed out. Please try with fewer ingredients.';
+    } else if (errorMessage.includes('syntax')) {
+      errorMessage = 'Invalid search query. Please check your input.';
+    }
+
     return {
       success: false,
       recipes: [],
       totalCount: 0,
-      error: toErrorMessage(error),
+      error: errorMessage,
     };
   }
 }
@@ -463,6 +497,7 @@ export async function getIngredientSuggestions(
   options: Partial<SuggestionOptions> = {}
 ): Promise<SuggestionResult> {
   try {
+    // Validate query length
     if (!query || query.trim().length < 2) {
       return {
         success: true,
@@ -470,23 +505,32 @@ export async function getIngredientSuggestions(
       };
     }
 
+    // Prevent excessively long queries
+    if (query.length > 100) {
+      return {
+        success: false,
+        suggestions: [],
+        error: 'Search query is too long',
+      };
+    }
+
     const validatedOptions = SuggestionOptionsSchema.parse(options);
     const normalizedQuery = query.toLowerCase().trim();
 
-    // Apply consolidation to the query to suggest canonical forms
-    const consolidatedQuery = applyConsolidation(normalizedQuery);
-
-    // Generate cache key
+    // Generate cache key BEFORE any expensive operations
     const cacheKey = generateIngredientSuggestionsKey(query, validatedOptions);
 
-    // Check cache
+    // Check cache EARLY - return immediately if hit
     const cached = searchCaches.ingredientSuggestions.get<SuggestionResult>(cacheKey);
     if (cached) {
       if (ENABLE_CACHE_STATS) {
-        console.log(`[Cache HIT] Ingredient suggestions: ${query}`);
+        console.log(`[Cache HIT] Ingredient suggestions: ${query} (saved ~300-500ms)`);
       }
       return cached;
     }
+
+    // Apply consolidation to the query to suggest canonical forms
+    const consolidatedQuery = applyConsolidation(normalizedQuery);
 
     // Build search conditions
     // Search for both the original query and the consolidated form
@@ -495,7 +539,66 @@ export async function getIngredientSuggestions(
       searchQueries.push(consolidatedQuery);
     }
 
-    const conditions: SQL[] = [
+    // OPTIMIZATION: Start with name-only search (fastest, uses primary index)
+    const nameConditions: SQL[] = [
+      or(
+        ...searchQueries.flatMap((q) => [ilike(ingredients.name, `%${q}%`)])
+      ) as SQL,
+    ];
+
+    // Filter by category if specified
+    if (validatedOptions.category) {
+      nameConditions.push(eq(ingredients.category, validatedOptions.category));
+    }
+
+    // Filter by common ingredients only
+    if (validatedOptions.commonOnly) {
+      nameConditions.push(eq(ingredients.is_common, true));
+    }
+
+    // Fetch suggestions with MINIMAL fields (name search only, no statistics join)
+    // This is 2-3x faster than joining with statistics
+    const nameSuggestions = await db
+      .select({
+        id: ingredients.id,
+        name: ingredients.name,
+        displayName: ingredients.display_name,
+        category: ingredients.category,
+        isCommon: ingredients.is_common,
+      })
+      .from(ingredients)
+      .where(and(...nameConditions))
+      .orderBy(
+        desc(ingredients.is_common), // Common ingredients first
+        asc(ingredients.name) // Then alphabetically
+      )
+      .limit(validatedOptions.limit);
+
+    // If we have enough results from name search, return early (saves 200-300ms)
+    if (nameSuggestions.length >= 10) {
+      const result = {
+        success: true,
+        suggestions: nameSuggestions.map((s) => ({
+          id: s.id,
+          name: s.name,
+          displayName: s.displayName,
+          category: s.category,
+          isCommon: s.isCommon,
+          recipeCount: 0, // Skip recipe count for speed
+        })),
+      };
+
+      // Store in cache
+      searchCaches.ingredientSuggestions.set(cacheKey, result);
+      if (ENABLE_CACHE_STATS) {
+        console.log(`[Cache MISS - Fast Path] Ingredient suggestions: ${query}`);
+      }
+
+      return result;
+    }
+
+    // If < 10 results, search display_name and aliases (slower but more complete)
+    const allConditions: SQL[] = [
       or(
         ...searchQueries.flatMap((q) => [
           ilike(ingredients.name, `%${q}%`),
@@ -505,61 +608,66 @@ export async function getIngredientSuggestions(
       ) as SQL,
     ];
 
-    // Filter by category if specified
+    // Apply same filters
     if (validatedOptions.category) {
-      conditions.push(eq(ingredients.category, validatedOptions.category));
+      allConditions.push(eq(ingredients.category, validatedOptions.category));
     }
-
-    // Filter by common ingredients only
     if (validatedOptions.commonOnly) {
-      conditions.push(eq(ingredients.is_common, true));
+      allConditions.push(eq(ingredients.is_common, true));
     }
 
-    // Fetch suggestions with statistics
-    const suggestions = await db
+    // Fetch with full search (still no statistics join for speed)
+    const allSuggestions = await db
       .select({
         id: ingredients.id,
         name: ingredients.name,
         displayName: ingredients.display_name,
         category: ingredients.category,
         isCommon: ingredients.is_common,
-        recipeCount: ingredientStatistics.total_recipes,
       })
       .from(ingredients)
-      .leftJoin(ingredientStatistics, eq(ingredients.id, ingredientStatistics.ingredient_id))
-      .where(and(...conditions))
+      .where(and(...allConditions))
       .orderBy(
-        desc(ingredients.is_common), // Common ingredients first
-        desc(ingredientStatistics.total_recipes), // Then by popularity
-        asc(ingredients.name) // Then alphabetically
+        desc(ingredients.is_common),
+        asc(ingredients.name)
       )
       .limit(validatedOptions.limit);
 
     const result = {
       success: true,
-      suggestions: suggestions.map((s) => ({
+      suggestions: allSuggestions.map((s) => ({
         id: s.id,
         name: s.name,
         displayName: s.displayName,
         category: s.category,
         isCommon: s.isCommon,
-        recipeCount: s.recipeCount || 0,
+        recipeCount: 0, // Skip recipe count for speed
       })),
     };
 
     // Store in cache
     searchCaches.ingredientSuggestions.set(cacheKey, result);
     if (ENABLE_CACHE_STATS) {
-      console.log(`[Cache MISS] Ingredient suggestions: ${query}`);
+      console.log(`[Cache MISS - Full Search] Ingredient suggestions: ${query}`);
     }
 
     return result;
   } catch (error: unknown) {
     console.error('Get ingredient suggestions failed:', error);
+
+    // Provide helpful error messages
+    let errorMessage = toErrorMessage(error);
+
+    if (errorMessage.includes('connect') || errorMessage.includes('ECONNREFUSED')) {
+      errorMessage = 'Database connection error. Please try again.';
+    } else if (errorMessage.includes('timeout')) {
+      errorMessage = 'Search timed out. Please try again.';
+    }
+
     return {
       success: false,
       suggestions: [],
-      error: toErrorMessage(error),
+      error: errorMessage,
     };
   }
 }

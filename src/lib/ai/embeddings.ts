@@ -17,7 +17,7 @@ import type { Recipe } from '@/lib/db/schema';
 // Constants
 // Using BAAI/bge-small-en-v1.5 which is properly configured for feature-extraction
 // 384-dimensional embeddings, efficient and accurate for semantic search
-const HF_API_URL = 'https://api-inference.huggingface.co/models/BAAI/bge-small-en-v1.5';
+const HF_API_URL = 'https://router.huggingface.co/hf-inference/BAAI/bge-small-en-v1.5';
 const EMBEDDING_DIMENSION = 384;
 const MODEL_NAME = 'BAAI/bge-small-en-v1.5';
 const DEFAULT_TIMEOUT = 30000; // 30 seconds (accounts for model cold start)

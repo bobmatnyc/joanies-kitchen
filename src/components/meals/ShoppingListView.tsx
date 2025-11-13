@@ -16,6 +16,7 @@ import {
   type ShoppingListItem,
 } from '@/lib/meals/type-guards';
 import { formatQuantity } from '@/lib/utils/quantity-formatter';
+import { convertToRetailPackaging } from '@/lib/utils/retail-packaging';
 
 interface ShoppingListViewProps {
   shoppingList: ShoppingList;
@@ -271,14 +272,14 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                     return (
                       <label
                         key={globalIndex}
-                        className={`flex items-start gap-3 p-3 rounded-jk border border-jk-sage/30 hover:border-jk-sage/60 transition-colors cursor-pointer min-h-[44px] ${
+                        className={`flex items-start gap-2 p-2 rounded-jk border border-jk-sage/30 hover:border-jk-sage/60 transition-colors cursor-pointer min-h-[44px] ${
                           item.checked ? 'bg-jk-sage/5' : 'bg-white'
                         }`}
                       >
                         <Checkbox
                           checked={item.checked}
                           onCheckedChange={() => handleToggleItem(globalIndex)}
-                          className="mt-0.5"
+                          className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
                           <div
@@ -291,16 +292,34 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                                 <span className="font-semibold">{item.name}</span>
                                 <span className="text-jk-charcoal/60 text-sm ml-1">(to taste)</span>
                               </>
-                            ) : (
-                              <>
-                                {item.quantity > 0 && (
-                                  <span className="font-semibold">
-                                    {formatQuantity(item.quantity)} {item.unit}{' '}
-                                  </span>
-                                )}
-                                {item.name}
-                              </>
-                            )}
+                            ) : (() => {
+                                const retailPackage = item.quantity > 0 ? convertToRetailPackaging(item.name, item.quantity, item.unit) : null;
+
+                                if (retailPackage) {
+                                  return (
+                                    <>
+                                      <span className="font-semibold">
+                                        {retailPackage.quantity} {retailPackage.unit}{retailPackage.quantity > 1 ? 's' : ''}{' '}
+                                      </span>
+                                      {item.name}
+                                      <span className="text-jk-charcoal/60 text-sm ml-1">
+                                        (need {formatQuantity(retailPackage.originalQuantity)} {retailPackage.originalUnit})
+                                      </span>
+                                    </>
+                                  );
+                                }
+
+                                return (
+                                  <>
+                                    {item.quantity > 0 && (
+                                      <span className="font-semibold">
+                                        {formatQuantity(item.quantity)} {item.unit}{' '}
+                                      </span>
+                                    )}
+                                    {item.name}
+                                  </>
+                                );
+                              })()}
                           </div>
                           {item.estimated_price && (
                             <div className="text-xs text-jk-charcoal/60 mt-1 font-ui">
