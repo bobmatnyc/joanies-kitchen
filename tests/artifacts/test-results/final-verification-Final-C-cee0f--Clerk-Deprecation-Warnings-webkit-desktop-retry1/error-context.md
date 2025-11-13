@@ -1,0 +1,152 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic: ALPHA
+            - generic: BETA LAUNCH 12/1/25
+  - banner [ref=e2]:
+    - navigation [ref=e4]:
+      - link "Joanie's Kitchen - AI Tomato Logo Joanie's Kitchen Zero Food Waste" [ref=e5]:
+        - /url: /
+        - img "Joanie's Kitchen - AI Tomato Logo" [ref=e6]
+        - generic [ref=e7]:
+          - generic [ref=e8]: Joanie's Kitchen
+          - generic [ref=e9]: Zero Food Waste
+      - generic [ref=e10]:
+        - link "Learn" [ref=e11]:
+          - /url: /learn
+          - button "Learn" [ref=e12]:
+            - img
+            - text: Learn
+        - link "Recipes" [ref=e13]:
+          - /url: /recipes
+          - button "Recipes" [ref=e14]:
+            - img
+            - text: Recipes
+        - link "Collections" [ref=e15]:
+          - /url: /collections
+          - button "Collections" [ref=e16]:
+            - img
+            - text: Collections
+        - link "Meals" [ref=e17]:
+          - /url: /meal-plans
+          - button "Meals" [ref=e18]:
+            - img
+            - text: Meals
+        - link "Ingredients" [ref=e19]:
+          - /url: /ingredients
+          - button "Ingredients" [ref=e20]:
+            - img
+            - text: Ingredients
+        - link "Chefs" [ref=e21]:
+          - /url: /discover/chefs
+          - button "Chefs" [ref=e22]:
+            - img
+            - text: Chefs
+  - main [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e28]:
+        - img "Joanie's Kitchen - AI Tomato Logo" [ref=e30]
+        - heading "Joanie's Kitchen" [level=1] [ref=e31]
+        - paragraph [ref=e32]: Cook With What You Have. Waste Nothing.
+        - paragraph [ref=e33]: Enter what's in your fridge and we'll show you delicious meals you can make right now — with substitutions for what's missing.
+        - generic [ref=e37]:
+          - textbox "What's in your fridge? (e.g., chicken, rice, carrots)" [ref=e39]
+          - button "Find Recipes" [disabled]:
+            - img
+            - text: Find Recipes
+        - link "How does this work? Learn more →" [ref=e41]:
+          - /url: /how-it-works
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "A Mission Against Food Waste" [level=2] [ref=e46]
+          - paragraph [ref=e47]:
+            - text: "\"I'd like to see technology help with food waste. That would be the highlight of my life.\""
+            - generic [ref=e48]: — Joanie
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - img [ref=e52]
+            - heading "First In, First Out" [level=3] [ref=e56]
+            - paragraph [ref=e57]: Use what you bought first. Track what's aging in your fridge and get recipes to rescue ingredients before they spoil.
+          - generic [ref=e58]:
+            - img [ref=e60]
+            - heading "Creative Substitutions" [level=3] [ref=e62]
+            - paragraph [ref=e63]: Missing an ingredient? No problem. Our recipes suggest smart swaps so you can cook with what you have, not what you don't.
+          - generic [ref=e64]:
+            - img [ref=e66]
+            - heading "Nothing Goes to Waste" [level=3] [ref=e73]
+            - paragraph [ref=e74]: Every ingredient matters. Learn techniques to use scraps, stems, and peels that others throw away.
+        - generic [ref=e75]:
+          - paragraph [ref=e76]: Americans waste $1,500 worth of food per year. Let's change that together.
+          - link "Start Cooking from Your Fridge" [ref=e77]:
+            - /url: /fridge
+      - generic [ref=e80]:
+        - link "Cook From Your Fridge Tell us what you have and we'll find recipes you can make right now" [ref=e81]:
+          - /url: /fridge
+          - generic [ref=e83] [cursor=pointer]:
+            - img [ref=e85]
+            - heading "Cook From Your Fridge" [level=3] [ref=e87]
+            - paragraph [ref=e88]: Tell us what you have and we'll find recipes you can make right now
+        - link "Plan Meals Create complete meals and generate shopping lists" [ref=e89]:
+          - /url: /meals
+          - generic [ref=e91] [cursor=pointer]:
+            - img [ref=e93]
+            - heading "Plan Meals" [level=3] [ref=e95]
+            - paragraph [ref=e96]: Create complete meals and generate shopping lists
+        - link "Add Your Recipe Share your family treasures and personal creations" [ref=e97]:
+          - /url: /recipes/new
+          - generic [ref=e99] [cursor=pointer]:
+            - img [ref=e101]
+            - heading "Add Your Recipe" [level=3] [ref=e103]
+            - paragraph [ref=e104]: Share your family treasures and personal creations
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - heading "Stop Wasting Food. Start Cooking." [level=2] [ref=e107]
+          - paragraph [ref=e108]: Got odds and ends in your fridge? Perfect. Joanie's Kitchen helps you turn what you have into something unforgettable — no shopping required. Tell us what's on hand and we'll show you what you can make.
+        - generic [ref=e113]:
+          - img "Joanie cooking in her kitchen with fresh vegetables" [ref=e116]
+          - generic [ref=e119]:
+            - heading "About Joanie" [level=2] [ref=e120]
+            - generic [ref=e121]:
+              - paragraph [ref=e122]: Joanie grew up in upstate New York helping her dad in his children's clothing shop — and she's been mixing creativity with hard work ever since. After a career in finance in London and New York, she followed her heart back to the kitchen and the garden.
+              - paragraph [ref=e123]: A trained chef, lifelong gardener, and volunteer firefighter in Hastings-on-Hudson, Joanie now cooks from her terraced home overlooking the Hudson River, where she grows everything from shiso to figs — and turns "nothing in the fridge" into something unforgettable.
+              - paragraph [ref=e124]:
+                - text: Follow her garden at
+                - link "@terracesonward" [ref=e125]:
+                  - /url: https://www.instagram.com/terracesonward/
+            - generic [ref=e126]:
+              - link "Read My Story" [ref=e127]:
+                - /url: /about
+              - link "Explore Recipes" [ref=e128]:
+                - /url: /recipes
+        - generic [ref=e129]:
+          - heading "Cook With What You Have" [level=2] [ref=e131]
+          - paragraph [ref=e132]: Stop food waste, save money, and get creative. Tell us what's in your fridge or explore recipes built for flexibility.
+          - generic [ref=e133]:
+            - link "What's in My Fridge?" [ref=e134]:
+              - /url: /fridge
+              - img
+              - text: What's in My Fridge?
+            - link "Add Recipe" [ref=e135]:
+              - /url: /recipes/new
+              - img
+              - text: Add Recipe
+            - link "Browse Collection" [ref=e136]:
+              - /url: /recipes
+              - img
+              - text: Browse Collection
+  - contentinfo [ref=e137]:
+    - generic [ref=e138]:
+      - paragraph [ref=e139]: © 2025 Joanie's Kitchen
+      - paragraph [ref=e140]:
+        - img [ref=e141]
+        - generic [ref=e143]: All AI-generated content on this site (images, recipes, etc.) was created using in-house inference powered by 100% solar energy.
+      - paragraph [ref=e144]: Cook With What You Have. Waste Nothing.
+  - region "Notifications alt+T"
+  - alert [ref=e145]
+```
