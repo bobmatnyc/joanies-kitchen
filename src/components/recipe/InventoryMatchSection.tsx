@@ -68,13 +68,13 @@ export function InventoryMatchSection({
         // Fetch user's inventory
         const result = await getUserInventory();
 
-        if (result.success && result.data && result.data.length > 0) {
+        if (result.success && 'data' in result && result.data && result.data.length > 0) {
           setHasInventory(true);
 
           // Match ingredients
           const matched = matchIngredientsToInventory(ingredients, result.data);
           setMatches(matched);
-        } else if (!result.success) {
+        } else if (!result.success && 'error' in result) {
           setError(result.error || 'Failed to load inventory');
         }
       } catch (err) {

@@ -1,123 +1,71 @@
-# Joanie's Kitchen - Documentation
+# Documentation
 
-**Last Updated:** October 20, 2025
-**Project Version:** v0.7.0
-**Mission:** Zero-Waste Cooking Platform
+This directory contains all project documentation organized by category.
 
-Welcome to Joanie's Kitchen documentation. This guide will help you understand, use, and contribute to our zero-waste cooking platform.
+## Directory Structure
 
-> *"I'd like to see technology help with food waste. That would be the highlight of my life."* — Joanie
+- **`reports/`** - Test reports, verification reports, and quality assurance documentation
+- **`migrations/`** - Database migration guides and migration summaries
+- **`deployment/`** - Deployment guides, build documentation, and release notes
+- **`testing/`** - Testing guides, test checklists, and manual test procedures
+- **`development/`** - Development guides, investigation reports, and performance documentation
+- **`api/`** - API documentation and integration guides
+- **`guides/`** - Step-by-step guides for various features and processes
+- **`features/`** - Feature-specific documentation
+- **`implementations/`** - Implementation summaries and technical details
+- **`reference/`** - Quick reference guides and technical specifications
+- **`qa/`** - Quality assurance documentation and testing strategies
+- **`performance/`** - Performance optimization and monitoring documentation
+- **`operations/`** - Operational playbooks and procedures
+- **`archive/`** - Archived documentation from previous versions
 
-## 🎯 Project Status
+## Key Documents at Root Level
 
-**Current Phase:** Phase 5 of 6 (80% complete)
-**Next Milestone:** Polish & Launch Prep
-**Target Launch:** November 1, 2025
+- `../README.md` - Project README
+- `../CHANGELOG.md` - Version history and changes
+- `../ROADMAP.md` - Future plans and roadmap
 
-**See:** [`/ROADMAP.md`](../ROADMAP.md) for detailed progress
+## Recent Reorganization (2025-11)
 
----
+Documentation files have been reorganized from the root directory into appropriate subdirectories:
 
-## 🚀 Quick Start
+### Reports (`reports/`)
+Contains all test reports, QA verification, and production validation reports including:
+- Beta and production verification reports
+- Test evidence and screenshots
+- UAT and E2E test results
+- Release verification reports
 
-**New to the project?** Start here:
-1. [`/README.md`](../README.md) - Project overview
-2. [`/ROADMAP.md`](../ROADMAP.md) - Current progress & priorities
-3. [`/CLAUDE.md`](../CLAUDE.md) - Technical context for AI assistants
-4. [`docs/getting-started/`](./getting-started/) - Development setup
+### Migrations (`migrations/`)
+Database migration documentation and procedures:
+- Schema migration guides
+- Migration execution summaries
+- Quick-start migration guides
 
----
+### Deployment (`deployment/`)
+Build summaries, deployment success reports, and deployment procedures:
+- Deployment verification reports
+- Build summaries
+- Image audit implementations
 
-## 👨‍💻 Developer Hub
+### Testing (`testing/`)
+Test guides, checklists, and manual testing procedures:
+- Error handling test guides
+- Manual test checklists
+- Loading test procedures
 
-**NEW**: Comprehensive technical documentation for developers
+### Development (`development/`)
+Development documentation including:
+- `CLAUDE.md` - AI assistant integration and project memory
+- Investigation reports for bug fixes
+- Performance optimization documentation
+- Implementation summaries
+- Error handling implementation details
 
-- **[Developer Documentation Hub](./developer/README.md)** - Complete technical guide with architecture overview, API docs, testing guides, and troubleshooting
+## Navigation Tips
 
-## 🏃 Getting Started
-
-New to Joanie's Kitchen? Start here:
-
-- **[Installation](./getting-started/installation.md)** - Set up your development environment
-- **[Quick Start](./getting-started/quick-start.md)** - Get up and running in 5 minutes
-- **[Environment Setup](./getting-started/environment-setup.md)** - Configure environment variables
-- **[Deployment](./getting-started/deployment.md)** - Deploy to production
-
-## 📚 Guides
-
-In-depth guides for working with Joanie's Kitchen:
-
-- **[Authentication](./guides/authentication.md)** - Clerk authentication setup
-- **[Recipe Management](./guides/recipe-management.md)** - CRUD operations
-- **[Data Acquisition](./guides/data-acquisition.md)** - Import recipes from external sources
-- **[AI Features](./guides/ai-features.md)** - AI-powered recipe generation and rating
-- **[Rating System](./guides/rating-system.md)** - User and system ratings
-- **[Continuous Scraping](./guides/continuous-scraping.md)** - Automated recipe discovery
-- **[Semantic Search](./guides/semantic-search.md)** - Vector-based recipe search
-- **[Recipe Crawling](./guides/recipe-crawling.md)** - Recipe discovery pipeline
-
-## 🎨 Brand & Design
-
-Learn about Joanie's Kitchen visual identity:
-
-- **[Brand Guide](./reference/brand-guide.md)** - Complete brand identity
-- **[Visual Guide](./reference/visual-guide.md)** - Visual design guidelines
-- **[Project Organization](./reference/project-organization.md)** - File structure standards
-
-## 🔧 API Reference
-
-Technical API documentation:
-
-- **[API Overview](./api/overview.md)** - API architecture
-- **[Server Actions](./api/server-actions.md)** - Next.js server actions
-- **[Endpoints](./api/endpoints.md)** - REST API reference
-- **[Database Schema](./reference/database-schema.md)** - Tables and relationships
-
-## 🛠️ Implementation Details
-
-Deep dives into specific features:
-
-- **[TheMealDB Pipeline](./implementation/themealdb-pipeline.md)** - TheMealDB integration
-- **[Rating System](./implementation/rating-system.md)** - Recipe rating implementation
-- **[Scraper Setup](./implementation/scraper-setup.md)** - Background scraper
-- **[Embeddings](./implementation/embeddings.md)** - Vector embeddings for search
-- **[Recipe Discovery](./implementation/recipe-discovery.md)** - Discovery pipeline
-- **[Admin System](./implementation/admin-system.md)** - Admin dashboard
-
-## 🆘 Troubleshooting
-
-Having issues? Check these guides:
-
-- **[Common Issues](./troubleshooting/common-issues.md)** - FAQ and solutions
-- **[Authentication](./troubleshooting/authentication.md)** - Auth troubleshooting
-- **[Deployment](./troubleshooting/deployment.md)** - Deployment issues
-- **[Database](./troubleshooting/database.md)** - Database problems
-
-## 📁 Project Structure
-
-```
-joanies-kitchen/
-├── src/              # Application source code
-│   ├── app/          # Next.js App Router
-│   ├── components/   # React components
-│   └── lib/          # Core utilities
-├── public/           # Static assets
-├── docs/             # Documentation (you are here)
-├── scripts/          # Utility scripts
-└── data/             # Recipe data (gitignored)
-```
-
-## 🤝 Contributing
-
-Want to contribute? Please read our contributing guidelines.
-
-## 📖 Additional Resources
-
-- **[CLAUDE.md](../CLAUDE.md)** - AI-powered development instructions
-- **[Quality Standards](./reference/quality.md)** - Code quality guidelines
-
----
-
-**Last Updated:** October 2025
-**Version:** 1.0.0
-**Project:** Joanie's Kitchen Recipe Manager
+- Use the directory structure above to find documentation by category
+- Check `archive/` for historical documentation
+- See `qa/` for current testing strategies
+- Reference `api/` for all API-related documentation
+- Look in `guides/` for step-by-step procedures

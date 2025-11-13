@@ -53,7 +53,7 @@ export const MealCard = memo(function MealCard({ meal }: MealCardProps) {
       e.stopPropagation();
 
       setIsGenerating(true);
-      const result = await generateShoppingList(meal.id);
+      const result = await generateShoppingList({ mealId: meal.id });
 
       if (result.success) {
         toast.success('Shopping list generated!');

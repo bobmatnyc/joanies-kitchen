@@ -7,6 +7,23 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  // Compression is enabled by default in production
+  // Next.js automatically compresses responses using gzip
+  compress: true, // Explicitly enable for clarity
+  // Cache control headers for aggressive cache busting
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {

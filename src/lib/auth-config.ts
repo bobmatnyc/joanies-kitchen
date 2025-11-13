@@ -194,8 +194,9 @@ export const authConfig = (() => {
       secretKey,
       signInUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/sign-in',
       signUpUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up',
-      afterSignInUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/',
-      afterSignUpUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/',
+      // Updated to use current Clerk API (signInFallbackRedirectUrl replaces afterSignInUrl)
+      signInFallbackRedirectUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/',
+      signUpFallbackRedirectUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/',
       // Domain configuration for production keys on localhost
       domain: usingProductionKeys && !isProd ? 'recipes.help' : undefined,
       isSatellite: usingProductionKeys && !isProd,

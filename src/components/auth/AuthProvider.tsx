@@ -40,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Configure Clerk options based on environment
   const clerkOptions: any = {
     publishableKey: authConfig.clerk.publishableKey,
+    // Use new Clerk redirect API (not deprecated props)
+    signInFallbackRedirectUrl: authConfig.clerk.signInFallbackRedirectUrl,
+    signUpFallbackRedirectUrl: authConfig.clerk.signUpFallbackRedirectUrl,
     appearance: {
       elements: {
         formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-white',

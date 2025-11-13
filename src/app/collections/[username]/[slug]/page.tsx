@@ -3,6 +3,7 @@ import { Edit, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCollectionBySlug } from '@/app/actions/collections';
+import { GenerateShoppingListButton } from '@/components/collections/GenerateShoppingListButton';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
 
@@ -62,12 +63,19 @@ export default async function CollectionDetailPage({ params }: CollectionDetailP
               </div>
             </div>
 
-            {isOwner && (
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Collection
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {isOwner && (
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Collection
+                </Button>
+              )}
+              <GenerateShoppingListButton
+                collectionId={collection.id}
+                collectionName={collection.name}
+                recipeCount={collection.recipe_count}
+              />
+            </div>
           </div>
         </div>
 
