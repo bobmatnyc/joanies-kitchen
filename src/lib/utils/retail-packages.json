@@ -1,0 +1,271 @@
+{
+  "dairy": {
+    "sour cream": [
+      { "size": 8, "unit": "tub", "category": "oz" },
+      { "size": 16, "unit": "tub", "category": "oz" },
+      { "size": 24, "unit": "tub", "category": "oz" }
+    ],
+    "cream cheese": [
+      { "size": 8, "unit": "brick", "category": "oz" },
+      { "size": 16, "unit": "brick", "category": "oz" }
+    ],
+    "yogurt": [
+      { "size": 5.3, "unit": "container", "category": "oz", "note": "Greek single-serve" },
+      { "size": 6, "unit": "container", "category": "oz", "note": "Traditional single-serve" },
+      { "size": 32, "unit": "container", "category": "oz" }
+    ],
+    "heavy cream": [
+      { "size": 8, "unit": "carton", "category": "oz", "note": "Half pint" },
+      { "size": 16, "unit": "carton", "category": "oz", "note": "Pint" },
+      { "size": 32, "unit": "carton", "category": "oz", "note": "Quart" }
+    ],
+    "half and half": [
+      { "size": 16, "unit": "carton", "category": "oz", "note": "Pint" },
+      { "size": 32, "unit": "carton", "category": "oz", "note": "Quart - equally common" }
+    ],
+    "cottage cheese": [
+      { "size": 6, "unit": "tub", "category": "oz" },
+      { "size": 16, "unit": "tub", "category": "oz" },
+      { "size": 24, "unit": "tub", "category": "oz" }
+    ]
+  },
+  "cheese": {
+    "cheddar cheese": [
+      { "size": 8, "unit": "block", "category": "oz" },
+      { "size": 8, "unit": "bag", "category": "oz", "note": "Shredded" },
+      { "size": 16, "unit": "block", "category": "oz" },
+      { "size": 16, "unit": "bag", "category": "oz", "note": "Shredded" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "Shredded" }
+    ],
+    "mozzarella cheese": [
+      { "size": 8, "unit": "block", "category": "oz" },
+      { "size": 8, "unit": "bag", "category": "oz", "note": "Shredded" },
+      { "size": 16, "unit": "block", "category": "oz" },
+      { "size": 16, "unit": "bag", "category": "oz", "note": "Shredded" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "Shredded" }
+    ],
+    "parmesan cheese": [
+      { "size": 5, "unit": "wedge", "category": "oz" },
+      { "size": 8, "unit": "shaker", "category": "oz", "note": "Grated" },
+      { "size": 10, "unit": "cup", "category": "oz", "note": "Shredded" }
+    ]
+  },
+  "frozen": {
+    "frozen spinach": [
+      { "size": 10, "unit": "package", "category": "oz" },
+      { "size": 12, "unit": "bag", "category": "oz" },
+      { "size": 16, "unit": "bag", "category": "oz" }
+    ],
+    "frozen peas": [
+      { "size": 12, "unit": "bag", "category": "oz", "note": "Equally common as 16 oz" },
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "Family size" }
+    ],
+    "frozen corn": [
+      { "size": 12, "unit": "bag", "category": "oz", "note": "Very common" },
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "Family size" }
+    ]
+  },
+  "canned": {
+    "diced tomatoes": [
+      { "size": 14.5, "unit": "can", "category": "oz" },
+      { "size": 28, "unit": "can", "category": "oz" }
+    ],
+    "tomato paste": [
+      { "size": 4.5, "unit": "tube", "category": "oz", "note": "Imported" },
+      { "size": 6, "unit": "can", "category": "oz" },
+      { "size": 12, "unit": "can", "category": "oz" }
+    ],
+    "tomato sauce": [
+      { "size": 8, "unit": "can", "category": "oz", "note": "Very common" },
+      { "size": 15, "unit": "can", "category": "oz" },
+      { "size": 29, "unit": "can", "category": "oz" }
+    ],
+    "chicken broth": [
+      { "size": 14.5, "unit": "can", "category": "oz" },
+      { "size": 32, "unit": "carton", "category": "oz" },
+      { "size": 48, "unit": "carton", "category": "oz" }
+    ],
+    "beef broth": [
+      { "size": 14.5, "unit": "can", "category": "oz" },
+      { "size": 32, "unit": "carton", "category": "oz" },
+      { "size": 48, "unit": "carton", "category": "oz" }
+    ]
+  },
+  "condiments": {
+    "pesto": [
+      { "size": 6, "unit": "jar", "category": "oz", "note": "Shelf-stable" },
+      { "size": 7, "unit": "tub", "category": "oz", "note": "Refrigerated" },
+      { "size": 8, "unit": "jar", "category": "oz" }
+    ],
+    "salsa": [
+      { "size": 8, "unit": "jar", "category": "oz", "note": "Small/specialty" },
+      { "size": 16, "unit": "jar", "category": "oz" },
+      { "size": 24, "unit": "jar", "category": "oz" }
+    ]
+  },
+  "spices": {
+    "black pepper": [
+      { "size": 3.5, "unit": "jar", "category": "spice", "note": "Standard retail" }
+    ],
+    "garlic powder": [
+      { "size": 2.25, "unit": "jar", "category": "spice" },
+      { "size": 8.75, "unit": "jar", "category": "spice", "note": "Large size" }
+    ],
+    "onion powder": [
+      { "size": 7.62, "unit": "jar", "category": "spice" }
+    ],
+    "paprika": [
+      { "size": 2.1, "unit": "jar", "category": "spice" }
+    ],
+    "cumin": [
+      { "size": 1.5, "unit": "jar", "category": "spice" }
+    ],
+    "oregano": [
+      { "size": 0.5, "unit": "jar", "category": "spice" },
+      { "size": 0.75, "unit": "jar", "category": "spice" }
+    ],
+    "basil": [
+      { "size": 0.5, "unit": "jar", "category": "spice" },
+      { "size": 0.62, "unit": "jar", "category": "spice" }
+    ],
+    "thyme": [
+      { "size": 0.5, "unit": "jar", "category": "spice" },
+      { "size": 0.65, "unit": "jar", "category": "spice" }
+    ],
+    "rosemary": [
+      { "size": 0.5, "unit": "jar", "category": "spice" }
+    ],
+    "cayenne pepper": [
+      { "size": 1, "unit": "jar", "category": "spice" }
+    ],
+    "chili powder": [
+      { "size": 2.89, "unit": "jar", "category": "spice" },
+      { "size": 7.5, "unit": "jar", "category": "spice", "note": "Large size" }
+    ],
+    "ground cinnamon": [
+      { "size": 2.45, "unit": "jar", "category": "spice" }
+    ],
+    "ground nutmeg": [
+      { "size": 1, "unit": "jar", "category": "spice" }
+    ],
+    "italian seasoning": [
+      { "size": 0.55, "unit": "jar", "category": "spice" },
+      { "size": 2, "unit": "jar", "category": "spice" }
+    ],
+    "bay leaves": [
+      { "size": 0.5, "unit": "jar", "category": "spice" }
+    ],
+    "parsley": [
+      { "size": 0.5, "unit": "jar", "category": "spice" }
+    ],
+    "dill": [
+      { "size": 0.5, "unit": "jar", "category": "spice" }
+    ],
+    "sage": [
+      { "size": 0.5, "unit": "jar", "category": "spice" }
+    ],
+    "red pepper flakes": [
+      { "size": 1, "unit": "jar", "category": "spice" }
+    ],
+    "ginger": [
+      { "size": 1.5, "unit": "jar", "category": "spice" }
+    ],
+    "turmeric": [
+      { "size": 2, "unit": "jar", "category": "spice" }
+    ],
+    "coriander": [
+      { "size": 1.5, "unit": "jar", "category": "spice" }
+    ],
+    "vanilla extract": [
+      { "size": 1, "unit": "bottle", "category": "spice" },
+      { "size": 2, "unit": "bottle", "category": "spice" },
+      { "size": 4, "unit": "bottle", "category": "spice" },
+      { "size": 8, "unit": "bottle", "category": "spice" }
+    ]
+  },
+  "sweeteners": {
+    "sugar": [
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz" },
+      { "size": 64, "unit": "bag", "category": "oz", "note": "4 lb - extremely common" },
+      { "size": 160, "unit": "bag", "category": "oz", "note": "10 lb - common bulk size" }
+    ],
+    "white sugar": [
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz" },
+      { "size": 64, "unit": "bag", "category": "oz", "note": "4 lb - extremely common" },
+      { "size": 160, "unit": "bag", "category": "oz", "note": "10 lb - common bulk size" }
+    ],
+    "brown sugar": [
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "2 lb - very common with resealable zipper" }
+    ],
+    "powdered sugar": [
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "2 lb - very common" },
+      { "size": 64, "unit": "bag", "category": "oz", "note": "4 lb" }
+    ],
+    "confectioners sugar": [
+      { "size": 16, "unit": "bag", "category": "oz" },
+      { "size": 32, "unit": "bag", "category": "oz", "note": "2 lb - very common" }
+    ],
+    "sugar substitute": [
+      { "size": 9.7, "unit": "bag", "category": "oz", "note": "Splenda Original - corrected size" }
+    ],
+    "honey": [
+      { "size": 8, "unit": "bottle", "category": "oz" },
+      { "size": 12, "unit": "bottle", "category": "oz" },
+      { "size": 16, "unit": "bottle", "category": "oz" },
+      { "size": 24, "unit": "bottle", "category": "oz" }
+    ],
+    "maple syrup": [
+      { "size": 8, "unit": "bottle", "category": "oz" },
+      { "size": 12, "unit": "bottle", "category": "oz" },
+      { "size": 16, "unit": "bottle", "category": "oz" },
+      { "size": 32, "unit": "bottle", "category": "oz" }
+    ],
+    "agave nectar": [
+      { "size": 11.75, "unit": "bottle", "category": "oz" },
+      { "size": 23.5, "unit": "bottle", "category": "oz" }
+    ]
+  },
+  "produce": {
+    "apple": { "slicesPerUnit": 8, "unit": "apple", "note": "8-12 range; consider cups as better metric" },
+    "apples": { "slicesPerUnit": 8, "unit": "apple", "note": "8-12 range; consider cups as better metric" },
+    "onion": { "slicesPerUnit": 10, "unit": "onion", "note": "10-12 at 1/8\" thickness" },
+    "onions": { "slicesPerUnit": 10, "unit": "onion", "note": "10-12 at 1/8\" thickness" },
+    "tomato": { "slicesPerUnit": 8, "unit": "tomato", "note": "8-10 for medium at 1/8\" thickness" },
+    "tomatoes": { "slicesPerUnit": 8, "unit": "tomato", "note": "8-10 for medium at 1/8\" thickness" },
+    "lemon": { "slicesPerUnit": 6, "unit": "lemon", "note": "6-8 cross-sections; juice/zest is primary use" },
+    "lemons": { "slicesPerUnit": 6, "unit": "lemon", "note": "6-8 cross-sections; juice/zest is primary use" },
+    "lime": { "slicesPerUnit": 6, "unit": "lime", "note": "6-8 cross-sections; juice/wedges primary use" },
+    "limes": { "slicesPerUnit": 6, "unit": "lime", "note": "6-8 cross-sections; juice/wedges primary use" },
+    "orange": { "slicesPerUnit": 10, "unit": "orange", "note": "10-12 segments or round slices" },
+    "oranges": { "slicesPerUnit": 10, "unit": "orange", "note": "10-12 segments or round slices" },
+    "potato": { "slicesPerUnit": 15, "unit": "potato", "note": "15-25; highly variable; cups preferred" },
+    "potatoes": { "slicesPerUnit": 15, "unit": "potato", "note": "15-25; highly variable; cups preferred" },
+    "carrot": { "slicesPerUnit": 20, "unit": "carrot", "note": "20-30 round slices" },
+    "carrots": { "slicesPerUnit": 20, "unit": "carrot", "note": "20-30 round slices" },
+    "cucumber": { "slicesPerUnit": 30, "unit": "cucumber", "note": "30-40 at 1/4\" thickness" },
+    "cucumbers": { "slicesPerUnit": 30, "unit": "cucumber", "note": "30-40 at 1/4\" thickness" },
+    "zucchini": { "slicesPerUnit": 15, "unit": "zucchini", "note": "15-25; also spiralized/diced/shredded" },
+    "avocado": { "slicesPerUnit": 9, "unit": "avocado", "note": "9-15; fractions or cups preferred" },
+    "avocados": { "slicesPerUnit": 9, "unit": "avocado", "note": "9-15; fractions or cups preferred" },
+    "banana": { "slicesPerUnit": 15, "unit": "banana", "note": "15-20 at 1/4\" thickness; consumed whole" },
+    "bananas": { "slicesPerUnit": 15, "unit": "banana", "note": "15-20 at 1/4\" thickness; consumed whole" }
+  },
+  "_metadata": {
+    "version": "2.0",
+    "lastUpdated": "2025-01-13",
+    "validationSource": "US Retail Package Size Validation Report (Nov 2025)",
+    "notes": [
+      "Spice sizes now reflect actual retail range of 0.5-8.75 oz (corrected from previous 0.5-2 oz range)",
+      "Produce slicesPerUnit metric may not be optimal; cups (chopped/diced) recommended for most items",
+      "Unit descriptions corrected: cream cheese (brick), broth (carton), cheese formats specified",
+      "Multiple standard sizes added based on retail verification",
+      "Critical correction: sugar substitute changed from 9.8 to 9.7 oz"
+    ]
+  }
+} 
