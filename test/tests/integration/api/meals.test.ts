@@ -13,7 +13,7 @@ import {
   globalTeardown,
   makeAuthenticatedRequest,
   type TestContext,
-} from './setup.js';
+} from './setup';
 
 describe('API Meals Endpoints', () => {
   let readContext: TestContext;

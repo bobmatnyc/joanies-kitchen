@@ -5,9 +5,9 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { generateApiKey } from '../../../src/lib/api-auth/key-generator.js';
-import { apiKeys } from '../../../src/lib/db/api-keys-schema.js';
-import { db } from '../../../src/lib/db/index.js';
+import { generateApiKey } from '@/lib/api-auth/key-generator';
+import { apiKeys } from '@/lib/db/api-keys-schema';
+import { db } from '@/lib/db';
 
 export interface TestContext {
   testApiKey: string;
