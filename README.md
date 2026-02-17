@@ -4,6 +4,8 @@
 
 An AI-powered seasonal recipe collection and meal planning application celebrating wholesome, authentic cooking. Built with Next.js 15, TypeScript, and Neon PostgreSQL.
 
+**🎯 Go-Live Date: June 1, 2026**
+
 ---
 
 ## 🚀 Quick Start
@@ -11,27 +13,38 @@ An AI-powered seasonal recipe collection and meal planning application celebrati
 ```bash
 # Clone and install
 git clone <repository-url>
-cd recipe-manager
+cd joanies-kitchen
 pnpm install
 
 # Configure environment
-cp .env.local.example .env.local
+cp .env.example .env.local
 # Edit .env.local with your API keys
 
 # Setup database
-pnpm db:push
+make db-push
 
 # Start development server
-pnpm dev
+make dev
 ```
 
-Visit **http://localhost:3004** to see your application!
+Visit **http://localhost:3002** to see your application!
+
+**📘 See [QUICK_START.md](./QUICK_START.md) for detailed setup instructions**
 
 ---
 
 ## 📖 Documentation
 
 For comprehensive documentation, see **[docs/](./docs/README.md)**
+
+### 🤖 AI Agent & Developer Documentation
+
+**NEW: Optimized for Claude Code and AI Agents**
+
+- **[CLAUDE.md](./CLAUDE.md)** - AI agent instructions with prioritized, critical project rules
+- **[DEVELOPER.md](./DEVELOPER.md)** - Complete technical architecture and patterns
+- **[CODE_STRUCTURE.md](./CODE_STRUCTURE.md)** - Project organization and file placement guide
+- **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide for new developers
 
 ### 👨‍💻 Developer Documentation
 

@@ -2,11 +2,28 @@
   "mcpServers": {
     "kuzu-memory": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/python",
-      "args": ["-m", "kuzu_memory.mcp.server"],
+      "command": "kuzu-memory",
+      "args": [
+        "mcp"
+      ],
       "env": {
         "KUZU_MEMORY_PROJECT_ROOT": "/Users/masa/Projects/joanies-kitchen",
         "KUZU_MEMORY_DB": "/Users/masa/Projects/joanies-kitchen/kuzu-memories"
+      }
+    },
+    "mcp-vector-search": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/masa/Projects/joanies-kitchen",
+        "mcp-vector-search",
+        "mcp"
+      ],
+      "env": {
+        "PROJECT_ROOT": "/Users/masa/Projects/joanies-kitchen",
+        "MCP_PROJECT_ROOT": "/Users/masa/Projects/joanies-kitchen"
       }
     }
   }

@@ -84,42 +84,46 @@ auth-validate: ## Validate authentication configuration
 auth-test-prod: ## Test production keys on localhost
 	node scripts/test-production-keys.js
 
-##@ Code Quality (To Be Implemented)
+##@ Code Quality
 
-lint: ## Run linter (TO BE IMPLEMENTED)
-	@echo "TODO: Implement linting with ESLint"
-	@echo "Run: pnpm lint"
+lint: ## Check code quality with Biome
+	pnpm lint
 
-lint-fix: ## Auto-fix linting issues (TO BE IMPLEMENTED)
-	@echo "TODO: Implement lint auto-fix"
-	@echo "Run: pnpm lint:fix"
+lint-fix: ## Auto-fix linting and formatting issues
+	pnpm lint:fix
 
-format: ## Format code (TO BE IMPLEMENTED)
-	@echo "TODO: Implement code formatting with Prettier"
-	@echo "Run: pnpm format"
+format: ## Format code with Biome
+	pnpm format
+
+format-check: ## Check code formatting
+	pnpm format:check
 
 typecheck: ## Run TypeScript type checking
 	pnpm tsc --noEmit
 
-test: ## Run all tests (TO BE IMPLEMENTED)
-	@echo "TODO: Implement testing with Vitest"
-	@echo "Run: pnpm test"
+test: ## Run unit tests
+	pnpm test
 
-test-unit: ## Run unit tests (TO BE IMPLEMENTED)
-	@echo "TODO: Implement unit tests"
-	@echo "Run: pnpm test:unit"
+test-run: ## Run tests once (no watch)
+	pnpm test:run
 
-test-integration: ## Run integration tests (TO BE IMPLEMENTED)
-	@echo "TODO: Implement integration tests"
-	@echo "Run: pnpm test:integration"
+test-ui: ## Open Vitest UI
+	pnpm test:ui
 
-test-e2e: ## Run end-to-end tests (TO BE IMPLEMENTED)
-	@echo "TODO: Implement E2E tests with Playwright"
-	@echo "Run: pnpm test:e2e"
+test-coverage: ## Generate test coverage report
+	pnpm test:coverage
 
-quality: typecheck ## Run all quality checks
-	@echo "✓ Type checking complete"
-	@echo "TODO: Add linting, formatting, and tests"
+test-e2e: ## Run end-to-end tests with Playwright
+	pnpm test:e2e
+
+test-e2e-ui: ## Run Playwright tests in UI mode
+	pnpm test:e2e:ui
+
+test-e2e-headed: ## Run Playwright tests with visible browser
+	pnpm test:e2e:headed
+
+quality: lint typecheck test-run ## Run all quality checks (lint, typecheck, test)
+	@echo "✓ All quality checks passed!"
 
 ##@ Utilities
 
