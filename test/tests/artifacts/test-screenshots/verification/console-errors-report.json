@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-11-13T00:40:37.424Z",
+  "totalTests": 1,
+  "totalErrors": 4,
+  "totalWarnings": 3,
+  "details": {
+    "test2": [
+      {
+        "type": "warning",
+        "message": "Clerk: The prop \"afterSignInUrl\" is deprecated and should be replaced with the new \"fallbackRedirectUrl\" or \"forceRedirectUrl\" props instead. Learn more: https://clerk.com/docs/guides/custom-redirects#redirect-url-props"
+      },
+      {
+        "type": "warning",
+        "message": "No ingredients provided, redirecting to /fridge"
+      },
+      {
+        "type": "error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      },
+      {
+        "type": "error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      },
+      {
+        "type": "error",
+        "message": "Failed to load resource: the server responded with a status of 400 ()"
+      },
+      {
+        "type": "error",
+        "message": "Failed to load resource: the server responded with a status of 400 ()"
+      },
+      {
+        "type": "warning",
+        "message": "[e]\nMessage:Clerk: Production Keys are only allowed for domain \"recipes.help\". \nAPI Error: The Request HTTP Origin header must be equal to or a subdomain of the requesting URL.\nStatus:400\nSerialized errors: {\"code\":\"origin_invalid\",\"message\":\"Invalid HTTP Origin header\",\"longMessage\":\"The Request HTTP Origin header must be equal to or a subdomain of the requesting URL.\",\"meta\":{}}"
+      }
+    ]
+  }
+}

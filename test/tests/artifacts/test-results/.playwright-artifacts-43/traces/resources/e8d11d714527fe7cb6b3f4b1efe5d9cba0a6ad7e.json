@@ -1,0 +1,1 @@
+{"errors":[{"message":"Invalid HTTP Origin header","long_message":"The Request HTTP Origin header must be equal to or a subdomain of the requesting URL.","code":"origin_invalid"}],"clerk_trace_id":"b5c5de636ee1157e4bc51fde260f99a5"}
