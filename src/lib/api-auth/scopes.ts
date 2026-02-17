@@ -56,6 +56,11 @@ export const SCOPES = {
   DELETE_CHEFS: 'delete:chefs',
   CHEFS_ALL: 'chefs:*',
 
+  // Favorites Scopes
+  READ_FAVORITES: 'read:favorites',
+  WRITE_FAVORITES: 'write:favorites',
+  FAVORITES_ALL: 'favorites:*',
+
   // Analytics Scopes
   READ_ANALYTICS: 'read:analytics',
   ANALYTICS_ALL: 'analytics:*',
@@ -94,6 +99,8 @@ export const SCOPE_GROUPS = {
     SCOPES.WRITE_COLLECTIONS,
     SCOPES.READ_INVENTORY,
     SCOPES.WRITE_INVENTORY,
+    SCOPES.READ_FAVORITES,
+    SCOPES.WRITE_FAVORITES,
   ],
 
   // Content creator access
@@ -362,6 +369,10 @@ export function getScopeDescription(scope: string): string {
     'write:chefs': 'Create and update chef profiles',
     'delete:chefs': 'Delete chef profiles',
     'chefs:*': 'Full access to chefs',
+
+    'read:favorites': 'Read favorite recipes',
+    'write:favorites': 'Add and remove favorites',
+    'favorites:*': 'Full access to favorites',
 
     'read:analytics': 'Read analytics data',
     'analytics:*': 'Full access to analytics',
