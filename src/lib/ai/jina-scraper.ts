@@ -5,8 +5,25 @@ import 'server-only';
  * Converts any URL to clean, LLM-friendly markdown content
  */
 
-const JINA_API_KEY = process.env.JINA_API_KEY || 'jina_6b33070a68824d84be23367fe0ea9f56gTEuH4Pr_Phjuq6Da2eL4iMSBPJQ';
+const JINA_API_KEY = process.env.JINA_API_KEY;
 const JINA_READER_ENDPOINT = 'https://r.jina.ai';
+
+/**
+ * Check if Jina API is configured and available
+ */
+export function isJinaConfigured(): boolean {
+  return !!process.env.JINA_API_KEY;
+}
+
+/**
+ * Get Jina API key with validation
+ */
+function getJinaApiKey(): string {
+  if (!JINA_API_KEY) {
+    throw new Error('JINA_API_KEY environment variable is not configured');
+  }
+  return JINA_API_KEY;
+}
 
 export interface JinaScrapedContent {
   success: boolean;
@@ -51,7 +68,7 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
     const response = await fetch(jinaUrl, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${JINA_API_KEY}`,
+        Authorization: `Bearer ${getJinaApiKey()}`,
         'Accept': 'application/json',
         'X-Return-Format': 'markdown',
       },
