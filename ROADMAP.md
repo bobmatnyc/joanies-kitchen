@@ -1,9 +1,9 @@
 # Joanie's Kitchen Roadmap
 
-**Last Updated:** February 16, 2026
+**Last Updated:** March 29, 2026
 **Current Status:** 🟢 **LAUNCHED** (October 27, 2025)
 **Go-Live Date:** 🎯 **June 1, 2026**
-**Current Version:** v0.7.9
+**Current Version:** v0.7.11
 
 ---
 
@@ -66,7 +66,14 @@ Transition from beta/soft launch to full production release:
 
 ### Phase 7: User Engagement & Community
 **Timeline:** November 2025 - May 2026
-**Status:** In Progress
+**Status:** In Progress (v0.7.11)
+
+**Completed in Phase 7 so far:**
+- Type-safe REST API v1 with full coverage
+- Type transformation layer (DB→FE consistency)
+- Security hardening (API key hygiene)
+- Comprehensive REST API integration test suite
+- Autonomous recipe & chef scraper (daily recipe acquisition pipeline)
 
 Making Joanie's Kitchen personal and interactive:
 
@@ -166,5 +173,5 @@ If the answer is no to any question, we don't build it.
 
 **Joanie's Kitchen is a living project.** We're constantly learning, improving, and finding new ways to help people waste less food. This roadmap reflects our current thinking and priorities—things may change as we learn from our users and the real-world impact of our work.
 
-**Last Review:** October 29, 2025
-**Next Review:** January 2026 (after Phase 7 completion)
+**Last Review:** March 29, 2026
+**Next Review:** June 1, 2026 (Go-Live milestone)

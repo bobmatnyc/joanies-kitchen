@@ -239,3 +239,4 @@ public/images/**
 .claude/sessions/
 # MCP configuration (contains secrets)
 .mcp/
+.env*.local
