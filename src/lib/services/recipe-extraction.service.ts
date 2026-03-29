@@ -166,7 +166,7 @@ export class RecipeExtractionService {
    * Extract using Firecrawl with schema.org JSON-LD extraction
    */
   private async extractWithFirecrawl(url: string): Promise<ScrapedRecipe | null> {
-    const result = await this.firecrawl.scrapeUrl(url, {
+    const result = await this.firecrawl.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
     }) as Record<string, unknown>;

@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as apiKeysSchema from './api-keys-schema';
+import * as autonomousScraperSchema from './autonomous-scraper-schema';
 import * as chefSchema from './chef-schema';
 import * as ingredientsSchema from './ingredients-schema';
 import * as schema from './schema';
@@ -26,13 +27,14 @@ const allSchemas = {
   ...chefSchema,
   ...ingredientsSchema,
   ...apiKeysSchema,
+  ...autonomousScraperSchema,
 };
 
 const sql = neon(databaseUrl);
 export const db = drizzle(sql, { schema: allSchemas });
 
 // Export all schemas for external use
-export { schema, userDiscoverySchema, chefSchema, ingredientsSchema, apiKeysSchema };
+export { schema, userDiscoverySchema, chefSchema, ingredientsSchema, apiKeysSchema, autonomousScraperSchema };
 
 // Export type transformers and parsed types
 export * from './transformers';
