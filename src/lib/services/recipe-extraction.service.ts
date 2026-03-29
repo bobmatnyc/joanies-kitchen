@@ -308,7 +308,7 @@ export class RecipeExtractionService {
    * Use Claude Haiku to extract structured recipe data from raw content
    */
   private async structureWithClaude(content: string, url: string): Promise<ScrapedRecipe | null> {
-    const truncated = content.substring(0, 6000); // Stay within token limits
+    const truncated = content.substring(0, 12000); // Stay within token limits (increased to capture recipe content past nav headers)
 
     const prompt = `Extract recipe information from the following web page content and return ONLY a JSON object.
 
