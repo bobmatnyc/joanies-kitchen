@@ -8,10 +8,11 @@
  *   4. Claude Haiku (structuring layer — parses unstructured content into recipe schema)
  *
  * Each tier falls back to the next only if the previous fails or returns insufficient content.
- * If ANTHROPIC_API_KEY is set, Claude Haiku is used to structure any raw text.
+ * If OPENROUTER_API_KEY is set, Claude Haiku via OpenRouter structures any raw text.
+ * Falls back to ANTHROPIC_API_KEY if OpenRouter is unavailable.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import Firecrawl from '@mendable/firecrawl-js';
 
 export interface ScrapedRecipe {
@@ -61,18 +62,24 @@ const MIN_TITLE_LENGTH = 5;
 
 export class RecipeExtractionService {
   private _firecrawl: Firecrawl | null = null;
-  private _anthropic: Anthropic | null = null;
+  private _openrouter: OpenAI | null = null;
 
   private readonly firecrawlApiKey: string;
   private readonly jinaApiKey: string;
   private readonly tavilyApiKey: string;
-  private readonly anthropicApiKey: string;
+  // OpenRouter is primary (same key as aipowerranking); ANTHROPIC_API_KEY kept as fallback label
+  private readonly llmApiKey: string;
+  private readonly llmBaseUrl: string;
 
   constructor() {
     this.firecrawlApiKey = process.env.FIRECRAWL_API_KEY || '';
     this.jinaApiKey = process.env.JINA_API_KEY || '';
     this.tavilyApiKey = process.env.TAVILY_API_KEY || '';
-    this.anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
+    // Prefer OpenRouter (shared with aipowerranking), fall back to direct Anthropic
+    this.llmApiKey = process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY || '';
+    this.llmBaseUrl = process.env.OPENROUTER_API_KEY
+      ? 'https://openrouter.ai/api/v1'
+      : 'https://api.anthropic.com/v1'; // unused if no key
 
     if (!this.firecrawlApiKey) {
       console.warn('[RecipeExtraction] FIRECRAWL_API_KEY not set — will fall back to Jina/Tavily');
@@ -80,8 +87,8 @@ export class RecipeExtractionService {
     if (!this.jinaApiKey) {
       console.warn('[RecipeExtraction] JINA_API_KEY not set — Jina fallback unavailable');
     }
-    if (!this.anthropicApiKey) {
-      console.warn('[RecipeExtraction] ANTHROPIC_API_KEY not set — Claude structuring unavailable');
+    if (!this.llmApiKey) {
+      console.warn('[RecipeExtraction] No LLM key (OPENROUTER_API_KEY / ANTHROPIC_API_KEY) — Claude structuring unavailable');
     }
   }
 
@@ -93,12 +100,18 @@ export class RecipeExtractionService {
     return this._firecrawl;
   }
 
-  private get anthropic(): Anthropic {
-    if (!this._anthropic) {
-      if (!this.anthropicApiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
-      this._anthropic = new Anthropic({ apiKey: this.anthropicApiKey });
+  private get openrouter(): OpenAI {
+    if (!this._openrouter) {
+      if (!this.llmApiKey) throw new Error('No LLM API key configured (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)');
+      this._openrouter = new OpenAI({
+        apiKey: this.llmApiKey,
+        baseURL: this.llmBaseUrl,
+        defaultHeaders: process.env.OPENROUTER_API_KEY
+          ? { 'HTTP-Referer': 'https://recipes.help', 'X-Title': "Joanie's Kitchen" }
+          : {},
+      });
     }
-    return this._anthropic;
+    return this._openrouter;
   }
 
   /**
@@ -280,8 +293,8 @@ export class RecipeExtractionService {
       return { ...parsed, extraction_method: method };
     }
 
-    // Fall back to Claude Haiku for unstructured content
-    if (this.anthropicApiKey) {
+    // Fall back to Claude Haiku via OpenRouter for unstructured content
+    if (this.llmApiKey) {
       const structured = await this.structureWithClaude(content, url);
       if (structured) {
         return { ...structured, extraction_method: 'claude_structured' };
@@ -322,14 +335,14 @@ Return a JSON object with these fields (omit fields you cannot find):
 Return ONLY the JSON object, no other text.`;
 
     try {
-      const message = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+      // Use OpenRouter with claude-haiku model (cost-efficient structuring)
+      const completion = await this.openrouter.chat.completions.create({
+        model: 'anthropic/claude-haiku-4-5',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const responseText =
-        message.content[0]?.type === 'text' ? message.content[0].text : '';
+      const responseText = completion.choices[0]?.message?.content ?? '';
 
       // Extract JSON from response (handle potential markdown code blocks)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
