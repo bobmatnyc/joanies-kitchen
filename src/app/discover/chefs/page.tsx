@@ -4,8 +4,9 @@ import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 import { ChefViewToggle } from '@/components/discover/ChefViewToggle';
 
 export const metadata = {
-  title: "Discover Chefs | Joanie's Kitchen",
-  description: 'Browse recipes from world-renowned chefs and culinary experts',
+  title: "No-Waste Chefs | Joanie's Kitchen",
+  description:
+    "Discover chefs who share Joanie's no-waste philosophy — cooking creatively with what you have and wasting nothing.",
 };
 
 export default async function DiscoverChefsPage() {
@@ -17,9 +18,9 @@ export default async function DiscoverChefsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-heading text-jk-olive mb-2">Discover Chefs</h1>
+          <h1 className="text-4xl font-heading text-jk-olive mb-2">No-Waste Chefs</h1>
           <p className="text-jk-olive/60">
-            Explore recipes from culinary experts and food creators
+            Chefs who cook with what they have — and waste nothing
           </p>
         </div>
 

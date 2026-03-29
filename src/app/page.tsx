@@ -138,10 +138,10 @@ export default function Home() {
           {recipesOfTheDay.length > 0 && (
             <div className="mt-8 md:mt-12">
               <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-jk-linen">
-                Recipes of the Day
+                No-Waste Recipes of the Day
               </h2>
               <p className="font-body text-center text-base md:text-lg text-jk-linen/80 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-                Fresh inspiration daily — one appetizer, main course, side dish, and dessert
+                Today's no-waste inspiration — recipes that use up what you have
               </p>
               <SharedRecipeCarousel recipes={recipesOfTheDay} />
             </div>

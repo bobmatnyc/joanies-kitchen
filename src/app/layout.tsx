@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     template: "%s | Joanie's Kitchen",
   },
   description:
-    "Transform what's in your fridge into delicious meals. AI-powered recipe matching finds recipes you can make right now with smart substitutions for missing ingredients. Join the zero-waste cooking movement.",
+    "Stop food waste. Cook from your fridge with no-waste recipes curated by Joanie Zisk. Find meals using what you already have — with smart substitutions so nothing goes to waste.",
   manifest: '/manifest.json',
   icons: {
     icon: [

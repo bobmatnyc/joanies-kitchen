@@ -103,7 +103,7 @@ export function MobileNav() {
           <NavLink
             href="/discover/chefs"
             icon={Leaf}
-            label="Chefs"
+            label="No-Waste Chefs"
             variant="mobile"
             onClick={handleLinkClick}
           />

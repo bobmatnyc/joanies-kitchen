@@ -38,7 +38,7 @@ export function DesktopNav() {
       <NavLink href="/ingredients" icon={Package} label="Ingredients" />
 
       {/* Sustainability Chefs */}
-      <NavLink href="/discover/chefs" icon={Leaf} label="Chefs" />
+      <NavLink href="/discover/chefs" icon={Leaf} label="No-Waste Chefs" />
 
       {/* Auth Controls */}
       <AuthButtons />
