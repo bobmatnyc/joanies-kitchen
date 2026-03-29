@@ -1,4 +1,4 @@
-.PHONY: help install dev build start clean
+.PHONY: help install dev build start clean deploy-local deploy-local-3005 pm2-status pm2-stop-all pm2-restart scraper-start scraper-dry-run
 
 # Default target
 .DEFAULT_GOAL := help
@@ -176,3 +176,26 @@ docs-serve: ## Serve documentation locally (TO BE IMPLEMENTED)
 
 docs-build: ## Build documentation (TO BE IMPLEMENTED)
 	@echo "TODO: Implement documentation build"
+
+##@ Deployment
+
+deploy-local: ## Deploy locally with PM2 (port 3002)
+	@./scripts/deploy-local.sh
+
+deploy-local-3005: ## Deploy locally on port 3005
+	@./scripts/deploy-local.sh --port 3005
+
+pm2-status: ## Show PM2 process status with health checks
+	@./scripts/pm2-status.sh
+
+pm2-stop-all: ## Stop all Joanie's Kitchen PM2 processes
+	@pm2 stop recipe-dev recipe-prod joanies-kitchen joanies-kitchen-3005 recipe-daily-scraper 2>/dev/null || true
+
+pm2-restart: ## Restart all running PM2 processes
+	@pm2 restart all
+
+scraper-start: ## Start autonomous daily recipe scraper
+	@pm2 start ecosystem.config.js --only recipe-daily-scraper
+
+scraper-dry-run: ## Test scraper without storing data
+	@DRY_RUN=true pnpm tsx test/scripts/autonomous-recipe-scraper.ts

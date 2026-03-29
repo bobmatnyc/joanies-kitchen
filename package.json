@@ -109,6 +109,10 @@
     "cleanup:llm:dry-run": "tsx test/scripts/cleanup-recipes-local-llm.ts",
     "cleanup:llm:recipe": "tsx test/scripts/cleanup-recipes-local-llm.ts --recipe-id=",
     "cleanup:llm:regex-only": "tsx test/scripts/cleanup-recipes-local-llm.ts --apply --llm-only",
+    "scraper:daily": "tsx test/scripts/autonomous-recipe-scraper.ts",
+    "scraper:daily:dry": "DRY_RUN=true tsx test/scripts/autonomous-recipe-scraper.ts",
+    "scraper:daily:pm2": "pm2 start ecosystem.config.js --only recipe-daily-scraper",
+    "scraper:daily:logs": "pm2 logs recipe-daily-scraper",
     "scraper:start": "pm2 start ecosystem.config.js --only recipe-scraper",
     "scraper:stop": "pm2 stop recipe-scraper",
     "scraper:restart": "pm2 restart recipe-scraper",
@@ -209,6 +213,7 @@
     "test:integration": "vitest --config test/config/vitest.integration.config.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@clerk/nextjs": "^6.33.7",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

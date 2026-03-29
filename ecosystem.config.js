@@ -7,8 +7,11 @@
  *   Development (with hot reload):
  *     pm2 start ecosystem.config.js --only recipe-dev
  *
- *   Production-like local testing:
+ *   Production-like local testing (port 3002):
  *     pm2 start ecosystem.config.js --only recipe-prod
+ *
+ *   Production on port 3005 (replaces ecosystem-3005.config.js):
+ *     pm2 start ecosystem.config.js --only joanies-kitchen-3005
  *
  *   Recipe scraper (background task):
  *     pm2 start ecosystem.config.js --only recipe-scraper
@@ -71,6 +74,47 @@ module.exports = {
       restart_delay: 2000,
       kill_timeout: 3000,
       listen_timeout: 8000,
+    },
+    {
+      // Port 3005 variant — consolidates ecosystem-3005.config.js
+      name: 'joanies-kitchen-3005',
+      script: 'pnpm',
+      args: 'start',
+      cwd: '/Users/masa/Projects/joanies-kitchen',
+      watch: false,
+      interpreter: 'none',
+      env: {
+        NODE_ENV: 'production',
+        PORT: '3005',
+      },
+      max_memory_restart: '1G',
+      error_file: './tmp/logs/pm2-3005-error.log',
+      out_file: './tmp/logs/pm2-3005-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '5s',
+      restart_delay: 2000,
+      kill_timeout: 3000,
+      listen_timeout: 8000,
+    },
+    {
+      name: 'recipe-daily-scraper',
+      script: 'tsx',
+      args: 'test/scripts/autonomous-recipe-scraper.ts',
+      cwd: '/Users/masa/Projects/joanies-kitchen',
+      watch: false,
+      env: {
+        NODE_ENV: 'production',
+      },
+      max_memory_restart: '512M',
+      error_file: './tmp/logs/pm2-daily-scraper-error.log',
+      out_file: './tmp/logs/pm2-daily-scraper-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      autorestart: false, // Don't auto-restart after normal completion
+      cron_restart: '0 6 * * *', // Run at 6am daily
     },
     {
       name: 'recipe-scraper',
