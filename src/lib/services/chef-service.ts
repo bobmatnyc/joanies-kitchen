@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type Chef, type NewChef } from '@/lib/db/chef-schema';
+import { parseChef, parseRecipe, type ParsedChef, type ParsedRecipe } from '@/lib/db/transformers';
 import { recipes } from '@/lib/db/schema';
 
 /**
@@ -18,50 +19,52 @@ export class ChefService {
   /**
    * Get all active chefs with optional pagination
    */
-  async findAll(options?: { limit?: number; offset?: number }): Promise<Chef[]> {
+  async findAll(options?: { limit?: number; offset?: number }): Promise<ParsedChef[]> {
     const { limit, offset = 0 } = options || {};
 
-    return db.query.chefs.findMany({
+    const rows = await db.query.chefs.findMany({
       where: eq(chefs.is_active, true),
       orderBy: [asc(chefs.name)],
       limit,
       offset,
     });
+    return rows.map(parseChef);
   }
 
   /**
    * Get all chefs (including inactive) - for admin use
    */
-  async findAllIncludingInactive(options?: { limit?: number; offset?: number }): Promise<Chef[]> {
+  async findAllIncludingInactive(options?: { limit?: number; offset?: number }): Promise<ParsedChef[]> {
     const { limit, offset = 0 } = options || {};
 
-    return db.query.chefs.findMany({
+    const rows = await db.query.chefs.findMany({
       orderBy: [desc(chefs.created_at)],
       limit,
       offset,
     });
+    return rows.map(parseChef);
   }
 
   /**
    * Find chef by slug
    */
-  async findBySlug(slug: string): Promise<Chef | null> {
+  async findBySlug(slug: string): Promise<ParsedChef | null> {
     const chef = await db.query.chefs.findFirst({
       where: and(eq(chefs.slug, slug), eq(chefs.is_active, true)),
     });
 
-    return chef || null;
+    return chef ? parseChef(chef) : null;
   }
 
   /**
    * Find chef by ID
    */
-  async findById(id: string): Promise<Chef | null> {
+  async findById(id: string): Promise<ParsedChef | null> {
     const chef = await db.query.chefs.findFirst({
       where: eq(chefs.id, id),
     });
 
-    return chef || null;
+    return chef ? parseChef(chef) : null;
   }
 
   /**
@@ -70,7 +73,7 @@ export class ChefService {
   async findRecipesByChef(
     chefId: string,
     options?: { limit?: number; offset?: number }
-  ): Promise<typeof recipes.$inferSelect[]> {
+  ): Promise<ParsedRecipe[]> {
     const { limit = 24, offset = 0 } = options || {};
 
     const chefRecipesData = await db
@@ -84,13 +87,13 @@ export class ChefService {
       .limit(limit)
       .offset(offset);
 
-    return chefRecipesData.map((cr) => cr.recipe);
+    return chefRecipesData.map((cr) => parseRecipe(cr.recipe));
   }
 
   /**
    * Create a new chef
    */
-  async create(data: NewChef): Promise<Chef> {
+  async create(data: NewChef): Promise<ParsedChef> {
     const [chef] = await db
       .insert(chefs)
       .values({
@@ -104,13 +107,13 @@ export class ChefService {
       throw new Error('Failed to create chef');
     }
 
-    return chef;
+    return parseChef(chef);
   }
 
   /**
    * Update a chef by ID
    */
-  async update(id: string, data: Partial<NewChef>): Promise<Chef | null> {
+  async update(id: string, data: Partial<NewChef>): Promise<ParsedChef | null> {
     const [chef] = await db
       .update(chefs)
       .set({
@@ -120,7 +123,7 @@ export class ChefService {
       .where(eq(chefs.id, id))
       .returning();
 
-    return chef || null;
+    return chef ? parseChef(chef) : null;
   }
 
   /**
@@ -192,7 +195,7 @@ export class ChefService {
   /**
    * Search chefs by name or specialty
    */
-  async search(query: string, limit = 20): Promise<Chef[]> {
+  async search(query: string, limit = 20): Promise<ParsedChef[]> {
     const results = await db.query.chefs.findMany({
       where: and(
         eq(chefs.is_active, true),
@@ -210,7 +213,7 @@ export class ChefService {
       limit,
     });
 
-    return results;
+    return results.map(parseChef);
   }
 }
 

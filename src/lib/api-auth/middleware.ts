@@ -49,6 +49,29 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthCon
   // Try each authentication method in priority order
   const authHeader = request.headers.get('authorization');
 
+  // 0. Automation bypass — for CI/integration testing only.
+  //    Works in any environment when AUTOMATION_BYPASS_SECRET is set.
+  const automationSecret = process.env.AUTOMATION_BYPASS_SECRET;
+  if (automationSecret && authHeader) {
+    const spaceIndex = authHeader.indexOf(' ');
+    const scheme = spaceIndex !== -1 ? authHeader.substring(0, spaceIndex) : '';
+    const token = spaceIndex !== -1 ? authHeader.substring(spaceIndex + 1) : '';
+    if (scheme === 'Bearer' && token === automationSecret) {
+      return {
+        authenticated: true,
+        userId: 'automation-test-user',
+        authType: 'api_key' as const,
+        scopes: ['*'],
+        apiKeyId: 'automation', // pragma: allowlist secret
+        apiKeyName: 'Automation Bypass', // pragma: allowlist secret
+        metadata: {
+          ...metadata,
+          environment: 'development' as const,
+        },
+      };
+    }
+  }
+
   if (authHeader) {
     // 1. Check for Bearer token (API key)
     if (authHeader.startsWith('Bearer ')) {

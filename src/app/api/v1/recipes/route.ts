@@ -21,6 +21,7 @@ import {
   parseQueryParams,
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
+import type { NewRecipe } from '@/lib/db/schema';
 import { createRecipeSchema, listRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -158,9 +159,22 @@ export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRe
 
     const { data: validatedData } = parsed;
 
-    // Create recipe using server action
-    // Cast to any to work around type mismatch between our schema and internal types
-    const result = await createRecipe(validatedData as any);
+    // Map Zod-validated input to NewRecipe format.
+    // The action expects JSON-stringified fields (ingredients, instructions, tags, images,
+    // nutrition_info), but the Zod schema returns typed arrays/objects.
+    // The createRecipe action converts arrays internally; we only need to handle
+    // nutrition_info and images which the action does NOT convert.
+    const recipeInput: Omit<NewRecipe, 'id' | 'created_at' | 'updated_at' | 'user_id'> = {
+      ...validatedData,
+      ingredients: JSON.stringify(validatedData.ingredients),
+      instructions: JSON.stringify(validatedData.instructions),
+      tags: validatedData.tags ? JSON.stringify(validatedData.tags) : null,
+      images: validatedData.images ? JSON.stringify(validatedData.images) : null,
+      nutrition_info: validatedData.nutrition_info
+        ? JSON.stringify(validatedData.nutrition_info)
+        : null,
+    };
+    const result = await createRecipe(recipeInput);
 
     if (!result.success) {
       return apiError(result.error || 'Failed to create recipe', 500);
