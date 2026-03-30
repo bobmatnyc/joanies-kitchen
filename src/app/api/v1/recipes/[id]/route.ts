@@ -21,6 +21,7 @@ import {
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import type { Recipe } from '@/lib/db/schema';
 import { updateRecipeSchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -126,9 +127,18 @@ export const PATCH = requireScopes(
       const ownershipCheck = verifyResourceOwnership(recipeCheck.data, auth, 'recipe');
       if ('error' in ownershipCheck) return ownershipCheck.error;
 
-      // Update recipe using server action
-      // Cast to any to work around type mismatch between our schema and internal types
-      const result = await updateRecipe(ownershipCheck.resource.id, validatedData as any);
+      // Map Zod-validated partial input to the Recipe update format.
+      // Serialize array/object fields to JSON strings to match the DB column types.
+      const { ingredients, instructions, tags, images, nutrition_info, ...restData } = validatedData;
+      const updateInput: Partial<Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'userId'>> = {
+        ...restData,
+        ...(ingredients !== undefined && { ingredients: JSON.stringify(ingredients) }),
+        ...(instructions !== undefined && { instructions: JSON.stringify(instructions) }),
+        ...(tags !== undefined && { tags: JSON.stringify(tags) }),
+        ...(images !== undefined && { images: JSON.stringify(images) }),
+        ...(nutrition_info !== undefined && { nutrition_info: JSON.stringify(nutrition_info) }),
+      };
+      const result = await updateRecipe(ownershipCheck.resource.id, updateInput);
       const updateCheck = handleActionResult(result);
       if ('error' in updateCheck) return updateCheck.error;
 

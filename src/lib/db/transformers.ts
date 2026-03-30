@@ -204,19 +204,15 @@ export function parseMeal(meal: Meal): ParsedMeal {
 
 /**
  * Frontend-ready chef type with corrected type conversions
+ * Uses type alias (not interface) to preserve index-signature compatibility
+ * needed by query-helpers (applySorting, applyFilters).
  */
-export interface ParsedChef extends Omit<Chef,
-  | 'latitude'
-  | 'longitude'
-  | 'social_links'
-> {
+export type ParsedChef = Omit<Chef, 'latitude' | 'longitude'> & {
   // Numeric fields (NUMERIC/DECIMAL → string → number)
   latitude: number | null;
   longitude: number | null;
-
-  // JSONB field (already parsed by Drizzle, but type as unknown)
-  social_links: unknown | null;
-}
+  // social_links is JSONB — Drizzle already parses it, type preserved from Chef
+};
 
 /**
  * Transform raw chef from DB to frontend-ready format
@@ -230,9 +226,6 @@ export function parseChef(chef: Chef): ParsedChef {
     // Parse NUMERIC/DECIMAL fields
     latitude: parseDecimal(chef.latitude),
     longitude: parseDecimal(chef.longitude),
-
-    // social_links is JSONB, so Drizzle already parses it
-    social_links: chef.social_links,
   };
 }
 
