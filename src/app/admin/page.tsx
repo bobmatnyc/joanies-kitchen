@@ -7,6 +7,7 @@ import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admi
 import { AddMissingImagesButton } from '@/components/admin/AddMissingImagesButton';
 import { FlaggedImagesManager } from '@/components/admin/FlaggedImagesManager';
 import { HeroBackgroundManager } from '@/components/admin/HeroBackgroundManager';
+import { RecipeCleanerManager } from '@/components/admin/RecipeCleanerManager';
 import { SlideshowManager } from '@/components/admin/SlideshowManager';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { Button } from '@/components/ui/button';
@@ -205,6 +206,16 @@ export default function AdminDashboard() {
             </Button>
             <AddMissingImagesButton limit={10} />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Recipe Text Cleanup (Local AI) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recipe Text Cleanup</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RecipeCleanerManager />
         </CardContent>
       </Card>
 

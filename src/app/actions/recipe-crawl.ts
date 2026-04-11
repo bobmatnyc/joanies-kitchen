@@ -474,6 +474,9 @@ export async function storeRecipe(
         moderated_by: null,
         moderated_at: null,
         submission_notes: null,
+        // Text cleanup tracking
+        last_cleaned_at: null,
+        last_cleaned_model: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`
@@ -743,6 +746,9 @@ async function storeRecipeWithWeek(
         moderated_by: null,
         moderated_at: null,
         submission_notes: null,
+        // Text cleanup tracking
+        last_cleaned_at: null,
+        last_cleaned_model: null,
       });
       console.log(
         `[Store] Successfully generated embedding (${embeddingResult.embedding.length} dimensions)`

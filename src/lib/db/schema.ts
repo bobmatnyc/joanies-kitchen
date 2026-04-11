@@ -222,6 +222,11 @@ export const recipes = pgTable(
     qa_issues_found: text('qa_issues_found'), // JSON array: ["missing_ingredient:salt", "instruction_mismatch:butter"]
     qa_fixes_applied: text('qa_fixes_applied'), // JSON array: ["added_ingredient:salt", "updated_quantity:2_cups_flour"]
 
+    // Recipe Text Cleanup (Local AI via Ollama)
+    // Purpose: Track when recipe text was last cleaned up by local AI model
+    last_cleaned_at: timestamp('last_cleaned_at'), // When recipe text was last cleaned
+    last_cleaned_model: text('last_cleaned_model'), // Which Ollama model performed the cleanup (e.g., "gemma3:4b")
+
     // Recipe Moderation Fields (Admin Moderation Queue Workflow)
     // Purpose: Track moderation status for user-uploaded recipes before public visibility
     // Workflow: pending → approved (visible) | pending → rejected (not visible) | approved → flagged (investigation needed)
