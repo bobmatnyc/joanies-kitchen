@@ -255,6 +255,8 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         moderated_by: null,
         moderated_at: null,
         submission_notes: null,
+        last_cleaned_at: null,
+        last_cleaned_model: null,
       });
       console.log(`[Ingest API] Embedding generated successfully`);
     } catch (error: unknown) {

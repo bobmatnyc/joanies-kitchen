@@ -154,6 +154,13 @@ describe('RecipeCard', () => {
     qa_notes: null,
     qa_issues_found: null,
     qa_fixes_applied: null,
+    moderation_status: 'pending',
+    moderation_notes: null,
+    moderated_by: null,
+    moderated_at: null,
+    submission_notes: null,
+    last_cleaned_at: null,
+    last_cleaned_model: null,
   };
 
   it('renders recipe name', () => {
