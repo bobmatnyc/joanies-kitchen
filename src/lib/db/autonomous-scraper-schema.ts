@@ -1,14 +1,18 @@
 import {
   boolean,
+  date,
   integer,
   jsonb,
   pgTable,
+  serial,
   text,
   timestamp,
   uuid,
   index,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { recipes } from './schema';
 
 /**
  * Recipe Discovery Runs table
@@ -40,10 +44,38 @@ export const recipeDiscoveryRuns = pgTable(
   })
 );
 
+/**
+ * Recipe of the Day table
+ *
+ * Tracks which recipe was featured on each date.
+ * One record per calendar day — unique constraint on date.
+ * Populated by the daily cron job after ingestion runs.
+ */
+export const recipeOfTheDay = pgTable(
+  'recipe_of_the_day',
+  {
+    id: serial('id').primaryKey(),
+    recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+    date: date('date').notNull(),
+    source_url: text('source_url'),
+    scraped_at: timestamp('scraped_at').defaultNow(),
+    theme: text('theme').default('no-waste'), // e.g., "no-waste", "seasonal"
+  },
+  (table) => ({
+    dateUnique: unique('recipe_of_the_day_date_unique').on(table.date),
+    dateIdx: index('idx_recipe_of_the_day_date').on(table.date),
+    recipeIdIdx: index('idx_recipe_of_the_day_recipe_id').on(table.recipe_id),
+  })
+);
+
 // Type exports
 export type RecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferSelect;
 export type NewRecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferInsert;
+export type RecipeOfTheDay = typeof recipeOfTheDay.$inferSelect;
+export type NewRecipeOfTheDay = typeof recipeOfTheDay.$inferInsert;
 
 // Zod schemas for validation
 export const insertRecipeDiscoveryRunSchema = createInsertSchema(recipeDiscoveryRuns);
 export const selectRecipeDiscoveryRunSchema = createSelectSchema(recipeDiscoveryRuns);
+export const insertRecipeOfTheDaySchema = createInsertSchema(recipeOfTheDay);
+export const selectRecipeOfTheDaySchema = createSelectSchema(recipeOfTheDay);

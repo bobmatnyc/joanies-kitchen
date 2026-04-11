@@ -19,6 +19,7 @@ import { getRecipesOfTheDay } from '@/app/actions/recipes';
 import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
 import { FridgeInput } from '@/components/inventory';
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
+import { RecipeOfTheDay } from '@/components/recipe-of-the-day';
 import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,22 +50,12 @@ export default function Home() {
           ? backgroundImagesResult.value.data
           : [];
 
-      // Log errors (optional - helps with debugging)
       if (recipesOfTheDayResult.status === 'rejected') {
-        console.error(
-          '[Homepage] Failed to fetch recipes of the day:',
-          recipesOfTheDayResult.reason
-        );
+        console.error('[Homepage] Failed to fetch recipes of the day:', recipesOfTheDayResult.reason);
       }
       if (backgroundImagesResult.status === 'rejected') {
-        console.error(
-          '[Homepage] Failed to fetch background images:',
-          backgroundImagesResult.reason
-        );
+        console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
       }
-
-      // Debug logging
-      console.log('[Homepage] Recipes of the Day fetched:', recipesOfTheDayData.length);
 
       setRecipesOfTheDay(recipesOfTheDayData);
       setBackgroundImages(backgroundImagesData);
@@ -78,9 +69,6 @@ export default function Home() {
     const query = ingredients.join(',');
     router.push(`/fridge/results?ingredients=${encodeURIComponent(query)}`);
   };
-
-  // Debug logging for render
-  console.log('[Homepage] Rendering with recipesOfTheDay:', recipesOfTheDay.length);
 
   return (
     <div className="min-h-screen">
@@ -146,6 +134,23 @@ export default function Home() {
               <SharedRecipeCarousel recipes={recipesOfTheDay} />
             </div>
           )}
+        </MobileContainer>
+      </section>
+
+      {/* Recipe of the Day - Featured single recipe with chef attribution */}
+      <section className="py-10 md:py-14 bg-white border-b border-jk-sage/20">
+        <MobileContainer maxWidth="xl">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="font-heading text-2xl md:text-3xl font-bold text-jk-olive">
+                Featured Recipe of the Day
+              </h2>
+              <p className="font-body text-jk-charcoal/70 text-sm md:text-base mt-1">
+                A hand-picked no-waste recipe to inspire your cooking today
+              </p>
+            </div>
+            <RecipeOfTheDay />
+          </div>
         </MobileContainer>
       </section>
 
