@@ -62,11 +62,15 @@ export async function GET() {
 
   try {
     // 1. Try to find today's featured recipe from the recipe_of_the_day table
+    console.log('[RecipeOfDay] Looking up date:', today);
+
     const [featuredRow] = await db
       .select()
       .from(recipeOfTheDay)
       .where(eq(recipeOfTheDay.date, today))
       .limit(1);
+
+    console.log('[RecipeOfDay] Featured row:', featuredRow ?? 'none');
 
     if (featuredRow?.recipe_id) {
       // Fetch the recipe + chef in one query
@@ -84,6 +88,7 @@ export async function GET() {
         const { recipe, chef } = row;
         const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
+        console.log('[RecipeOfDay] Returning featured recipe:', recipe.id, recipe.name);
         return NextResponse.json<RecipeOfTheDayResponse>({
           recipe_id: recipe.id,
           title: recipe.name,
@@ -109,12 +114,14 @@ export async function GET() {
       }
     }
 
-    // 2. Fallback: most recent public no-waste recipe with an image
+    // 2. Fallback: try no-waste/system recipes first, then any public recipe
+    console.log('[RecipeOfDay] No featured row — running fallback query');
+
     const noWasteConditions = ['no-waste', 'zero-waste', 'zero waste', 'scraped']
       .map((tag) => or(like(recipes.tags, `%"${tag}"%`), like(recipes.tags, `%${tag}%`)))
       .filter((c): c is NonNullable<typeof c> => c !== undefined);
 
-    const [fallbackRow] = await db
+    let fallbackRow = await db
       .select({
         recipe: recipes,
         chef: chefs,
@@ -133,9 +140,29 @@ export async function GET() {
         )
       )
       .orderBy(desc(recipes.created_at))
-      .limit(1);
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+
+    // 3. Wider fallback: any public, non-deleted recipe
+    if (!fallbackRow) {
+      console.log('[RecipeOfDay] No-waste fallback found nothing — trying any public recipe');
+      fallbackRow = await db
+        .select({
+          recipe: recipes,
+          chef: chefs,
+        })
+        .from(recipes)
+        .leftJoin(chefs, eq(recipes.chef_id, chefs.id))
+        .where(and(eq(recipes.is_public, true), isNull(recipes.deleted_at)))
+        .orderBy(desc(recipes.created_at))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+    }
+
+    console.log('[RecipeOfDay] Fallback result:', fallbackRow?.recipe?.id ?? 'none');
 
     if (!fallbackRow) {
+      console.warn('[RecipeOfDay] No public recipes found in database');
       return NextResponse.json({ error: 'No recipe of the day available' }, { status: 404 });
     }
 
