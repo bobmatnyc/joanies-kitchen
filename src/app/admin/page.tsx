@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { getAdminRecipeStats, getRecentRecipeActivity } from '@/app/actions/admin';
+import { AddMissingImagesButton } from '@/components/admin/AddMissingImagesButton';
 import { FlaggedImagesManager } from '@/components/admin/FlaggedImagesManager';
 import { HeroBackgroundManager } from '@/components/admin/HeroBackgroundManager';
 import { SlideshowManager } from '@/components/admin/SlideshowManager';
@@ -202,6 +203,7 @@ export default function AdminDashboard() {
             <Button asChild variant="outline" className="w-full">
               <Link href="/recipes/new">Create Recipe</Link>
             </Button>
+            <AddMissingImagesButton limit={10} />
           </div>
         </CardContent>
       </Card>
