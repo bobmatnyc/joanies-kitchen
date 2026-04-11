@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.12] - 2026-04-11
+
+### Added
+
+- **ai**: OpenRouter as primary AI provider for recipe cleaner + image prompts, Ollama as local fallback
+- **ai**: local Ollama recipe cleaner + last_cleaned_at tracking
+- **rotd**: recipe-of-the-day feature with no-waste scraping + UI component
+- **images**: local Ollama prompt generation + auto image fill for recipes
+- open registration, automation bypass secret, type consistency fixes
+- Vercel cron for daily recipe scraper + OpenRouter LLM integration
+- autonomous recipe-a-day scraper + no-waste content refocus
+
+### Fixed
+
+- **recipe**: remove duplicate step numbering from instructions display
+- **rotd**: fix recipe-of-day fallback query + empty state handling
+- increase Tavily content truncation to 12000 chars + add Epicurious labeling migration
+- wire autonomous scraper schema into DB module, fix Firecrawl API method
+- update beta launch date to June 1, 2026
+
+### Changed
+
+- **fe**: semantic HTML, type safety, component cleanup
+
+
 ## [0.7.10] - 2026-02-17
 
 ### Added
