@@ -108,7 +108,9 @@ export function RecipeContentWithEdit({ recipe, isAdmin }: RecipeContentWithEdit
                 <span className="font-semibold text-primary flex-shrink-0 min-w-[1.5rem]">
                   {index + 1}.
                 </span>
-                <span className="leading-relaxed">{instruction}</span>
+                <span className="leading-relaxed">
+                  {instruction.replace(/^Step\s+\d+:\s*/i, '').trim()}
+                </span>
               </li>
             ))}
           </ol>
