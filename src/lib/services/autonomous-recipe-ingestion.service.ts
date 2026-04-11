@@ -18,7 +18,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { chefs, chefRecipes } from '@/lib/db/chef-schema';
-import { recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
+import { recipeDiscoveryRuns, recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { RecipeDiscoveryService, getRecipeDiscoveryService } from './recipe-discovery.service';
 import { RecipeExtractionService, getRecipeExtractionService } from './recipe-extraction.service';
 import { ChefDiscoveryService, getChefDiscoveryService } from './chef-discovery.service';
@@ -194,6 +194,11 @@ export class AutonomousRecipeIngestionService {
             if (recipeId) {
               recipesStored++;
               console.log(`[AutonomousIngestion] Stored recipe: "${recipe.title}" (${recipeId})`);
+
+              // Record first stored recipe as today's Recipe of the Day
+              if (recipesStored === 1) {
+                await this.recordRecipeOfTheDay(recipeId, discovered.url);
+              }
             }
           } else {
             recipesStored++;
@@ -253,6 +258,30 @@ export class AutonomousRecipeIngestionService {
       }
 
       return result;
+    }
+  }
+
+  /**
+   * Record the featured recipe of the day.
+   * Uses ON CONFLICT DO NOTHING so re-runs on the same day are idempotent.
+   */
+  private async recordRecipeOfTheDay(recipeId: string, sourceUrl: string): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      await db
+        .insert(recipeOfTheDay)
+        .values({
+          recipe_id: recipeId,
+          date: today,
+          source_url: sourceUrl,
+          theme: 'no-waste',
+        })
+        .onConflictDoNothing();
+      console.log(`[AutonomousIngestion] Recorded recipe-of-the-day for ${today}: ${recipeId}`);
+    } catch (error) {
+      // Non-fatal — log but don't fail the pipeline
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[AutonomousIngestion] Failed to record recipe-of-the-day: ${msg}`);
     }
   }
 
