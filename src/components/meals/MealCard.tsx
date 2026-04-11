@@ -121,7 +121,10 @@ export const MealCard = memo(function MealCard({ meal }: MealCardProps) {
           {totalTime > 0 && (
             <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">
               <Clock className="w-4 h-4 text-jk-clay" />
-              <span className="font-ui">{totalTime} min</span>
+              {/* Semantic: <time> with machine-readable ISO 8601 duration */}
+              <time dateTime={`PT${totalTime}M`} className="font-ui">
+                {totalTime} min
+              </time>
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-jk-charcoal/70">

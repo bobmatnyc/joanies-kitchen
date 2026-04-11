@@ -16,8 +16,9 @@ export const revalidate = 86400; // 24 hours
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-jk-linen">
-      {/* Header */}
+    // Semantic: <article> for self-contained content; layout.tsx provides the <main> landmark
+    <article className="min-h-screen bg-jk-linen">
+      {/* Page header */}
       <div className="bg-jk-olive text-jk-linen py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="font-heading text-6xl text-jk-linen mb-4">About Joanie</h1>
@@ -77,8 +78,6 @@ export default function AboutPage() {
               food is deeply personal — inspired by what's growing, what's on hand, and who's at the
               table.
             </p>
-
-            <div className="clear-both"></div>
 
             <p>
               Her love of growing things runs deep, too. When she lived in Dobbs Ferry, her small
@@ -181,6 +180,6 @@ export default function AboutPage() {
           </Link>
         </div>
       </div>
-    </main>
+    </article>
   );
 }

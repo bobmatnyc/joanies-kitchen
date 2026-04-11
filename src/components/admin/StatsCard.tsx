@@ -19,7 +19,10 @@ export function StatsCard({ title, value, description, icon, trend }: StatsCardP
         {icon && <div className="text-gray-500">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
+        {/* Type safety: coerce to number before toLocaleString so string values don't throw */}
+        <div className="text-2xl font-bold">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </div>
         {description && <p className="text-xs text-gray-600 mt-1">{description}</p>}
         {trend && (
           <div className="flex items-center mt-2 text-xs">

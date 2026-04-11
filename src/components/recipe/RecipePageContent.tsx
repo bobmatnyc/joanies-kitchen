@@ -24,9 +24,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+// Type: use the canonical Recipe type rather than any[]
+import type { Recipe } from '@/lib/db/schema';
 
 interface RecipePageContentProps {
-  recipes: any[];
+  recipes: Recipe[];
   availableTags?: string[];
   tagCounts?: Record<string, number>;
   initialSelectedTags?: string[];
