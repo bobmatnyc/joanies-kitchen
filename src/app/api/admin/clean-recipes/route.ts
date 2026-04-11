@@ -43,18 +43,21 @@ export const POST = requireScopes([SCOPES.ADMIN_SYSTEM], async (request: NextReq
     const message = toErrorMessage(err);
     console.error('[api/admin/clean-recipes]', message);
 
-    // Distinguish "Ollama not available" from other errors
-    const isOllamaError = message.toLowerCase().includes('ollama');
+    // Distinguish "no AI provider available" from other errors
+    const isProviderError =
+      message.toLowerCase().includes('ollama') ||
+      message.toLowerCase().includes('openrouter') ||
+      message.toLowerCase().includes('neither');
 
     return NextResponse.json(
       {
         success: false,
         error: message,
-        hint: isOllamaError
-          ? 'Ensure Ollama is running (`ollama serve`) and the gemma3:4b model is available (`ollama pull gemma3:4b`).'
+        hint: isProviderError
+          ? 'Neither OpenRouter API key nor local Ollama is available. Set OPENROUTER_API_KEY in your environment or run Ollama locally.'
           : undefined,
       },
-      { status: isOllamaError ? 503 : 500 }
+      { status: isProviderError ? 503 : 500 }
     );
   }
 });

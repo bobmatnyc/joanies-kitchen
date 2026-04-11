@@ -3,7 +3,7 @@
  *
  * Adds images to recipes that currently have no images by:
  * 1. Querying DB for recipes with no images (images IS NULL and image_url IS NULL)
- * 2. Calling local Ollama (gemma3:4b) to generate a food photography prompt
+ * 2. Generating a food photography prompt via OpenRouter (primary) or local Ollama (fallback)
  * 3. Fetching the image via DALL-E 3 (if OPENAI_API_KEY set) or Pollinations.ai (free fallback)
  * 4. Downloading the image and storing it in Vercel Blob
  * 5. Updating the recipe's `images` field in the DB
@@ -14,7 +14,12 @@ import { and, isNull, or, sql } from 'drizzle-orm';
 import { put } from '@vercel/blob';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { generateFoodPhotographyPrompt, checkOllamaHealth } from '@/lib/ai/ollama-client';
+import { generateFoodPhotographyPrompt, checkOllamaHealth, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
+import {
+  isOpenRouterAvailable,
+  openrouterGenerate,
+  DEFAULT_OPENROUTER_MODEL,
+} from '@/lib/ai/openrouter-client';
 
 // ============================================================================
 // TYPES
@@ -48,6 +53,48 @@ const POLLINATIONS_PARAMS = 'width=800&height=600&nologo=true';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Build the food photography prompt text for a recipe (shared by all providers)
+ */
+function buildPhotographyPromptText(recipe: RecipeRow): string {
+  const ingredientsSummary = recipe.ingredients
+    ? (() => {
+        try {
+          const parsed = JSON.parse(recipe.ingredients) as string[];
+          return parsed.slice(0, 6).join(', ');
+        } catch {
+          return recipe.ingredients.slice(0, 200);
+        }
+      })()
+    : '';
+
+  return `You are a food photography art director. Write a single, vivid image generation prompt (max 120 words) for a professional food photo of "${recipe.name}"${recipe.cuisine ? ` (${recipe.cuisine} cuisine)` : ''}.${ingredientsSummary ? ` Key ingredients: ${ingredientsSummary}.` : ''}${recipe.description ? ` Description: ${recipe.description.slice(0, 150)}.` : ''}
+
+The prompt must describe: plating style, lighting (e.g. soft natural window light), camera angle (e.g. overhead 45-degree), props (e.g. rustic wooden board, linen napkin), background, and overall mood. Make it appetizing and realistic. Output ONLY the prompt text, no explanation.`;
+}
+
+/**
+ * Generate a food photography prompt using OpenRouter (Claude Haiku) as primary
+ * or local Ollama (Gemma) as fallback.
+ */
+async function generatePromptWithBestProvider(recipe: RecipeRow): Promise<string> {
+  if (isOpenRouterAvailable()) {
+    console.log(`[ImageGen] Generating prompt via OpenRouter (${DEFAULT_OPENROUTER_MODEL})`);
+    const promptText = buildPhotographyPromptText(recipe);
+    const result = await openrouterGenerate(promptText, DEFAULT_OPENROUTER_MODEL, 200);
+    return result.replace(/^["']|["']$/g, '').trim();
+  }
+
+  // Fallback: local Ollama
+  console.log(`[ImageGen] Generating prompt via Ollama (${DEFAULT_OLLAMA_MODEL})`);
+  return generateFoodPhotographyPrompt({
+    name: recipe.name,
+    cuisine: recipe.cuisine,
+    ingredients: recipe.ingredients,
+    description: recipe.description,
+  });
 }
 
 /**
@@ -163,14 +210,16 @@ export async function addMissingRecipeImages(limit = 10): Promise<ImageGeneratio
     errors: [],
   };
 
-  // Check Ollama is running before we start
-  const ollamaOk = await checkOllamaHealth();
-  if (!ollamaOk) {
-    result.errors.push(
-      'Ollama is not reachable at localhost:11434 or the model is not loaded. ' +
-        'Run: ollama pull gemma3:4b'
-    );
-    return result;
+  // Check that at least one AI provider is available for prompt generation
+  if (!isOpenRouterAvailable()) {
+    const ollamaOk = await checkOllamaHealth();
+    if (!ollamaOk) {
+      result.errors.push(
+        'Neither OpenRouter API key nor local Ollama is available. ' +
+          'Set OPENROUTER_API_KEY in your environment or run Ollama locally (ollama pull gemma3:4b).'
+      );
+      return result;
+    }
   }
 
   // Query recipes with no images
@@ -198,13 +247,8 @@ export async function addMissingRecipeImages(limit = 10): Promise<ImageGeneratio
 
   for (const recipe of recipesWithoutImages) {
     try {
-      // 1. Generate a descriptive food photography prompt via Ollama
-      const prompt = await generateFoodPhotographyPrompt({
-        name: recipe.name,
-        cuisine: recipe.cuisine,
-        ingredients: recipe.ingredients,
-        description: recipe.description,
-      });
+      // 1. Generate a descriptive food photography prompt via OpenRouter or Ollama
+      const prompt = await generatePromptWithBestProvider(recipe as RecipeRow);
 
       console.log(`[ImageGen] Prompt for "${recipe.name}": ${prompt.slice(0, 80)}...`);
 

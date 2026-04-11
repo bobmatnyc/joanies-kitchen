@@ -1,11 +1,15 @@
 /**
  * Recipe Cleaner Service
  *
- * Uses a local Ollama model (Gemma) to clean and standardize recipe text:
+ * Cleans and standardizes recipe text using AI:
  * - Fix spelling and grammar
  * - Standardize measurements
  * - Number instructions clearly
  * - Make instructions crisp and actionable
+ *
+ * Provider priority:
+ *   1. OpenRouter (Claude Haiku) — used when OPENROUTER_API_KEY is set (production)
+ *   2. Local Ollama (Gemma)      — used as fallback when running locally without a key
  *
  * Tracks cleanup with last_cleaned_at and last_cleaned_model columns.
  */
@@ -15,8 +19,12 @@ import { and, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { isOllamaAvailable, ollamaGenerate, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
+import {
+  isOpenRouterAvailable,
+  openrouterGenerate,
+  DEFAULT_OPENROUTER_MODEL,
+} from '@/lib/ai/openrouter-client';
 
-const CLEAN_MODEL = DEFAULT_OLLAMA_MODEL;
 const DELAY_BETWEEN_RECIPES_MS = 1000; // 1 second delay between recipes
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -119,8 +127,40 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Clean recipes using local Ollama model.
+ * Determine which AI provider to use and return a generate function + model name.
  *
+ * Priority:
+ *   1. OpenRouter (OPENROUTER_API_KEY set) — production
+ *   2. Local Ollama (running locally)      — dev fallback
+ */
+async function resolveAIProvider(): Promise<{
+  generate: (prompt: string) => Promise<string>;
+  modelName: string;
+}> {
+  if (isOpenRouterAvailable()) {
+    return {
+      generate: (prompt) => openrouterGenerate(prompt, DEFAULT_OPENROUTER_MODEL, 2000),
+      modelName: DEFAULT_OPENROUTER_MODEL,
+    };
+  }
+
+  const ollamaOk = await isOllamaAvailable();
+  if (ollamaOk) {
+    return {
+      generate: (prompt) => ollamaGenerate(prompt, DEFAULT_OLLAMA_MODEL),
+      modelName: DEFAULT_OLLAMA_MODEL,
+    };
+  }
+
+  throw new Error(
+    'Neither OpenRouter API key nor local Ollama is available. Set OPENROUTER_API_KEY in your environment or run Ollama locally.'
+  );
+}
+
+/**
+ * Clean recipes using the best available AI provider.
+ *
+ * Uses OpenRouter (Claude Haiku) in production or local Ollama (Gemma) as fallback.
  * Processes recipes where last_cleaned_at IS NULL or last_cleaned_at < 30 days ago.
  */
 export async function cleanRecipesWithOllama(
@@ -128,13 +168,9 @@ export async function cleanRecipesWithOllama(
 ): Promise<CleanRecipesResult> {
   const result: CleanRecipesResult = { processed: 0, skipped: 0, errors: [] };
 
-  // Check Ollama availability first
-  const available = await isOllamaAvailable();
-  if (!available) {
-    throw new Error(
-      'Ollama is not running. Please start Ollama (e.g., `ollama serve`) and ensure the gemma3:4b model is pulled.'
-    );
-  }
+  // Resolve AI provider (throws if neither is available)
+  const { generate, modelName } = await resolveAIProvider();
+  console.info(`[recipe-cleaner] Using AI provider: ${modelName}`);
 
   // Query recipes that need cleaning
   const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
@@ -164,9 +200,9 @@ export async function cleanRecipesWithOllama(
 
     let rawResponse: string;
     try {
-      rawResponse = await ollamaGenerate(prompt, CLEAN_MODEL);
+      rawResponse = await generate(prompt);
     } catch (err) {
-      const msg = `Recipe "${recipe.name}" (${recipe.id}): Ollama generation failed — ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `Recipe "${recipe.name}" (${recipe.id}): AI generation failed — ${err instanceof Error ? err.message : String(err)}`;
       console.error('[recipe-cleaner]', msg);
       result.errors.push(msg);
       result.skipped++;
@@ -187,7 +223,7 @@ export async function cleanRecipesWithOllama(
     }
 
     if (!cleaned) {
-      const msg = `Recipe "${recipe.name}" (${recipe.id}): could not extract valid cleaned fields from Ollama response`;
+      const msg = `Recipe "${recipe.name}" (${recipe.id}): could not extract valid cleaned fields from AI response`;
       console.error('[recipe-cleaner]', msg);
       result.errors.push(msg);
       result.skipped++;
@@ -204,12 +240,12 @@ export async function cleanRecipesWithOllama(
         ingredients: JSON.stringify(cleaned.ingredients),
         instructions: cleaned.instructions,
         last_cleaned_at: new Date(),
-        last_cleaned_model: CLEAN_MODEL,
+        last_cleaned_model: modelName,
         updated_at: new Date(),
       })
       .where(sql`${recipes.id} = ${recipe.id}`);
 
-    console.info(`[recipe-cleaner] Cleaned recipe "${recipe.name}" (${recipe.id})`);
+    console.info(`[recipe-cleaner] Cleaned recipe "${recipe.name}" (${recipe.id}) via ${modelName}`);
     result.processed++;
 
     await sleep(DELAY_BETWEEN_RECIPES_MS);
