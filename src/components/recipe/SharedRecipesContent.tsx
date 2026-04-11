@@ -15,9 +15,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+// Type: use the canonical Recipe type rather than any[]
+import type { Recipe } from '@/lib/db/schema';
 
 interface SharedRecipesContentProps {
-  sharedRecipes: any[];
+  sharedRecipes: Recipe[];
   availableTags: string[];
   tagCounts: Record<string, number>;
   initialSelectedTags: string[];
@@ -92,8 +94,9 @@ export function SharedRecipesContent({
   }, [sharedRecipes, searchQuery]);
 
   // Separate system recipes from user-shared recipes
-  const systemRecipes = filteredRecipes.filter((recipe) => recipe.isSystemRecipe);
-  const userSharedRecipes = filteredRecipes.filter((recipe) => !recipe.isSystemRecipe);
+  // Type fix: the DB column is `is_system_recipe` (snake_case), not `isSystemRecipe`
+  const systemRecipes = filteredRecipes.filter((recipe) => recipe.is_system_recipe);
+  const userSharedRecipes = filteredRecipes.filter((recipe) => !recipe.is_system_recipe);
 
   return (
     <div className="container mx-auto py-8 px-4">

@@ -8,7 +8,7 @@ import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
-import { MobileNav } from '@/components/mobile/MobileNav';
+import { MobileNav } from '@/components/navigation/MobileNav';
 import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { AlphaStamp } from '@/components/shared/AlphaStamp';
@@ -176,11 +176,8 @@ export default function RootLayout({
                 {/* Desktop Navigation (>1024px) */}
                 <DesktopNav />
 
-                {/* Mobile/Tablet Navigation (<1024px) */}
-                <div className="flex xl:hidden items-center gap-2">
-                  {/* Hamburger Menu */}
-                  <MobileNav />
-                </div>
+                {/* Mobile/Tablet Navigation (<1024px) — MobileNav renders nothing at xl+ */}
+                <MobileNav />
               </nav>
             </div>
           </header>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 /**
  * Parsed ingredient structure
@@ -291,7 +292,8 @@ export function IngredientsList({
   }
 
   return (
-    <ul className={`space-y-2 ${className}`}>
+    // Accessibility: aria-label identifies this list as the ingredients section
+    <ul className={cn('space-y-2', className)} aria-label="Ingredients">
       {ingredients.map((ingredientStr, index) => {
         const parsed = parseIngredient(ingredientStr);
         const isChecked = checkedItems.has(index);
@@ -313,11 +315,14 @@ export function IngredientsList({
               />
             )}
 
+            {/* Use cn() for conditional class composition */}
             <label
               htmlFor={showCheckboxes ? `ingredient-${index}` : undefined}
-              className={`flex-1 ${showCheckboxes ? 'cursor-pointer' : ''} ${
-                isChecked ? 'line-through opacity-60' : ''
-              }`}
+              className={cn(
+                'flex-1',
+                showCheckboxes && 'cursor-pointer',
+                isChecked && 'line-through opacity-60'
+              )}
             >
               {/* If parsing succeeded, show structured format */}
               {parsed.amount || parsed.preparation ? (

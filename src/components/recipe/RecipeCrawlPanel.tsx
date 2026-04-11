@@ -10,6 +10,7 @@ import {
   Loader2,
   Search,
   XCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -78,7 +79,8 @@ function ProgressStepIndicator({
   label: string;
   status: 'complete' | 'active' | 'pending';
   count?: string;
-  icon: any;
+  // Type: use LucideIcon instead of any for proper icon typing
+  icon: LucideIcon;
 }) {
   return (
     <div

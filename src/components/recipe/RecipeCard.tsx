@@ -261,7 +261,8 @@ const RecipeCardComponent = ({
               {totalTime > 0 && (
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-jk-clay" />
-                  <span>{totalTime} min</span>
+                  {/* Semantic: <time> element with machine-readable duration (ISO 8601) */}
+                  <time dateTime={`PT${totalTime}M`}>{totalTime} min</time>
                 </div>
               )}
               {recipe.servings && (
@@ -302,17 +303,21 @@ const RecipeCardComponent = ({
   );
 
   if (disableLink) {
-    return cardContent;
+    // Semantic: <article> wraps self-contained recipe content
+    return <article aria-label={recipe.name}>{cardContent}</article>;
   }
 
   return (
-    <Link
-      href={recipeUrl}
-      className="group block h-full"
-      aria-label={`View recipe: ${recipe.name}`}
-    >
-      {cardContent}
-    </Link>
+    // Semantic: <article> wraps self-contained recipe card
+    <article aria-label={recipe.name}>
+      <Link
+        href={recipeUrl}
+        className="group block h-full"
+        aria-label={`View recipe: ${recipe.name}`}
+      >
+        {cardContent}
+      </Link>
+    </article>
   );
 };
 

@@ -11,18 +11,10 @@ interface IngredientCardProps {
 }
 
 /**
- * IngredientCard - Card component for displaying ingredient in grid view
+ * IngredientCard - Card component for displaying an ingredient in the grid.
  *
- * Features:
- * - Ingredient image with fallback
- * - Name and category badge
- * - Usage count/popularity
- * - Click to navigate to detail page
- *
- * Design:
- * - Card-based layout for modern feel
- * - Hover effects for interactivity
- * - Mobile-responsive
+ * Design: uses JK design tokens (jk-sage, jk-olive, jk-clay) rather than
+ * generic Tailwind gray-* classes to stay consistent with the brand palette.
  */
 export function IngredientCard({ ingredient, className = '' }: IngredientCardProps) {
   const usageCount = ingredient.statistics?.total_recipes || ingredient.usage_count || 0;
@@ -31,10 +23,11 @@ export function IngredientCard({ ingredient, className = '' }: IngredientCardPro
   return (
     <Link
       href={`/ingredients/${ingredient.slug}`}
-      className={`group block rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600 overflow-hidden ${className}`}
+      className={`group block rounded-lg border border-jk-sage/30 bg-white shadow-sm transition-all hover:shadow-md hover:border-jk-sage overflow-hidden ${className}`}
+      aria-label={`View ${ingredient.display_name} ingredient details`}
     >
-      {/* Image Section - Reduced height */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+      {/* Image Section */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-jk-sage/10">
         {ingredient.image_url ? (
           <Image
             src={ingredient.image_url}
@@ -44,44 +37,39 @@ export function IngredientCard({ ingredient, className = '' }: IngredientCardPro
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+          // Semantic: decorative fallback icon, hidden from screen readers
+          <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+            <Package className="h-12 w-12 text-jk-sage/40" />
           </div>
         )}
 
         {/* Trending Badge */}
         {isTrending && (
-          <div className="absolute top-1.5 right-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-white flex items-center gap-0.5">
-            <TrendingUp className="h-2.5 w-2.5" />
+          <div className="absolute top-1.5 right-1.5 rounded-full bg-jk-clay px-1.5 py-0.5 text-xs font-semibold text-jk-linen flex items-center gap-0.5">
+            <TrendingUp className="h-2.5 w-2.5" aria-hidden="true" />
             <span className="hidden sm:inline">Trending</span>
           </div>
         )}
       </div>
 
-      {/* Content Section - Compact */}
+      {/* Content Section */}
       <div className="p-3">
-        {/* Ingredient Name */}
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">
+        <h3 className="text-sm font-semibold text-jk-olive group-hover:text-jk-clay transition-colors line-clamp-1">
           {ingredient.display_name}
         </h3>
 
-        {/* Category & Usage - Single line */}
         <div className="mt-1 flex items-center justify-between text-xs">
           {ingredient.category && (
-            <span className="text-gray-600 dark:text-gray-400 capitalize">
-              {ingredient.category}
-            </span>
+            <span className="text-jk-charcoal/60 capitalize">{ingredient.category}</span>
           )}
-
           {ingredient.is_common && (
-            <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <span className="rounded-full bg-jk-sage/20 px-1.5 py-0.5 text-xs font-medium text-jk-olive">
               Popular
             </span>
           )}
         </div>
 
-        {/* Usage Stats - Smaller */}
-        <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-1.5 text-xs text-jk-charcoal/50">
           {usageCount} {usageCount === 1 ? 'recipe' : 'recipes'}
         </div>
       </div>
