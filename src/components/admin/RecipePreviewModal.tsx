@@ -201,7 +201,9 @@ export function RecipePreviewModal({
                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-jk-olive text-white text-sm flex items-center justify-center font-semibold">
                           {index + 1}
                         </span>
-                        <span className="text-gray-700 pt-0.5">{instruction}</span>
+                        <span className="text-gray-700 pt-0.5">
+                          {instruction.replace(/^Step\s+\d+:\s*/i, '').trim()}
+                        </span>
                       </li>
                     ))}
                   </ol>
