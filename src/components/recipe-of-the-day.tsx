@@ -9,6 +9,16 @@ import { Button } from '@/components/ui/button';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 import type { RecipeOfTheDayResponse } from '@/app/api/recipes/recipe-of-day/route';
 
+function parseTags(tagsJson: string | null): string[] {
+  if (!tagsJson) return [];
+  try {
+    const parsed = JSON.parse(tagsJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function getHeroImage(data: RecipeOfTheDayResponse): string {
   if (data.images) {
     try {
@@ -19,8 +29,7 @@ function getHeroImage(data: RecipeOfTheDayResponse): string {
     }
   }
   if (data.image_url) return data.image_url;
-  const tags = data.tags ? JSON.parse(data.tags) : [];
-  return getPlaceholderImage(tags);
+  return getPlaceholderImage(parseTags(data.tags));
 }
 
 export function RecipeOfTheDay() {
@@ -29,7 +38,13 @@ export function RecipeOfTheDay() {
 
   useEffect(() => {
     fetch('/api/recipes/recipe-of-day')
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const json = await res.json();
+        // Guard: if the response has an error field, treat as no data
+        if (json && typeof json === 'object' && 'error' in json) return null;
+        return json as RecipeOfTheDayResponse;
+      })
       .then((json) => setData(json))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
@@ -48,11 +63,19 @@ export function RecipeOfTheDay() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="rounded-2xl overflow-hidden bg-jk-linen border border-jk-sage/30 p-8 text-center">
+        <p className="text-jk-charcoal/60 font-body text-sm">
+          No featured recipe today — check back tomorrow!
+        </p>
+      </div>
+    );
+  }
 
   const recipeHref = data.slug ? `/recipes/${data.slug}` : `/recipes/${data.recipe_id}`;
   const heroImage = getHeroImage(data);
-  const tags: string[] = data.tags ? JSON.parse(data.tags) : [];
+  const tags = parseTags(data.tags);
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-lg bg-jk-linen border border-jk-sage/40 group">
