@@ -1,6 +1,6 @@
 'use server';
 
-import { and, eq, like, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { generateEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { auth } from '@/lib/auth';
 import {
@@ -123,7 +123,7 @@ export async function semanticSearchRecipes(
     }
 
     // Build filter conditions
-    const conditions = [sql`${recipes.id} IN ${recipeIds}`];
+    const conditions = [inArray(recipes.id, recipeIds)];
 
     // Apply cuisine filter
     if (options.cuisine) {
@@ -294,7 +294,7 @@ export async function findSimilarToRecipe(
       const similarRecipes = await db
         .select()
         .from(recipes)
-        .where(sql`${recipes.id} IN ${recipeIds}`);
+        .where(inArray(recipes.id, recipeIds));
 
       const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
         const sim = similar.find((s) => s.recipe_id === r.id);
@@ -343,7 +343,7 @@ export async function findSimilarToRecipe(
     const similarRecipes = await db
       .select()
       .from(recipes)
-      .where(sql`${recipes.id} IN ${recipeIds}`);
+      .where(inArray(recipes.id, recipeIds));
 
     const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
       const sim = similar.find((s) => s.recipe_id === r.id);

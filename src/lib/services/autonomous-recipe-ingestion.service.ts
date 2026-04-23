@@ -310,6 +310,7 @@ export class AutonomousRecipeIngestionService {
           cuisine: recipe.cuisine,
           tags: JSON.stringify(recipe.tags),
           images: recipe.image_url ? JSON.stringify([recipe.image_url]) : JSON.stringify([]),
+          image_url: recipe.image_url ?? null,
           is_public: true,
           is_system_recipe: true,
           source: sourceUrl,
