@@ -296,7 +296,7 @@ export const recipeEmbeddings = pgTable(
       .references(() => recipes.id, { onDelete: 'cascade' }),
     embedding: vector('embedding').notNull(),
     embedding_text: text('embedding_text').notNull(),
-    model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'),
+    model_name: varchar('model_name', { length: 100 }).notNull().default('jina-embeddings-v3'),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
