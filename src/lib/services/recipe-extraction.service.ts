@@ -14,6 +14,7 @@
 
 import OpenAI from 'openai';
 import Firecrawl from '@mendable/firecrawl-js';
+import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 
 export interface ScrapedRecipe {
   url: string;
@@ -139,7 +140,7 @@ export class RecipeExtractionService {
     // Tier 2: Jina Reader
     if (this.jinaApiKey) {
       try {
-        const rawContent = await this.fetchWithJina(url);
+        const rawContent = await fetchContentWithJina(url);
         if (rawContent && rawContent.length > 200) {
           const parsed = await this.parseRawContent(rawContent, url, 'jina');
           if (parsed && this.isViableRecipe(parsed)) {
@@ -214,29 +215,6 @@ export class RecipeExtractionService {
     }
 
     return null;
-  }
-
-  /**
-   * Fetch content via Jina Reader API
-   */
-  private async fetchWithJina(url: string): Promise<string | null> {
-    const jinaUrl = `https://r.jina.ai/${url}`;
-
-    const response = await fetch(jinaUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.jinaApiKey}`,
-        Accept: 'text/plain',
-        'X-Return-Format': 'markdown',
-      },
-      signal: AbortSignal.timeout(30000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Jina Reader API error ${response.status}: ${response.statusText}`);
-    }
-
-    return response.text();
   }
 
   /**

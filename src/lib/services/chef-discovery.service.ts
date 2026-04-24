@@ -10,6 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { eq } from 'drizzle-orm';
+import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 
@@ -127,7 +128,8 @@ export class ChefDiscoveryService {
 
     if (this.jinaApiKey) {
       try {
-        pageContent = await this.fetchWithJina(aboutUrl);
+        // Preserve historical 4000-char truncation for bio generation
+        pageContent = await fetchContentWithJina(aboutUrl, 4000);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[ChefDiscovery] Jina fetch failed for bio: ${msg}`);
@@ -159,30 +161,6 @@ export class ChefDiscoveryService {
     } catch {
       return website;
     }
-  }
-
-  /**
-   * Fetch a URL's content using Jina Reader
-   */
-  private async fetchWithJina(url: string): Promise<string | null> {
-    const jinaUrl = `https://r.jina.ai/${url}`;
-
-    const response = await fetch(jinaUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.jinaApiKey}`,
-        Accept: 'text/plain',
-        'X-Return-Format': 'markdown',
-      },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Jina Reader error ${response.status}: ${response.statusText}`);
-    }
-
-    const text = await response.text();
-    return text.length > 50 ? text.substring(0, 4000) : null;
   }
 
   /**
