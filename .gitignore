@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Package manager lock files (pnpm is canonical; npm lock is stale)
+/package-lock.json
+
 # dependencies
 /node_modules
 /.pnp
@@ -240,3 +243,9 @@ public/images/**
 # MCP configuration (contains secrets)
 .mcp/
 .env*.local
+
+# Claude MPM runtime artifacts (state files, not source)
+.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md
+.claude-mpm/message_check_state.json
+.claude/agents/.dependency_cache
+.claude/agents/.mpm_deployment_state
