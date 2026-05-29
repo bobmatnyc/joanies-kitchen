@@ -9,7 +9,7 @@
  * - Dry-run mode (no DB writes)
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { IngestionRunOptions } from '../autonomous-recipe-ingestion.service';
 
 // ---------------------------------------------------------------------------

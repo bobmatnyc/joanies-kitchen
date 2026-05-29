@@ -37,7 +37,7 @@ function getEnvMaxRecipes(): number {
 // ---------------------------------------------------------------------------
 
 function isAuthorized(request: NextRequest): boolean {
-  const cronSecret = process.env['CRON_SECRET'];
+  const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret) {
     console.error('[DailyRecipeCron] CRON_SECRET environment variable not configured');

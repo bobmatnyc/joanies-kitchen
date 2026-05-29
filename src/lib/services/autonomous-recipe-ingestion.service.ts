@@ -76,9 +76,6 @@ export class AutonomousRecipeIngestionService {
     return this._chefDiscoveryService;
   }
 
-  // Empty constructor - services are lazily initialized via getters
-  constructor() {}
-
   /**
    * Run the full daily discovery pipeline.
    *
