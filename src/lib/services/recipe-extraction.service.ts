@@ -12,8 +12,8 @@
  * Falls back to ANTHROPIC_API_KEY if OpenRouter is unavailable.
  */
 
-import OpenAI from 'openai';
 import Firecrawl from '@mendable/firecrawl-js';
+import OpenAI from 'openai';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 
 export interface ScrapedRecipe {
@@ -89,7 +89,9 @@ export class RecipeExtractionService {
       console.warn('[RecipeExtraction] JINA_API_KEY not set — Jina fallback unavailable');
     }
     if (!this.llmApiKey) {
-      console.warn('[RecipeExtraction] No LLM key (OPENROUTER_API_KEY / ANTHROPIC_API_KEY) — Claude structuring unavailable');
+      console.warn(
+        '[RecipeExtraction] No LLM key (OPENROUTER_API_KEY / ANTHROPIC_API_KEY) — Claude structuring unavailable'
+      );
     }
   }
 
@@ -103,7 +105,8 @@ export class RecipeExtractionService {
 
   private get openrouter(): OpenAI {
     if (!this._openrouter) {
-      if (!this.llmApiKey) throw new Error('No LLM API key configured (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)');
+      if (!this.llmApiKey)
+        throw new Error('No LLM API key configured (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)');
       this._openrouter = new OpenAI({
         apiKey: this.llmApiKey,
         baseURL: this.llmBaseUrl,
@@ -122,57 +125,66 @@ export class RecipeExtractionService {
   async extractRecipe(url: string): Promise<ScrapedRecipe | null> {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
 
-    // Tier 1: Firecrawl
+    // Tier 1: Firecrawl (primary — structured JSON schema extraction)
     if (this.firecrawlApiKey) {
       try {
         const result = await this.extractWithFirecrawl(url);
         if (result && this.isViableRecipe(result)) {
-          console.log(`[RecipeExtraction] Firecrawl success: "${result.title}"`);
+          console.log(`[RecipeExtraction] Tier1/Firecrawl success: "${result.title}"`);
           return { ...result, extraction_method: 'firecrawl' };
         }
-        console.log('[RecipeExtraction] Firecrawl returned insufficient data, trying Jina');
+        console.debug(
+          '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
+        );
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`[RecipeExtraction] Firecrawl failed: ${msg}`);
+        console.warn(`[RecipeExtraction] Tier1/Firecrawl failed: ${msg}`);
       }
+    } else {
+      console.debug('[RecipeExtraction] Tier1/Firecrawl skipped — FIRECRAWL_API_KEY not set');
     }
 
-    // Tier 2: Jina Reader
+    // Tier 2: Jina Reader (fallback 1 — clean markdown extraction)
+    // Skipped gracefully when JINA_API_KEY is absent — never throws.
     if (this.jinaApiKey) {
       try {
         const rawContent = await fetchContentWithJina(url);
         if (rawContent && rawContent.length > 200) {
           const parsed = await this.parseRawContent(rawContent, url, 'jina');
           if (parsed && this.isViableRecipe(parsed)) {
-            console.log(`[RecipeExtraction] Jina success: "${parsed.title}"`);
+            console.log(`[RecipeExtraction] Tier2/Jina success: "${parsed.title}"`);
             return parsed;
           }
         }
-        console.log('[RecipeExtraction] Jina returned insufficient data, trying Tavily Extract');
+        console.debug('[RecipeExtraction] Tier2/Jina returned insufficient data, falling through');
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`[RecipeExtraction] Jina failed: ${msg}`);
+        console.warn(`[RecipeExtraction] Tier2/Jina failed: ${msg}`);
       }
+    } else {
+      console.debug('[RecipeExtraction] Tier2/Jina skipped — JINA_API_KEY not set');
     }
 
-    // Tier 3: Tavily Extract
+    // Tier 3: Tavily Extract (fallback 2 — raw content extraction)
     if (this.tavilyApiKey) {
       try {
         const rawContent = await this.fetchWithTavilyExtract(url);
         if (rawContent && rawContent.length > 200) {
           const parsed = await this.parseRawContent(rawContent, url, 'tavily_extract');
           if (parsed && this.isViableRecipe(parsed)) {
-            console.log(`[RecipeExtraction] Tavily Extract success: "${parsed.title}"`);
+            console.log(`[RecipeExtraction] Tier3/Tavily Extract success: "${parsed.title}"`);
             return parsed;
           }
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`[RecipeExtraction] Tavily Extract failed: ${msg}`);
+        console.warn(`[RecipeExtraction] Tier3/Tavily Extract failed: ${msg}`);
       }
+    } else {
+      console.debug('[RecipeExtraction] Tier3/Tavily Extract skipped — TAVILY_API_KEY not set');
     }
 
-    console.error(`[RecipeExtraction] All extraction methods failed for: ${url}`);
+    console.error(`[RecipeExtraction] All available extraction tiers failed for: ${url}`);
     return null;
   }
 
@@ -180,10 +192,10 @@ export class RecipeExtractionService {
    * Extract using Firecrawl with schema.org JSON-LD extraction
    */
   private async extractWithFirecrawl(url: string): Promise<ScrapedRecipe | null> {
-    const result = await this.firecrawl.scrape(url, {
+    const result = (await this.firecrawl.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     if (!result) throw new Error('Firecrawl returned no result');
 
@@ -240,7 +252,7 @@ export class RecipeExtractionService {
       throw new Error(`Tavily Extract API error ${response.status}: ${err}`);
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       results?: Array<{ raw_content?: string }>;
       failed_results?: Array<{ error: string }>;
     };
@@ -399,14 +411,10 @@ Return ONLY the JSON object, no other text.`;
     }
 
     const imageUrl =
-      typeof data.image === 'string'
-        ? data.image
-        : (data.image as { url?: string })?.url;
+      typeof data.image === 'string' ? data.image : (data.image as { url?: string })?.url;
 
     const chefName =
-      typeof data.author === 'string'
-        ? data.author
-        : (data.author as { name?: string })?.name;
+      typeof data.author === 'string' ? data.author : (data.author as { name?: string })?.name;
 
     return {
       url,
@@ -433,10 +441,7 @@ Return ONLY the JSON object, no other text.`;
     metadata: Record<string, string> | undefined,
     url: string
   ): ScrapedRecipe | null {
-    const title =
-      metadata?.ogTitle ||
-      metadata?.title ||
-      this.extractFirstHeading(markdown);
+    const title = metadata?.ogTitle || metadata?.title || this.extractFirstHeading(markdown);
 
     if (!title) return null;
 
@@ -473,15 +478,13 @@ Return ONLY the JSON object, no other text.`;
   }
 
   private extractIngredientsFromMarkdown(markdown: string): string[] {
-    const match = markdown.match(
-      /#+\s*Ingredients?\s*\n([\s\S]*?)(?=\n#+\s|\n\n---|\n\n\*\*|$)/i
-    );
+    const match = markdown.match(/#+\s*Ingredients?\s*\n([\s\S]*?)(?=\n#+\s|\n\n---|\n\n\*\*|$)/i);
     if (!match) return [];
 
     return match[1]
       .split('\n')
       .map((line) => {
-        const listMatch = line.trim().match(/^(?:[*\-]|\d+\.)\s+(.+)$/);
+        const listMatch = line.trim().match(/^(?:[*-]|\d+\.)\s+(.+)$/);
         return listMatch ? listMatch[1].trim() : '';
       })
       .filter((s) => s.length > 2);
@@ -496,7 +499,7 @@ Return ONLY the JSON object, no other text.`;
     const lines: string[] = [];
     for (const line of match[1].split('\n')) {
       const cleaned = line.trim();
-      const listMatch = cleaned.match(/^(?:[*\-]|\d+\.)\s+(.+)$/);
+      const listMatch = cleaned.match(/^(?:[*-]|\d+\.)\s+(.+)$/);
       if (listMatch && listMatch[1].length > 10) {
         lines.push(listMatch[1].trim());
       } else if (cleaned.length > 20 && !cleaned.startsWith('#')) {
@@ -540,7 +543,9 @@ Return ONLY the JSON object, no other text.`;
     if (bylineMatch) return bylineMatch[1];
 
     // Look for "Recipe by [Name]" or "Author: [Name]"
-    const authorMatch = markdown.match(/(?:Recipe by|Author:|Written by)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i);
+    const authorMatch = markdown.match(
+      /(?:Recipe by|Author:|Written by)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i
+    );
     return authorMatch ? authorMatch[1] : undefined;
   }
 
