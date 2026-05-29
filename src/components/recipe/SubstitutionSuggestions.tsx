@@ -269,7 +269,7 @@ export function SubstitutionSuggestions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // First item expanded by default
-  const [isSectionOpen, setIsSectionOpen] = useState(false); // Section collapsed by default
+  const [isSectionOpen, setIsSectionOpen] = useState(true);
 
   useEffect(() => {
     async function fetchSubstitutions() {
