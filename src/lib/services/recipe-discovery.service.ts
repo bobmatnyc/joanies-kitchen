@@ -143,7 +143,6 @@ const BLOCKED_DOMAINS = new Set([
   // Known extraction blockers (verified production failures)
   'reddit.com',
   'seriouseats.com',
-  'www.seriouseats.com',
   'lovefoodhatewaste.com',
   'thekitchn.com',
   'ediblecommunities.com',
