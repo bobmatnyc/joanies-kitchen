@@ -6,9 +6,11 @@
  *
  * Features:
  * - Zero-waste focused search queries
- * - Curated source allowlist for quality sites
- * - Domain blocklist for paywalled/low-quality sites
+ * - Chef-targeted query generation for sustainable-chef roster
+ * - Curated source allowlist for quality sites (including sustainable-chef domains)
+ * - Domain blocklist for paywalled/low-quality/known-blocker sites
  * - Rate limiting with exponential backoff
+ * - Day-of-week query rotation for diversity
  */
 
 export interface DiscoveredRecipeUrl {
@@ -36,32 +38,53 @@ interface TavilyApiResponse {
 }
 
 /**
- * Zero-waste focused search queries for recipe discovery
+ * Zero-waste focused generic search queries for recipe discovery.
+ * Expanded and diversified — avoid hardcoding known-blocker site names.
  */
 const ZERO_WASTE_QUERIES = [
-  'zero waste recipe site:lovefoodhatewaste.com OR site:budgetbytes.com OR site:food52.com',
-  'leftover vegetable recipe "use up" site:thekitchn.com OR site:seriouseats.com OR site:minimalistbaker.com',
-  'fridge cleanout recipe scraps wilted vegetable',
-  'overripe fruit recipe use everything zero waste cooking',
+  'zero waste recipe minimalistbaker.com OR budgetbytes.com OR food52.com',
+  'fridge cleanout recipe scraps wilted vegetable "use up"',
+  'overripe fruit recipe "use everything" zero waste cooking',
   'stale bread recipe leftover rice pantry clearout',
-  'no waste cooking freezer recipe budget ingredients',
+  'no waste cooking freezer recipe budget pantry',
   'vegetable scrap recipe use leftover bones stock',
   'leftover friendly recipe minimal food waste sustainable cooking',
+  'root to stem cooking recipe reduce food waste',
+  'zero waste kitchen recipe sourdough fermentation preservation',
+  'sustainable recipe seasonal vegetable whole ingredient',
+  'frugal cooking recipe "use every part" nose to tail',
+  'cook from the pantry recipe "no waste" ingredients',
 ];
 
 /**
- * Allowed domains — high-quality zero-waste / recipe sources
+ * Sustainable-chef roster with name → website domain.
+ * Used for chef-targeted query generation.
+ */
+export const CHEF_QUERY_TARGETS: Array<{ name: string; domain: string }> = [
+  { name: 'Anne-Marie Bonneau', domain: 'zerowastechef.com' },
+  { name: 'Vivian Li', domain: 'omnivorescookbook.com' },
+  { name: 'Lidia Bastianich', domain: 'lidiasitaly.com' },
+  { name: 'Tamar Adler', domain: 'tamareadler.com' },
+  { name: 'Molly Katzen', domain: 'mollykatzen.com' },
+  { name: 'Bryant Terry', domain: 'bryant-terry.com' },
+  { name: 'Nik Sharma', domain: 'abrowntable.com' },
+  { name: 'Cristina Scarpaleggia', domain: 'tuscanvistas.com' },
+  { name: 'Joshua McFadden', domain: 'avagenes.com' },
+  { name: 'Skye Gyngell', domain: 'springrestaurant.co.uk' },
+];
+
+/**
+ * Allowed domains — high-quality zero-waste / recipe sources.
+ * Includes generic recipe sites AND sustainable-chef owned domains.
  */
 const ALLOWED_DOMAINS = new Set([
-  'lovefoodhatewaste.com',
+  // Generic quality recipe sites
   'minimalistbaker.com',
-  'seriouseats.com',
   'thezerowaster.com',
   'zerowasteliving.com',
   'budgetbytes.com',
   'loveandlemons.com',
   'eatyourbeets.com',
-  'thekitchn.com',
   'cookinglight.com',
   'allrecipes.com',
   'food52.com',
@@ -71,12 +94,36 @@ const ALLOWED_DOMAINS = new Set([
   'halfbakedharvest.com',
   'deliciouslyella.com',
   'ohsheglows.com',
+  // Sustainable-chef owned domains
+  'zerowastechef.com',
+  'omnivorescookbook.com',
+  'lidiasitaly.com',
+  'tamareadler.com',
+  'mollykatzen.com',
+  'bryant-terry.com',
+  'abrowntable.com',
+  'tuscanvistas.com',
+  'avagenes.com',
+  'springrestaurant.co.uk',
+  'turtlelakerefuge.org',
+  'thefermentationschool.com',
+  'bluehillfarm.com',
+  'chezpanisse.com',
+  'greenwave.org',
+  'jacquespepin.net',
+  'smithanddaughters.com',
 ]);
 
 /**
- * Blocked domains — paywalled, low-quality, or non-recipe sites
+ * Blocked domains — paywalled, low-quality, known-blocker, or non-recipe sites.
+ *
+ * Known-blocker domains (verified against production run failures):
+ *   reddit.com, seriouseats.com, lovefoodhatewaste.com, thekitchn.com,
+ *   ediblecommunities.com, foodandwine.com
+ * These consistently reject extraction (403/paywall/CORS) — waste every run's URL budget.
  */
 const BLOCKED_DOMAINS = new Set([
+  // Social / video / shopping
   'pinterest.com',
   'facebook.com',
   'instagram.com',
@@ -87,10 +134,19 @@ const BLOCKED_DOMAINS = new Set([
   'amazon.com',
   'walmart.com',
   'target.com',
+  // Paywalled news
   'nytimes.com',
   'washingtonpost.com',
-  'bonappetit.com', // Paywalled
-  'epicurious.com', // Paywalled
+  // Paywalled recipe sites
+  'bonappetit.com',
+  'epicurious.com',
+  // Known extraction blockers (verified production failures)
+  'reddit.com',
+  'seriouseats.com',
+  'lovefoodhatewaste.com',
+  'thekitchn.com',
+  'ediblecommunities.com',
+  'foodandwine.com',
 ]);
 
 /**
@@ -150,11 +206,9 @@ export class RecipeDiscoveryService {
    * @param options - Discovery options
    * @returns Array of discovered recipe URLs with metadata
    */
-  async discoverRecipeUrls(options: {
-    maxResults?: number;
-    searchQuery?: string;
-    allowedDomainsOnly?: boolean;
-  } = {}): Promise<DiscoveredRecipeUrl[]> {
+  async discoverRecipeUrls(
+    options: { maxResults?: number; searchQuery?: string; allowedDomainsOnly?: boolean } = {}
+  ): Promise<DiscoveredRecipeUrl[]> {
     if (!this.apiKey) {
       throw new Error('TAVILY_API_KEY is not configured — cannot discover recipes');
     }
@@ -260,7 +314,7 @@ export class RecipeDiscoveryService {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.maxRetries) {
-          const delay = this.retryDelayMs * Math.pow(2, attempt - 1);
+          const delay = this.retryDelayMs * 2 ** (attempt - 1);
           console.warn(
             `[RecipeDiscovery] Search attempt ${attempt} failed, retrying in ${delay}ms: ${lastError.message}`
           );
@@ -313,17 +367,39 @@ export class RecipeDiscoveryService {
   }
 
   /**
-   * Return a rotating subset of queries based on the current day
-   * to spread coverage across different recipe themes
+   * Return a rotating subset of queries based on the current day.
+   * Interleaves generic zero-waste queries with chef-targeted queries so each
+   * daily run surfaces different URLs and covers the sustainable-chef roster.
+   *
+   * Chef-targeted queries follow the pattern used in scrape-chef-recipes.ts:
+   *   "<Chef Name>" recipe site:<chef-domain>
    */
   private getRotatingQueries(): string[] {
-    const dayIndex = new Date().getDay();
-    const rotated = [
-      ...ZERO_WASTE_QUERIES.slice(dayIndex % ZERO_WASTE_QUERIES.length),
-      ...ZERO_WASTE_QUERIES.slice(0, dayIndex % ZERO_WASTE_QUERIES.length),
+    const dayIndex = new Date().getDay(); // 0–6
+
+    // Rotate generic queries starting at day offset
+    const genericOffset = dayIndex % ZERO_WASTE_QUERIES.length;
+    const rotatedGeneric = [
+      ...ZERO_WASTE_QUERIES.slice(genericOffset),
+      ...ZERO_WASTE_QUERIES.slice(0, genericOffset),
+    ].slice(0, 3); // 3 generic queries per run
+
+    // Rotate chef targets — 2 chefs per day, cycling through the roster
+    const chefOffset = (dayIndex * 2) % CHEF_QUERY_TARGETS.length;
+    const chefPair = [
+      CHEF_QUERY_TARGETS[chefOffset % CHEF_QUERY_TARGETS.length],
+      CHEF_QUERY_TARGETS[(chefOffset + 1) % CHEF_QUERY_TARGETS.length],
     ];
-    // Return top 4 queries for the day to keep API costs low
-    return rotated.slice(0, 4);
+    const chefQueries = chefPair.map(({ name, domain }) => `"${name}" recipe site:${domain}`);
+
+    // Interleave: generic, chef, generic, chef, generic
+    return [
+      rotatedGeneric[0],
+      chefQueries[0],
+      rotatedGeneric[1],
+      chefQueries[1],
+      rotatedGeneric[2],
+    ];
   }
 
   private sleep(ms: number): Promise<void> {

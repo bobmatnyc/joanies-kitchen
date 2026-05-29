@@ -1,6 +1,6 @@
 'use server';
 
-import { and, eq, like, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { generateEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { auth } from '@/lib/auth';
 import {
@@ -14,6 +14,67 @@ import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { type RankingMode, rankRecipes } from '@/lib/search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+
+/**
+ * Rerank a list of candidate recipes against a query using Jina Reranker v2.
+ * Returns an array of indices (into `candidates`) ordered by relevance.
+ * If the API fails or is not configured, returns null so callers fall through
+ * to the original ordering (graceful degradation).
+ */
+async function rerankWithJina(
+  query: string,
+  candidates: Array<{ id: string; name: string; description?: string | null }>
+): Promise<number[] | null> {
+  const apiKey = process.env.JINA_API_KEY;
+  if (!apiKey) return null;
+  if (candidates.length < 3) return null;
+
+  const documents = candidates.map(
+    (c) => `${c.name}. ${c.description ?? ''}`.trim()
+  );
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch('https://api.jina.ai/v1/rerank', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'jina-reranker-v2-base-multilingual',
+        query,
+        documents,
+        top_n: candidates.length,
+        return_documents: false,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`[Jina Reranker] HTTP ${response.status}, falling back to original order`);
+      return null;
+    }
+
+    const json = (await response.json()) as {
+      results?: Array<{ index: number; relevance_score: number }>;
+    };
+
+    if (!json.results?.length) return null;
+
+    return json.results
+      .sort((a, b) => b.relevance_score - a.relevance_score)
+      .map((r) => r.index);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[Jina Reranker] Request failed, falling back to original order: ${msg}`);
+    return null;
+  }
+}
 
 /**
  * Search options for semantic and hybrid search
@@ -123,7 +184,7 @@ export async function semanticSearchRecipes(
     }
 
     // Build filter conditions
-    const conditions = [sql`${recipes.id} IN ${recipeIds}`];
+    const conditions = [inArray(recipes.id, recipeIds)];
 
     // Apply cuisine filter
     if (options.cuisine) {
@@ -294,15 +355,22 @@ export async function findSimilarToRecipe(
       const similarRecipes = await db
         .select()
         .from(recipes)
-        .where(sql`${recipes.id} IN ${recipeIds}`);
+        .where(inArray(recipes.id, recipeIds));
 
-      const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
+      let recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
         const sim = similar.find((s) => s.recipe_id === r.id);
         return {
           ...r,
           similarity: sim?.similarity || 0,
         };
       });
+
+      // Semantic rerank with Jina Reranker v2 (graceful fallback on failure)
+      const rerankQuery = `${recipe.name}. ${recipe.description ?? ''}`.trim();
+      const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
+      if (rerankedIndices) {
+        recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
+      }
 
       // Apply ranking (use semantic mode for similar recipes)
       const rankedRecipes = rankRecipes(recipesWithSimilarity, {
@@ -343,15 +411,28 @@ export async function findSimilarToRecipe(
     const similarRecipes = await db
       .select()
       .from(recipes)
-      .where(sql`${recipes.id} IN ${recipeIds}`);
+      .where(inArray(recipes.id, recipeIds));
 
-    const recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
+    let recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
       const sim = similar.find((s) => s.recipe_id === r.id);
       return {
         ...r,
         similarity: sim?.similarity || 0,
       };
     });
+
+    // Semantic rerank with Jina Reranker v2 (graceful fallback on failure)
+    const sourceRecipe = await db.query.recipes.findFirst({
+      where: eq(recipes.id, recipeId),
+      columns: { name: true, description: true },
+    });
+    if (sourceRecipe) {
+      const rerankQuery = `${sourceRecipe.name}. ${sourceRecipe.description ?? ''}`.trim();
+      const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
+      if (rerankedIndices) {
+        recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
+      }
+    }
 
     // Apply ranking (use semantic mode for similar recipes)
     const rankedRecipes = rankRecipes(recipesWithSimilarity, {

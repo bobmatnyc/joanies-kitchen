@@ -141,6 +141,23 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
 }
 
 /**
+ * Convenience wrapper: fetch raw markdown content for a URL via Jina Reader.
+ * Returns just the content string (optionally truncated) or null on failure.
+ * Use this when you only need the page text and not the structured fields.
+ */
+export async function fetchContentWithJina(
+  url: string,
+  maxLength?: number
+): Promise<string | null> {
+  const result = await scrapeWithJina(url);
+  if (!result.success || !result.content) return null;
+  if (maxLength && result.content.length > maxLength) {
+    return result.content.substring(0, maxLength);
+  }
+  return result.content;
+}
+
+/**
  * Validate if a URL is scrapeable (basic checks)
  */
 export function isValidScrapeUrl(url: string): { valid: boolean; error?: string } {

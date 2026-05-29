@@ -1,11 +1,12 @@
 /**
  * Embedding Generation Utilities for Recipe Manager
  *
- * Uses Hugging Face Inference API with sentence-transformers/all-MiniLM-L6-v2
- * Model details: 384-dimensional embeddings optimized for semantic similarity
+ * Uses Jina AI Embeddings v3 API (https://api.jina.ai/v1/embeddings)
+ * Model details: 1024-dimensional embeddings, truncated to 384 via Matryoshka
+ * representation learning (MRL) to preserve the existing pgvector schema.
  *
  * Features:
- * - Single and batch embedding generation
+ * - Single and batch embedding generation (native batching via Jina API)
  * - Recipe-specific embedding generation
  * - Automatic retry with exponential backoff
  * - Rate limiting support
@@ -15,20 +16,22 @@
 import type { Recipe } from '@/lib/db/schema';
 
 // Constants
-// Using BAAI/bge-small-en-v1.5 which is properly configured for feature-extraction
-// 384-dimensional embeddings, efficient and accurate for semantic search
-const HF_API_URL = 'https://router.huggingface.co/hf-inference/BAAI/bge-small-en-v1.5';
+// Jina Embeddings v3 supports Matryoshka dimensions — we request 384 to remain
+// compatible with the existing pgvector column (no schema change required).
+const JINA_API_URL = 'https://api.jina.ai/v1/embeddings';
 const EMBEDDING_DIMENSION = 384;
-const MODEL_NAME = 'BAAI/bge-small-en-v1.5';
-const DEFAULT_TIMEOUT = 30000; // 30 seconds (accounts for model cold start)
-const DEFAULT_RETRIES = 5; // Increased from 3 to handle cold starts better
+const MODEL_NAME = 'jina-embeddings-v3';
+const JINA_TASK = 'text-matching'; // best for semantic similarity / retrieval pairs
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
+const DEFAULT_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 2000; // 2 seconds base delay
 
 // Types
 export interface EmbeddingGenerationOptions {
   retries?: number;
   timeout?: number;
-  waitForModel?: boolean; // Wait for model to load if it's cold
+  /** @deprecated Retained for API compatibility; Jina has no cold-start concept. */
+  waitForModel?: boolean;
 }
 
 export interface RecipeEmbeddingResult {
@@ -105,48 +108,63 @@ export async function generateEmbedding(
   text: string,
   options: EmbeddingGenerationOptions = {}
 ): Promise<number[]> {
-  const { retries = DEFAULT_RETRIES, timeout = DEFAULT_TIMEOUT, waitForModel = true } = options;
-
-  // Validate API key
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) {
-    throw new EmbeddingError(
-      'HUGGINGFACE_API_KEY not configured in environment variables',
-      'CONFIG_ERROR',
-      { hint: 'Get your API key from https://huggingface.co/settings/tokens' }
-    );
-  }
+  const { retries = DEFAULT_RETRIES, timeout = DEFAULT_TIMEOUT } = options;
 
   // Validate input
   if (!text || text.trim().length === 0) {
     throw new EmbeddingError('Text cannot be empty', 'VALIDATION_ERROR');
   }
 
+  const embeddings = await callJinaEmbeddings([text], { retries, timeout });
+  const embedding = embeddings[0];
+  validateEmbedding(embedding);
+  return embedding;
+}
+
+/**
+ * Low-level helper that calls the Jina Embeddings v3 endpoint with retry/backoff.
+ * Supports native batching — returns one embedding per input in the same order.
+ */
+async function callJinaEmbeddings(
+  inputs: string[],
+  { retries, timeout }: { retries: number; timeout: number }
+): Promise<number[][]> {
+  // Validate API key
+  const apiKey = process.env.JINA_API_KEY;
+  if (!apiKey) {
+    throw new EmbeddingError(
+      'JINA_API_KEY not configured in environment variables',
+      'CONFIG_ERROR',
+      { hint: 'Get your API key from https://jina.ai/' }
+    );
+  }
+
   let lastError: Error | null = null;
 
-  // Retry loop with exponential backoff
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       try {
-        const response = await fetch(HF_API_URL, {
+        const response = await fetch(JINA_API_URL, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            inputs: text,
-            options: waitForModel ? { wait_for_model: true } : undefined,
+            model: MODEL_NAME,
+            input: inputs,
+            dimensions: EMBEDDING_DIMENSION,
+            task: JINA_TASK,
+            embedding_type: 'float',
           }),
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
 
-        // Handle different response statuses
         if (!response.ok) {
           const errorBody = await response.text();
           let errorData: any;
@@ -158,54 +176,50 @@ export async function generateEmbedding(
 
           // Rate limiting - retry with backoff
           if (response.status === 503 || response.status === 429) {
-            const estimatedTime = errorData.estimated_time || 20;
-
             if (attempt < retries) {
-              const delay = Math.min(
-                INITIAL_RETRY_DELAY * 2 ** attempt,
-                Math.max(estimatedTime * 1000, 5000) // At least 5 seconds for model loading
-              );
+              const delay = Math.min(INITIAL_RETRY_DELAY * 2 ** attempt, 30000);
               console.log(
-                `[HuggingFace] Model loading or rate limited (HTTP ${response.status}), retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
-              );
-              console.log(
-                `[HuggingFace] API response: ${JSON.stringify(errorData).substring(0, 200)}`
+                `[Jina] Rate limited (HTTP ${response.status}), retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
               );
               await sleep(delay);
               continue;
             }
 
             throw new EmbeddingError(
-              `Rate limit or model loading after ${retries + 1} attempts: ${errorData.error || 'Service unavailable'}`,
+              `Rate limit after ${retries + 1} attempts: ${errorData.detail || errorData.message || 'Service unavailable'}`,
               'RATE_LIMIT',
-              { status: response.status, estimatedTime, errorData, attempts: retries + 1 }
+              { status: response.status, errorData, attempts: retries + 1 }
             );
           }
 
-          // Other API errors
           throw new EmbeddingError(
-            `Hugging Face API error: ${errorData.error || errorBody}`,
+            `Jina API error: ${errorData.detail || errorData.message || errorBody}`,
             'API_ERROR',
             { status: response.status, errorData }
           );
         }
 
-        // Parse and validate response
-        const embedding = await response.json();
+        const json = (await response.json()) as {
+          data?: Array<{ embedding: number[]; index: number }>;
+        };
 
-        // Handle nested array response (some models return [[...]])
-        const flatEmbedding = Array.isArray(embedding[0]) ? embedding[0] : embedding;
+        if (!json.data || !Array.isArray(json.data) || json.data.length !== inputs.length) {
+          throw new EmbeddingError(
+            `Jina API returned unexpected response shape (expected ${inputs.length} embeddings)`,
+            'API_ERROR',
+            { received: json.data?.length }
+          );
+        }
 
-        validateEmbedding(flatEmbedding);
-
-        return flatEmbedding;
+        // Order by `index` to guarantee alignment with inputs
+        const ordered = [...json.data].sort((a, b) => a.index - b.index);
+        return ordered.map((d) => d.embedding);
       } finally {
         clearTimeout(timeoutId);
       }
     } catch (error: any) {
       lastError = error;
 
-      // Don't retry on validation or config errors
       if (
         error instanceof EmbeddingError &&
         (error.code === 'VALIDATION_ERROR' || error.code === 'CONFIG_ERROR')
@@ -213,12 +227,11 @@ export async function generateEmbedding(
         throw error;
       }
 
-      // Handle timeout
       if (error.name === 'AbortError') {
         if (attempt < retries) {
           const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
           console.log(
-            `[HuggingFace] Request timeout, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
+            `[Jina] Request timeout, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
           );
           await sleep(delay);
           continue;
@@ -230,25 +243,22 @@ export async function generateEmbedding(
         );
       }
 
-      // Retry on network errors
       if (attempt < retries) {
         const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
         console.log(
-          `[HuggingFace] Network error, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1}): ${error.message}`
+          `[Jina] Network error, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1}): ${error.message}`
         );
         await sleep(delay);
       }
     }
   }
 
-  // All retries exhausted
   throw new EmbeddingError(
     `Failed to generate embedding after ${retries + 1} attempts`,
     'API_ERROR',
     {
       lastError: lastError?.message,
       attempts: retries + 1,
-      hint: 'HuggingFace model may be cold starting. Consider retrying in a few minutes.',
     }
   );
 }
@@ -367,54 +377,48 @@ export async function generateEmbeddingsBatch(
   texts: string[],
   options: BatchEmbeddingOptions = {}
 ): Promise<number[][]> {
-  const { batchSize = 10, delayMs = 1000, onProgress } = options;
+  const { batchSize = 32, delayMs = 1000, onProgress } = options;
 
   if (texts.length === 0) {
     return [];
   }
 
+  // Jina supports native batching — send chunks of `batchSize` inputs per request.
   const results: number[][] = [];
-  const errors: Array<{ index: number; text: string; error: Error }> = [];
+  const errors: Array<{ batchStart: number; size: number; error: Error }> = [];
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
-    const batchStart = i;
 
-    // Process batch in parallel
-    const batchPromises = batch.map(async (text, idx) => {
-      try {
-        return await generateEmbedding(text);
-      } catch (error) {
-        errors.push({
-          index: batchStart + idx,
-          text: text.substring(0, 100),
-          error: error as Error,
-        });
-        // Return null for failed embeddings, will be filtered out
-        return null;
+    // Filter out empty strings (Jina will reject) but preserve order via placeholder
+    const sanitized = batch.map((t) => (t && t.trim().length > 0 ? t : ' '));
+
+    try {
+      const batchEmbeddings = await callJinaEmbeddings(sanitized, {
+        retries: DEFAULT_RETRIES,
+        timeout: DEFAULT_TIMEOUT,
+      });
+
+      for (const emb of batchEmbeddings) {
+        validateEmbedding(emb);
+        results.push(emb);
       }
-    });
+    } catch (error) {
+      errors.push({ batchStart: i, size: batch.length, error: error as Error });
+      // Skip this batch's embeddings; downstream callers should handle shorter arrays.
+    }
 
-    const batchResults = await Promise.all(batchPromises);
-
-    // Filter out nulls and add to results
-    const validResults = batchResults.filter((r): r is number[] => r !== null);
-    results.push(...validResults);
-
-    // Report progress
     if (onProgress) {
       onProgress(Math.min(i + batchSize, texts.length), texts.length);
     }
 
-    // Rate limiting delay between batches
     if (i + batchSize < texts.length) {
       await sleep(delayMs);
     }
   }
 
-  // Log errors if any occurred
   if (errors.length > 0) {
-    console.error(`Failed to generate ${errors.length} embeddings:`, errors);
+    console.error(`Failed to generate ${errors.length} embedding batch(es):`, errors);
   }
 
   return results;

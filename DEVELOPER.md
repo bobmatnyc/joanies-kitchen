@@ -5,6 +5,10 @@
 Last Updated: 2025-11-20
 Version: 0.7.9
 
+**Production site:** https://joanies.kitchen (www redirects to apex)
+
+> Note: `recipes.help` is a deprecated, dead domain. Do not use it.
+
 ---
 
 ## Table of Contents
@@ -200,6 +204,21 @@ const { user, isLoaded } = useUser();
 ---
 
 ## Database Architecture
+
+### IMPORTANT: Production vs Dev Database Endpoints
+
+**Production database:** the Neon `ep-jolly-snow` endpoint, configured in
+`.env.production` / `.env.vercel.production`. This is the live database with
+~4,754 curated recipes including scraped content.
+
+**WARNING — stale dev copy:** The `ep-bold-credit` endpoint currently in
+`.env.local` is a stale development snapshot (~6,000 old recipes, NO scraped
+content, likely out of sync). Do NOT confuse it with production. Never run
+production migrations against `ep-bold-credit` or copy data from it assuming
+it matches prod.
+
+(Connection strings are stored in the gitignored `.env.*` files — never commit
+actual credentials.)
 
 ### Schema Organization
 
