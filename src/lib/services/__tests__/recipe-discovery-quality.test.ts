@@ -98,7 +98,7 @@ describe('Non-recipe URL classifier — production failure URLs (must be rejecte
     expect(service.isValidRecipeUrl('https://zerowastechef.com/subscribe')).toBe(false);
   });
 
-  it('rejects paths containing /bundle', () => {
+  it('rejects paths containing -recipe-bundle (production offender /2021/03/09/bonus-recipe-bundle)', () => {
     expect(
       service.isValidRecipeUrl('https://zerowastechef.com/2021/03/09/bonus-recipe-bundle')
     ).toBe(false);
@@ -623,5 +623,136 @@ describe('Regression — existing blocklist behavior preserved', () => {
 
   it('still rejects /contact pages on allowed domains', () => {
     expect(service.isValidRecipeUrl('https://minimalistbaker.com/contact')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA FIX 1 — "best ... recipe" (singular) must NOT be detected as a listicle
+// ---------------------------------------------------------------------------
+
+describe('QA Fix 1 — listicle title pattern: singular "recipe" must not be a false positive', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  it('does NOT flag "Best Banana Bread Recipe" as a listicle (singular recipe)', () => {
+    expect(
+      service.isListiclePage(
+        'https://anysite.com/best-banana-bread-recipe',
+        'Best Banana Bread Recipe'
+      )
+    ).toBe(false);
+  });
+
+  it('does NOT flag "Best Dal Makhani Recipe" as a listicle (singular recipe)', () => {
+    expect(
+      service.isListiclePage(
+        'https://anysite.com/best-dal-makhani-recipe',
+        'Best Dal Makhani Recipe'
+      )
+    ).toBe(false);
+  });
+
+  it('DOES flag "30 Best Zero-Waste Recipes" as a listicle (plural roundup)', () => {
+    expect(
+      service.isListiclePage(
+        'https://anysite.com/30-best-zero-waste-recipes',
+        '30 Best Zero-Waste Recipes'
+      )
+    ).toBe(true);
+  });
+
+  it('DOES flag "Best Vegan Recipes of 2024" as a listicle (plural roundup)', () => {
+    expect(
+      service.isListiclePage('https://anysite.com/best-vegan-recipes', 'Best Vegan Recipes of 2024')
+    ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA FIX 2 — '-book-' removal: recipe slugs with "-book-" must pass; real
+// production offender (/zero-waste-chef-book-is-here) must still be rejected
+// ---------------------------------------------------------------------------
+
+describe('QA Fix 2 — "-book-" removal: legitimate recipe slugs with "book" in path must pass', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  it('ACCEPTS /recipes/slow-cooker-book-club-bread (legitimate recipe with "book" in slug)', () => {
+    expect(
+      service.isValidRecipeUrl('https://minimalistbaker.com/recipes/slow-cooker-book-club-bread')
+    ).toBe(true);
+  });
+
+  it('still REJECTS /zero-waste-chef-book-is-here (production offender)', () => {
+    expect(
+      service.isValidRecipeUrl('https://zerowastechef.com/2021/04/13/zero-waste-chef-book-is-here')
+    ).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA FIX 3 — "ultimate guide/list" removal: single-recipe how-to pages must
+// not be flagged as listicles
+// ---------------------------------------------------------------------------
+
+describe('QA Fix 3 — "ultimate guide/list" removal: how-to titles must not be flagged', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  it('does NOT flag "Ultimate Guide to Sourdough Bread" as a listicle', () => {
+    expect(
+      service.isListiclePage(
+        'https://anysite.com/ultimate-guide-to-sourdough-bread',
+        'Ultimate Guide to Sourdough Bread'
+      )
+    ).toBe(false);
+  });
+
+  it('does NOT flag "Ultimate Guide to Kombucha" as a listicle', () => {
+    expect(
+      service.isListiclePage(
+        'https://anysite.com/ultimate-guide-to-kombucha',
+        'Ultimate Guide to Kombucha'
+      )
+    ).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA FIX 4 — '-bundle' narrowed to '-recipe-bundle': generic "-bundle" slugs
+// must pass; production offender /bonus-recipe-bundle must still be rejected
+// ---------------------------------------------------------------------------
+
+describe('QA Fix 4 — "-bundle" narrowed to "-recipe-bundle": generic bundle slugs must pass', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  it('still REJECTS /2021/03/09/bonus-recipe-bundle (production offender)', () => {
+    expect(
+      service.isValidRecipeUrl('https://zerowastechef.com/2021/03/09/bonus-recipe-bundle')
+    ).toBe(false);
+  });
+
+  it('still REJECTS /bonus-recipe-bundle (production offender, short form)', () => {
+    expect(service.isValidRecipeUrl('https://zerowastechef.com/bonus-recipe-bundle')).toBe(false);
+  });
+
+  it('ACCEPTS a legitimate recipe slug that contains the word "bundle" but not as -recipe-bundle', () => {
+    // A hypothetical recipe page about a vegetable bundle (e.g. asparagus bundle recipe)
+    expect(
+      service.isValidRecipeUrl('https://minimalistbaker.com/recipes/asparagus-bundle-recipe')
+    ).toBe(true);
   });
 });

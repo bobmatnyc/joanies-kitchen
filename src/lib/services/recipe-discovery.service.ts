@@ -212,9 +212,14 @@ const NON_RECIPE_PATH_SEGMENTS = [
 
 /**
  * URL path substrings (non-segment) for clearly-non-recipe pages.
- * Note: '-cookbook' and '-book-' catch compound slugs like:
- *   /zero-waste-chef-cookbook, /zero-waste-chef-book-is-here
- * Note: '-bundle' catches /bonus-recipe-bundle, /2021/03/09/bonus-recipe-bundle
+ * Note: '-cookbook' catches compound slugs like /zero-waste-chef-cookbook.
+ * Note: '-book-is-here' catches the specific production offender
+ *   /zero-waste-chef-book-is-here (book promo page).
+ *   The former '-book-' entry was removed — it was too broad and would reject
+ *   legitimate recipe slugs like /recipes/slow-cooker-book-club-bread.
+ * Note: '-recipe-bundle' catches /bonus-recipe-bundle and
+ *   /2021/03/09/bonus-recipe-bundle without colliding with generic '-bundle'
+ *   slugs that may legitimately appear in recipe names.
  */
 const NON_RECIPE_PATH_SUBSTRINGS = [
   'recipe-index',
@@ -223,12 +228,11 @@ const NON_RECIPE_PATH_SUBSTRINGS = [
   '/the-book',
   '/buy-the-book',
   '-book-is-here',
-  '-book-',
   '/shop/',
   '/shop?',
   '/subscribe',
   '/gift',
-  '-bundle',
+  '-recipe-bundle',
   '/bonus-',
   '/promo',
   '/landing',
@@ -242,7 +246,10 @@ const NON_RECIPE_PATH_SUBSTRINGS = [
 const LISTICLE_TITLE_PATTERNS: RegExp[] = [
   /\b\d+\s+(?:easy\s+|quick\s+|healthy\s+|vegan\s+|simple\s+)?recipes?\b/i,
   /\brecipes\s+(?:to|that|for|you|we)\b/i,
-  /\bbest\s+.{0,30}recipes?\b/i,
+  // PLURAL-ONLY: "best ... recipes" (plural) signals a roundup; singular "recipe" is fine.
+  // Changed from /\bbest\s+.{0,30}recipes?\b/i — the ? caused false positives on
+  // single-recipe titles like "Best Banana Bread Recipe".
+  /\bbest\s+.{0,30}\brecipes\b/i,
   /\btop\s+\d+\s+recipes?\b/i,
   /\broundup\b/i,
   /\brecipe\s+roundup\b/i,
@@ -251,7 +258,8 @@ const LISTICLE_TITLE_PATTERNS: RegExp[] = [
   /\bfavorite\s+recipes?\b/i,
   /\bcollection\s+of\s+recipes?\b/i,
   /\brecipes?\s+collection\b/i,
-  /\bultimate\s+(?:guide|list)\b/i,
+  // NOTE: /\bultimate\s+(?:guide|list)\b/i was removed — it flagged legitimate
+  // single-recipe how-to pages like "Ultimate Guide to Sourdough Bread".
   /\b(?:dietitian|nutritionist)-approved\s+recipes?\b/i,
 ];
 
