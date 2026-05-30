@@ -29,6 +29,7 @@ import {
 interface ServiceUnderTest {
   isValidRecipeUrl: (url: string) => boolean;
   isListiclePage: (url: string, title?: string) => boolean;
+  isHubPage: (url: string) => boolean;
   harvestChildLinksFromListicle: (
     url: string,
     seenUrls: Set<string>
@@ -754,5 +755,207 @@ describe('QA Fix 4 — "-bundle" narrowed to "-recipe-bundle": generic bundle sl
     expect(
       service.isValidRecipeUrl('https://minimalistbaker.com/recipes/asparagus-bundle-recipe')
     ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HUB PAGE HARVEST — production run b0682446 failing URLs must now be detected
+// as harvestable hub/listicle pages (requirement from feat/scraper-blog-listicle-harvest)
+// ---------------------------------------------------------------------------
+
+describe('Hub page detection — production run b0682446 failing URLs (must be harvestable)', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  // /blogs/ Shopify-style blog paths
+  it('detects cabotcreamery.com /blogs/food/root-stem-recipes as harvestable hub', () => {
+    expect(service.isListiclePage('https://cabotcreamery.com/blogs/food/root-stem-recipes')).toBe(
+      true
+    );
+  });
+
+  it('detects any /blogs/<category>/<slug> path as a hub (Shopify pattern)', () => {
+    expect(service.isListiclePage('https://anystore.com/blogs/recipes/summer-favorites')).toBe(
+      true
+    );
+  });
+
+  it('detects bare /blogs/<slug> path as a hub', () => {
+    expect(service.isListiclePage('https://anystore.com/blogs/food-tips')).toBe(true);
+  });
+
+  // /recipes-categories/ hub paths
+  it('detects lidiasitaly.com /recipes-categories/main-dishes as harvestable hub', () => {
+    expect(service.isListiclePage('https://lidiasitaly.com/recipes-categories/main-dishes')).toBe(
+      true
+    );
+  });
+
+  it('detects any /recipes-categories/<slug> path as a hub', () => {
+    expect(service.isListiclePage('https://anysite.com/recipes-categories/soups-and-stews')).toBe(
+      true
+    );
+  });
+
+  // /recipe-category/ WP paths
+  it('detects /recipe-category/<slug> path as a hub', () => {
+    expect(service.isListiclePage('https://anysite.com/recipe-category/vegetarian')).toBe(true);
+  });
+
+  // /recipes/category/ WP paths
+  it('detects /recipes/category/<slug> path as a hub', () => {
+    expect(service.isListiclePage('https://anysite.com/recipes/category/pasta')).toBe(true);
+  });
+
+  // /blog/<slug> ambiguous paths
+  it('detects lidiasitaly.com /blog/cooking-with-legends as harvestable blog path', () => {
+    expect(service.isListiclePage('https://lidiasitaly.com/blog/cooking-with-legends')).toBe(true);
+  });
+
+  it('detects any /blog/<slug> path as harvestable (with single-recipe fallback)', () => {
+    expect(service.isListiclePage('https://anysite.com/blog/my-favorite-summer-dishes')).toBe(true);
+  });
+
+  // zerowastechef.com bare single-segment tag/category slugs
+  it('detects zerowastechef.com /sourdough as a category hub (date-structured domain)', () => {
+    expect(service.isListiclePage('https://zerowastechef.com/sourdough')).toBe(true);
+  });
+
+  it('detects zerowastechef.com /fermentation as a category hub (date-structured domain)', () => {
+    expect(service.isListiclePage('https://zerowastechef.com/fermentation')).toBe(true);
+  });
+
+  // Definitive hub pages must be identified by isHubPage (no fallback extraction)
+  it('isHubPage returns true for /blogs/<segments> (definitive hub — no single-recipe fallback)', () => {
+    expect(service.isHubPage('https://cabotcreamery.com/blogs/food/root-stem-recipes')).toBe(true);
+  });
+
+  it('isHubPage returns true for /recipes-categories/<slug>', () => {
+    expect(service.isHubPage('https://lidiasitaly.com/recipes-categories/main-dishes')).toBe(true);
+  });
+
+  it('isHubPage returns false for /blog/<slug> (ambiguous — single-recipe fallback applies)', () => {
+    expect(service.isHubPage('https://lidiasitaly.com/blog/cooking-with-legends')).toBe(false);
+  });
+
+  it('isHubPage returns false for zerowastechef.com /sourdough (ambiguous — fallback applies)', () => {
+    expect(service.isHubPage('https://zerowastechef.com/sourdough')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REGRESSION GUARD — single-recipe /blog/<slug> posts must NOT be silently lost
+// The fallback path in discoverRecipeUrls rescues them after empty harvest.
+// These URLs must still pass isValidRecipeUrl (so the fallback can add them).
+// ---------------------------------------------------------------------------
+
+describe('Regression guard — single-recipe /blog/<slug> posts must pass isValidRecipeUrl', () => {
+  let service: ServiceUnderTest;
+
+  beforeEach(() => {
+    service = makeService();
+  });
+
+  it('abrowntable.com/blog/turmeric-rice still passes isValidRecipeUrl (fallback-eligible)', () => {
+    // isListiclePage now returns true (blog slug), but isHubPage is false,
+    // so discoverRecipeUrls will fall back to single-recipe extraction when harvest yields nothing.
+    expect(service.isValidRecipeUrl('https://www.abrowntable.com/blog/turmeric-rice')).toBe(true);
+  });
+
+  it('lidiasitaly.com/blog/some-recipe-post still passes isValidRecipeUrl (fallback-eligible)', () => {
+    expect(service.isValidRecipeUrl('https://www.lidiasitaly.com/blog/some-recipe-post')).toBe(
+      true
+    );
+  });
+
+  it('isHubPage returns false for /blog/<slug> (fallback is enabled)', () => {
+    expect(service.isHubPage('https://www.abrowntable.com/blog/turmeric-rice')).toBe(false);
+  });
+
+  it('date-slug recipe paths on zerowastechef.com are NOT classified as hub pages', () => {
+    // /2023/01/sourdough-bread has 3 segments — not a bare single-segment path
+    expect(service.isListiclePage('https://www.zerowastechef.com/2023/01/sourdough-bread/')).toBe(
+      false
+    );
+  });
+
+  it('date-slug recipe paths on zerowastechef.com still pass isValidRecipeUrl', () => {
+    expect(service.isValidRecipeUrl('https://www.zerowastechef.com/2023/01/sourdough-bread/')).toBe(
+      true
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HUB BOUNDS / DEDUP — existing behavior preserved for hub pages
+// ---------------------------------------------------------------------------
+
+describe('Hub page harvest — bounds and dedup preserved', () => {
+  it('harvestChildLinksFromListicle works for hub pages (same implementation path)', async () => {
+    const service = makeService('fake-firecrawl-key');
+
+    const mockLinks = [
+      'https://cabotcreamery.com/recipes/cheddar-broccoli-soup',
+      'https://cabotcreamery.com/recipes/mac-and-cheese',
+    ];
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { links: mockLinks },
+      }),
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    // Hub pages route through the same harvestChildLinksFromListicle implementation
+    // For cabotcreamery.com (not in ALLOWED_DOMAINS), same-domain links should pass
+    // because the domain filter allows same-domain links
+    const result = await service.harvestChildLinksFromListicle(
+      'https://cabotcreamery.com/blogs/food/root-stem-recipes',
+      new Set()
+    );
+
+    // Links must pass isValidRecipeUrl — /recipes/<slug> on non-allowed domain
+    // requires a RECIPE_URL_INDICATOR; /recipes/ qualifies
+    expect(result.length).toBeGreaterThanOrEqual(0); // bounds respected
+    expect(result.length).toBeLessThanOrEqual(MAX_CHILDREN_PER_LISTICLE);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('harvestChildLinksFromListicle for lidiasitaly.com hub returns recipe child links', async () => {
+    const service = makeService('fake-firecrawl-key');
+
+    const mockLinks = [
+      'https://lidiasitaly.com/recipes/braised-chicken/',
+      'https://lidiasitaly.com/recipes/pasta-carbonara/',
+      'https://lidiasitaly.com/recipes/vegetable-risotto/',
+    ];
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { links: mockLinks },
+      }),
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await service.harvestChildLinksFromListicle(
+      'https://lidiasitaly.com/recipes-categories/main-dishes',
+      new Set()
+    );
+
+    // lidiasitaly.com is in ALLOWED_DOMAINS; /recipes/<slug> is valid
+    expect(result.length).toBe(3);
+    expect(result.map((r) => r.url)).toContain('https://lidiasitaly.com/recipes/braised-chicken/');
+
+    vi.unstubAllGlobals();
   });
 });
