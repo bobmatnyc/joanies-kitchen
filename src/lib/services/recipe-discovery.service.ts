@@ -555,17 +555,30 @@ export class RecipeDiscoveryService {
                   totalHarvested++;
                   if (discovered.length >= maxResults) break;
                 }
-              } else if (!this.isHubPage(result.url) && this.isValidRecipeUrl(result.url)) {
-                // Fallback: a /blog/<slug> page yielded no children — it may be a single
-                // recipe post. Attempt extraction on the page itself if it passes URL
-                // validation (hub-only structural pages are never single recipes).
+              } else if (this.isValidRecipeUrl(result.url)) {
+                // Fallback: harvest returned no children — the page may be a single
+                // recipe (e.g. a Shopify /blogs/<cat>/<slug> single-recipe post, or a
+                // /blog/<slug> recipe post). Add it for extraction if it passes URL
+                // validation regardless of isHubPage — true structural category indexes
+                // that contain no recipe data will simply fail extraction harmlessly, but
+                // legitimate single-recipe pages at those URL shapes are rescued.
                 console.log(
-                  `[RecipeDiscovery] Blog page yielded no children, falling back to single-recipe extraction: ${result.url}`
+                  `[RecipeDiscovery] Listicle/hub page yielded no children, falling back to single-recipe extraction: ${result.url}`
                 );
                 seenUrls.add(result.url);
                 discovered.push({ ...result, searchQuery: query });
                 if (discovered.length >= maxResults) break;
               }
+            } else if (this.isValidRecipeUrl(result.url) && !seenUrls.has(result.url)) {
+              // Firecrawl unavailable (no key or harvest cap reached): do not silently drop
+              // listicle/hub URLs that also pass isValidRecipeUrl — attempt single-recipe
+              // extraction so legitimate single-recipe blog posts are not lost.
+              console.log(
+                `[RecipeDiscovery] No Firecrawl harvest available — attempting single-recipe extraction: ${result.url}`
+              );
+              seenUrls.add(result.url);
+              discovered.push({ ...result, searchQuery: query });
+              if (discovered.length >= maxResults) break;
             } else {
               console.log(
                 `[RecipeDiscovery] Harvest cap reached or no Firecrawl key — skipping listicle`
