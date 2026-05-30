@@ -9,6 +9,8 @@
  * - Chef-targeted query generation for sustainable-chef roster
  * - Curated source allowlist for quality sites (including sustainable-chef domains)
  * - Domain blocklist for paywalled/low-quality/known-blocker sites
+ * - Non-recipe URL classifier: excludes index/archive/promo/roundup pages pre-extraction
+ * - Listicle detection + child-link harvesting: roundup pages yield individual recipe links
  * - Rate limiting with exponential backoff
  * - Day-of-week query rotation for diversity
  */
@@ -39,25 +41,27 @@ interface TavilyApiResponse {
 
 /**
  * Zero-waste focused generic search queries for recipe discovery.
- * Expanded and diversified — avoid hardcoding known-blocker site names.
+ * Queries are phrased to surface specific single-recipe pages rather than
+ * roundups/listicles. Use "recipe for" or specific dish names to bias Tavily
+ * toward individual recipe pages.
  */
 const ZERO_WASTE_QUERIES = [
-  'zero waste recipe minimalistbaker.com OR budgetbytes.com OR food52.com',
-  'fridge cleanout recipe scraps wilted vegetable "use up"',
-  'overripe fruit recipe "use everything" zero waste cooking',
-  'stale bread recipe leftover rice pantry clearout',
-  'no waste cooking freezer recipe budget pantry',
-  'vegetable scrap recipe use leftover bones stock',
-  'leftover friendly recipe minimal food waste sustainable cooking',
-  'root to stem cooking recipe reduce food waste',
-  'zero waste kitchen recipe sourdough fermentation preservation',
-  'sustainable recipe seasonal vegetable whole ingredient',
-  'frugal cooking recipe "use every part" nose to tail',
-  'cook from the pantry recipe "no waste" ingredients',
+  'site:minimalistbaker.com OR site:budgetbytes.com OR site:food52.com recipe "zero waste" how to make',
+  '"recipe for" fridge cleanout scraps wilted vegetable "use up" -"recipes to" -"best recipes"',
+  '"recipe for" overripe fruit "use everything" zero waste cooking -roundup -listicle',
+  '"recipe for" stale bread leftover rice pantry clearout how to make',
+  'site:101cookbooks.com OR site:smittenkitchen.com OR site:cookieandkate.com recipe zero waste',
+  '"vegetable scrap" recipe broth stock single "how to make" -"recipes that"',
+  '"recipe for" leftover-friendly minimal food waste sustainable cooking',
+  '"root to stem" recipe single dish -roundup -"best recipes" -"recipes to"',
+  'zero waste kitchen "recipe for" sourdough OR fermentation OR preservation',
+  'sustainable recipe seasonal vegetable whole ingredient "how to make"',
+  '"recipe for" frugal cooking "use every part" nose to tail -roundup',
+  'pantry recipe "cook from scratch" "no waste" single dish how to make',
 ];
 
 /**
- * Sustainable-chef roster with name → website domain.
+ * Sustainable-chef roster with name to website domain.
  * Used for chef-targeted query generation.
  */
 export const CHEF_QUERY_TARGETS: Array<{ name: string; domain: string }> = [
@@ -163,7 +167,8 @@ const RECIPE_URL_INDICATORS = [
 ];
 
 /**
- * URL patterns that indicate non-recipe pages to skip
+ * URL patterns that always indicate non-recipe pages to skip.
+ * Checked before allowed-domain logic so they are excluded everywhere.
  */
 const NON_RECIPE_URL_PATTERNS = [
   '/author/',
@@ -179,17 +184,107 @@ const NON_RECIPE_URL_PATTERNS = [
   '/staff/',
   '/team/',
   '/news/',
-  '/article/', // Generic article pages
+  '/article/',
 ];
+
+/**
+ * Path segments that identify non-recipe structural/promo pages.
+ * Applies to ALL domains (including allowed ones).
+ */
+const NON_RECIPE_PATH_SEGMENTS = [
+  'recipe-index',
+  'recipe-list',
+  'recipe-archive',
+  'cookbook',
+  'book',
+  'shop',
+  'subscribe',
+  'newsletter',
+  'gift',
+  'bundle',
+  'press',
+  'media',
+  'events',
+  'classes',
+  'workshops',
+  'index',
+];
+
+/**
+ * URL path substrings (non-segment) for clearly-non-recipe pages.
+ * Note: '-cookbook' and '-book-' catch compound slugs like:
+ *   /zero-waste-chef-cookbook, /zero-waste-chef-book-is-here
+ * Note: '-bundle' catches /bonus-recipe-bundle, /2021/03/09/bonus-recipe-bundle
+ */
+const NON_RECIPE_PATH_SUBSTRINGS = [
+  'recipe-index',
+  '/cookbook',
+  '-cookbook',
+  '/the-book',
+  '/buy-the-book',
+  '-book-is-here',
+  '-book-',
+  '/shop/',
+  '/shop?',
+  '/subscribe',
+  '/gift',
+  '-bundle',
+  '/bonus-',
+  '/promo',
+  '/landing',
+  '/press',
+];
+
+/**
+ * Title and URL patterns that indicate a listicle / roundup page.
+ * These pages contain LINKS to recipes rather than being a single recipe.
+ */
+const LISTICLE_TITLE_PATTERNS: RegExp[] = [
+  /\b\d+\s+(?:easy\s+|quick\s+|healthy\s+|vegan\s+|simple\s+)?recipes?\b/i,
+  /\brecipes\s+(?:to|that|for|you|we)\b/i,
+  /\bbest\s+.{0,30}recipes?\b/i,
+  /\btop\s+\d+\s+recipes?\b/i,
+  /\broundup\b/i,
+  /\brecipe\s+roundup\b/i,
+  /\bweekly\s+menu\b/i,
+  /\bmeal\s+plan\b/i,
+  /\bfavorite\s+recipes?\b/i,
+  /\bcollection\s+of\s+recipes?\b/i,
+  /\brecipes?\s+collection\b/i,
+  /\bultimate\s+(?:guide|list)\b/i,
+  /\b(?:dietitian|nutritionist)-approved\s+recipes?\b/i,
+];
+
+const LISTICLE_URL_PATTERNS: RegExp[] = [
+  /\/\d+-(?:\w+-)*recipes(?:[-/]|$)/i,
+  /\/(?:best|top|easy|healthy|quick|vegan)-\w+-recipes(?:[-/]|$)/i,
+  /\/recipes-(?:to|that|for|you)\b/i,
+  /\/roundup\b/i,
+  /\/recipe-roundup\b/i,
+  /\/\d+-sustainable/i,
+  /\/\d+-zero-waste/i,
+  /\/\d+-dietitian/i,
+  /\/blog\/\w+-recipes?(?:[-/]|$)/i,
+];
+
+/**
+ * Harvest bounds — cap children to avoid URL budget explosion.
+ * Per listicle: max 10 child links harvested.
+ * Per run: max 15 total harvested links across all listicles.
+ */
+export const MAX_CHILDREN_PER_LISTICLE = 10;
+export const MAX_TOTAL_HARVESTED_PER_RUN = 15;
 
 export class RecipeDiscoveryService {
   private readonly apiKey: string;
+  private readonly firecrawlApiKey: string;
   private readonly baseUrl = 'https://api.tavily.com/search';
   private readonly retryDelayMs = 1000;
   private readonly maxRetries = 3;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, firecrawlApiKey?: string) {
     this.apiKey = apiKey || process.env.TAVILY_API_KEY || '';
+    this.firecrawlApiKey = firecrawlApiKey || process.env.FIRECRAWL_API_KEY || '';
 
     if (!this.apiKey) {
       console.warn('[RecipeDiscovery] No TAVILY_API_KEY configured. Service will not function.');
@@ -201,10 +296,122 @@ export class RecipeDiscoveryService {
   }
 
   /**
+   * Classify a URL as a listicle/roundup based on its path and title.
+   * Returns true when the URL is a multi-recipe page (not a single recipe).
+   */
+  isListiclePage(url: string, title?: string): boolean {
+    let pathname: string;
+    try {
+      pathname = new URL(url).pathname.toLowerCase();
+    } catch {
+      return false;
+    }
+
+    if (LISTICLE_URL_PATTERNS.some((p) => p.test(pathname))) return true;
+    if (title && LISTICLE_TITLE_PATTERNS.some((p) => p.test(title))) return true;
+
+    return false;
+  }
+
+  /**
+   * Harvest individual recipe links from a listicle/roundup page using Firecrawl.
+   * Returns up to MAX_CHILDREN_PER_LISTICLE child URLs that pass isValidRecipeUrl().
+   * Returns empty array if Firecrawl is not configured or scraping fails.
+   *
+   * Design constraints:
+   * - Harvested URLs are NOT themselves re-harvested (no recursion)
+   * - Results are capped at MAX_CHILDREN_PER_LISTICLE per call
+   * - Caller caps total across the run at MAX_TOTAL_HARVESTED_PER_RUN
+   */
+  async harvestChildLinksFromListicle(
+    listicleUrl: string,
+    seenUrls: Set<string>
+  ): Promise<DiscoveredRecipeUrl[]> {
+    if (!this.firecrawlApiKey) {
+      console.warn('[RecipeDiscovery] Cannot harvest listicle links — FIRECRAWL_API_KEY not set');
+      return [];
+    }
+
+    try {
+      console.log(`[RecipeDiscovery] Harvesting child links from listicle: ${listicleUrl}`);
+
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.firecrawlApiKey}`,
+        },
+        body: JSON.stringify({
+          url: listicleUrl,
+          formats: ['links'],
+          onlyMainContent: true,
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.warn(`[RecipeDiscovery] Firecrawl scrape failed (${response.status}): ${errText}`);
+        return [];
+      }
+
+      const data = (await response.json()) as {
+        success?: boolean;
+        data?: {
+          links?: string[];
+        };
+      };
+
+      const links: string[] = data?.data?.links ?? [];
+      if (links.length === 0) {
+        console.log(`[RecipeDiscovery] No links extracted from listicle: ${listicleUrl}`);
+        return [];
+      }
+
+      const listicleDomain = this.extractDomain(listicleUrl);
+      const harvested: DiscoveredRecipeUrl[] = [];
+
+      for (const link of links) {
+        if (harvested.length >= MAX_CHILDREN_PER_LISTICLE) break;
+        if (seenUrls.has(link)) continue;
+
+        // Must pass full validity check AND must not itself be a listicle (no recursion)
+        if (!this.isValidRecipeUrl(link)) continue;
+        if (this.isListiclePage(link)) continue;
+
+        // Prefer same-domain links or known-allowed domains
+        const linkDomain = this.extractDomain(link);
+        if (linkDomain !== listicleDomain && !ALLOWED_DOMAINS.has(linkDomain)) continue;
+
+        harvested.push({
+          url: link,
+          title: '',
+          description: `Harvested from listicle: ${listicleUrl}`,
+          source: linkDomain,
+          publishedDate: null,
+          score: 0.5,
+          searchQuery: `harvested:${listicleUrl}`,
+        });
+        seenUrls.add(link);
+      }
+
+      console.log(
+        `[RecipeDiscovery] Harvested ${harvested.length} child links from: ${listicleUrl}`
+      );
+      return harvested;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(`[RecipeDiscovery] Failed to harvest from listicle ${listicleUrl}: ${msg}`);
+      return [];
+    }
+  }
+
+  /**
    * Discover zero-waste recipe URLs via Tavily Search
    *
-   * @param options - Discovery options
-   * @returns Array of discovered recipe URLs with metadata
+   * Enhancement over previous version:
+   * - Stronger isValidRecipeUrl() pre-filters non-recipe URLs
+   * - Listicle/roundup pages are detected and their child recipe links are harvested
    */
   async discoverRecipeUrls(
     options: { maxResults?: number; searchQuery?: string; allowedDomainsOnly?: boolean } = {}
@@ -218,6 +425,7 @@ export class RecipeDiscoveryService {
     const queriesToRun = searchQuery ? [searchQuery] : this.getRotatingQueries();
     const discovered: DiscoveredRecipeUrl[] = [];
     const seenUrls = new Set<string>();
+    let totalHarvested = 0;
 
     for (const query of queriesToRun) {
       if (discovered.length >= maxResults) break;
@@ -233,6 +441,31 @@ export class RecipeDiscoveryService {
 
         for (const result of results) {
           if (seenUrls.has(result.url)) continue;
+
+          // Check if this is a listicle/roundup — harvest children instead
+          if (this.isListiclePage(result.url, result.title)) {
+            console.log(
+              `[RecipeDiscovery] Detected listicle, harvesting child links: ${result.url}`
+            );
+
+            if (totalHarvested < MAX_TOTAL_HARVESTED_PER_RUN && this.firecrawlApiKey) {
+              const children = await this.harvestChildLinksFromListicle(result.url, seenUrls);
+              for (const child of children) {
+                if (totalHarvested >= MAX_TOTAL_HARVESTED_PER_RUN) break;
+                discovered.push({ ...child, searchQuery: query });
+                totalHarvested++;
+                if (discovered.length >= maxResults) break;
+              }
+            } else {
+              console.log(
+                `[RecipeDiscovery] Harvest cap reached or no Firecrawl key — skipping listicle`
+              );
+            }
+            seenUrls.add(result.url);
+            continue;
+          }
+
+          // Normal single-recipe URL flow
           if (!this.isValidRecipeUrl(result.url)) continue;
 
           seenUrls.add(result.url);
@@ -301,7 +534,7 @@ export class RecipeDiscoveryService {
         const data: TavilyApiResponse = await response.json();
 
         return data.results
-          .filter((r) => this.isValidRecipeUrl(r.url))
+          .filter((r) => !this.isListiclePage(r.url, r.title) && this.isValidRecipeUrl(r.url))
           .map((r) => ({
             url: r.url,
             title: r.title || 'Untitled',
@@ -327,9 +560,19 @@ export class RecipeDiscoveryService {
   }
 
   /**
-   * Validate a URL as a likely recipe page
+   * Validate a URL as a likely single-recipe page.
+   *
+   * Rejects:
+   * - Blocked domains (paywalled, known-blockers)
+   * - Standard non-recipe path patterns (/author/, /tag/, etc.)
+   * - Non-recipe structural/promo paths on ANY domain
+   * - Bare archive pages (/recipes, /blog with no slug)
+   *
+   * Accepts:
+   * - Any specific slug on an allowed domain
+   * - Non-allowed domains only if they contain a RECIPE_URL_INDICATOR
    */
-  private isValidRecipeUrl(url: string): boolean {
+  isValidRecipeUrl(url: string): boolean {
     let hostname: string;
     let pathname: string;
 
@@ -338,24 +581,50 @@ export class RecipeDiscoveryService {
       hostname = parsed.hostname.toLowerCase().replace('www.', '');
       pathname = parsed.pathname.toLowerCase();
     } catch {
-      return false; // Invalid URL
+      return false;
     }
 
     // Reject blocked domains unconditionally
     if (BLOCKED_DOMAINS.has(hostname)) return false;
 
-    // Reject known non-recipe URL patterns
+    // Reject known non-recipe URL path patterns (author, tag, category, etc.)
     if (NON_RECIPE_URL_PATTERNS.some((p) => pathname.includes(p))) return false;
+
+    // Reject structural/promo paths on any domain — these are never single recipes
+    if (this.hasNonRecipePathSegment(pathname)) return false;
+    if (NON_RECIPE_PATH_SUBSTRINGS.some((p) => pathname.includes(p))) return false;
+
+    // Reject bare /recipes or /blog archive pages (no specific slug)
+    if (this.isBareArchivePage(pathname)) return false;
 
     // Accept if from an allowed domain (trusted source)
     if (ALLOWED_DOMAINS.has(hostname)) {
-      // Even on trusted domains, skip obvious non-recipe pages
       const skipPaths = ['/about', '/contact', '/privacy', '/terms', '/shop'];
       return !skipPaths.some((p) => pathname.startsWith(p));
     }
 
     // For other domains, require a recipe indicator in the URL
     return RECIPE_URL_INDICATORS.some((indicator) => pathname.includes(indicator));
+  }
+
+  /**
+   * Check if any path segment matches a non-recipe segment.
+   */
+  private hasNonRecipePathSegment(pathname: string): boolean {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments.some((seg) => NON_RECIPE_PATH_SEGMENTS.includes(seg));
+  }
+
+  /**
+   * Detect bare archive pages with no specific recipe slug.
+   * Does NOT reject paths like /recipes/my-great-dish or /blog/2021/01/soup.
+   */
+  private isBareArchivePage(pathname: string): boolean {
+    const normalized = pathname.replace(/\/$/, '');
+    // Empty path (homepage) is never a recipe
+    if (normalized === '' || normalized === '/') return true;
+    const bareArchivePaths = ['/recipes', '/blog', '/recipe', '/cooking'];
+    return bareArchivePaths.includes(normalized);
   }
 
   private extractDomain(url: string): string {
@@ -368,23 +637,18 @@ export class RecipeDiscoveryService {
 
   /**
    * Return a rotating subset of queries based on the current day.
-   * Interleaves generic zero-waste queries with chef-targeted queries so each
-   * daily run surfaces different URLs and covers the sustainable-chef roster.
-   *
-   * Chef-targeted queries follow the pattern used in scrape-chef-recipes.ts:
-   *   "<Chef Name>" recipe site:<chef-domain>
+   * Interleaves generic zero-waste queries with chef-targeted queries.
+   * Chef queries use "recipe site:" framing to bias toward specific dish pages.
    */
   private getRotatingQueries(): string[] {
-    const dayIndex = new Date().getDay(); // 0–6
+    const dayIndex = new Date().getDay(); // 0-6
 
-    // Rotate generic queries starting at day offset
     const genericOffset = dayIndex % ZERO_WASTE_QUERIES.length;
     const rotatedGeneric = [
       ...ZERO_WASTE_QUERIES.slice(genericOffset),
       ...ZERO_WASTE_QUERIES.slice(0, genericOffset),
-    ].slice(0, 3); // 3 generic queries per run
+    ].slice(0, 3);
 
-    // Rotate chef targets — 2 chefs per day, cycling through the roster
     const chefOffset = (dayIndex * 2) % CHEF_QUERY_TARGETS.length;
     const chefPair = [
       CHEF_QUERY_TARGETS[chefOffset % CHEF_QUERY_TARGETS.length],
