@@ -276,6 +276,47 @@ const LISTICLE_URL_PATTERNS: RegExp[] = [
 ];
 
 /**
+ * URL patterns that identify DEFINITIVE hub/category/index pages — structural
+ * pages that aggregate child recipe links and are never themselves single recipes.
+ * These are routed through harvestChildLinksFromListicle with NO fallback to
+ * single-recipe extraction.
+ *
+ * Covered shapes:
+ *   /blogs/<segment(s)>       — Shopify-style blog category/roundup paths
+ *                               (e.g. cabotcreamery.com/blogs/food/root-stem-recipes)
+ *   /recipes-categories/<slug> — recipe category hub (e.g. lidiasitaly.com/recipes-categories/main-dishes)
+ *   /recipe-category/<slug>   — alternate WP category path
+ *   /recipes/category/<slug>  — WP-style recipes category
+ */
+const HUB_URL_PATTERNS: RegExp[] = [
+  // /blogs/<segment(s)> — any /blogs/ path with at least one slug segment
+  /\/blogs\/[^/]+(?:\/[^/]+)*/i,
+  // /recipes-categories/<slug>
+  /\/recipes-categories\/[^/]+/i,
+  // /recipe-category/<slug>
+  /\/recipe-category\/[^/]+/i,
+  // /recipes/category/<slug>
+  /\/recipes\/category\/[^/]+/i,
+];
+
+/**
+ * URL patterns for /blog/<slug> paths — these are "ambiguous" pages that may be
+ * either a single recipe post OR a blog roundup/index. Attempt harvest first;
+ * if no child recipe links are found, fall back to single-recipe extraction.
+ * Matches a /blog/ segment followed by exactly one slug (not /blog/ bare or
+ * date-nested paths that already have recipe context).
+ */
+const BLOG_SLUG_PATTERN = /^\/blog\/([^/]+)\/?$/i;
+
+/**
+ * Domains where recipe pages are published under date-based URL paths
+ * (e.g. /YYYY/MM/DD/slug or /YYYY/MM/slug). On these domains, a bare
+ * single-segment path (e.g. /sourdough, /fermentation) is a category/tag
+ * index page, NOT a single recipe — it should be harvested for child links.
+ */
+const DATE_STRUCTURED_RECIPE_DOMAINS = new Set(['zerowastechef.com']);
+
+/**
  * Harvest bounds — cap children to avoid URL budget explosion.
  * Per listicle: max 10 child links harvested.
  * Per run: max 15 total harvested links across all listicles.
@@ -304,21 +345,70 @@ export class RecipeDiscoveryService {
   }
 
   /**
-   * Classify a URL as a listicle/roundup based on its path and title.
-   * Returns true when the URL is a multi-recipe page (not a single recipe).
+   * Classify a URL as a listicle/roundup/hub page that should be harvested
+   * for child recipe links rather than extracted as a single recipe.
+   *
+   * Returns true for:
+   * - Classic listicle URL patterns (e.g. /20-vegan-recipes)
+   * - Definitive structural hub pages (HUB_URL_PATTERNS): /blogs/<segments>,
+   *   /recipes-categories/<slug>, /recipe-category/<slug>
+   * - Ambiguous /blog/<slug> paths (may be roundup OR single recipe — see
+   *   discoverRecipeUrls fallback logic for the distinction)
+   * - Bare single-segment paths on date-structured domains (e.g. zerowastechef.com/sourdough)
+   * - Title-based listicle patterns (e.g. "30 sustainable recipes")
    */
   isListiclePage(url: string, title?: string): boolean {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return false;
+    }
+
+    const pathname = parsed.pathname.toLowerCase();
+    const hostname = parsed.hostname.toLowerCase().replace('www.', '');
+
+    if (LISTICLE_URL_PATTERNS.some((p) => p.test(pathname))) return true;
+    if (HUB_URL_PATTERNS.some((p) => p.test(pathname))) return true;
+    if (BLOG_SLUG_PATTERN.test(pathname)) return true;
+
+    // Bare single-segment paths on date-structured domains are category/tag hubs
+    if (DATE_STRUCTURED_RECIPE_DOMAINS.has(hostname) && this.isBareSingleSegmentPath(pathname))
+      return true;
+
+    if (title && LISTICLE_TITLE_PATTERNS.some((p) => p.test(title))) return true;
+
+    return false;
+  }
+
+  /**
+   * Returns true if pathname has exactly one non-empty segment with no date structure.
+   * e.g. /sourdough → true; /2023/01/sourdough → false; /recipes/soup → false
+   */
+  private isBareSingleSegmentPath(pathname: string): boolean {
+    const segments = pathname.replace(/\/$/, '').split('/').filter(Boolean);
+    if (segments.length !== 1) return false;
+    // Exclude if the segment looks like a year (date-based path start)
+    if (/^\d{4}$/.test(segments[0])) return false;
+    return true;
+  }
+
+  /**
+   * Returns true for DEFINITIVE structural hub/category pages — these are never
+   * single recipe pages and have no fallback to single-recipe extraction.
+   * Subset of isListiclePage() — only the structural HUB_URL_PATTERNS.
+   *
+   * Contrast with /blog/<slug> paths (matched by BLOG_SLUG_PATTERN) which are
+   * "ambiguous" and DO have a single-recipe fallback in discoverRecipeUrls.
+   */
+  isHubPage(url: string): boolean {
     let pathname: string;
     try {
       pathname = new URL(url).pathname.toLowerCase();
     } catch {
       return false;
     }
-
-    if (LISTICLE_URL_PATTERNS.some((p) => p.test(pathname))) return true;
-    if (title && LISTICLE_TITLE_PATTERNS.some((p) => p.test(title))) return true;
-
-    return false;
+    return HUB_URL_PATTERNS.some((p) => p.test(pathname));
   }
 
   /**
@@ -450,20 +540,45 @@ export class RecipeDiscoveryService {
         for (const result of results) {
           if (seenUrls.has(result.url)) continue;
 
-          // Check if this is a listicle/roundup — harvest children instead
+          // Check if this is a listicle/roundup/hub — harvest children instead
           if (this.isListiclePage(result.url, result.title)) {
             console.log(
-              `[RecipeDiscovery] Detected listicle, harvesting child links: ${result.url}`
+              `[RecipeDiscovery] Detected listicle/hub, harvesting child links: ${result.url}`
             );
 
             if (totalHarvested < MAX_TOTAL_HARVESTED_PER_RUN && this.firecrawlApiKey) {
               const children = await this.harvestChildLinksFromListicle(result.url, seenUrls);
-              for (const child of children) {
-                if (totalHarvested >= MAX_TOTAL_HARVESTED_PER_RUN) break;
-                discovered.push({ ...child, searchQuery: query });
-                totalHarvested++;
+              if (children.length > 0) {
+                for (const child of children) {
+                  if (totalHarvested >= MAX_TOTAL_HARVESTED_PER_RUN) break;
+                  discovered.push({ ...child, searchQuery: query });
+                  totalHarvested++;
+                  if (discovered.length >= maxResults) break;
+                }
+              } else if (this.isValidRecipeUrl(result.url)) {
+                // Fallback: harvest returned no children — the page may be a single
+                // recipe (e.g. a Shopify /blogs/<cat>/<slug> single-recipe post, or a
+                // /blog/<slug> recipe post). Add it for extraction if it passes URL
+                // validation regardless of isHubPage — true structural category indexes
+                // that contain no recipe data will simply fail extraction harmlessly, but
+                // legitimate single-recipe pages at those URL shapes are rescued.
+                console.log(
+                  `[RecipeDiscovery] Listicle/hub page yielded no children, falling back to single-recipe extraction: ${result.url}`
+                );
+                seenUrls.add(result.url);
+                discovered.push({ ...result, searchQuery: query });
                 if (discovered.length >= maxResults) break;
               }
+            } else if (this.isValidRecipeUrl(result.url) && !seenUrls.has(result.url)) {
+              // Firecrawl unavailable (no key or harvest cap reached): do not silently drop
+              // listicle/hub URLs that also pass isValidRecipeUrl — attempt single-recipe
+              // extraction so legitimate single-recipe blog posts are not lost.
+              console.log(
+                `[RecipeDiscovery] No Firecrawl harvest available — attempting single-recipe extraction: ${result.url}`
+              );
+              seenUrls.add(result.url);
+              discovered.push({ ...result, searchQuery: query });
+              if (discovered.length >= maxResults) break;
             } else {
               console.log(
                 `[RecipeDiscovery] Harvest cap reached or no Firecrawl key — skipping listicle`
@@ -541,8 +656,11 @@ export class RecipeDiscoveryService {
 
         const data: TavilyApiResponse = await response.json();
 
+        // Pass through listicle/hub pages (they are handled by discoverRecipeUrls),
+        // filtering only truly invalid URLs (blocked domains, promo pages, etc.)
+        // that are neither valid recipe pages NOR harvestable hub/listicle pages.
         return data.results
-          .filter((r) => !this.isListiclePage(r.url, r.title) && this.isValidRecipeUrl(r.url))
+          .filter((r) => this.isListiclePage(r.url, r.title) || this.isValidRecipeUrl(r.url))
           .map((r) => ({
             url: r.url,
             title: r.title || 'Untitled',
