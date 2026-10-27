@@ -1,4 +1,5 @@
 import 'server-only';
+import { trackCost } from '@/lib/costs';
 
 /**
  * Jina.ai Reader API - Web scraping utility
@@ -87,6 +88,10 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
     }
 
     const data = await response.json();
+    // Jina bills reader calls by token; estimate ~4 chars/token if usage is absent.
+    const readerTokens =
+      Number(data?.data?.usage?.tokens) || Math.ceil((data?.data?.content?.length ?? 0) / 4);
+    await trackCost({ provider: 'jina', operation: 'reader', units: readerTokens });
 
     // Jina.ai returns data in this format:
     // { code: 200, status: 20000, data: { content: "...", title: "...", description: "...", url: "..." } }

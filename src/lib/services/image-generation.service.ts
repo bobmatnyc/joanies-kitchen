@@ -12,6 +12,7 @@
 import 'server-only';
 import { and, isNull, or, sql } from 'drizzle-orm';
 import { put } from '@vercel/blob';
+import { trackCost } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { generateFoodPhotographyPrompt, checkOllamaHealth, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
@@ -126,6 +127,7 @@ async function fetchDalleImageUrl(prompt: string): Promise<string> {
   }
 
   const data = (await response.json()) as { data: Array<{ url: string }> };
+  await trackCost({ provider: 'openai', operation: 'images.dall-e-3', units: data.data?.length || 1 });
   const url = data.data[0]?.url;
   if (!url) throw new Error('DALL-E returned no URL');
   return url;

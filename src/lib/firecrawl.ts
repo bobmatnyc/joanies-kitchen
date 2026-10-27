@@ -1,5 +1,6 @@
 import 'server-only';
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { trackCost } from '@/lib/costs';
 
 // Type definitions for Firecrawl responses
 export interface ScrapeResponse {
@@ -53,6 +54,12 @@ export async function scrapeRecipePage(url: string): Promise<ScrapeResponse> {
       waitFor: 2000, // Wait 2 seconds for dynamic content
       timeout: 120000, // Increase timeout to 120 seconds (2 minutes)
     })) as any;
+
+    await trackCost({
+      provider: 'firecrawl',
+      operation: 'scrape',
+      units: Number(result?.metadata?.creditsUsed) || 1,
+    });
 
     console.log(`[Firecrawl] Success! Result:`, {
       hasMarkdown: !!result.markdown,
@@ -123,6 +130,16 @@ export async function crawlChefRecipes(params: {
       await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
       crawlStatus = await client.getCrawlStatus(crawlJob.id);
     }
+
+    // Firecrawl reports the credits a crawl consumed, including a failed one.
+    await trackCost({
+      provider: 'firecrawl',
+      operation: 'crawl',
+      // 1 credit per crawled page when creditsUsed is absent.
+      units:
+        Number((crawlStatus as { creditsUsed?: number }).creditsUsed) ||
+        (crawlStatus.data?.length ?? 0),
+    });
 
     if (crawlStatus.status === 'failed') {
       throw new Error(`Crawl failed: ${(crawlStatus as any).error || 'Unknown error'}`);

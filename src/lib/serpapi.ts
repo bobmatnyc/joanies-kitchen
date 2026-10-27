@@ -12,6 +12,7 @@
  */
 
 import 'server-only';
+import { trackCost } from '@/lib/costs';
 
 // Types
 export interface SerpAPISearchParams {
@@ -111,6 +112,7 @@ export async function searchRecipesWithSerpAPI(
     }
 
     const data = await response.json();
+    await trackCost({ provider: 'serpapi', operation: 'search' });
 
     // Check for API errors
     if (data.error) {
