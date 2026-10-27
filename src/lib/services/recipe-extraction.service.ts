@@ -15,6 +15,7 @@
 import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
+import { trackCost, withChatCostTracking } from '@/lib/costs';
 
 export interface ScrapedRecipe {
   url: string;
@@ -107,13 +108,16 @@ export class RecipeExtractionService {
     if (!this._openrouter) {
       if (!this.llmApiKey)
         throw new Error('No LLM API key configured (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)');
-      this._openrouter = new OpenAI({
-        apiKey: this.llmApiKey,
-        baseURL: this.llmBaseUrl,
-        defaultHeaders: process.env.OPENROUTER_API_KEY
-          ? { 'HTTP-Referer': 'https://recipes.help', 'X-Title': "Joanie's Kitchen" }
-          : {},
-      });
+      this._openrouter = withChatCostTracking(
+        new OpenAI({
+          apiKey: this.llmApiKey,
+          baseURL: this.llmBaseUrl,
+          defaultHeaders: process.env.OPENROUTER_API_KEY
+            ? { 'HTTP-Referer': 'https://recipes.help', 'X-Title': "Joanie's Kitchen" }
+            : {},
+        }),
+        process.env.OPENROUTER_API_KEY ? 'openrouter' : 'anthropic'
+      );
     }
     return this._openrouter;
   }
@@ -200,6 +204,11 @@ export class RecipeExtractionService {
     if (!result) throw new Error('Firecrawl returned no result');
 
     const metadata = result.metadata as Record<string, unknown> | undefined;
+    await trackCost({
+      provider: 'firecrawl',
+      operation: 'scrape',
+      units: Number(metadata?.creditsUsed) || 1,
+    });
     const statusCode = (metadata?.statusCode as number) ?? 0;
     if (statusCode >= 400) {
       throw new Error(`HTTP ${statusCode} from Firecrawl`);
@@ -256,6 +265,11 @@ export class RecipeExtractionService {
       results?: Array<{ raw_content?: string }>;
       failed_results?: Array<{ error: string }>;
     };
+    // Tavily bills only successfully extracted URLs.
+    const extractedCount = data.results?.length ?? 0;
+    if (extractedCount > 0) {
+      await trackCost({ provider: 'tavily', operation: 'extract.advanced', units: extractedCount });
+    }
 
     if (data.results?.[0]?.raw_content) {
       return data.results[0].raw_content;

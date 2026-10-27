@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { trackCost } from '@/lib/costs';
 
 // Type definitions for request/response
 interface BraveSearchRequest {
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Parse and return results
     const data: BraveSearchResponse = await response.json();
+    await trackCost({ provider: 'brave', operation: 'web-search' });
 
     // Log successful search
     console.log(

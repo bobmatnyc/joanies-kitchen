@@ -8,6 +8,7 @@
 
 import 'server-only';
 import OpenAI from 'openai';
+import { withChatCostTracking } from '@/lib/costs';
 
 export const DEFAULT_OPENROUTER_MODEL = 'anthropic/claude-haiku-4-5';
 
@@ -19,14 +20,17 @@ function getClient(): OpenAI {
   if (!_client) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error('OPENROUTER_API_KEY is not set');
-    _client = new OpenAI({
-      apiKey,
-      baseURL: OPENROUTER_BASE_URL,
-      defaultHeaders: {
-        'HTTP-Referer': 'https://joanies.kitchen',
-        'X-Title': 'Joanies Kitchen',
-      },
-    });
+    _client = withChatCostTracking(
+      new OpenAI({
+        apiKey,
+        baseURL: OPENROUTER_BASE_URL,
+        defaultHeaders: {
+          'HTTP-Referer': 'https://joanies.kitchen',
+          'X-Title': 'Joanies Kitchen',
+        },
+      }),
+      'openrouter'
+    );
   }
   return _client;
 }

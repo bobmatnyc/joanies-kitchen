@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { eq } from 'drizzle-orm';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
+import { trackLlmResponse } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 
@@ -180,6 +181,7 @@ ${pageContent.substring(0, 3000)}`,
         },
       ],
     });
+    await trackLlmResponse('anthropic', message, { model: 'claude-haiku-4-5', kind: 'messages' });
 
     const bio =
       message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';

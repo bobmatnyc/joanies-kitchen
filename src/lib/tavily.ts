@@ -13,6 +13,7 @@
  */
 
 import 'server-only';
+import { trackCost } from '@/lib/costs';
 
 // Type definitions for Tavily responses
 export interface TavilySearchParams {
@@ -170,6 +171,7 @@ export async function searchRecipesWithTavily(
     }
 
     const data = await response.json();
+    await trackCost({ provider: 'tavily', operation: `search.${requestBody.search_depth}` });
 
     // Check for API-level errors
     if (data.error) {
