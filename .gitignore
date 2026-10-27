@@ -78,9 +78,6 @@ data/recipes/failed/
 *.zip
 *.tar.gz
 
-# drizzle
-/drizzle
-
 # Build tracking (local only)
 .build-number
 build-history.json
@@ -113,6 +110,7 @@ $RECYCLE.BIN/
 *.so
 *.spec
 *.sql
+!/drizzle/*.sql
 *.sqlite
 *.sqlite3
 *.sublime-project
