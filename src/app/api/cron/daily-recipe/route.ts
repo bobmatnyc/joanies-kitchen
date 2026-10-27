@@ -10,12 +10,17 @@
  *   CRON_MAX_RECIPES  — max recipes per run (default: 5)
  *   CRON_SEARCH_QUERY — optional fixed search query (default: rotating)
  *
+ *   CRON_RUN_BUDGET_USD — per-run USD budget (default: DEFAULT_RUN_BUDGET_USD)
+ *
  * POST body params (all optional, override env vars):
- *   { dryRun?: boolean, maxRecipes?: number, searchQuery?: string }
+ *   { dryRun?: boolean, maxRecipes?: number, searchQuery?: string, budgetUsd?: number }
+ *
+ * Each run first reaps stale `running` rows (#6 S2).
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import { reapStaleDiscoveryRuns } from '@/lib/services/discovery-run-reaper';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,6 +51,19 @@ function isAuthorized(request: NextRequest): boolean {
 
   const authHeader = request.headers.get('authorization');
   return authHeader === `Bearer ${cronSecret}`;
+}
+
+/**
+ * #6 S2: mark runs killed before their finally as failed. A reaper failure is
+ * logged and never blocks the new run.
+ */
+async function reapStaleRuns(): Promise<void> {
+  try {
+    const reaped = await reapStaleDiscoveryRuns();
+    if (reaped > 0) console.warn(`[DailyRecipeCron] Reaped ${reaped} stale run(s)`);
+  } catch (error) {
+    console.error('[DailyRecipeCron] Stale-run reaper failed; continuing:', error);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -100,9 +118,16 @@ export async function GET(request: NextRequest) {
     `[DailyRecipeCron] GET config — maxRecipes=${maxRecipes}, searchQuery=${searchQuery ?? 'rotating'}`
   );
 
+  await reapStaleRuns();
+
   try {
     const service = getAutonomousRecipeIngestionService();
-    const result = await service.runDailyDiscovery({ maxRecipes, dryRun: false, searchQuery });
+    const result = await service.runDailyDiscovery({
+      maxRecipes,
+      dryRun: false,
+      searchQuery,
+      runType: 'daily',
+    });
 
     console.log(
       `[DailyRecipeCron] Completed — stored=${result.recipesStored}, skipped=${result.recipesSkipped}, ` +
@@ -134,6 +159,7 @@ export async function POST(request: NextRequest) {
   let dryRun = false;
   let maxRecipes: number | undefined;
   let searchQuery: string | undefined;
+  let budgetUsd: number | undefined;
 
   try {
     const body = await request.json();
@@ -142,6 +168,7 @@ export async function POST(request: NextRequest) {
     if (typeof body.searchQuery === 'string' && body.searchQuery.trim()) {
       searchQuery = body.searchQuery.trim();
     }
+    if (typeof body.budgetUsd === 'number') budgetUsd = body.budgetUsd;
   } catch {
     // Body is optional — ignore parse errors
   }
@@ -150,9 +177,17 @@ export async function POST(request: NextRequest) {
     `[DailyRecipeCron] POST options — dryRun=${dryRun}, maxRecipes=${maxRecipes ?? 'env/default'}, searchQuery=${searchQuery ?? 'env/rotating'}`
   );
 
+  await reapStaleRuns();
+
   try {
     const service = getAutonomousRecipeIngestionService();
-    const result = await service.runDailyDiscovery({ dryRun, maxRecipes, searchQuery });
+    const result = await service.runDailyDiscovery({
+      dryRun,
+      maxRecipes,
+      searchQuery,
+      budgetUsd,
+      runType: 'manual',
+    });
 
     console.log(
       `[DailyRecipeCron] Completed — stored=${result.recipesStored}, skipped=${result.recipesSkipped}, ` +

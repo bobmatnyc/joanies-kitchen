@@ -5,9 +5,13 @@
  *
  * Automatically discovers and imports recipes from various weeks.
  * Runs continuously with intelligent scheduling.
+ *
+ * Each cycle is one `recipe_discovery_runs` row (run_type 'local') with a
+ * budget (SCRAPER_RUN_BUDGET_USD, else CRON_RUN_BUDGET_USD, else the default),
+ * per-URL items and cost events (#6 S2).
  */
 
-import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
+import { runRecordedWeeklyCrawl } from '@/lib/services/recorded-weekly-crawl';
 
 interface ScraperConfig {
   weeksToScrape: number[]; // Which weeks to scrape (0-52)
@@ -45,47 +49,39 @@ async function scrapeRecipes(config: ScraperConfig = DEFAULT_CONFIG) {
   console.log(`${'='.repeat(60)}\n`);
 
   try {
-    for (const weeksAgo of config.weeksToScrape) {
-      console.log(
-        `\n[Scraper] Processing week ${weeksAgo} (${weeksAgo === 0 ? 'current week' : `${weeksAgo} weeks ago`})...`
-      );
+    const run = await runRecordedWeeklyCrawl({
+      weeks: config.weeksToScrape,
+      maxResultsPerWeek: config.maxRecipesPerWeek,
+      autoApprove: config.autoApprove,
+      pickCuisine: () =>
+        config.cuisines
+          ? config.cuisines[Math.floor(Math.random() * config.cuisines.length)]
+          : undefined,
+      runType: 'local',
+      budgetUsd: Number(process.env.SCRAPER_RUN_BUDGET_USD) || undefined,
+    });
 
-      try {
-        const result = await crawlWeeklyRecipes(weeksAgo, {
-          maxResults: config.maxRecipesPerWeek,
-          autoApprove: config.autoApprove,
-          cuisine: config.cuisines
-            ? config.cuisines[Math.floor(Math.random() * config.cuisines.length)]
-            : undefined,
-        });
+    for (const [i, result] of run.weeks.entries()) {
+      totalScraped += result.stats.searched;
+      totalStored += result.stats.stored;
+      totalFailed += result.stats.failed;
 
-        totalScraped += result.stats.searched;
-        totalStored += result.stats.stored;
-        totalFailed += result.stats.failed;
+      console.log(`[Scraper] Week ${config.weeksToScrape[i]} results:`, {
+        searched: result.stats.searched,
+        stored: result.stats.stored,
+        failed: result.stats.failed,
+      });
 
-        console.log(`[Scraper] Week ${weeksAgo} results:`, {
-          searched: result.stats.searched,
-          stored: result.stats.stored,
-          failed: result.stats.failed,
-        });
-
-        // Log stored recipes
-        if (result.stats.stored > 0) {
-          const storedRecipes = result.recipes.filter((r) => r.status === 'stored');
-          storedRecipes.forEach((recipe) => {
-            console.log(`  ✓ Stored: "${recipe.name}"`);
-          });
-        }
-
-        // Wait between weeks to avoid rate limiting
-        if (weeksAgo !== config.weeksToScrape[config.weeksToScrape.length - 1]) {
-          console.log('[Scraper] Waiting 10 seconds before next week...');
-          await new Promise((resolve) => setTimeout(resolve, 10000));
-        }
-      } catch (error) {
-        console.error(`[Scraper] Error processing week ${weeksAgo}:`, error);
-        totalFailed++;
+      // Log stored recipes
+      for (const recipe of result.recipes.filter((r) => r.status === 'stored')) {
+        console.log(`  ✓ Stored: "${recipe.name}"`);
       }
+    }
+    console.log(
+      `[Scraper] Run ${run.runId ?? '(untracked)'}: status=${run.status}, cost=$${run.costUsd.toFixed(4)}`
+    );
+    for (const error of run.errors.filter((e) => e.startsWith('budget exceeded'))) {
+      console.warn(`[Scraper] ${error}`);
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);

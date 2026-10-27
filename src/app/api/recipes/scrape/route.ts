@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
+import { runRecordedWeeklyCrawl } from '@/lib/services/recorded-weekly-crawl';
 
 export async function POST(request: NextRequest) {
   // #11: paid crawl — admin session or CRON_SECRET bearer only, checked before any work.
@@ -15,12 +15,22 @@ export async function POST(request: NextRequest) {
       `[API] Scraping recipes for week ${weeksAgo} (max: ${maxResults}, autoApprove: ${autoApprove})`
     );
 
-    const result = await crawlWeeklyRecipes(weeksAgo, {
-      maxResults,
+    // #6 S2: record the crawl as a discovery run (test/scripts/standalone-scraper.ts calls this).
+    const run = await runRecordedWeeklyCrawl({
+      weeks: [weeksAgo],
+      maxResultsPerWeek: maxResults,
       autoApprove,
+      runType: 'manual',
     });
+    const result = run.weeks[0];
+    if (!result) {
+      return NextResponse.json(
+        { success: false, runId: run.runId, error: run.errors.join('; ') },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, runId: run.runId });
   } catch (error) {
     console.error('[API] Error scraping recipes:', error);
     return NextResponse.json(

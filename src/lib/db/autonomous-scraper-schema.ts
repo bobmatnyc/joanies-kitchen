@@ -25,8 +25,8 @@ export const recipeDiscoveryRuns = pgTable(
   'recipe_discovery_runs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    run_type: text('run_type').notNull().default('daily'), // 'daily' | 'manual'
-    status: text('status').notNull().default('running'), // 'running' | 'completed' | 'failed'
+    run_type: text('run_type').notNull().default('daily'), // 'daily' | 'manual' | 'local'
+    status: text('status').notNull().default('running'), // 'running' | 'completed' | 'failed' | 'partial'
     urls_discovered: integer('urls_discovered').default(0),
     recipes_extracted: integer('recipes_extracted').default(0),
     recipes_stored: integer('recipes_stored').default(0),
@@ -37,11 +37,46 @@ export const recipeDiscoveryRuns = pgTable(
     started_at: timestamp('started_at').defaultNow(),
     completed_at: timestamp('completed_at'),
     duration_ms: integer('duration_ms'),
+    // #6 S2: run spend from the in-memory accumulator, not a ledger SUM, so it
+    // survives failed ledger writes. Null on rows written before S2.
+    cost_usd: numeric('cost_usd', { precision: 12, scale: 6 }),
+    budget_usd: numeric('budget_usd', { precision: 12, scale: 6 }),
+    cost_write_failures: integer('cost_write_failures').default(0),
   },
   (table) => ({
     statusIdx: index('idx_recipe_discovery_runs_status').on(table.status),
     runTypeIdx: index('idx_recipe_discovery_runs_run_type').on(table.run_type),
     startedAtIdx: index('idx_recipe_discovery_runs_started_at').on(table.started_at.desc()),
+  })
+);
+
+/**
+ * Recipe Discovery Run Items table
+ *
+ * One row per URL a discovery run attempted, with the extraction tier that
+ * produced the recipe (or 'none') and the outcome. The run row's counters are
+ * derivable from these rows. Written fail-open by `recordRunItem()`. See #6 S2.
+ */
+export const recipeDiscoveryRunItems = pgTable(
+  'recipe_discovery_run_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    run_id: uuid('run_id')
+      .notNull()
+      .references(() => recipeDiscoveryRuns.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    source_domain: text('source_domain'),
+    // 'firecrawl' | 'jina' | 'tavily-extract' | 'claude-structured' | 'fallback' | 'none' | 'unknown'
+    extraction_tier: text('extraction_tier').notNull().default('none'),
+    // 'stored' | 'skipped_duplicate' | 'skipped_quality' | 'failed' | 'budget_stopped'
+    outcome: text('outcome').notNull(),
+    error: text('error'),
+    recipe_id: text('recipe_id'),
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    runIdIdx: index('idx_recipe_discovery_run_items_run_id').on(table.run_id),
+    outcomeIdx: index('idx_recipe_discovery_run_items_outcome').on(table.outcome),
   })
 );
 
@@ -102,6 +137,8 @@ export type RecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferSelect;
 export type NewRecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferInsert;
 export type RecipeOfTheDay = typeof recipeOfTheDay.$inferSelect;
 export type NewRecipeOfTheDay = typeof recipeOfTheDay.$inferInsert;
+export type RecipeDiscoveryRunItem = typeof recipeDiscoveryRunItems.$inferSelect;
+export type NewRecipeDiscoveryRunItem = typeof recipeDiscoveryRunItems.$inferInsert;
 export type CrawlCostEvent = typeof crawlCostEvents.$inferSelect;
 export type NewCrawlCostEvent = typeof crawlCostEvents.$inferInsert;
 
