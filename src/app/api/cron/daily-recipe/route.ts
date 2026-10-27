@@ -80,6 +80,7 @@ function buildSuccessResponse(result: {
   chefsCreated: number;
   errors: string[];
   durationMs: number;
+  tracked: boolean;
 }) {
   return NextResponse.json(
     {
@@ -93,6 +94,8 @@ function buildSuccessResponse(result: {
       chefsCreated: result.chefsCreated,
       errors: result.errors,
       durationMs: result.durationMs,
+      // #6 S2: false when no run row backs this run (create failed or dry run).
+      tracked: result.tracked,
     },
     { status: 200 }
   );

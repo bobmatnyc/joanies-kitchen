@@ -16,6 +16,7 @@ const fake = vi.hoisted(() => {
   const state = {
     failLedger: false,
     failItems: false,
+    failRunCreate: false,
     dupUrls: [] as string[],
     storeFailUrls: [] as string[],
     inserts: [] as { table: string; values: Record<string, unknown> }[],
@@ -40,6 +41,9 @@ vi.mock('@/lib/db', () => {
             fake.state.insertAttempts[name] = (fake.state.insertAttempts[name] ?? 0) + 1;
             if (name === 'crawl_cost_events' && fake.state.failLedger) {
               throw new Error('ledger insert failed: connection refused');
+            }
+            if (name === 'recipe_discovery_runs' && fake.state.failRunCreate) {
+              throw new Error('run insert failed: connection refused');
             }
             if (name === 'recipe_discovery_run_items' && fake.state.failItems) {
               throw new Error('item insert failed: connection refused');
@@ -159,6 +163,7 @@ beforeEach(() => {
   Object.assign(fake.state, {
     failLedger: false,
     failItems: false,
+    failRunCreate: false,
     dupUrls: [],
     storeFailUrls: [],
     inserts: [],
@@ -190,7 +195,8 @@ describe('run accounting — counters match items', () => {
     const rows = items();
     const count = (pred: (r: Record<string, unknown>) => boolean) => rows.filter(pred).length;
 
-    // One item per URL attempted, every discovered URL accounted for.
+    // One item per URL attempted. Here every discovered URL is attempted, so
+    // urls_discovered also equals the item count (see the maxRecipes test below).
     expect(rows).toHaveLength(urls.length);
     expect(run.urls_discovered).toBe(rows.length);
     expect(run.recipes_stored).toBe(count((r) => r.outcome === 'stored'));
@@ -207,6 +213,37 @@ describe('run accounting — counters match items', () => {
     // 6 cost events of $0.01: 1 search + 5 extractions (the duplicate is never extracted).
     expect(run.cost_usd).toBe('0.060000');
     expect(run.cost_write_failures).toBe(0);
+    expect(result.tracked).toBe(true);
+  });
+
+  it('urls_discovered exceeds the item count when the maxRecipes stop leaves URLs unattempted', async () => {
+    const urls = ['a', 'b', 'c', 'd'].map(url);
+    const { service } = buildService({ urls, plans: {} });
+
+    await service.runDailyDiscovery({ maxRecipes: 1, budgetUsd: 100 });
+
+    const run = runUpdate();
+    const rows = items();
+    // 1 stored, then the loop stops: b, c, d get no item (no not_attempted rows).
+    expect(rows.map((r) => r.outcome)).toEqual(['stored']);
+    expect(run.urls_discovered).toBe(4);
+    expect(run.recipes_stored).toBe(rows.filter((r) => r.outcome === 'stored').length);
+  });
+});
+
+describe('untracked run', () => {
+  it('reports tracked=false and still crawls when the run row cannot be created', async () => {
+    fake.state.failRunCreate = true;
+    const { service, extractRecipe } = buildService({ urls: [url('a')], plans: {} });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(result.tracked).toBe(false);
+    expect(result.runId).toMatch(/^untracked-/);
+    expect(extractRecipe).toHaveBeenCalledTimes(1);
+    expect(result.recipesStored).toBe(1);
+    expect(fake.state.insertAttempts.recipe_discovery_run_items).toBeUndefined();
+    expect(fake.state.updates).toHaveLength(0);
   });
 });
 
@@ -261,7 +298,18 @@ describe('Fail-Open (b): item writes failing', () => {
       recipes_extracted: 3,
       recipes_stored: 3,
       recipes_skipped: 1,
-      errors: [],
     });
+  });
+
+  it('ends with an "item writes failed: N" error when every item write fails', async () => {
+    fake.state.failItems = true;
+    const { service } = buildService({ urls: ['a', 'b', 'c'].map(url), plans: {} });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    // The summary is visible on the run row and the result, without changing the status.
+    expect(runUpdate().errors).toEqual(['item writes failed: 3']);
+    expect(result.errors).toEqual(['item writes failed: 3']);
+    expect(result.status).toBe('completed');
   });
 });

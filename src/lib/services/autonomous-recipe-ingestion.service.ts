@@ -37,6 +37,7 @@ import {
   type DiscoveryRunType,
   finalizeDiscoveryRun,
   isTrackedRunId,
+  type RunItemInput,
   type RunItemOutcome,
   recordRunItem,
   sourceDomainOf,
@@ -81,6 +82,10 @@ interface RunMetrics {
   recipesSkipped: number;
   chefsCreated: number;
   errors: string[];
+  /** #6 S2: item rows that failed to write (fail-open); summarised into errors[]. */
+  itemWriteFailures: number;
+  /** False when the run row could not be created (dry run or create failure). */
+  tracked: boolean;
 }
 
 export interface IngestionRunResult {
@@ -93,6 +98,8 @@ export interface IngestionRunResult {
   chefsCreated: number;
   errors: string[];
   durationMs: number;
+  /** False when no `recipe_discovery_runs` row backs this run. */
+  tracked: boolean;
 }
 
 export class AutonomousRecipeIngestionService {
@@ -171,6 +178,8 @@ export class AutonomousRecipeIngestionService {
       recipesSkipped: 0,
       chefsCreated: 0,
       errors: [],
+      itemWriteFailures: 0,
+      tracked: false,
     };
     let runId = '';
     let runCreated = false;
@@ -196,6 +205,7 @@ export class AutonomousRecipeIngestionService {
       try {
         runId = await createDiscoveryRun({ runType, dryRun: isDryRun, budgetUsd });
         runCreated = true;
+        m.tracked = true;
         setCostRunId(runId);
         console.log(`[AutonomousIngestion] Run record created: ${runId}`);
       } catch (createErr) {
@@ -238,7 +248,7 @@ export class AutonomousRecipeIngestionService {
 
       for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
         m.recipesSkipped++;
-        await recordRunItem({
+        await this.recordItem(m, {
           runId,
           url: dup.url,
           extractionTier: 'none',
@@ -265,7 +275,7 @@ export class AutonomousRecipeIngestionService {
         if (budgetExhausted()) {
           // #6 S2: record every queued URL the budget cut, then stop paid calls.
           for (const cut of urlsToProcess.slice(i)) {
-            await recordRunItem({
+            await this.recordItem(m, {
               runId,
               url: cut.url,
               extractionTier: 'none',
@@ -339,7 +349,7 @@ export class AutonomousRecipeIngestionService {
     const url = discovered.url;
     let tier = 'none';
     const record = (outcome: RunItemOutcome, error?: string | null, recipeId?: string | null) =>
-      recordRunItem({ runId, url, extractionTier: tier, outcome, error, recipeId });
+      this.recordItem(m, { runId, url, extractionTier: tier, outcome, error, recipeId });
 
     try {
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
@@ -413,6 +423,12 @@ export class AutonomousRecipeIngestionService {
       m.errors.push(`${url}: ${msg}`);
       await record('failed', msg);
     }
+  }
+
+  /** Writes one item row; a failed write on a tracked run is counted, never thrown. */
+  private async recordItem(m: RunMetrics, item: RunItemInput): Promise<void> {
+    const written = await recordRunItem(item);
+    if (!written && isTrackedRunId(item.runId)) m.itemWriteFailures++;
   }
 
   private async resolveChefId(
@@ -609,8 +625,14 @@ export class AutonomousRecipeIngestionService {
       recipesStored: metrics.recipesStored,
       recipesSkipped: metrics.recipesSkipped,
       chefsCreated: metrics.chefsCreated,
-      errors: metrics.errors,
+      // #6 S2: item-write failures are surfaced as one summary entry. It is added
+      // here, after the status was decided, so it never changes the status.
+      errors:
+        metrics.itemWriteFailures > 0
+          ? [...metrics.errors, `item writes failed: ${metrics.itemWriteFailures}`]
+          : metrics.errors,
       durationMs: Date.now() - startTime,
+      tracked: metrics.tracked,
     };
   }
 

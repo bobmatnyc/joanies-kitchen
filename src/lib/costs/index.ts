@@ -14,6 +14,7 @@ export {
   DEFAULT_RUN_BUDGET_USD,
   formatBudgetExceeded,
   isBudgetExhausted,
+  MAX_RUN_BUDGET_USD,
   resolveRunBudget,
 } from './run-budget';
 export {

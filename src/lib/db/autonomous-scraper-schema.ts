@@ -54,8 +54,10 @@ export const recipeDiscoveryRuns = pgTable(
  * Recipe Discovery Run Items table
  *
  * One row per URL a discovery run attempted, with the extraction tier that
- * produced the recipe (or 'none') and the outcome. The run row's counters are
- * derivable from these rows. Written fail-open by `recordRunItem()`. See #6 S2.
+ * produced the recipe (or 'none') and the outcome. `recipes_stored`,
+ * `recipes_skipped` and `recipes_extracted` match these rows; `urls_discovered`
+ * can exceed the item count, because URLs past the processing slice or the
+ * maxRecipes stop get no item. Written fail-open by `recordRunItem()`. See #6 S2.
  */
 export const recipeDiscoveryRunItems = pgTable(
   'recipe_discovery_run_items',

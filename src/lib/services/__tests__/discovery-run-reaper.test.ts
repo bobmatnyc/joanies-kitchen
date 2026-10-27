@@ -22,6 +22,7 @@ vi.mock('@/lib/db', async () => {
 });
 
 import {
+  LOCAL_STALE_RUN_CUTOFF_MS,
   reapedRunError,
   reapStaleDiscoveryRuns,
   STALE_RUN_CUTOFF_MS,
@@ -57,8 +58,7 @@ describe('reapStaleDiscoveryRuns', () => {
     // Only `running` rows strictly older than the cutoff: a row started at or
     // after now-15min (still inside its window) does not satisfy `<`.
     expect(sql).toContain('where ("recipe_discovery_runs"."status" = $');
-    expect(sql).toMatch(/and "recipe_discovery_runs"\."started_at" < \$\d+\)/);
-    expect(sql).not.toMatch(/ or /i);
+    expect(sql).toMatch(/"recipe_discovery_runs"\."started_at" < \$\d+/);
     const cutoff = new Date(NOW.getTime() - STALE_RUN_CUTOFF_MS).toISOString();
     expect(params).toContain('running');
     expect(params).toContain(cutoff);
@@ -66,6 +66,38 @@ describe('reapStaleDiscoveryRuns', () => {
     // The reaped error is appended to errors[], not replacing it.
     expect(sql).toContain(`coalesce("recipe_discovery_runs"."errors", '[]'::jsonb) ||`);
     expect(params).toContain(JSON.stringify(['reaped: exceeded 900s without completing']));
+  });
+
+  it('a local run that started 20 minutes ago is not reaped', async () => {
+    await reapStaleDiscoveryRuns(STALE_RUN_CUTOFF_MS, NOW);
+
+    const { sql, params } = captured.queries[0];
+    expect(LOCAL_STALE_RUN_CUTOFF_MS).toBe(6 * 60 * 60 * 1000);
+    // One UPDATE whose predicate splits on run_type: local rows are compared
+    // against now-6h, every other type against now-15min.
+    expect(sql).toMatch(
+      /\(\("recipe_discovery_runs"\."run_type" = \$(\d+) and "recipe_discovery_runs"\."started_at" < \$(\d+)\) or \("recipe_discovery_runs"\."run_type" <> \$(\d+) and "recipe_discovery_runs"\."started_at" < \$(\d+)\)\)/
+    );
+    const m = sql.match(
+      /"run_type" = \$(\d+) and "recipe_discovery_runs"\."started_at" < \$(\d+)\) or \("recipe_discovery_runs"\."run_type" <> \$(\d+) and "recipe_discovery_runs"\."started_at" < \$(\d+)/
+    );
+    const p = (i: string) => params[Number(i) - 1];
+    expect(m).not.toBeNull();
+    const [, localTypeIdx, localCutoffIdx, otherTypeIdx, otherCutoffIdx] = m as RegExpMatchArray;
+    expect(p(localTypeIdx)).toBe('local');
+    expect(p(otherTypeIdx)).toBe('local');
+    const localCutoff = new Date(p(localCutoffIdx) as string);
+    const otherCutoff = new Date(p(otherCutoffIdx) as string);
+    expect(localCutoff.toISOString()).toBe(
+      new Date(NOW.getTime() - LOCAL_STALE_RUN_CUTOFF_MS).toISOString()
+    );
+
+    // A local run started 20 minutes ago fails `started_at < localCutoff`...
+    const startedAt = new Date(NOW.getTime() - 20 * 60 * 1000);
+    expect(startedAt < localCutoff).toBe(false);
+    // ...while a daily run with the same start would be reaped.
+    expect(startedAt < otherCutoff).toBe(true);
+    expect(params).toContain(JSON.stringify(['reaped: exceeded 21600s without completing']));
   });
 
   it('returns 0 and touches nothing when no row is past the cutoff', async () => {

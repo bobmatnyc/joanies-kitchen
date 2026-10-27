@@ -47,6 +47,25 @@ describe('resolveRunBudget', () => {
   });
 });
 
+describe('resolveRunBudget clamp', () => {
+  it('resolveRunBudget clamps a budget above MAX_RUN_BUDGET_USD and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    // numeric(12,6) holds at most 999999.999999; a huge request must not reach the row.
+    expect(resolveRunBudget(1e9, undefined)).toBe(100);
+    expect(resolveRunBudget(undefined, '1e12')).toBe(100);
+    expect(resolveRunBudget(100.5, undefined)).toBe(100);
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('clamping to $100'));
+
+    // At or under the ceiling: unchanged, no warning.
+    warn.mockClear();
+    expect(resolveRunBudget(100, undefined)).toBe(100);
+    expect(resolveRunBudget(42, undefined)).toBe(42);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('currentRunSpend', () => {
   it('currentRunSpend counts spend and write failures when the ledger insert throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);

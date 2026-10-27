@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **costs**: per-call crawl cost ledger (`crawl_cost_events`) with a rate table and `trackCost()`; Tavily, Firecrawl, Jina, OpenRouter, Anthropic, Perplexity, Brave, SerpAPI and DALL-E calls record one row each, tagged with the discovery run id when one is in scope (#6)
 - **crawl**: per-run cost and budget on `recipe_discovery_runs` (`cost_usd`, `budget_usd`, `cost_write_failures`); a run stops making paid calls once its in-memory spend reaches its budget (`CRON_RUN_BUDGET_USD`, default $5) and ends `partial` (#6)
 - **crawl**: `recipe_discovery_run_items`, one row per URL attempted with its extraction tier and outcome (#6)
-- **crawl**: `reapStaleDiscoveryRuns()` marks `running` runs older than 15 minutes `failed`; the daily cron calls it before each run (#6)
+- **crawl**: `reapStaleDiscoveryRuns()` marks `running` runs `failed` after 15 minutes (`daily`, `manual`) or 6 hours (`local`); the daily cron calls it before each run (#6)
+- **crawl**: run budgets are clamped to `MAX_RUN_BUDGET_USD` ($100); the weekly crawl checks the budget before each paid URL; `/api/recipes/scrape` caps `maxResults` at 50 (#6)
+- **crawl**: failed item writes add one `item writes failed: N` error to the run; the cron and `/api/recipes/scrape` responses carry `tracked` (#6)
 - **crawl**: the local and pm2 scrapers (`scraper:daily`, `scraper:once`, `continuous-scraper.ts`, `/api/recipes/scrape`) record discovery runs with `run_type` `local` or `manual` (#6)
 
 ### Changed

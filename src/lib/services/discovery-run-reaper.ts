@@ -4,12 +4,18 @@
  * `running` forever; this marks such rows `failed`.
  */
 
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, lt, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
 
 /** Default cutoff: 15 minutes, 3x the cron route's `maxDuration` of 300s. */
 export const STALE_RUN_CUTOFF_MS = 15 * 60 * 1000;
+
+/**
+ * Cutoff for `local` runs: 6 hours. tsx/pm2 scripts have no `maxDuration` and
+ * a long local run must not be reaped while it is still crawling.
+ */
+export const LOCAL_STALE_RUN_CUTOFF_MS = 6 * 60 * 60 * 1000;
 
 /** The `errors[]` entry a reaped run carries. */
 export function reapedRunError(olderThanMs: number): string {
@@ -19,11 +25,14 @@ export function reapedRunError(olderThanMs: number): string {
 /**
  * Why: a stuck `running` row reads as a live crawl in the admin view and
  * hides the failure (the 2026-10-25 production run).
- * What: In one UPDATE, sets every `running` row whose `started_at` is before
- * `now - olderThanMs` to `failed`, stamps `completed_at`, and appends
- * `reaped: exceeded <n>s without completing` to `errors`. Rows still inside
- * the cutoff are not matched. Returns the number of rows reaped.
+ * What: In one conditional UPDATE, sets every `running` row whose `started_at`
+ * is before its run type's cutoff to `failed`, stamps `completed_at`, and
+ * appends `reaped: exceeded <n>s without completing` to `errors`. `daily` and
+ * `manual` rows use `now - olderThanMs`; `local` rows use the larger of
+ * `olderThanMs` and `LOCAL_STALE_RUN_CUTOFF_MS`. Rows inside their cutoff are
+ * not matched. Returns the number of rows reaped.
  * Test: `reapStaleDiscoveryRuns only matches running rows older than the cutoff`,
+ * `a local run that started 20 minutes ago is not reaped`,
  * `reapStaleDiscoveryRuns rejects a non-positive cutoff`
  */
 export async function reapStaleDiscoveryRuns(
@@ -33,18 +42,28 @@ export async function reapStaleDiscoveryRuns(
   if (!Number.isFinite(olderThanMs) || olderThanMs <= 0) {
     throw new RangeError(`reapStaleDiscoveryRuns: olderThanMs must be > 0, got ${olderThanMs}`);
   }
+  const localOlderThanMs = Math.max(olderThanMs, LOCAL_STALE_RUN_CUTOFF_MS);
   const cutoff = new Date(now.getTime() - olderThanMs);
+  const localCutoff = new Date(now.getTime() - localOlderThanMs);
   const message = JSON.stringify([reapedRunError(olderThanMs)]);
+  const localMessage = JSON.stringify([reapedRunError(localOlderThanMs)]);
+  const runType = recipeDiscoveryRuns.run_type;
 
   const reaped = await db
     .update(recipeDiscoveryRuns)
     .set({
       status: 'failed',
       completed_at: now,
-      errors: sql`coalesce(${recipeDiscoveryRuns.errors}, '[]'::jsonb) || ${message}::jsonb`,
+      errors: sql`coalesce(${recipeDiscoveryRuns.errors}, '[]'::jsonb) || (case when ${runType} = 'local' then ${localMessage} else ${message} end)::jsonb`,
     })
     .where(
-      and(eq(recipeDiscoveryRuns.status, 'running'), lt(recipeDiscoveryRuns.started_at, cutoff))
+      and(
+        eq(recipeDiscoveryRuns.status, 'running'),
+        or(
+          and(eq(runType, 'local'), lt(recipeDiscoveryRuns.started_at, localCutoff)),
+          and(ne(runType, 'local'), lt(recipeDiscoveryRuns.started_at, cutoff))
+        )
+      )
     )
     .returning({ id: recipeDiscoveryRuns.id });
 
