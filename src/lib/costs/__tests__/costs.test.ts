@@ -29,6 +29,7 @@ import {
   setCostRunId,
   trackCost,
   trackLlmResponse,
+  UNKNOWN_LLM_REQUEST_FLOOR_USD,
   UnknownCostOperationError,
   withChatCostTracking,
   withCostRun,
@@ -187,6 +188,24 @@ describe('LLM usage parsing', () => {
     await expect(
       trackLlmResponse('openrouter', { usage: { prompt_tokens: 5 } }, { model: 'vendor/new' })
     ).rejects.toThrow(UnknownCostOperationError);
+  });
+
+  it('trackLlmResponse floors an unknown model with no usage in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const providers = ['openrouter', 'anthropic', 'perplexity'] as const;
+    for (const provider of providers) {
+      await trackLlmResponse(provider, { choices: [] }, { model: 'vendor/unknown' });
+    }
+    expect(insertedRows).toHaveLength(providers.length);
+    providers.forEach((provider, i) => {
+      const floor = UNKNOWN_LLM_REQUEST_FLOOR_USD[provider];
+      expect(floor).toBeGreaterThan(0);
+      expect(insertedRows[i]).toMatchObject({ provider, estimated: true, usd: floor?.toFixed(6) });
+    });
+    // A direct unknown LLM operation is floored too, not booked at $0.
+    const row = await trackCost({ provider: 'anthropic', operation: 'messages:vendor/unknown' });
+    expect(row).toMatchObject({ estimated: true, usd: UNKNOWN_LLM_REQUEST_FLOOR_USD.anthropic });
   });
 
   it('withChatCostTracking records an OpenRouter completion', async () => {

@@ -83,6 +83,17 @@ export const LLM_TOKEN_PRICES: Readonly<Record<string, LlmTokenPrice>> = {
   'mistralai/mistral-7b-instruct:free': { inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
 };
 
+/**
+ * Per-request floor for an LLM call to a model missing from `LLM_TOKEN_PRICES`
+ * (same idea as sonar's flat `requestUsd`). It keeps an unknown model with no
+ * `usage` data from being booked at $0, since its token estimate is then 0.
+ */
+export const UNKNOWN_LLM_REQUEST_FLOOR_USD: Readonly<Partial<Record<CostProvider, number>>> = {
+  openrouter: 0.01,
+  anthropic: 0.01,
+  perplexity: 0.005,
+};
+
 /** Returns the flat rate for `provider:operation`, or undefined when unknown. */
 export function lookupRate(provider: CostProvider, operation: string): CostRate | undefined {
   return COST_RATES[`${provider}:${operation}`];
@@ -108,12 +119,14 @@ export function computeLlmCost(
 }
 
 /**
- * Highest known flat rate for a provider. Used as the conservative production
- * fallback for an unknown operation, so it is never recorded as a silent $0.
+ * Highest known flat rate for a provider, or its unknown-LLM request floor when
+ * that is higher. Used as the conservative production fallback for an unknown
+ * operation, so it is never recorded as a silent $0.
  */
 export function providerFallbackRate(provider: CostProvider): number {
   const prefix = `${provider}:`;
-  let max = 0;
+  // #6: LLM providers have no flat rates, so start from their request floor.
+  let max = UNKNOWN_LLM_REQUEST_FLOOR_USD[provider] ?? 0;
   for (const [key, rate] of Object.entries(COST_RATES)) {
     if (key.startsWith(prefix) && rate.usdPerUnit > max) max = rate.usdPerUnit;
   }

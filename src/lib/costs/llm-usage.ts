@@ -3,7 +3,12 @@
  */
 
 import type OpenAI from 'openai';
-import { type CostProvider, computeLlmCost, LLM_TOKEN_PRICES } from './rates';
+import {
+  type CostProvider,
+  computeLlmCost,
+  LLM_TOKEN_PRICES,
+  UNKNOWN_LLM_REQUEST_FLOOR_USD,
+} from './rates';
 import { reportUnknownCost, trackCost } from './tracker';
 
 export interface LlmUsage {
@@ -49,9 +54,16 @@ export function parseLlmUsage(response: unknown, requestedModel?: string): LlmUs
   };
 }
 
-/** Token estimate at the most expensive known model: the production fallback for an unknown model. */
-function maxPriceEstimate(promptTokens: number, completionTokens: number): number {
-  let max = 0;
+/**
+ * Production fallback for an unknown model: the token estimate at the most
+ * expensive known model, never below the provider's per-request floor (#6).
+ */
+function unknownModelEstimate(
+  provider: CostProvider,
+  promptTokens: number,
+  completionTokens: number
+): number {
+  let max = UNKNOWN_LLM_REQUEST_FLOOR_USD[provider] ?? 0;
   for (const model of Object.keys(LLM_TOKEN_PRICES)) {
     max = Math.max(max, computeLlmCost(model, promptTokens, completionTokens) ?? 0);
   }
@@ -64,7 +76,8 @@ function maxPriceEstimate(promptTokens: number, completionTokens: number): numbe
  * What: Records one ledger row for a chat/messages response under operation
  * `<kind>:<model>`, with units = total tokens.
  * Test: `trackLlmResponse books the measured OpenRouter cost`,
- * `trackLlmResponse falls back to tokens x price`
+ * `trackLlmResponse falls back to tokens x price`,
+ * `trackLlmResponse floors an unknown model with no usage in production`
  */
 export async function trackLlmResponse(
   provider: CostProvider,
@@ -81,7 +94,7 @@ export async function trackLlmResponse(
   let estimateUsd = computeLlmCost(usage.model, usage.promptTokens, usage.completionTokens);
   if (usage.costUsd === undefined && estimateUsd === undefined) {
     reportUnknownCost(`No price for model "${usage.model}" (${provider}) and no measured cost`);
-    estimateUsd = maxPriceEstimate(usage.promptTokens, usage.completionTokens);
+    estimateUsd = unknownModelEstimate(provider, usage.promptTokens, usage.completionTokens);
   }
   await trackCost({
     provider,

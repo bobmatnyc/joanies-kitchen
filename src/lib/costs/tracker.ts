@@ -2,12 +2,18 @@
  * Cost ledger writer (#6): one `crawl_cost_events` row per paid external call.
  *
  * Writes are awaited, so a row is committed before the serverless request that
- * made the call returns; no flush step is needed. A failed write is caught and
- * logged and never aborts the crawl (fail-open by design, see #6).
+ * made the call returns; no flush step is needed. A failed or timed-out write is
+ * caught and logged and never aborts the crawl (fail-open by design, see #6).
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { type CostProvider, lookupRate, providerFallbackRate } from './rates';
+
+/**
+ * Upper bound on one ledger insert. The write sits on user-facing paths (search,
+ * completions), so a stalled Neon request must not stall the paid call.
+ */
+export const COST_LEDGER_WRITE_TIMEOUT_MS = 2000;
 
 /** Thrown outside production when a cost has no measured value, estimate, or rate. */
 export class UnknownCostOperationError extends Error {
@@ -131,24 +137,46 @@ async function insertCostEvent(row: CostEventRow): Promise<void> {
   });
 }
 
+class LedgerWriteTimeoutError extends Error {}
+
+/** Settles with `promise`, or rejects with `LedgerWriteTimeoutError` after `ms`. */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new LedgerWriteTimeoutError()), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Why: per-run spend is a SUM over ledger rows, so every paid call needs one.
- * What: Resolves the USD figure, then awaits the insert into `crawl_cost_events`.
- * A failed insert is logged and swallowed (fail-open); an unknown operation
- * throws outside production before any write.
+ * What: Resolves the USD figure, then awaits the insert into `crawl_cost_events`,
+ * bounded by `COST_LEDGER_WRITE_TIMEOUT_MS`. A failed or timed-out insert is
+ * logged and swallowed (fail-open); an unknown operation throws outside
+ * production before any write.
  * Test: `trackCost logs and swallows a failed insert`,
- * `a failed ledger insert does not abort a Tavily search`
+ * `a failed ledger insert does not abort a Tavily search`,
+ * `trackCost resolves within the timeout when the insert never resolves`,
+ * `a hung ledger insert does not stall a Tavily search`
  */
 export async function trackCost(input: TrackCostInput): Promise<CostEventRow> {
   const row = resolveCost(input);
+  const label = `${row.provider}:${row.operation} ($${row.usd.toFixed(6)})`;
   try {
-    await insertCostEvent(row);
+    await withTimeout(insertCostEvent(row), COST_LEDGER_WRITE_TIMEOUT_MS);
   } catch (error) {
     // #6: fail-open on purpose — losing a ledger row must never abort a crawl.
-    console.error(
-      `[CostLedger] Failed to record cost event ${row.provider}:${row.operation} ($${row.usd.toFixed(6)}); continuing:`,
-      error
-    );
+    if (error instanceof LedgerWriteTimeoutError) {
+      console.error(
+        `[CostLedger] Timed out recording cost event ${label} after ${COST_LEDGER_WRITE_TIMEOUT_MS}ms; continuing`
+      );
+    } else {
+      console.error(`[CostLedger] Failed to record cost event ${label}; continuing:`, error);
+    }
   }
   return row;
 }
