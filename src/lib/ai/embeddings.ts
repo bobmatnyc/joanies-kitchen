@@ -13,6 +13,7 @@
  * - Comprehensive error handling
  */
 
+import { trackCost } from '@/lib/costs';
 import type { Recipe } from '@/lib/db/schema';
 
 // Constants
@@ -201,7 +202,16 @@ async function callJinaEmbeddings(
 
         const json = (await response.json()) as {
           data?: Array<{ embedding: number[]; index: number }>;
+          usage?: { total_tokens?: number };
         };
+        await trackCost({
+          provider: 'jina',
+          operation: 'embeddings',
+          // ~4 chars/token estimate when Jina omits usage.
+          units:
+            Number(json.usage?.total_tokens) ||
+            Math.ceil(inputs.reduce((n, text) => n + text.length, 0) / 4),
+        });
 
         if (!json.data || !Array.isArray(json.data) || json.data.length !== inputs.length) {
           throw new EmbeddingError(

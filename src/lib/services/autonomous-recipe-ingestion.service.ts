@@ -15,6 +15,7 @@
  */
 
 import { eq, inArray, sql } from 'drizzle-orm';
+import { setCostRunId, withCostRun } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { recipeDiscoveryRuns, recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
@@ -90,6 +91,11 @@ export class AutonomousRecipeIngestionService {
    *   3. Hard default (5)
    */
   async runDailyDiscovery(options: IngestionRunOptions = {}): Promise<IngestionRunResult> {
+    // #6: scope a cost context so every paid call below books against this run.
+    return withCostRun(() => this.executeRun(options));
+  }
+
+  private async executeRun(options: IngestionRunOptions): Promise<IngestionRunResult> {
     const startTime = Date.now();
     const isDryRun = options.dryRun ?? false;
 
@@ -119,6 +125,7 @@ export class AutonomousRecipeIngestionService {
       try {
         runId = await this.createRun(isDryRun);
         runCreated = true;
+        setCostRunId(runId);
         console.log(`[AutonomousIngestion] Run record created: ${runId}`);
       } catch (createErr) {
         const msg = createErr instanceof Error ? createErr.message : String(createErr);

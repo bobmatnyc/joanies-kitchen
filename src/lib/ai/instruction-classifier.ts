@@ -13,6 +13,7 @@ import type {
   InstructionMetadata,
   SkillLevelEnum,
 } from '@/types/instruction-metadata';
+import { withChatCostTracking } from '../costs';
 import {
   buildBatchClassificationPrompt,
   buildInstructionClassifierPrompt,
@@ -34,14 +35,17 @@ function getOpenRouterClient() {
     throw new Error('OPENROUTER_API_KEY environment variable is not set');
   }
 
-  return new OpenAI({
-    apiKey,
-    baseURL: 'https://openrouter.ai/api/v1',
-    defaultHeaders: {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002',
-      'X-Title': 'Recipe Manager',
-    },
-  });
+  return withChatCostTracking(
+    new OpenAI({
+      apiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002',
+        'X-Title': 'Recipe Manager',
+      },
+    }),
+    'openrouter'
+  );
 }
 
 /**

@@ -1,0 +1,154 @@
+/**
+ * Cost ledger writer (#6): one `crawl_cost_events` row per paid external call.
+ *
+ * Writes are awaited, so a row is committed before the serverless request that
+ * made the call returns; no flush step is needed. A failed write is caught and
+ * logged and never aborts the crawl (fail-open by design, see #6).
+ */
+
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { type CostProvider, lookupRate, providerFallbackRate } from './rates';
+
+/** Thrown outside production when a cost has no measured value, estimate, or rate. */
+export class UnknownCostOperationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnknownCostOperationError';
+  }
+}
+
+export interface TrackCostInput {
+  provider: CostProvider;
+  /** Rate-table operation name, e.g. `search.basic`, `scrape`, `chat:<model>`. */
+  operation: string;
+  /** Billable units (requests, credits, tokens). Defaults to 1. */
+  units?: number;
+  /** USD reported by the provider for this call. Overrides every estimate. */
+  measuredUsd?: number | null;
+  /** USD computed by the call site (e.g. tokens x model price). Used when no measured cost. */
+  estimateUsd?: number | null;
+  /** Discovery run id. Defaults to the run in scope via `withCostRun()`. */
+  runId?: string | null;
+}
+
+export interface CostEventRow {
+  runId: string | null;
+  provider: CostProvider;
+  operation: string;
+  units: number;
+  usd: number;
+  estimated: boolean;
+}
+
+interface CostContext {
+  runId: string | null;
+}
+
+const costContext = new AsyncLocalStorage<CostContext>();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+function isUsableUsd(value: number | null | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+/**
+ * Why: an unknown price must be loud in development and never a silent $0 in
+ * production (the tripbot.tours bug this ledger replaces).
+ * What: Throws `UnknownCostOperationError` outside production; in production
+ * logs a warning and returns so the caller records an estimated row.
+ * Test: `trackCost throws on an unknown operation outside production`,
+ * `trackCost records an unknown operation as estimated in production`
+ */
+export function reportUnknownCost(message: string): void {
+  if (!isProduction()) throw new UnknownCostOperationError(message);
+  console.warn(`[CostLedger] ${message} — recording a fallback estimate (estimated=true)`);
+}
+
+/**
+ * Runs `fn` with a mutable cost context so every `trackCost()` beneath it
+ * picks up the run id set later via `setCostRunId()`.
+ */
+export function withCostRun<T>(fn: () => Promise<T>): Promise<T> {
+  return costContext.run({ runId: null }, fn);
+}
+
+/** Attaches a discovery run id to the current cost context. Non-UUID ids are ignored. */
+export function setCostRunId(runId: string | null): void {
+  const store = costContext.getStore();
+  if (store) store.runId = runId && UUID_RE.test(runId) ? runId : null;
+}
+
+/** Run id of the enclosing `withCostRun()` scope, or null. */
+export function currentCostRunId(): string | null {
+  return costContext.getStore()?.runId ?? null;
+}
+
+/**
+ * Why: one place decides which USD figure a call is booked at.
+ * What: measured USD wins (estimated=false); else the call-site estimate; else
+ * units x the rate-table entry; else the unknown-operation path.
+ * Test: `resolveCost prefers a measured cost over the rate table`,
+ * `resolveCost uses units x rate when nothing is measured`
+ */
+export function resolveCost(input: TrackCostInput): CostEventRow {
+  const units = input.units ?? 1;
+  const explicitRunId = input.runId && UUID_RE.test(input.runId) ? input.runId : null;
+  const runId = explicitRunId ?? currentCostRunId();
+  const base = { runId, provider: input.provider, operation: input.operation, units };
+
+  if (isUsableUsd(input.measuredUsd)) {
+    return { ...base, usd: input.measuredUsd, estimated: false };
+  }
+  if (isUsableUsd(input.estimateUsd)) {
+    return { ...base, usd: input.estimateUsd, estimated: true };
+  }
+  const rate = lookupRate(input.provider, input.operation);
+  if (rate) {
+    return { ...base, usd: units * rate.usdPerUnit, estimated: true };
+  }
+
+  reportUnknownCost(`Unknown cost operation "${input.provider}:${input.operation}"`);
+  return { ...base, usd: units * providerFallbackRate(input.provider), estimated: true };
+}
+
+async function insertCostEvent(row: CostEventRow): Promise<void> {
+  // Lazy import: loading this module must not open a DB connection, and
+  // '@/lib/db' throws at import time when DATABASE_URL is unset.
+  const { db } = await import('@/lib/db');
+  const { crawlCostEvents } = await import('@/lib/db/autonomous-scraper-schema');
+  await db.insert(crawlCostEvents).values({
+    run_id: row.runId,
+    provider: row.provider,
+    operation: row.operation,
+    units: String(row.units),
+    usd: row.usd.toFixed(6),
+    estimated: row.estimated,
+  });
+}
+
+/**
+ * Why: per-run spend is a SUM over ledger rows, so every paid call needs one.
+ * What: Resolves the USD figure, then awaits the insert into `crawl_cost_events`.
+ * A failed insert is logged and swallowed (fail-open); an unknown operation
+ * throws outside production before any write.
+ * Test: `trackCost logs and swallows a failed insert`,
+ * `a failed ledger insert does not abort a Tavily search`
+ */
+export async function trackCost(input: TrackCostInput): Promise<CostEventRow> {
+  const row = resolveCost(input);
+  try {
+    await insertCostEvent(row);
+  } catch (error) {
+    // #6: fail-open on purpose — losing a ledger row must never abort a crawl.
+    console.error(
+      `[CostLedger] Failed to record cost event ${row.provider}:${row.operation} ($${row.usd.toFixed(6)}); continuing:`,
+      error
+    );
+  }
+  return row;
+}

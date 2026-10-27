@@ -10,12 +10,16 @@
  */
 
 import OpenAI from 'openai';
+import { withChatCostTracking } from '@/lib/costs';
 import type { WeekInfo } from '@/lib/week-utils';
 
-const perplexity = new OpenAI({
-  apiKey: process.env.PERPLEXITY_API_KEY || '',
-  baseURL: 'https://api.perplexity.ai',
-});
+const perplexity = withChatCostTracking(
+  new OpenAI({
+    apiKey: process.env.PERPLEXITY_API_KEY || '',
+    baseURL: 'https://api.perplexity.ai',
+  }),
+  'perplexity'
+);
 
 export interface DiscoveredRecipe {
   title: string;

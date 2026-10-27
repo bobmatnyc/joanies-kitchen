@@ -3,6 +3,7 @@ import {
   date,
   integer,
   jsonb,
+  numeric,
   pgTable,
   serial,
   text,
@@ -45,6 +46,34 @@ export const recipeDiscoveryRuns = pgTable(
 );
 
 /**
+ * Crawl Cost Events table (ledger)
+ *
+ * One row per paid external call (Tavily, Firecrawl, Jina, OpenRouter, ...).
+ * Per-run cost is SUM(usd) grouped by run_id; run_id is null for calls made
+ * outside a discovery run (manual crawl actions, ad-hoc ingestion).
+ * `estimated` is false only when the provider itself reported the USD cost.
+ * Written by `trackCost()` in src/lib/costs. See #6.
+ */
+export const crawlCostEvents = pgTable(
+  'crawl_cost_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    run_id: uuid('run_id').references(() => recipeDiscoveryRuns.id, { onDelete: 'set null' }),
+    provider: text('provider').notNull(),
+    operation: text('operation').notNull(),
+    units: numeric('units', { precision: 14, scale: 4 }).notNull().default('0'),
+    usd: numeric('usd', { precision: 12, scale: 6 }).notNull(),
+    estimated: boolean('estimated').notNull().default(true),
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    createdAtIdx: index('idx_crawl_cost_events_created_at').on(table.created_at.desc()),
+    runIdIdx: index('idx_crawl_cost_events_run_id').on(table.run_id),
+    providerIdx: index('idx_crawl_cost_events_provider').on(table.provider),
+  })
+);
+
+/**
  * Recipe of the Day table
  *
  * Tracks which recipe was featured on each date.
@@ -73,6 +102,8 @@ export type RecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferSelect;
 export type NewRecipeDiscoveryRun = typeof recipeDiscoveryRuns.$inferInsert;
 export type RecipeOfTheDay = typeof recipeOfTheDay.$inferSelect;
 export type NewRecipeOfTheDay = typeof recipeOfTheDay.$inferInsert;
+export type CrawlCostEvent = typeof crawlCostEvents.$inferSelect;
+export type NewCrawlCostEvent = typeof crawlCostEvents.$inferInsert;
 
 // Zod schemas for validation
 export const insertRecipeDiscoveryRunSchema = createInsertSchema(recipeDiscoveryRuns);

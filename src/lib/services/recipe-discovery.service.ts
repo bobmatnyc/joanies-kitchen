@@ -15,6 +15,8 @@
  * - Day-of-week query rotation for diversity
  */
 
+import { trackCost } from '@/lib/costs';
+
 export interface DiscoveredRecipeUrl {
   url: string;
   title: string;
@@ -459,6 +461,7 @@ export class RecipeDiscoveryService {
           links?: string[];
         };
       };
+      await trackCost({ provider: 'firecrawl', operation: 'scrape', units: 1 });
 
       const links: string[] = data?.data?.links ?? [];
       if (links.length === 0) {
@@ -655,6 +658,7 @@ export class RecipeDiscoveryService {
         }
 
         const data: TavilyApiResponse = await response.json();
+        await trackCost({ provider: 'tavily', operation: `search.${searchDepth}` });
 
         // Pass through listicle/hub pages (they are handled by discoverRecipeUrls),
         // filtering only truly invalid URLs (blocked domains, promo pages, etc.)
