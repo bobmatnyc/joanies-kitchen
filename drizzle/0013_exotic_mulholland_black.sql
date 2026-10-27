@@ -1,0 +1,3 @@
+CREATE TYPE "public"."recipe_license" AS ENUM('PUBLIC_DOMAIN', 'CC_BY', 'CC_BY_SA', 'CC_BY_NC', 'CC_BY_NC_SA', 'EDUCATIONAL_USE', 'PERSONAL_USE', 'ALL_RIGHTS_RESERVED', 'FAIR_USE');--> statement-breakpoint
+ALTER TABLE "recipes" ADD COLUMN "license" "recipe_license" DEFAULT 'ALL_RIGHTS_RESERVED' NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_recipes_license" ON "recipes" USING btree ("license");
