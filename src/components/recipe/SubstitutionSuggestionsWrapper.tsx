@@ -172,17 +172,21 @@ export function SubstitutionSuggestionsWrapper({
   ingredients,
   className = '',
 }: SubstitutionSuggestionsWrapperProps) {
-  const { isSignedIn, userId } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  // #67: the auth identity the inventory check last finished for; stale data is never rendered
+  const authKey = `${isSignedIn ? 'in' : 'out'}:${userId ?? ''}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    // #67: auth state is unknown while the session loads; do nothing until it is known
+    if (!isLoaded) return;
     async function checkInventory() {
       // Not signed in: show all ingredients as missing
       if (!isSignedIn || !userId) {
         setMissingIngredients(ingredients);
-        setLoading(false);
+        setLoadedKey(authKey);
         return;
       }
 
@@ -205,15 +209,16 @@ export function SubstitutionSuggestionsWrapper({
         // On error, assume all ingredients are missing
         setMissingIngredients(ingredients);
       } finally {
-        setLoading(false);
+        setLoadedKey(authKey);
       }
     }
 
     checkInventory();
-  }, [isSignedIn, userId, ingredients]);
+  }, [isLoaded, isSignedIn, userId, authKey, ingredients]);
 
   // Don't render anything while loading inventory check
-  if (loading) {
+  // #67: also wait for auth, or a signed-in user is seeded into click-to-load mode
+  if (!isLoaded || loadedKey !== authKey) {
     return null;
   }
 
@@ -224,6 +229,8 @@ export function SubstitutionSuggestionsWrapper({
 
   return (
     <SubstitutionSuggestions
+      // #67: remount on sign-in/out so the click-to-load seed is re-evaluated
+      key={isSignedIn ? 'in' : 'out'}
       missingIngredients={missingIngredients}
       recipeName={recipeName}
       userIngredients={userIngredients}

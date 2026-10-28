@@ -277,6 +277,8 @@ export function SubstitutionSuggestions({
   const [requested, setRequested] = useState(!loadOnClick);
   const requestedRef = useRef(!loadOnClick);
   const [loading, setLoading] = useState(!loadOnClick);
+  // #67: bumped by the retry button to re-run the fetch effect after an error
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // First item expanded by default
   const [isSectionOpen, setIsSectionOpen] = useState(true);
@@ -289,6 +291,7 @@ export function SubstitutionSuggestions({
     setRequested(true);
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: #67 `attempt` is a retry trigger, not read in the body
   useEffect(() => {
     // #67: never call the paid server action until the visitor asked for it
     if (!requested) return;
@@ -321,7 +324,14 @@ export function SubstitutionSuggestions({
     }
 
     fetchSubstitutions();
-  }, [requested, missingIngredients, recipeName, userIngredients]);
+  }, [requested, attempt, missingIngredients, recipeName, userIngredients]);
+
+  // #67: one explicit retry after a failed click-to-load fetch
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setAttempt((n) => n + 1);
+  };
 
   // Toggle expanded state for an ingredient
   const toggleExpanded = (index: number) => {
@@ -403,6 +413,12 @@ export function SubstitutionSuggestions({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-red-600 text-center">{error}</p>
+          {/* #67: retry control so an error is not a dead end */}
+          <div className="mt-3 text-center">
+            <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
+              Try again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
