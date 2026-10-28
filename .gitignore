@@ -19,6 +19,7 @@
 .vitest/
 /test-results/
 /playwright-report/
+test/tests/artifacts/
 tests/e2e/.auth/
 playwright/.auth/
 
