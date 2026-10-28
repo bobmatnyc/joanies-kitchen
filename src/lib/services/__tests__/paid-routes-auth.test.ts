@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-vi.mock('@/app/actions/recipe-crawl', () => ({
+vi.mock('@/lib/recipe-crawl', () => ({
   crawlWeeklyRecipes: mocks.crawlWeeklyRecipes,
   convertUrlToRecipe: mocks.convertUrlToRecipe,
 }));

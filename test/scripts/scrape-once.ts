@@ -5,7 +5,7 @@
  * Usage: tsx scripts/scrape-once.ts [weeksAgo] [maxRecipes]
  */
 
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 
 async function main() {
   const weeksAgo = Number(process.argv[2]) || 0;

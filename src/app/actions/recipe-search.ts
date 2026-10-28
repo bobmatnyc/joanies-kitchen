@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
+import { requireAuth } from '@/lib/auth-guard';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { createRecipe } from './recipes';
 
@@ -33,6 +34,20 @@ const WebRecipeSchema = z.object({
 
 export type WebRecipe = z.infer<typeof WebRecipeSchema>;
 
+/**
+ * #13: the Perplexity web-search actions are a signed-in feature (the only UI,
+ * `/discover`'s WebSearchPanel, sits behind RequireAuthAI). Returns the error
+ * message for a caller with no session, or null when signed in.
+ */
+async function signInError(featureName: string): Promise<string | null> {
+  try {
+    await requireAuth(featureName);
+    return null;
+  } catch (error: unknown) {
+    return toErrorMessage(error);
+  }
+}
+
 interface WebSearchOptions {
   query: string;
   cuisine?: string;
@@ -45,6 +60,9 @@ interface WebSearchOptions {
 export async function searchWebRecipes(
   options: WebSearchOptions
 ): Promise<{ success: boolean; data?: WebRecipe[]; error?: string }> {
+  const authError = await signInError('web recipe search'); // #13: sign-in before any paid call
+  if (authError) return { success: false, error: authError };
+
   const { query, cuisine, ingredients = [], dietaryRestrictions = [], maxResults = 5 } = options;
 
   if (!process.env.OPENROUTER_API_KEY) {
@@ -153,6 +171,9 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
 export async function parseRecipeFromUrl(
   url: string
 ): Promise<{ success: boolean; data?: WebRecipe; error?: string }> {
+  const authError = await signInError('recipe import from URL'); // #13: sign-in before any paid call
+  if (authError) return { success: false, error: authError };
+
   if (!process.env.OPENROUTER_API_KEY) {
     return {
       success: false,

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { convertUrlToRecipe } from '@/app/actions/recipe-crawl';
+import { convertUrlToRecipe } from '@/lib/recipe-crawl';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 

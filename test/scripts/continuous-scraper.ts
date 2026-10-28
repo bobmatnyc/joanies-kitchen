@@ -7,7 +7,7 @@
  * Runs continuously with intelligent scheduling.
  */
 
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 
 interface ScraperConfig {
   weeksToScrape: number[]; // Which weeks to scrape (0-52)
