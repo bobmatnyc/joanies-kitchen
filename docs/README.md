@@ -1,7 +1,7 @@
 # Documentation
 
 **Last Updated:** February 16, 2026
-**Go-Live Date:** January 1, 2027
+**Go-Live Date:** February 1, 2027 (public beta)
 
 This directory contains all project documentation organized by category.
 
@@ -53,7 +53,7 @@ This directory contains all project documentation organized by category.
 
 - `../README.md` - Project README
 - `../CHANGELOG.md` - Version history and changes
-- `../ROADMAP.md` - Roadmap of record for the 2027-01-01 launch
+- `../ROADMAP.md` - Roadmap of record for the 2027-02-01 beta
 
 ## Recent Reorganization (2025-11)
 
