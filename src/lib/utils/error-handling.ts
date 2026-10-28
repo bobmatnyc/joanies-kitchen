@@ -92,6 +92,18 @@ export function isDatabaseError(error: unknown): error is { code: string; detail
   return isErrorWithCode(error) && typeof (error as Record<string, unknown>).code === 'string';
 }
 
+/**
+ * Why: drizzle wraps the driver error, so SQLSTATE 23505 sits on `error.cause`;
+ * matching message text ('unique') misses it and can misreport other errors (#44).
+ * What: true when `error.cause.code` or `error.code` is '23505' (unique_violation).
+ * Test: `src/lib/utils/__tests__/is-unique-violation.test.ts`
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  const code = (e: unknown) => (isErrorWithCode(e) ? e.code : undefined);
+  const cause = typeof error === 'object' && error !== null ? (error as { cause?: unknown }).cause : undefined;
+  return code(cause) === '23505' || code(error) === '23505';
+}
+
 /** Upper bound on a stored database-error string (#12). */
 export const DB_ERROR_MESSAGE_MAX = 500;
 

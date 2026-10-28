@@ -10,7 +10,7 @@ import {
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
-import { toErrorMessage } from '@/lib/utils/error-handling';
+import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * User Profile Server Actions
@@ -75,14 +75,12 @@ export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
   } catch (error) {
     console.error('Error creating/updating profile:', error);
 
-    const errorMsg = toErrorMessage(error);
-
-    // Check for unique constraint violations
-    if (errorMsg.includes('unique')) {
+    // #44: match SQLSTATE 23505 (on error.cause), not message text.
+    if (isUniqueViolation(error)) {
       return { success: false, error: 'Username already taken' };
     }
 
-    return { success: false, error: errorMsg };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
