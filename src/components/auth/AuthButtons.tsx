@@ -1,43 +1,20 @@
 'use client';
 
-import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/nextjs';
-import { ChefHat, FolderHeart, Heart, LogIn, Shield, User, UserPlus } from 'lucide-react';
+import { ChefHat, FolderHeart, Heart, LogIn, LogOut, Shield, User } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useUser } from '@/lib/auth-client';
 
-// Check if Clerk is properly configured
-const isClerkConfigured =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'YOUR_PUBLISHABLE_KEY' &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== '';
+const MENU_ITEM =
+  'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors';
 
-// Component to show when Clerk is not configured (development mode)
-function DevelopmentAuthButtons() {
-  return (
-    <div className="flex items-center gap-2">
-      <Link href="/sign-up">
-        <Button variant="ghost" size="sm">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Register
-        </Button>
-      </Link>
-      <Link href="/sign-in">
-        <Button variant="ghost" size="sm">
-          <LogIn className="h-4 w-4 mr-2" />
-          Sign In
-        </Button>
-      </Link>
-    </div>
-  );
-}
-
-// Component that uses Clerk hooks
-function ClerkAuthButtons() {
+// #22: Clerk's UserButton is replaced by a small menu with sign-out.
+// Registration is closed, so there is no Register button.
+export function AuthButtons() {
   const { isSignedIn, isLoaded, user } = useUser();
-  const router = useRouter();
 
-  // Show loading state while auth status is being determined
   if (!isLoaded) {
     return (
       <div className="flex items-center gap-2">
@@ -46,90 +23,69 @@ function ClerkAuthButtons() {
     );
   }
 
-  // Show UserButton if signed in
-  if (isSignedIn) {
-    // Check if user is an admin
-    const isAdmin = user?.publicMetadata?.isAdmin === 'true';
-
+  if (!isSignedIn || !user) {
     return (
-      <div className="flex items-center gap-2">
-        <UserButton
-          appearance={{
-            elements: {
-              rootBox: 'flex items-center',
-              avatarBox: 'h-8 w-8',
-              userButtonPopoverCard: 'shadow-lg border',
-              userButtonPopoverActions: 'space-y-1',
-            },
-          }}
-          userProfileMode="navigation"
-          userProfileUrl="/user-profile"
-          afterSignOutUrl="/"
-        >
-          <UserButton.MenuItems>
-            <UserButton.Action
-              label="My Profile"
-              labelIcon={<User className="h-4 w-4" />}
-              onClick={() => router.push('/profile/edit')}
-            />
-            <UserButton.Action
-              label="Share Recipe"
-              labelIcon={<ChefHat className="h-4 w-4" />}
-              onClick={() => router.push('/recipes/upload')}
-            />
-            <UserButton.Action
-              label="My Recipes"
-              labelIcon={<Heart className="h-4 w-4" />}
-              onClick={() => router.push('/profile/recipes')}
-            />
-            <UserButton.Action
-              label="My Collections"
-              labelIcon={<FolderHeart className="h-4 w-4" />}
-              onClick={() => router.push('/profile/collections')}
-            />
-            <UserButton.Action
-              label="Favorites"
-              labelIcon={<Heart className="h-4 w-4" />}
-              onClick={() => router.push('/favorites')}
-            />
-            {isAdmin && (
-              <UserButton.Action
-                label="Admin Dashboard"
-                labelIcon={<Shield className="h-4 w-4" />}
-                onClick={() => router.push('/admin')}
-              />
-            )}
-          </UserButton.MenuItems>
-        </UserButton>
-      </div>
-    );
-  }
-
-  // Show Sign Up and Sign In buttons if not signed in
-  return (
-    <div className="flex items-center gap-2">
-      <SignUpButton mode="modal" forceRedirectUrl="/">
-        <Button variant="ghost" size="sm">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Register
-        </Button>
-      </SignUpButton>
-      <SignInButton mode="modal" forceRedirectUrl="/">
+      <Link href="/sign-in">
         <Button variant="ghost" size="sm">
           <LogIn className="h-4 w-4 mr-2" />
           Sign In
         </Button>
-      </SignInButton>
-    </div>
-  );
-}
-
-export function AuthButtons() {
-  // If Clerk is not configured, show development buttons
-  if (!isClerkConfigured) {
-    return <DevelopmentAuthButtons />;
+      </Link>
+    );
   }
 
-  // Use Clerk components when configured
-  return <ClerkAuthButtons />;
+  // UI hint only; admin pages re-check users.is_admin on the server.
+  const isAdmin = user.publicMetadata.isAdmin === 'true';
+  const label = user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'Account';
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Account menu"
+          className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border bg-muted"
+        >
+          {user.imageUrl ? (
+            // biome-ignore lint/performance/noImgElement: tiny remote avatar; next/image needs a domain allowlist
+            <img src={user.imageUrl} alt="" className="h-8 w-8 object-cover" />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-1">
+        <div className="px-3 py-2 text-xs text-muted-foreground truncate">{label}</div>
+        <Link href="/profile/edit" className={MENU_ITEM}>
+          <User className="h-4 w-4" /> My Profile
+        </Link>
+        <Link href="/recipes/upload" className={MENU_ITEM}>
+          <ChefHat className="h-4 w-4" /> Share Recipe
+        </Link>
+        <Link href="/profile/recipes" className={MENU_ITEM}>
+          <Heart className="h-4 w-4" /> My Recipes
+        </Link>
+        <Link href="/profile/collections" className={MENU_ITEM}>
+          <FolderHeart className="h-4 w-4" /> My Collections
+        </Link>
+        <Link href="/favorites" className={MENU_ITEM}>
+          <Heart className="h-4 w-4" /> Favorites
+        </Link>
+        {isAdmin && (
+          <Link href="/admin" className={MENU_ITEM}>
+            <Shield className="h-4 w-4" /> Admin Dashboard
+          </Link>
+        )}
+        <button
+          type="button"
+          className={`${MENU_ITEM} w-full`}
+          onClick={() => {
+            void signOut({ callbackUrl: '/' });
+          }}
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
 }

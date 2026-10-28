@@ -19,7 +19,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
+// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+}));
 vi.mock('@/lib/perplexity-discovery', () => ({
   discoverWeeklyRecipes: mocks.discoverWeeklyRecipes,
 }));
@@ -130,7 +133,7 @@ describe.each(ADMIN_ACTIONS)('$name (admin-only action)', (action) => {
   });
 
   it('rejects before any paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('clerk unavailable'));
+    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
     await expect(action.run()).rejects.toThrow();
     expectNoPaidWork();
   });
@@ -174,7 +177,7 @@ describe.each(SIGNED_IN_ACTIONS)('$name (signed-in action)', (action) => {
   });
 
   it('returns an error and does no paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('clerk unavailable'));
+    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
     const result = await action.run();
     expect(result.success).toBe(false);
     expectNoPaidWork();
@@ -201,7 +204,7 @@ const loadCore = (): Promise<typeof import('@/lib/recipe-crawl')> =>
   import(/* @vite-ignore */ CORE_MODULE);
 
 describe('internal crawl path (cron, scripts, CRON_SECRET-gated routes)', () => {
-  it('crawlWeeklyRecipes runs with no Clerk session', async () => {
+  it('crawlWeeklyRecipes runs with no session', async () => {
     signedOut();
     const core = await loadCore();
     const result = await core.crawlWeeklyRecipes(0, { maxResults: 1 });
@@ -209,7 +212,7 @@ describe('internal crawl path (cron, scripts, CRON_SECRET-gated routes)', () => 
     expect(mocks.discoverWeeklyRecipes).toHaveBeenCalledTimes(1);
   });
 
-  it('convertUrlToRecipe runs with no Clerk session', async () => {
+  it('convertUrlToRecipe runs with no session', async () => {
     signedOut();
     const core = await loadCore();
     await core.convertUrlToRecipe('https://example.com/recipe');

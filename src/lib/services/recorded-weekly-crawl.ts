@@ -16,7 +16,7 @@ import {
   setCostRunId,
   withCostRun,
 } from '@/lib/costs';
-// #16: the ungated pipeline; the '@/app/actions' wrapper requires a Clerk admin session.
+// #16: the ungated pipeline; the '@/app/actions' wrapper requires an admin session.
 import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 import {
   createDiscoveryRun,

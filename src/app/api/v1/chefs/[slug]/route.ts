@@ -5,7 +5,7 @@
  * PATCH  /api/v1/chefs/:slug - Update chef (admin only)
  * DELETE /api/v1/chefs/:slug - Delete chef (admin only)
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

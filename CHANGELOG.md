@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **auth**: sign-in uses Auth.js (NextAuth v5) with Google as the only provider and 7-day JWT sessions; `/sign-in` shows one "Continue with Google" button and `/sign-up` redirects to it (#22)
+- **auth**: registration is closed — only a Google account with a verified email that matches a pre-seeded `users` row can sign in; a database error, a missing email or an unknown email denies the login (#22)
+- **db**: migration 0023 adds `users` (with `is_admin`), `accounts` and `verification_tokens`; rollback SQL in `drizzle/rollback/0023_authjs_users.down.sql` (#22)
+- **auth**: `pnpm auth:seed-user --id <users.id> [--email <email>] [--admin]` pre-seeds a sign-in user; without `--email` it uses the single address in `AUTH_ADMIN_EMAILS` (#22)
+- **auth**: `AUTH_ADMIN_EMAILS` (comma-separated, case-insensitive) lets a listed, Google-verified email sign in without a seeded row and sets its `users.is_admin` at sign-in; unset grants nothing (#22)
 - **costs**: per-call crawl cost ledger (`crawl_cost_events`) with a rate table and `trackCost()`; Tavily, Firecrawl, Jina, OpenRouter, Anthropic, Perplexity, Brave, SerpAPI and DALL-E calls record one row each, tagged with the discovery run id when one is in scope (#6)
 - **crawl**: per-run cost and budget on `recipe_discovery_runs` (`cost_usd`, `budget_usd`, `cost_write_failures`); a run stops making paid calls once its in-memory spend reaches its budget (`CRON_RUN_BUDGET_USD`, default $5) and ends `partial` (#6)
 - **crawl**: `recipe_discovery_run_items`, one row per URL attempted with its extraction tier and outcome (#6)
@@ -21,7 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **auth**: admin access comes from `users.is_admin`; `requireAdmin` and `checkAdminAccess` re-read it on every call and deny on a database error, and the session's `isAdmin` copy refreshes every 5 minutes (#22)
+- **api**: the API-key layer reports `authType: 'session'` instead of `'clerk'` (#22)
 - **crawl**: a partial discovery run is stored with status `partial` instead of `completed`; POST `/api/cron/daily-recipe` runs are stored with `run_type` `manual` instead of `daily` (#6)
+
+### Removed
+
+- **auth**: Clerk (`@clerk/nextjs`, the Clerk proxy and dev config, `/api/clerk-config`, `/api/clerk-proxy`, `/api/debug-clerk`, `/api/debug-session`, `/api/security-audit`), Google One Tap, the `ADMIN_USER_IDS` / `NEXT_PUBLIC_ADMIN_USER_IDS` admin lists, the Clerk validation scripts and the `recipes.help` fallbacks (#22)
 
 ### Fixed
 

@@ -19,6 +19,7 @@ export default defineConfig({
     './src/lib/db/chef-schema.ts',
     './src/lib/db/ingredients-schema.ts',
     './src/lib/db/autonomous-scraper-schema.ts',
+    './src/lib/db/auth-schema.ts', // #22: Auth.js users/accounts
   ],
   out: './drizzle',
   dialect: 'postgresql',

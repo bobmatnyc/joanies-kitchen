@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';

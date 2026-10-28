@@ -4,7 +4,7 @@
  * GET    /api/v1/chefs - List all chefs with optional filtering
  * POST   /api/v1/chefs - Create new chef (admin only)
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

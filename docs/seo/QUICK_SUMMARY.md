@@ -52,7 +52,7 @@ chmod +x scripts/verify-seo-fixes.sh
 ./scripts/verify-seo-fixes.sh
 
 # Or test on production after deploy
-./scripts/verify-seo-fixes.sh https://recipes.help
+./scripts/verify-seo-fixes.sh https://joanies.kitchen
 ```
 
 ---

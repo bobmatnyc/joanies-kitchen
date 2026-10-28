@@ -18,7 +18,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
  * - apiKeys: Secure storage and management of API keys
  * - apiKeyUsage: Usage tracking and analytics for API key activity
  *
- * Purpose: Support dual authentication system (Clerk for users + API keys for programmatic access)
+ * Purpose: Support dual authentication system (sessions for users + API keys for programmatic access)
  *
  * Security Model:
  * - Keys are NEVER stored in plaintext (SHA-256 hash only)
@@ -50,7 +50,7 @@ export const apiKeys = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     // User Association
-    // Can reference Clerk user_id (text) or local users
+    // users.id (text)
     user_id: text('user_id').notNull(), // Owner of this API key
 
     // Key Identification

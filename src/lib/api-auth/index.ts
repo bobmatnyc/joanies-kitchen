@@ -9,7 +9,7 @@
  * - Fine-grained scope-based permissions
  * - Usage tracking and analytics
  * - Audit trail and revocation support
- * - Unified middleware supporting Clerk and API keys
+ * - Unified middleware supporting Auth.js sessions and API keys
  *
  * Usage:
  * ```typescript

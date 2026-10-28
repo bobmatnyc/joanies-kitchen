@@ -5,7 +5,7 @@
  * PATCH  /api/v1/collections/:id - Update collection
  * DELETE /api/v1/collections/:id - Delete collection
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Owner-only for write operations
  */
 

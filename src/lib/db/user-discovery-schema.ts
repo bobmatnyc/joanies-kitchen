@@ -18,7 +18,7 @@ import { recipes } from './schema';
  * User Discovery Schema
  *
  * This file contains all database tables for user discovery features:
- * - User profiles (extended user information beyond Clerk)
+ * - User profiles (extended user information beyond the users table)
  * - Collections (themed recipe groupings)
  * - Social features (follows, favorites)
  * - Analytics & tracking (views, statistics)
@@ -32,15 +32,15 @@ import { recipes } from './schema';
 // ============================================================================
 
 /**
- * Extended user profile information beyond Clerk authentication
- * One-to-one relationship with Clerk user ID
+ * Extended user profile information beyond the users table
+ * One-to-one relationship with users.id
  */
 export const userProfiles = pgTable(
   'user_profiles',
   {
     // Primary Key & Identity
     id: uuid('id').primaryKey().defaultRandom(),
-    user_id: text('user_id').notNull().unique(), // Clerk user ID
+    user_id: text('user_id').notNull().unique(), // users.id (legacy rows keep their Clerk id, #22)
 
     // Profile Information
     username: varchar('username', { length: 30 }).notNull().unique(), // URL-friendly, unique identifier

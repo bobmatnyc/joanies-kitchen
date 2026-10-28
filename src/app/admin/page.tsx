@@ -302,7 +302,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Auth Provider</span>
-                <span className="text-sm font-medium">Clerk</span>
+                <span className="text-sm font-medium">Auth.js (Google)</span>
               </div>
             </div>
           </CardContent>

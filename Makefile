@@ -78,11 +78,8 @@ db-seed: ## Seed system recipes
 
 ##@ Authentication
 
-auth-validate: ## Validate authentication configuration
-	pnpm auth:validate
-
-auth-test-prod: ## Test production keys on localhost
-	node scripts/test-production-keys.js
+auth-seed-user: ## Pre-seed a sign-in user (ID=... EMAIL=... [ADMIN=1]) (#22)
+	pnpm auth:seed-user --id "$(ID)" --email "$(EMAIL)" $(if $(ADMIN),--admin,)
 
 ##@ Code Quality
 

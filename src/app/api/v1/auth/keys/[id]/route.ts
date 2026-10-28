@@ -5,7 +5,7 @@
  * PATCH  /api/v1/auth/keys/:id - Update API key (name, scopes, expiration)
  * DELETE /api/v1/auth/keys/:id - Revoke API key (soft delete)
  *
- * Authentication: Clerk session ONLY (API key auth NOT allowed)
+ * Authentication: a signed-in session ONLY (API key auth NOT allowed)
  * Authorization: User must own the API key
  *
  * Security Notes:
@@ -15,7 +15,7 @@
  * - Key hash and user_id cannot be modified
  */
 
-import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { auth as sessionAuth } from '@/lib/auth';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getApiKeyById, revokeApiKey, updateApiKey } from '@/lib/api-auth';
@@ -25,8 +25,8 @@ import { type UpdateApiKeyInput, updateApiKeySchema } from '@/lib/validations/ap
  * Helper function to verify ownership and authenticate
  */
 async function authenticateAndVerifyOwnership(keyId: string) {
-  // CRITICAL: Only allow Clerk session authentication
-  const session = await clerkAuth();
+  // CRITICAL: Only allow a signed-in session authentication
+  const session = await sessionAuth();
 
   if (!session.userId) {
     return {
@@ -35,7 +35,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
           success: false,
           error: 'Authentication required',
           reason: 'missing_auth',
-          note: 'API key management requires Clerk session authentication',
+          note: 'API key management requires a signed-in session authentication',
         },
         {
           status: 401,
@@ -88,7 +88,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
  *
  * Get details of a specific API key
  *
- * Authentication: Clerk session ONLY
+ * Authentication: a signed-in session ONLY
  * Authorization: User must own the key
  *
  * Response:
@@ -178,7 +178,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
  * Can update: name, description, scopes, expiresAt
  * Cannot update: key_hash, user_id (security)
  *
- * Authentication: Clerk session ONLY
+ * Authentication: a signed-in session ONLY
  * Authorization: User must own the key
  *
  * Request Body (all optional):
@@ -328,7 +328,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
  * The key remains in the database for audit purposes.
  * Revoked keys CANNOT be re-activated.
  *
- * Authentication: Clerk session ONLY
+ * Authentication: a signed-in session ONLY
  * Authorization: User must own the key
  *
  * Response:

@@ -4,7 +4,7 @@
  * GET    /api/v1/collections - List user's collections with filters
  * POST   /api/v1/collections - Create new collection
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

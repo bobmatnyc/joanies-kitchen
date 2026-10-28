@@ -6,7 +6,7 @@
  * Accepts multipart/form-data with image files and returns CDN URLs.
  * Used by RecipeUploadWizard for client-side image uploads.
  *
- * Authentication: Requires Clerk session
+ * Authentication: Requires a signed-in session
  * File constraints:
  * - Max size: 5MB per image
  * - Allowed types: image/jpeg, image/png, image/webp

@@ -1,5 +1,7 @@
 # Environment Variables Quick Reference
 
+> **Authentication changed in #22.** Clerk is gone. The app reads `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` and (production only) `AUTH_URL`; see [the authentication guide](../guides/authentication.md). Every `CLERK_*` / `NEXT_PUBLIC_CLERK_*` and `ADMIN_USER_IDS` entry below is obsolete and is kept only until this page is rewritten.
+
 ## Overview
 
 This document provides a quick reference for all environment variables used in the Recipe Manager application.
@@ -85,7 +87,7 @@ HUGGINGFACE_API_KEY=hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 Use **production/live keys** for:
 - Production deployments
-- Your main domain (e.g., `recipes.help`)
+- Your main domain (e.g., `joanies.kitchen`)
 
 **Variables:**
 ```bash

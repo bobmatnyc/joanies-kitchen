@@ -4,7 +4,7 @@
  * POST /api/v1/meals/:id/shopping-list - Generate shopping list from meal
  * GET  /api/v1/meals/:id/shopping-list - Get existing shopping list for meal
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions + ownership verification
  */
 

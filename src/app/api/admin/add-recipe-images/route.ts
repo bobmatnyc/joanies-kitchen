@@ -13,7 +13,7 @@
  *   { processed: number, skipped: number, errors: string[] }
  *
  * Authentication:
- *   Requires admin session (Clerk) OR API key with admin scope
+ *   Requires admin session OR API key with admin scope
  */
 
 import { type NextRequest, NextResponse } from 'next/server';

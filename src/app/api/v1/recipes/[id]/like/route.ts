@@ -5,7 +5,7 @@
  * POST   /api/v1/recipes/:id/like - Like a recipe
  * DELETE /api/v1/recipes/:id/like - Unlike a recipe
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  *
  * Note: Likes and Favorites are the same in our system.

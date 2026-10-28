@@ -3,7 +3,7 @@
  *
  * GET /api/v1/shopping-lists - List user's shopping lists with filters
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

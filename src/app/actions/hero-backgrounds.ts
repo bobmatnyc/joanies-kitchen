@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { del } from '@vercel/blob';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';

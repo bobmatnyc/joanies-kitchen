@@ -4,7 +4,7 @@
  * POST   /api/v1/meals/:id/recipes - Add recipe to meal
  * DELETE /api/v1/meals/:id/recipes/:recipeId - Remove recipe from meal (via query param)
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions + ownership verification
  */
 

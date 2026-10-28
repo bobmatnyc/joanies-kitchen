@@ -2,8 +2,8 @@
 
 import { eq, isNotNull, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { isAdmin } from '@/lib/admin-client';
-import { auth } from '@/lib/auth';
+// #22: was an env-list check (NEXT_PUBLIC_ADMIN_USER_IDS); now users.is_admin.
+import { checkAdminAccess } from '@/lib/admin';
 import { invalidateRecipeById } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -31,9 +31,9 @@ interface ActionResult {
  */
 export async function flagImageForRegeneration(recipeId: string): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -76,9 +76,9 @@ export async function flagContentForCleanup(
   type: 'ingredients' | 'instructions' | 'both'
 ): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -124,9 +124,9 @@ export async function flagContentForCleanup(
  */
 export async function clearContentFlags(recipeId: string): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -165,9 +165,9 @@ export async function clearContentFlags(recipeId: string): Promise<ActionResult>
  */
 export async function softDeleteRecipe(recipeId: string): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -206,9 +206,9 @@ export async function softDeleteRecipe(recipeId: string): Promise<ActionResult> 
  */
 export async function restoreRecipe(recipeId: string): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -247,9 +247,9 @@ export async function restoreRecipe(recipeId: string): Promise<ActionResult> {
  */
 export async function getFlaggedRecipes() {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
@@ -283,9 +283,9 @@ export async function getFlaggedRecipes() {
  */
 export async function getDeletedRecipes() {
   try {
-    const { userId } = await auth();
+    const { isAdmin, userId } = await checkAdminAccess();
 
-    if (!userId || !isAdmin(userId)) {
+    if (!userId || !isAdmin) {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 

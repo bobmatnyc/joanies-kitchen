@@ -1,0 +1,82 @@
+/**
+ * #22: admin gates re-read users.is_admin on every call and never trust the
+ * JWT copy. A DB failure denies.
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  auth: vi.fn(),
+  getUserAdminFlag: vi.fn(),
+}));
+
+vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: mocks.getUserAdminFlag }));
+
+import { authorizeAdminOrCronSecret, checkAdminAccess, requireAdmin } from '@/lib/admin';
+
+/** A session whose JWT copy says the user IS an admin. */
+function tokenSaysAdmin() {
+  mocks.auth.mockResolvedValue({
+    userId: 'user_1',
+    sessionClaims: { metadata: { isAdmin: 'true' } },
+  });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+});
+
+describe('requireAdmin', () => {
+  it('reads users.is_admin on every call', async () => {
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockResolvedValue(true);
+    await expect(requireAdmin()).resolves.toEqual({ userId: 'user_1' });
+    await expect(requireAdmin()).resolves.toEqual({ userId: 'user_1' });
+    expect(mocks.getUserAdminFlag).toHaveBeenCalledTimes(2);
+    expect(mocks.getUserAdminFlag).toHaveBeenCalledWith('user_1');
+  });
+
+  it('denies when the DB says not admin even though the token says admin', async () => {
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockResolvedValue(false);
+    await expect(requireAdmin()).rejects.toThrow('Admin access required');
+  });
+
+  it('denies when the user row is missing', async () => {
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockResolvedValue(null);
+    await expect(requireAdmin()).rejects.toThrow('Admin access required');
+  });
+
+  it('denies with the admin error (not the raw DB error) when the lookup fails', async () => {
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockRejectedValue(new Error('db down'));
+    await expect(requireAdmin()).rejects.toThrow('Admin access required');
+  });
+
+  it('denies a signed-out caller without a DB read', async () => {
+    mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+    await expect(requireAdmin()).rejects.toThrow('Admin access required');
+    expect(mocks.getUserAdminFlag).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkAdminAccess', () => {
+  it('resolves isAdmin false (does not throw) when the lookup fails', async () => {
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockRejectedValue(new Error('db down'));
+    await expect(checkAdminAccess()).resolves.toMatchObject({ isAdmin: false, userId: 'user_1' });
+  });
+});
+
+describe('authorizeAdminOrCronSecret', () => {
+  it('returns 403 when the admin lookup fails for a signed-in user', async () => {
+    vi.stubEnv('CRON_SECRET', '');
+    tokenSaysAdmin();
+    mocks.getUserAdminFlag.mockRejectedValue(new Error('db down'));
+    const res = await authorizeAdminOrCronSecret(new Request('https://joanies.kitchen/api/x'));
+    expect(res?.status).toBe(403);
+  });
+});

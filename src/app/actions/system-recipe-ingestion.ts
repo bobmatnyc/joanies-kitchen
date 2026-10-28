@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/lib/auth';
+import { checkAdminAccess } from '@/lib/admin';
 import { scrapeWithJina, type JinaScrapedContent } from '@/lib/ai/jina-scraper';
 import { parseTextWithLLM, type RecipeDetectionResult } from '@/lib/ai/recipe-text-parser';
 import { type IngestedRecipe } from '@/lib/ai/recipe-ingestion-parser';
@@ -17,9 +17,8 @@ export async function scrapeRecipeUrl(url: string): Promise<{
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -62,9 +61,8 @@ export async function parseRecipeText(text: string): Promise<{
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -111,9 +109,8 @@ export async function ingestSystemRecipe(
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 

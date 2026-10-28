@@ -3,7 +3,7 @@
  *
  * POST /api/v1/inventory/:id/use - Mark item as used (reduce quantity)
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions + ownership verification
  */
 

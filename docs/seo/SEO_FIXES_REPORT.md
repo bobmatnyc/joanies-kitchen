@@ -46,7 +46,7 @@ Fixed **4 critical SEO indexing issues** reported by Google Search Console that 
 - Created server-side layout for recipe pages
 - Added `generateMetadata()` with canonical URLs
 - Implemented proper Open Graph and Twitter Card metadata
-- **Canonical URL format**: `https://recipes.help/recipes/{slug}`
+- **Canonical URL format**: `https://joanies.kitchen/recipes/{slug}`
 - Prefers slug over UUID for SEO-friendly URLs
 
 ```typescript
@@ -72,7 +72,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 - Added canonical URL to existing `generateMetadata()`
 - Added full Open Graph metadata with profile type
-- **Canonical URL format**: `https://recipes.help/chef/{slug}`
+- **Canonical URL format**: `https://joanies.kitchen/chef/{slug}`
 
 ```typescript
 const canonicalUrl = `${baseUrl}/chef/${slug}`;
@@ -95,7 +95,7 @@ return {
 - Added `generateMetadata()` function (was missing entirely)
 - Implemented canonical URLs
 - Added comprehensive SEO metadata including keywords
-- **Canonical URL format**: `https://recipes.help/ingredients/{slug}`
+- **Canonical URL format**: `https://joanies.kitchen/ingredients/{slug}`
 
 ```typescript
 export async function generateMetadata({ params }: IngredientPageProps) {
@@ -134,8 +134,8 @@ export async function generateMetadata({ params }: IngredientPageProps) {
 ```html
 <head>
   <title>Chicken Parmesan | Joanie's Kitchen</title>
-  <link rel="canonical" href="https://recipes.help/recipes/chicken-parmesan" />
-  <meta property="og:url" content="https://recipes.help/recipes/chicken-parmesan" />
+  <link rel="canonical" href="https://joanies.kitchen/recipes/chicken-parmesan" />
+  <meta property="og:url" content="https://joanies.kitchen/recipes/chicken-parmesan" />
 </head>
 ```
 
@@ -229,10 +229,10 @@ if (result.success && result.data && isUUID(slug) && result.data.slug) {
 
 **Request Flow**:
 ```
-1. User/Bot visits: https://recipes.help/recipes/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+1. User/Bot visits: https://joanies.kitchen/recipes/a1b2c3d4-e5f6-7890-abcd-ef1234567890
 2. Server detects UUID format
 3. Looks up recipe, finds slug: "chicken-parmesan"
-4. Issues 301 redirect to: https://recipes.help/recipes/chicken-parmesan
+4. Issues 301 redirect to: https://joanies.kitchen/recipes/chicken-parmesan
 5. Google indexes ONLY the slug URL (preferred)
 ```
 
@@ -336,24 +336,24 @@ pnpm dev
 # 2. Test recipe page canonical
 curl -s http://localhost:3002/recipes/chicken-parmesan | grep -o '<link rel="canonical"[^>]*>'
 
-# Expected: <link rel="canonical" href="https://recipes.help/recipes/chicken-parmesan" />
+# Expected: <link rel="canonical" href="https://joanies.kitchen/recipes/chicken-parmesan" />
 
 # 3. Test chef page canonical
 curl -s http://localhost:3002/chef/joanie | grep -o '<link rel="canonical"[^>]*>'
 
-# Expected: <link rel="canonical" href="https://recipes.help/chef/joanie" />
+# Expected: <link rel="canonical" href="https://joanies.kitchen/chef/joanie" />
 
 # 4. Test ingredient page canonical
 curl -s http://localhost:3002/ingredients/chicken | grep -o '<link rel="canonical"[^>]*>'
 
-# Expected: <link rel="canonical" href="https://recipes.help/ingredients/chicken" />
+# Expected: <link rel="canonical" href="https://joanies.kitchen/ingredients/chicken" />
 ```
 
 **Manual Verification**:
 1. Visit any recipe page
 2. View page source (Ctrl+U)
 3. Search for "canonical"
-4. Verify `<link rel="canonical" href="https://recipes.help/recipes/{slug}" />`
+4. Verify `<link rel="canonical" href="https://joanies.kitchen/recipes/{slug}" />`
 
 ### ✅ 404 Errors (Priority 2)
 
@@ -404,7 +404,7 @@ curl http://localhost:3002/robots.txt
 User-agent: *
 Allow: /
 
-Sitemap: https://recipes.help/sitemap.xml
+Sitemap: https://joanies.kitchen/sitemap.xml
 
 Disallow: /api/
 Disallow: /sign-in
@@ -446,7 +446,7 @@ Allow: /ingredients/
 
 1. **Submit Updated Sitemap**:
    - Go to Google Search Console → Sitemaps
-   - Add: `https://recipes.help/sitemap.xml`
+   - Add: `https://joanies.kitchen/sitemap.xml`
    - Wait for Google to process
 
 2. **Request Indexing** for key pages:
@@ -529,12 +529,12 @@ export async function generateMetadata({ params }) {
     title: '...',
     description: '...',
     alternates: {
-      canonical: 'https://recipes.help/...',
+      canonical: 'https://joanies.kitchen/...',
     },
     openGraph: {
       title: '...',
       description: '...',
-      url: 'https://recipes.help/...',
+      url: 'https://joanies.kitchen/...',
       type: 'article',
       images: [...],
     },
@@ -583,7 +583,7 @@ export default async function Layout({ params }) {
 
 **Check**:
 ```bash
-curl -s https://recipes.help/recipes/chicken-parmesan | grep canonical
+curl -s https://joanies.kitchen/recipes/chicken-parmesan | grep canonical
 ```
 
 **If missing**:
@@ -596,7 +596,7 @@ curl -s https://recipes.help/recipes/chicken-parmesan | grep canonical
 
 **Check**:
 ```bash
-curl -I https://recipes.help/recipes/{uuid}
+curl -I https://joanies.kitchen/recipes/{uuid}
 ```
 
 **If not redirecting**:
@@ -613,7 +613,7 @@ curl -I https://recipes.help/recipes/{uuid}
 pnpm build
 
 # Or trigger regeneration
-curl https://recipes.help/sitemap.xml
+curl https://joanies.kitchen/sitemap.xml
 ```
 
 ### Issue: Robots.txt not blocking correctly

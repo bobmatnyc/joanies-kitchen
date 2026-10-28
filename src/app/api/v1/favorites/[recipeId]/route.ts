@@ -5,7 +5,7 @@
  * POST   /api/v1/favorites/:recipeId - Add recipe to favorites
  * DELETE /api/v1/favorites/:recipeId - Remove recipe from favorites
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

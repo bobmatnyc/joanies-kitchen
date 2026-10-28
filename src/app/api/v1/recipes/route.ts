@@ -4,7 +4,7 @@
  * GET    /api/v1/recipes - List user's recipes with filters
  * POST   /api/v1/recipes - Create new recipe
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { hasUserFlagged } from '@/app/actions/flag-recipe';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useUser } from '@/lib/auth-client';
 import { FlagDialog } from './FlagDialog';
 
 interface FlagButtonProps {
@@ -15,18 +16,9 @@ interface FlagButtonProps {
   size?: 'sm' | 'default';
 }
 
-/**
- * Safe Clerk user hook that handles the case where Clerk is not available
- * This MUST be called unconditionally to satisfy React's Rules of Hooks
- */
-function useSafeClerkUser() {
-  try {
-    const { useUser } = require('@clerk/nextjs');
-    return useUser();
-  } catch (_error) {
-    // Clerk not available - return default values
-    return { user: null, isSignedIn: false, isLoaded: true };
-  }
+// #22: Auth.js session via the Clerk-shaped client shim.
+function useSessionUser() {
+  return useUser();
 }
 
 export function FlagButton({
@@ -36,7 +28,7 @@ export function FlagButton({
   size = 'sm',
 }: FlagButtonProps) {
   const router = useRouter();
-  const { isSignedIn, isLoaded } = useSafeClerkUser();
+  const { isSignedIn, isLoaded } = useSessionUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [alreadyFlagged, setAlreadyFlagged] = useState(false);
   const [isChecking, setIsChecking] = useState(true);

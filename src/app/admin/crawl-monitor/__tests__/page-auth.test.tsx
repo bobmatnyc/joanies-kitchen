@@ -16,6 +16,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+}));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('@/app/actions/crawl-monitor', () => ({
   getCrawlCostSummary: mocks.getCrawlCostSummary,

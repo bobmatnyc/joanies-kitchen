@@ -21,7 +21,7 @@
  * const chef = await chefService.findBySlug('kenji-lopez-alt');
  *
  * // In server actions with auth
- * import { auth } from '@clerk/nextjs/server';
+ * import { auth } from '@/lib/auth';
  * import { collectionService } from '@/lib/services';
  *
  * const { userId } = await auth();

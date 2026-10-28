@@ -7,7 +7,7 @@ User-agent: *
 Allow: /
 
 # Sitemaps (both primary and alternate domains)
-Sitemap: https://recipes.help/sitemap.xml
+Sitemap: https://joanies.kitchen/sitemap.xml
 Sitemap: https://joanies.kitchen/sitemap.xml
 
 # Crawl-delay for politeness (1 second between requests)

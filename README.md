@@ -68,7 +68,7 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 
 ### Key Features
 
-- **[Authentication](./docs/guides/authentication.md)** - Clerk authentication setup
+- **[Authentication](./docs/guides/authentication.md)** - Google sign-in with Auth.js, seeding users, migration 0023
 - **[Data Acquisition](./docs/guides/data-acquisition.md)** - Import recipes from external sources
 - **[Semantic Search](./docs/guides/semantic-search.md)** - Natural language recipe search
 - **[Rating System](./docs/guides/rating-system.md)** - AI and user ratings
@@ -110,7 +110,7 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 - **Language**: TypeScript (Strict mode)
 - **Database**: Neon PostgreSQL + pgvector
 - **ORM**: Drizzle ORM
-- **Authentication**: Clerk
+- **Authentication**: Auth.js (NextAuth v5), Google only
 - **UI**: Tailwind CSS v4 + shadcn/ui
 - **AI Integration**: OpenRouter API (Claude, GPT, Gemini)
 - **Search**: Brave Search API
@@ -127,8 +127,9 @@ For comprehensive documentation, see **[docs/](./docs/README.md)**
 
 - `DATABASE_URL` - Neon PostgreSQL connection string
 - `OPENROUTER_API_KEY` - AI recipe generation
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Authentication (public)
-- `CLERK_SECRET_KEY` - Authentication (secret)
+- `AUTH_SECRET` - Signs session JWTs
+- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` - Google OAuth client
+- `AUTH_URL` - Production only: `https://joanies.kitchen`
 
 ### Optional
 
@@ -172,11 +173,11 @@ See [Project Organization](./docs/reference/project-organization.md) for complet
 
 The application includes an admin dashboard for managing recipes and users.
 
-### Quick Setup (3 Steps)
+### Setup
 
-1. Configure custom session token in Clerk Dashboard
-2. Add `isAdmin: "true"` to user's public metadata
-3. Sign out and sign back in
+1. Apply migration 0023 (see the [Authentication guide](./docs/guides/authentication.md))
+2. Run `pnpm auth:seed-user --id <users.id> --email <google-email> --admin`
+3. Sign in with that Google account
 
 ### Admin Features
 
@@ -188,8 +189,7 @@ The application includes an admin dashboard for managing recipes and users.
 ### Documentation
 
 - **[Admin Setup Guide](./docs/guides/admin-setup.md)** (coming soon)
-- **Debug endpoint**: `http://localhost:3004/api/debug-session`
-- **Validation script**: `node scripts/validate-admin-setup.js`
+- **[Authentication guide](./docs/guides/authentication.md)** — admin emails (`AUTH_ADMIN_EMAILS`), seeding, and checking `/api/auth/session`
 
 ---
 
@@ -220,7 +220,7 @@ pnpm test:ui          # Open Vitest UI
 pnpm test:coverage    # Generate coverage report
 
 # Utilities
-pnpm auth:validate    # Validate Clerk setup
+pnpm auth:seed-user   # Pre-seed a Google sign-in user (see docs/guides/authentication.md)
 ```
 
 ---
@@ -248,7 +248,7 @@ The application can be deployed to any platform supporting Next.js:
 
 ## 🔐 Security
 
-- **Authentication**: Clerk-based user authentication
+- **Authentication**: Google sign-in via Auth.js; registration is closed to pre-seeded emails
 - **Authorization**: Server-side permission checks
 - **Input Validation**: Zod schemas for all inputs
 - **SQL Injection**: Protected by Drizzle ORM
@@ -282,7 +282,7 @@ MIT
 ## 🙏 Acknowledgments
 
 - **Next.js** - The React framework for production
-- **Clerk** - Authentication and user management
+- **Auth.js** - Authentication
 - **Neon** - Serverless PostgreSQL
 - **OpenRouter** - Multi-provider AI API
 - **shadcn/ui** - Beautiful UI components

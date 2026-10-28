@@ -3,7 +3,7 @@
  *
  * GET /api/v1/auth/keys/:id/usage - Get usage statistics for an API key
  *
- * Authentication: Clerk session ONLY (API key auth NOT allowed)
+ * Authentication: a signed-in session ONLY (API key auth NOT allowed)
  * Authorization: User must own the API key
  *
  * Provides detailed analytics:
@@ -15,7 +15,7 @@
  * - Error rate
  */
 
-import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { auth as sessionAuth } from '@/lib/auth';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
@@ -28,8 +28,8 @@ import { type UsageQueryParams, usageQuerySchema } from '@/lib/validations/api-k
  * Helper function to verify ownership and authenticate
  */
 async function authenticateAndVerifyOwnership(keyId: string) {
-  // CRITICAL: Only allow Clerk session authentication
-  const session = await clerkAuth();
+  // CRITICAL: Only allow a signed-in session authentication
+  const session = await sessionAuth();
 
   if (!session.userId) {
     return {
@@ -38,7 +38,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
           success: false,
           error: 'Authentication required',
           reason: 'missing_auth',
-          note: 'API key management requires Clerk session authentication',
+          note: 'API key management requires a signed-in session authentication',
         },
         {
           status: 401,
@@ -91,7 +91,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
  *
  * Get usage statistics and analytics for an API key
  *
- * Authentication: Clerk session ONLY
+ * Authentication: a signed-in session ONLY
  * Authorization: User must own the key
  *
  * Query Parameters:

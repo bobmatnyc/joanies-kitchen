@@ -49,7 +49,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen'),
   title: {
     default: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
     template: "%s | Joanie's Kitchen",

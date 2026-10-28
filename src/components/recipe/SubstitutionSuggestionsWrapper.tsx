@@ -12,7 +12,7 @@
  * This keeps the SubstitutionSuggestions component pure and testable.
  */
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import { getUserInventory } from '@/app/actions/inventory';
 import { SubstitutionSuggestions } from './SubstitutionSuggestions';

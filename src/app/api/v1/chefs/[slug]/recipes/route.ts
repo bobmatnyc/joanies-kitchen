@@ -3,7 +3,7 @@
  *
  * GET /api/v1/chefs/:slug/recipes - Get recipes by chef
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

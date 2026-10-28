@@ -5,7 +5,7 @@
  * PATCH  /api/v1/recipes/:id - Update recipe
  * DELETE /api/v1/recipes/:id - Delete recipe
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions + ownership verification
  */
 

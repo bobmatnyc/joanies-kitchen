@@ -114,7 +114,7 @@ export class RecipeExtractionService {
           apiKey: this.llmApiKey,
           baseURL: this.llmBaseUrl,
           defaultHeaders: process.env.OPENROUTER_API_KEY
-            ? { 'HTTP-Referer': 'https://recipes.help', 'X-Title': "Joanie's Kitchen" }
+            ? { 'HTTP-Referer': 'https://joanies.kitchen', 'X-Title': "Joanie's Kitchen" }
             : {},
         }),
         process.env.OPENROUTER_API_KEY ? 'openrouter' : 'anthropic'
