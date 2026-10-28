@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **crawl**: `recipe_discovery_run_items`, one row per URL attempted with its extraction tier and outcome (#6)
 - **crawl**: `reapStaleDiscoveryRuns()` marks `running` runs `failed` after 15 minutes (`daily`, `manual`) or 6 hours (`local`); the daily cron calls it before each run (#6)
 - **crawl**: run budgets are clamped to `MAX_RUN_BUDGET_USD` ($100); the weekly crawl checks the budget before each paid URL; `/api/recipes/scrape` caps `maxResults` at 50 (#6)
+- **crawl**: admin-only read API in `@/app/actions/crawl-monitor` over `@/lib/crawl-monitor`: paged discovery runs with item counts by outcome, run detail with items and ledger cost by provider and operation, spend for today, this month (UTC) and all time, and one newest-first list of discovery runs and scraping jobs (#6)
 - **crawl**: failed item writes add one `item writes failed: N` error to the run; the cron and `/api/recipes/scrape` responses carry `tracked` (#6)
 - **crawl**: the local and pm2 scrapers (`scraper:daily`, `scraper:once`, `continuous-scraper.ts`, `/api/recipes/scrape`) record discovery runs with `run_type` `local` or `manual` (#6)
 
