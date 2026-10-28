@@ -5,7 +5,7 @@
  * PATCH  /api/v1/inventory/:id - Update inventory item
  * DELETE /api/v1/inventory/:id - Remove item from inventory
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions + ownership verification
  */
 

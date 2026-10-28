@@ -4,17 +4,17 @@
  * GET    /api/v1/auth/keys - List user's API keys
  * POST   /api/v1/auth/keys - Create new API key
  *
- * Authentication: MUST use Clerk session (API key auth NOT allowed for key creation)
+ * Authentication: MUST use a signed-in session (API key auth NOT allowed for key creation)
  * Authorization: Authenticated users can manage their own keys
  *
  * Security Notes:
- * - API key creation is ONLY allowed via Clerk session (not API key auth)
+ * - API key creation is ONLY allowed via a signed-in session (not API key auth)
  * - This prevents API keys from creating new API keys (security risk)
  * - Full key is shown ONLY ONCE at creation
  * - After creation, only key prefix is visible
  */
 
-import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { auth as sessionAuth } from '@/lib/auth';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { createApiKey, listUserApiKeys } from '@/lib/api-auth';
@@ -25,7 +25,7 @@ import { type CreateApiKeyInput, createApiKeySchema } from '@/lib/validations/ap
  *
  * List all API keys for the authenticated user
  *
- * Authentication: Clerk session ONLY (API key auth NOT allowed)
+ * Authentication: a signed-in session ONLY (API key auth NOT allowed)
  *
  * Response:
  * {
@@ -47,13 +47,13 @@ import { type CreateApiKeyInput, createApiKeySchema } from '@/lib/validations/ap
  * }
  *
  * Errors:
- * - 401: Not authenticated (must use Clerk session)
+ * - 401: Not authenticated (must use a signed-in session)
  * - 500: Internal server error
  */
 export async function GET(_request: NextRequest) {
   try {
-    // CRITICAL: Only allow Clerk session authentication (not API keys)
-    const session = await clerkAuth();
+    // CRITICAL: Only allow a signed-in session authentication (not API keys)
+    const session = await sessionAuth();
 
     if (!session.userId) {
       return NextResponse.json(
@@ -61,7 +61,7 @@ export async function GET(_request: NextRequest) {
           success: false,
           error: 'Authentication required',
           reason: 'missing_auth',
-          note: 'API key management requires Clerk session authentication',
+          note: 'API key management requires a signed-in session authentication',
         },
         {
           status: 401,
@@ -112,7 +112,7 @@ export async function GET(_request: NextRequest) {
  *
  * Create a new API key for the authenticated user
  *
- * Authentication: Clerk session ONLY (API key auth NOT allowed)
+ * Authentication: a signed-in session ONLY (API key auth NOT allowed)
  *
  * Request Body:
  * {
@@ -138,14 +138,14 @@ export async function GET(_request: NextRequest) {
  * }
  *
  * Errors:
- * - 401: Not authenticated (must use Clerk session)
+ * - 401: Not authenticated (must use a signed-in session)
  * - 400: Invalid request body
  * - 500: Internal server error
  */
 export async function POST(request: NextRequest) {
   try {
-    // CRITICAL: Only allow Clerk session authentication (not API keys)
-    const session = await clerkAuth();
+    // CRITICAL: Only allow a signed-in session authentication (not API keys)
+    const session = await sessionAuth();
 
     if (!session.userId) {
       return NextResponse.json(
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: 'Authentication required',
           reason: 'missing_auth',
-          note: 'API key creation requires Clerk session authentication. API keys cannot create other API keys.',
+          note: 'API key creation requires a signed-in session authentication. API keys cannot create other API keys.',
         },
         {
           status: 401,

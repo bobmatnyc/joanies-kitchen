@@ -1,5 +1,5 @@
 /**
- * #11, #13: routes that start paid work run only for a Clerk admin or the
+ * #11, #13: routes that start paid work run only for an admin session or the
  * CRON_SECRET bearer; every other caller is rejected before any provider
  * call, DB write or outbound fetch.
  */
@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+}));
 vi.mock('@/lib/recipe-crawl', () => ({
   crawlWeeklyRecipes: mocks.crawlWeeklyRecipes,
   convertUrlToRecipe: mocks.convertUrlToRecipe,
@@ -147,7 +151,7 @@ describe.each(ROUTES)('$name auth', (route) => {
   });
 
   it('rejects with 401 and does no paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('clerk unavailable'));
+    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
     await expectRejected(await call(route), 401);
   });
 

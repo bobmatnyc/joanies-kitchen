@@ -1,140 +1,40 @@
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { authConfig, isAuthEnabled, logAuthStatus } from './lib/auth-config';
-import { handleClerkProxy } from './lib/clerk-proxy';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
+import { isAuthConfigured } from './lib/auth-env';
+import { decideRoute } from './lib/auth-routes';
 
-export async function middleware(request: NextRequest) {
-  // Handle Clerk proxy for production keys on localhost
-  const proxyResponse = await handleClerkProxy(request);
-  if (proxyResponse) {
-    return proxyResponse;
+// #22: Auth.js replaces clerkMiddleware. Built from the edge-safe config only,
+// so it verifies the session JWT without a database call.
+const { auth } = NextAuth(authConfig);
+
+function respond(req: NextRequest, user: { id?: string; isAdmin?: boolean } | undefined) {
+  const decision = decideRoute(req.nextUrl.pathname, {
+    userId: user?.id ?? null,
+    isAdmin: user?.isAdmin === true,
+  });
+
+  if (decision === 'unauthorized') {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
-
-  // Log auth status in development for debugging
-  if (process.env.NODE_ENV === 'development') {
-    logAuthStatus();
+  if (decision === 'sign-in') {
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('callbackUrl', `${req.nextUrl.pathname}${req.nextUrl.search}`);
+    return NextResponse.redirect(signInUrl);
   }
-
-  // Check if authentication should be enabled
-  const authEnabled = isAuthEnabled();
-
-  if (!authEnabled) {
-    // Skip authentication when not enabled
-    // This happens when:
-    // 1. Clerk is not configured
-    // 2. We're in development without ENABLE_DEV_AUTH=true
-    console.log('[Middleware] Authentication disabled, allowing all requests');
-    return NextResponse.next();
+  if (decision === 'home') {
+    return NextResponse.redirect(new URL('/', req.url));
   }
+  return NextResponse.next();
+}
 
-  // Verify we have the correct keys for the current environment
-  if (!authConfig.clerk.publishableKey || !authConfig.clerk.secretKey) {
-    console.error('[Middleware] Missing Clerk keys for environment:', authConfig.environment);
-    if (authConfig.isProduction) {
-      return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 503 });
-    }
-    return NextResponse.next();
-  }
+const withSession = auth((req) => respond(req, req.auth?.user));
 
-  // Dynamically import and use clerkMiddleware only when configured
-  const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
-
-  // Define public routes that don't require authentication
-  // These routes are accessible to everyone
-  const isPublicRoute = createRouteMatcher([
-    '/', // Homepage
-    '/sign-in(.*)', // Sign in pages
-    '/sign-up(.*)', // Sign up pages
-    '/shared(.*)', // Shared recipes browsing
-    '/discover(.*)', // Discover pages (chefs, AI recipe generation - read-only browsing)
-    '/meals', // Public meals browsing
-    '/api/webhooks(.*)', // Webhooks
-  ]);
-
-  // Recipe view routes are handled with custom logic below
-  // (individual recipes like /recipes/123 that don't end with /new or contain /edit)
-
-  // Define strictly protected routes that always require authentication
-  const isProtectedRoute = createRouteMatcher([
-    '/recipes/new(.*)', // Creating new recipes
-    '/recipes/edit(.*)', // Editing recipes (simplified pattern)
-    '/recipes$', // My Recipes listing (personal collection)
-    '/meals/new(.*)', // Creating new meals
-    '/meal-plans(.*)', // Meal planning
-  ]);
-
-  // Define admin routes that require admin access
-  const isAdminRoute = createRouteMatcher([
-    '/admin(.*)', // Admin dashboard and all sub-routes
-  ]);
-
-  // Define protected API routes
-  const isProtectedApiRoute = createRouteMatcher([
-    '/api/recipes/create',
-    '/api/recipes/update',
-    '/api/recipes/delete',
-    '/api/meal-plans(.*)',
-  ]);
-
-  // Use the clerkMiddleware with route protection logic
-  return clerkMiddleware(async (auth, req) => {
-    const { userId, sessionClaims } = await auth();
-    const path = req.nextUrl.pathname;
-
-    // Check if this is a recipe view route (e.g., /recipes/123) but NOT /recipes/new or /recipes/*/edit
-    const isViewingRecipe =
-      path.match(/^\/recipes\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new') && !path.includes('/edit');
-
-    // Check if this is a meal view route (e.g., /meals/slug) but NOT /meals/new
-    const isViewingMeal = path.match(/^\/meals\/[a-zA-Z0-9-]+$/) && !path.endsWith('/new');
-
-    // If it's a public route, allow it
-    if (isPublicRoute(req)) {
-      return NextResponse.next();
-    }
-
-    // If it's a recipe or meal view route, allow it (the page itself will check if the content is public)
-    if (isViewingRecipe || isViewingMeal) {
-      return NextResponse.next();
-    }
-
-    // Check admin routes first - requires authentication AND admin role
-    if (isAdminRoute(req)) {
-      if (!userId) {
-        // Not authenticated - redirect to sign-in
-        const signInUrl = new URL('/sign-in', req.url);
-        signInUrl.searchParams.set('redirect_url', req.url);
-        return NextResponse.redirect(signInUrl);
-      }
-
-      // Check if user has admin role
-      const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-      const isAdmin = metadata?.isAdmin === 'true';
-      if (!isAdmin) {
-        // Authenticated but not admin - redirect to home with error
-        const homeUrl = new URL('/', req.url);
-        return NextResponse.redirect(homeUrl);
-      }
-
-      // Admin access granted
-      return NextResponse.next();
-    }
-
-    // If accessing a strictly protected route without authentication, redirect to sign-in
-    if (!userId && (isProtectedRoute(req) || isProtectedApiRoute(req))) {
-      // For API routes, return 401 instead of redirecting
-      if (path.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-      }
-
-      // For regular routes, redirect to sign-in with return URL
-      const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', req.url);
-      return NextResponse.redirect(signInUrl);
-    }
-
-    return NextResponse.next();
-  })(request, {} as any);
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  // #22: without Auth.js env vars every request is anonymous (fail closed).
+  if (!isAuthConfigured()) return respond(req, undefined);
+  return withSession(req, event as never);
 }
 
 export const config = {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-client';
 import { Clock, DollarSign, Edit, ShoppingCart, Users, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

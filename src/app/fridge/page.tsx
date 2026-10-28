@@ -8,7 +8,7 @@ import { getUserInventory } from '@/app/actions/inventory';
 import { FridgeInput } from '@/components/inventory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-client';
 
 /**
  * Fridge Page - Zero-Waste Recipe Discovery

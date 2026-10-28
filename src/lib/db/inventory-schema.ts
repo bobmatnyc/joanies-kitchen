@@ -105,7 +105,7 @@ export const inventoryItems = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     // Ownership
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
 
     // Ingredient Reference (NOT free text - references canonical table)
     ingredient_id: uuid('ingredient_id')
@@ -234,7 +234,7 @@ export const wasteTracking = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     // Ownership
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
 
     // Ingredient Reference (required for categorization)
     ingredient_id: uuid('ingredient_id')

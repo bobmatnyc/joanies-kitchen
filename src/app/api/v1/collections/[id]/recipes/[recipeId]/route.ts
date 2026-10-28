@@ -3,7 +3,7 @@
  *
  * DELETE /api/v1/collections/:id/recipes/:recipeId - Remove recipe from collection
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Owner-only
  */
 

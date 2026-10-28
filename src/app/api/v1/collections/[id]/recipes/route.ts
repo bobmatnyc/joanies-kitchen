@@ -4,7 +4,7 @@
  * GET  /api/v1/collections/:id/recipes - List recipes in collection
  * POST /api/v1/collections/:id/recipes - Add recipe to collection
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Owner-only for write operations
  */
 

@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -146,7 +146,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 }
 
 /**
- * Get user profile by userId (Clerk ID)
+ * Get user profile by userId (users.id)
  */
 export async function getProfileByUserId(targetUserId: string): Promise<UserProfile | null> {
   try {
@@ -405,7 +405,7 @@ export async function getUserRecipes(
  */
 export async function ensureUserProfile(): Promise<UserProfile | null> {
   try {
-    const { userId } = await auth();
+    const { userId, user } = await auth();
 
     if (!userId) {
       return null;
@@ -422,31 +422,18 @@ export async function ensureUserProfile(): Promise<UserProfile | null> {
       return existingProfile[0];
     }
 
-    // Get user info from Clerk
-    const { clerkClient } = await import('@clerk/nextjs/server');
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    if (!user) {
-      console.error('User not found in Clerk:', userId);
-      return null;
-    }
-
-    // Generate username from Clerk data
-    // Priority: username > firstName+lastName > email prefix
-    let username = user.username;
-
-    if (!username) {
-      if (user.firstName && user.lastName) {
-        username = `${user.firstName.toLowerCase()}-${user.lastName.toLowerCase()}`;
-      } else if (user.firstName) {
-        username = user.firstName.toLowerCase();
-      } else if (user.primaryEmailAddress?.emailAddress) {
-        username = user.primaryEmailAddress.emailAddress.split('@')[0];
-      } else {
-        // Fallback: use user ID
-        username = `user-${userId.slice(0, 8)}`;
-      }
+    // #22: profile data comes from the Auth.js session (Google name, email,
+    // image) instead of a Clerk Backend API lookup.
+    // Priority: full name > email prefix > user id
+    const fullName = user?.name?.trim() || null;
+    let username: string;
+    if (fullName) {
+      username = fullName.toLowerCase().replace(/\s+/g, '-');
+    } else if (user?.email) {
+      username = user.email.split('@')[0];
+    } else {
+      // Fallback: use user ID
+      username = `user-${userId.slice(0, 8)}`;
     }
 
     // Clean username (remove special characters, ensure lowercase)
@@ -477,17 +464,14 @@ export async function ensureUserProfile(): Promise<UserProfile | null> {
     }
 
     // Generate display name
-    const displayName =
-      user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
-        : user.firstName || user.username || finalUsername;
+    const displayName = fullName || finalUsername;
 
     // Create profile
     const profileData = insertUserProfileSchema.parse({
       user_id: userId,
       username: finalUsername,
       display_name: displayName,
-      profile_image_url: user.imageUrl || null,
+      profile_image_url: user?.image || null,
       is_public: true, // Default to public
     });
 

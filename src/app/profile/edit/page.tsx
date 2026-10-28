@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
 import { ProfileEditor } from '@/components/profile/ProfileEditor';

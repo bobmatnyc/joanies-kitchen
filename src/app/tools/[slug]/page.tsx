@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: ToolPageProps) {
   }
 
   const { tool } = result;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
   const canonicalUrl = `${baseUrl}/tools/${slug}`;
 
   return {

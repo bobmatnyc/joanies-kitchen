@@ -9,7 +9,7 @@ import {
   serializeInstructions,
   serializeTags,
 } from '@/lib/ai/recipe-ingestion-parser';
-import { auth } from '@/lib/auth';
+import { checkAdminAccess } from '@/lib/admin';
 import { invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
@@ -59,9 +59,8 @@ export async function fetchRecipeFromUrl(url: string): Promise<{
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -113,9 +112,8 @@ export async function parseRecipeContent(
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -163,9 +161,8 @@ export async function saveIngestedRecipe(recipeData: {
 }> {
   try {
     // Check admin permissions
-    const { userId, sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true' || !userId) {
+    const { userId, isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin || !userId) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -251,9 +248,8 @@ export async function getChefsList(): Promise<{
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 
@@ -297,9 +293,8 @@ export async function ingestRecipeFromUrl(url: string): Promise<{
 }> {
   try {
     // Check admin permissions
-    const { sessionClaims } = await auth();
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
+    if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }
 

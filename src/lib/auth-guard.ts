@@ -5,7 +5,7 @@
  * and other protected server actions.
  */
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 
 /**
  * Requires authentication for server actions

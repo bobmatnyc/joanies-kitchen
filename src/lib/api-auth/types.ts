@@ -2,7 +2,7 @@
  * API Authentication Types
  *
  * Unified type definitions for API authentication middleware.
- * Supports multiple authentication methods: Clerk sessions, API keys, Basic auth.
+ * Supports multiple authentication methods: Auth.js sessions, API keys, Basic auth.
  */
 
 import type { NextRequest, NextResponse } from 'next/server';
@@ -14,7 +14,8 @@ import type { NextRequest, NextResponse } from 'next/server';
 /**
  * Authentication type detected from the request
  */
-export type AuthType = 'clerk' | 'api_key' | 'basic' | 'none';
+// #22: 'clerk' renamed to 'session' (Auth.js).
+export type AuthType = 'session' | 'api_key' | 'basic' | 'none';
 
 /**
  * Unified authentication context
@@ -24,7 +25,7 @@ export interface AuthContext {
   /** Whether the request is authenticated */
   authenticated: boolean;
 
-  /** User ID (from Clerk or API key owner) */
+  /** User ID (from the session or API key owner) */
   userId: string | null;
 
   /** Authentication method used */
@@ -65,10 +66,10 @@ export interface AuthMetadata {
   /** Request ID for tracing */
   requestId?: string;
 
-  /** Admin status (from Clerk session claims) */
+  /** Admin status (from users.is_admin) */
   isAdmin?: boolean;
 
-  /** Organization ID (from Clerk session) */
+  /** Organization ID (unused since #22) */
   orgId?: string;
 
   /** API key environment (production/development) */

@@ -15,10 +15,10 @@
  * </RequireAuth>
  */
 
-import { SignInButton, useAuth } from '@clerk/nextjs';
 import { Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SignInButton, useAuth } from '@/lib/auth-client';
 
 interface RequireAuthProps {
   /**
@@ -125,7 +125,7 @@ export function RequireAuth({
 }: RequireAuthProps) {
   const { isSignedIn, isLoaded } = useAuth();
 
-  // Show loading state while Clerk initializes
+  // Show loading state while the session loads
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center p-8">

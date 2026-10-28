@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: IngredientPageProps) {
   }
 
   const { ingredient } = result;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
   const canonicalUrl = `${baseUrl}/ingredients/${slug}`;
 
   return {

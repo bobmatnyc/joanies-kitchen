@@ -9,7 +9,8 @@
 
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { checkAdminAccess } from '@/lib/admin';
+import { auth } from '@/lib/auth';
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -183,15 +184,14 @@ export async function getAllFlags(
   }[]
 > {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId, isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
 
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
     // Check if user is admin
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    if (!isAdmin) {
       throw new Error('Admin access required');
     }
 
@@ -251,7 +251,7 @@ export async function reviewFlag(
   reviewNotes?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId, isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
 
     if (!userId) {
       return {
@@ -261,8 +261,7 @@ export async function reviewFlag(
     }
 
     // Check if user is admin
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    if (!isAdmin) {
       return {
         success: false,
         error: 'Admin access required',
@@ -321,15 +320,14 @@ export async function getRecipeFlags(recipeId: string): Promise<
   }[]
 > {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId, isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
 
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
     // Check if user is admin
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    if (metadata?.isAdmin !== 'true') {
+    if (!isAdmin) {
       throw new Error('Admin access required');
     }
 

@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   insertValues: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs/server', () => ({ auth: async () => ({ userId: 'user_1' }) }));
+vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: 'user_1' }) }));
 vi.mock('@/lib/brave-search', () => ({ searchRecipes: vi.fn() }));
 vi.mock('@/lib/ai/openrouter-server', () => ({
   getOpenRouterClient: () => ({ chat: { completions: { create: mocks.llmCreate } } }),

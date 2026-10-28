@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const recipe = result.data;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
 
   // Prefer slug over ID for canonical URL (SEO best practice)
   const canonicalSlug = recipe.slug || recipe.id;

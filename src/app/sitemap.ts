@@ -22,7 +22,7 @@ import { ingredients, recipes } from '@/lib/db/schema';
  * For production, consider using ISR with revalidation.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
 
   try {
     // Fetch all public recipes (include both public and system recipes)

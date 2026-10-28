@@ -2,18 +2,18 @@
  * API Authentication Middleware
  *
  * Unified authentication system supporting:
- * - Clerk session authentication
+ * - Auth.js session authentication
  * - API key (Bearer token) authentication
  * - Basic authentication (username:password)
  *
  * Priority order:
  * 1. Authorization: Bearer <api_key>
  * 2. Authorization: Basic <base64(username:password)>
- * 3. Clerk session (cookies)
+ * 3. Auth.js session (cookies)
  * 4. Unauthenticated
  */
 
-import { auth as clerkAuth } from '@clerk/nextjs/server';
+import { checkAdminAccess } from '@/lib/admin';
 import type { NextRequest } from 'next/server';
 import { validateApiKey } from './key-service';
 import { hasScope, SCOPE_GROUPS } from './scopes';
@@ -29,7 +29,7 @@ import type { AuthContext, AuthFailureReason, AuthMetadata, AuthType } from './t
  * Checks authentication in priority order:
  * 1. Bearer token (API key)
  * 2. Basic auth (username:password)
- * 3. Clerk session
+ * 3. Auth.js session
  * 4. None (unauthenticated)
  *
  * @param request - Next.js request object
@@ -84,8 +84,8 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthCon
     }
   }
 
-  // 3. Fall back to Clerk session authentication
-  return await authenticateWithClerk(metadata);
+  // 3. Fall back to Auth.js session authentication
+  return await authenticateWithSession(metadata);
 }
 
 // ============================================================================
@@ -225,13 +225,13 @@ async function authenticateWithBasicAuth(
 }
 
 /**
- * Authenticate using Clerk session
+ * Authenticate using the Auth.js session.
+ * #22: admin scopes come from users.is_admin (checkAdminAccess re-reads the DB).
  */
-async function authenticateWithClerk(metadata: AuthMetadata): Promise<AuthContext> {
+async function authenticateWithSession(metadata: AuthMetadata): Promise<AuthContext> {
   try {
-    const session = await clerkAuth();
+    const session = await checkAdminAccess();
 
-    // Check if user is authenticated with Clerk
     if (!session.userId) {
       return {
         authenticated: false,
@@ -242,32 +242,29 @@ async function authenticateWithClerk(metadata: AuthMetadata): Promise<AuthContex
       };
     }
 
-    // Extract admin status from session claims
-    const sessionMetadata = session.sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    const isAdmin = sessionMetadata?.isAdmin === 'true';
+    const isAdmin = session.isAdmin;
 
-    // Clerk users get standard user scopes (or admin scopes if admin)
+    // Session users get standard user scopes (or admin scopes if admin)
     const scopes = isAdmin ? [...SCOPE_GROUPS.ADMIN] : [...SCOPE_GROUPS.USER];
 
     return {
       authenticated: true,
       userId: session.userId,
-      authType: 'clerk',
+      authType: 'session',
       scopes,
       metadata: {
         ...metadata,
         isAdmin,
-        orgId: session.orgId || undefined,
       },
     };
   } catch (error) {
-    console.error('Error authenticating with Clerk:', error);
+    console.error('Error authenticating with session:', error);
     return {
       authenticated: false,
       userId: null,
-      authType: 'clerk',
+      authType: 'session',
       scopes: [],
-      error: error instanceof Error ? error.message : 'Unknown Clerk authentication error',
+      error: error instanceof Error ? error.message : 'Unknown session authentication error',
       reason: 'invalid_credentials',
       metadata,
     };
@@ -351,7 +348,7 @@ export function authHasAnyScope(auth: AuthContext, requiredScopes: string[]): bo
  */
 export function getAuthTypeLabel(authType: AuthType): string {
   const labels: Record<AuthType, string> = {
-    clerk: 'Clerk Session',
+    session: 'Session',
     api_key: 'API Key',
     basic: 'Basic Auth',
     none: 'Unauthenticated',

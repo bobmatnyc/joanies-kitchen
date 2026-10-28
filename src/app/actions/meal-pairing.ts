@@ -259,7 +259,7 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
  * Retrieves previously generated/saved meal plans with linked recipes.
  * Results are paginated and sorted by creation date (most recent first).
  *
- * @param userId - Clerk user ID (optional, defaults to current user)
+ * @param userId - users.id (optional, defaults to current user)
  * @param limit - Maximum number of results (default: 20, max: 100)
  * @param offset - Pagination offset (default: 0)
  * @returns { success: boolean, data?: Meal[], error?: string, pagination?: object }

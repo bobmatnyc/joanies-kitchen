@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { Edit, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';

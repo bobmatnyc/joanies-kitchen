@@ -34,7 +34,7 @@ export const meals = pgTable(
   'meals',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     name: text('name').notNull(), // e.g., "Thanksgiving Dinner", "Tuesday Family Meal"
     description: text('description'), // Optional notes
     meal_type: text('meal_type', {
@@ -128,7 +128,7 @@ export const shoppingLists = pgTable(
   'shopping_lists',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     meal_id: uuid('meal_id').references(() => meals.id, { onDelete: 'set null' }), // Optional link to meal
 
     name: text('name').notNull(), // e.g., "Thanksgiving Shopping List"

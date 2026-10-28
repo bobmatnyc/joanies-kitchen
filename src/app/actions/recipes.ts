@@ -2,6 +2,7 @@
 
 import { and, asc, desc, eq, gte, isNull, like, or, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { checkAdminAccess } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
@@ -606,15 +607,13 @@ export async function copyRecipeToCollection(recipeId: string) {
 // Mark a recipe as a system recipe (admin action - can be restricted later)
 export async function markAsSystemRecipe(recipeId: string, isSystem: boolean = true) {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId, isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
     }
 
     // Check for admin role
-    const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-    const isAdmin = metadata?.isAdmin === 'true';
     if (!isAdmin) {
       return { success: false, error: 'Admin access required' };
     }

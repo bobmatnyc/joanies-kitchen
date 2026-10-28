@@ -1,15 +1,12 @@
-import { UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { AuthButtons } from '@/components/auth/AuthButtons';
+import { checkAdminAccess } from '@/lib/admin';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Server-side auth check
-  const { sessionClaims } = await auth();
-
-  // Redirect non-admin users to homepage
-  const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-  if (metadata?.isAdmin !== 'true') {
+  // #22: server-side admin check re-reads users.is_admin (not the JWT claim).
+  const { isAdmin } = await checkAdminAccess();
+  if (!isAdmin) {
     redirect('/');
   }
 
@@ -80,7 +77,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               >
                 Back to Site
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <AuthButtons />
             </div>
           </div>
         </div>

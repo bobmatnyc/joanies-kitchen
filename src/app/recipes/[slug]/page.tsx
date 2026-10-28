@@ -65,22 +65,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { isAdmin } from '@/lib/admin-client';
+import { useUser } from '@/lib/auth-client';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
 
-/**
- * Safe Clerk user hook that handles the case where Clerk is not available
- * This MUST be called unconditionally to satisfy React's Rules of Hooks
- */
-function useSafeClerkUser() {
-  try {
-    const { useUser } = require('@clerk/nextjs');
-    return useUser();
-  } catch (_error) {
-    // Clerk not available - return default values
-    // This maintains consistent hook call order regardless of Clerk availability
-    return { user: null, isSignedIn: false, isLoaded: true };
-  }
+// #22: Auth.js session via the Clerk-shaped client shim.
+function useSessionUser() {
+  return useUser();
 }
 
 interface RecipePageProps {
@@ -117,9 +107,8 @@ export default function RecipePage({ params }: RecipePageProps) {
   const fromParam = searchParams.get('from');
   const chefSlug = fromParam?.startsWith('chef/') ? fromParam.replace('chef/', '') : null;
 
-  // Safe Clerk usage - MUST be called unconditionally (React Rules of Hooks)
-  // Will return null values if Clerk is not configured
-  const { user, isSignedIn } = useSafeClerkUser();
+  // MUST be called unconditionally (React Rules of Hooks)
+  const { user, isSignedIn } = useSessionUser();
 
   useEffect(() => {
     params.then((p) => setSlugOrId(p.slug));
@@ -181,7 +170,8 @@ export default function RecipePage({ params }: RecipePageProps) {
 
       // Check if user is admin
       if (isSignedIn && user?.id) {
-        setIsUserAdmin(isAdmin(user.id));
+        // #22: JWT admin hint (UI only); admin actions re-check the DB.
+        setIsUserAdmin(user.publicMetadata.isAdmin === 'true');
       }
 
       // Show page immediately - fetch secondary data in background
@@ -378,7 +368,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
   const recipeJsonLd = useMemo(() => {
     if (!recipe) return null;
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://recipes.help';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
     const recipeUrl = recipe.slug
       ? `${baseUrl}/recipes/${recipe.slug}`
       : `${baseUrl}/recipes/${recipe.id}`;

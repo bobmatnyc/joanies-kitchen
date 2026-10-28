@@ -4,7 +4,7 @@
  * GET    /api/v1/meals - List user's meals with filters
  * POST   /api/v1/meals - Create new meal
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

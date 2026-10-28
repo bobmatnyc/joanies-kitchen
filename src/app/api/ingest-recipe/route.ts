@@ -11,7 +11,7 @@
  *
  * Authentication:
  * - API Key: Authorization: Bearer <API_KEY>
- * - Clerk Admin: Session-based authentication
+ * - Admin: Session-based authentication
  *
  * Request Body:
  * - Single URL: { "url": "https://..." }
@@ -484,7 +484,7 @@ export async function GET() {
     description: 'Automatically ingest recipes from URLs',
     authentication: {
       required: true,
-      methods: ['API Key (Bearer token)', 'Clerk Admin Session'],
+      methods: ['API Key (Bearer token)', 'Admin Session'],
       scope: 'write:recipes',
     },
     requestBody: {

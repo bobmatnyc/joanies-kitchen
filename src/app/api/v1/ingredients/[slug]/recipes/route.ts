@@ -3,7 +3,7 @@
  *
  * GET /api/v1/ingredients/:slug/recipes - Get recipes using an ingredient
  *
- * Authentication: Requires Clerk session or API key
+ * Authentication: Requires a signed-in session or API key
  * Authorization: Scope-based permissions
  */
 

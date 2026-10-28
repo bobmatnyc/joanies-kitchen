@@ -117,7 +117,7 @@ export const recipes = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => randomUUID()),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     chef_id: uuid('chef_id').references(() => chefs.id, { onDelete: 'set null' }), // Optional reference to chef (for chef-attributed recipes)
     source_id: uuid('source_id').references(() => recipeSources.id, { onDelete: 'set null' }), // Optional reference to recipe source
     name: text('name').notNull(),
@@ -236,7 +236,7 @@ export const recipes = pgTable(
       .notNull()
       .default('pending'), // Default to pending for user-uploaded recipes
     moderation_notes: text('moderation_notes'), // Admin notes about rejection/flagging reasons
-    moderated_by: text('moderated_by'), // Clerk user ID of moderator who took action
+    moderated_by: text('moderated_by'), // users.id of moderator who took action
     moderated_at: timestamp('moderated_at'), // When moderation action was taken
     submission_notes: text('submission_notes'), // User's notes when submitting recipe for review
   },
@@ -314,7 +314,7 @@ export const recipeRatings = pgTable(
     recipe_id: text('recipe_id')
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     rating: integer('rating').notNull(), // 0-5 star rating
     review: text('review'), // Optional review text
     created_at: timestamp('created_at').defaultNow(),
@@ -337,7 +337,7 @@ export const recipeFlags = pgTable(
     recipe_id: text('recipe_id')
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
-    user_id: text('user_id').notNull(), // Clerk user ID of reporter
+    user_id: text('user_id').notNull(), // users.id of reporter
     reason: text('reason', {
       enum: ['inappropriate', 'spam', 'copyright', 'quality', 'other'],
     }).notNull(),
@@ -413,7 +413,7 @@ export const recipeLikes = pgTable(
     recipe_id: text('recipe_id')
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     created_at: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
@@ -437,7 +437,7 @@ export const recipeForks = pgTable(
     original_recipe_id: text('original_recipe_id')
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }), // The original recipe
-    user_id: text('user_id').notNull(), // Clerk user ID who forked
+    user_id: text('user_id').notNull(), // users.id who forked
     created_at: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
@@ -457,7 +457,7 @@ export const recipeComments = pgTable(
     recipe_id: text('recipe_id')
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
-    user_id: text('user_id').notNull(), // Clerk user ID
+    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     content: text('content').notNull(), // Comment text (supports emojis)
     is_edited: boolean('is_edited').notNull().default(false), // Track if edited
     is_flagged: boolean('is_flagged').notNull().default(false), // Moderation flag

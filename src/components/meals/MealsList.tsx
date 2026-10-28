@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-client';
 import { Plus, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';

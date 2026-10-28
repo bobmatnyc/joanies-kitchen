@@ -5,8 +5,7 @@ import { AdminChefForm } from '@/components/admin/AdminChefForm';
 import { AdminScrapingPanel } from '@/components/admin/AdminScrapingPanel';
 import { ChefGrid } from '@/components/chef/ChefGrid';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { isAdmin } from '@/lib/admin';
-import { auth } from '@/lib/auth';
+import { checkAdminAccess } from '@/lib/admin';
 
 export const metadata = {
   title: 'Manage Chefs | Admin',
@@ -14,9 +13,9 @@ export const metadata = {
 };
 
 export default async function AdminChefsPage() {
-  const { userId } = await auth();
-
-  if (!userId || !isAdmin(userId)) {
+  // #22: was an ADMIN_USER_IDS env check; now users.is_admin.
+  const { isAdmin } = await checkAdminAccess();
+  if (!isAdmin) {
     redirect('/');
   }
 

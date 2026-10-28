@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type NewSlideshowPhoto, type SlideshowPhoto, slideshowPhotos } from '@/lib/db/schema';
