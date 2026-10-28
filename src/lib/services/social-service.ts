@@ -7,6 +7,11 @@ import {
   recipes,
 } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import {
+  ANONYMOUS_VIEWER,
+  type RecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 
 /**
  * SocialService - Business logic for social features
@@ -27,14 +32,22 @@ export class SocialService {
   /**
    * Get all recipes favorited by a user
    */
-  async getFavorites(userId: string): Promise<typeof recipes.$inferSelect[]> {
+  async getFavorites(
+    userId: string,
+    viewer: RecipeViewer = ANONYMOUS_VIEWER
+  ): Promise<typeof recipes.$inferSelect[]> {
     const likedRecipes = await db
       .select({
         recipe: recipes,
       })
       .from(recipeLikes)
       .innerJoin(recipes, eq(recipeLikes.recipe_id, recipes.id))
-      .where(eq(recipeLikes.user_id, userId))
+      .where(
+        and(
+          eq(recipeLikes.user_id, userId),
+          recipeVisibilityCondition(viewer) // #41: only recipes the viewer may read
+        )
+      )
       .orderBy(desc(recipeLikes.created_at));
 
     return likedRecipes.map((lr) => lr.recipe);

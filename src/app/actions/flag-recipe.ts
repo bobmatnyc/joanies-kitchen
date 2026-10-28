@@ -11,6 +11,7 @@
 
 import { checkAdminAccess } from '@/lib/admin';
 import { auth } from '@/lib/auth';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -58,14 +59,10 @@ export async function flagRecipe(
       };
     }
 
-    // Verify recipe exists
-    const recipe = await db
-      .select({ id: recipes.id })
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    // #41: a recipe the caller cannot see is answered as nonexistent.
+    const recipe = await findViewableRecipe(recipeId, await getRecipeViewer());
 
-    if (recipe.length === 0) {
+    if (!recipe) {
       return {
         success: false,
         error: 'Recipe not found',

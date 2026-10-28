@@ -13,12 +13,14 @@ import type { NextRequest } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
 import {
   apiError,
+  apiNotFound,
   apiSuccess,
   getRequiredParam,
   handleActionResult,
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { findViewableRecipe } from '@/lib/recipe-visibility';
 import { socialService } from '@/lib/services';
 
 /**
@@ -101,10 +103,10 @@ export const POST = requireScopes(
 
       const { data: recipeId } = idResult;
 
-      // Verify recipe exists
-      const recipeResult = await getRecipe(recipeId);
-      const handled = handleActionResult(recipeResult);
-      if ('error' in handled) return handled.error;
+      // #41: a recipe the caller cannot see is answered as nonexistent.
+      if (!(await findViewableRecipe(recipeId, { userId: auth.userId, isAdmin: false }))) {
+        return apiNotFound('Recipe');
+      }
 
       // Add to favorites (idempotent operation)
       await socialService.addFavorite(auth.userId!, recipeId);

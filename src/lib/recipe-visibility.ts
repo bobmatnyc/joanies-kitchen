@@ -1,5 +1,6 @@
-import { eq, or, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, or, type SQL } from 'drizzle-orm';
 import { checkAdminAccess } from '@/lib/admin';
+import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 
 /**
@@ -46,6 +47,21 @@ export function recipeVisibilityCondition(viewer: RecipeViewer): SQL | undefined
   if (viewer.isAdmin) return undefined;
   if (viewer.userId) return or(eq(recipes.is_public, true), eq(recipes.user_id, viewer.userId));
   return eq(recipes.is_public, true);
+}
+
+/**
+ * #41: lookup used by every attach path (collections, favorites, meals, likes,
+ * views, flags). Returns the recipe only when it exists, is not soft-deleted
+ * and the viewer may read it; otherwise null, so a private recipe and a
+ * nonexistent one get the same answer.
+ */
+export async function findViewableRecipe(recipeId: string, viewer: RecipeViewer) {
+  const [recipe] = await db
+    .select()
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), isNull(recipes.deleted_at)))
+    .limit(1);
+  return recipe && canViewRecipe(recipe, viewer) ? recipe : null;
 }
 
 /** Cache-key segment that separates viewers whose visible recipe sets differ. */

@@ -7,6 +7,7 @@ import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/me
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
@@ -181,6 +182,15 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
         success: false,
         error: `Invalid meal plan data: ${validationResult.error.errors.map((e) => e.message).join(', ')}`,
       };
+    }
+
+    // #41: every linked recipe must be one the caller may read; otherwise
+    // answer as for a nonexistent recipe, before anything is written.
+    const viewer = await getRecipeViewer();
+    for (const course of [mealPlan.appetizer, mealPlan.main, mealPlan.side, mealPlan.dessert]) {
+      if (course.recipe_id && !(await findViewableRecipe(course.recipe_id, viewer))) {
+        return { success: false, error: 'Recipe not found' };
+      }
     }
 
     // 3. Extract meal analysis data

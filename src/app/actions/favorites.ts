@@ -6,6 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { favorites } from '@/lib/db/user-discovery-schema';
+import {
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -38,8 +43,8 @@ export async function addFavorite(recipeId: string) {
       return { success: false, error: 'Failed to create user profile' };
     }
 
-    // Check if recipe exists
-    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
+    // #41: a recipe the caller cannot see is answered as nonexistent.
+    const recipe = await findViewableRecipe(recipeId, await getRecipeViewer());
 
     if (!recipe) {
       return { success: false, error: 'Recipe not found' };
@@ -184,7 +189,13 @@ export async function getUserFavorites(targetUserId?: string) {
       })
       .from(favorites)
       .innerJoin(recipes, eq(favorites.recipe_id, recipes.id))
-      .where(eq(favorites.user_id, userId))
+      .where(
+        and(
+          eq(favorites.user_id, userId),
+          // #41: drop favorites whose recipe the viewer can no longer read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(desc(favorites.created_at));
 
     return userFavorites.map((f) => ({

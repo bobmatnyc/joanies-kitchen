@@ -6,6 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
+import {
   type Collection,
   collectionRecipes,
   collections,
@@ -232,6 +237,9 @@ export async function getUserCollections(targetUserId?: string) {
       )
       .orderBy(desc(collections.created_at));
 
+    // #41: previews show only recipes this viewer may read.
+    const visible = recipeVisibilityCondition(await getRecipeViewer());
+
     // For each collection, fetch first 4 recipes for cover image generation
     const collectionsWithRecipes = await Promise.all(
       userCollections.map(async (collection) => {
@@ -243,7 +251,7 @@ export async function getUserCollections(targetUserId?: string) {
           })
           .from(collectionRecipes)
           .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
-          .where(eq(collectionRecipes.collection_id, collection.id))
+          .where(and(eq(collectionRecipes.collection_id, collection.id), visible))
           .orderBy(collectionRecipes.position)
           .limit(4);
 
@@ -291,7 +299,13 @@ export async function getCollectionById(collectionId: string) {
       })
       .from(collectionRecipes)
       .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
-      .where(eq(collectionRecipes.collection_id, collectionId))
+      .where(
+        and(
+          eq(collectionRecipes.collection_id, collectionId),
+          // #41: a collection shows only recipes the viewer may read, whoever owns it.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(collectionRecipes.position);
 
     return {
@@ -352,7 +366,13 @@ export async function getCollectionBySlug(username: string, slug: string) {
       })
       .from(collectionRecipes)
       .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
-      .where(eq(collectionRecipes.collection_id, collection.id))
+      .where(
+        and(
+          eq(collectionRecipes.collection_id, collection.id),
+          // #41: a collection shows only recipes the viewer may read, whoever owns it.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(collectionRecipes.position);
 
     return {
@@ -388,6 +408,9 @@ export async function getPublicCollections(limit = 20, offset = 0) {
       .limit(limit)
       .offset(offset);
 
+    // #41: previews show only recipes this viewer may read.
+    const visible = recipeVisibilityCondition(await getRecipeViewer());
+
     // For each collection, fetch first 4 recipes for cover image generation
     const collectionsWithRecipes = await Promise.all(
       publicCollections.map(async (c) => {
@@ -399,7 +422,7 @@ export async function getPublicCollections(limit = 20, offset = 0) {
           })
           .from(collectionRecipes)
           .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
-          .where(eq(collectionRecipes.collection_id, c.collection.id))
+          .where(and(eq(collectionRecipes.collection_id, c.collection.id), visible))
           .orderBy(collectionRecipes.position)
           .limit(4);
 
@@ -453,8 +476,8 @@ export async function addRecipeToCollection(
       return { success: false, error: 'You can only add recipes to your own collections' };
     }
 
-    // Check if recipe exists
-    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
+    // #41: a recipe the caller cannot see is answered as nonexistent.
+    const recipe = await findViewableRecipe(recipeId, await getRecipeViewer());
 
     if (!recipe) {
       return { success: false, error: 'Recipe not found' };
