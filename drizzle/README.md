@@ -7,3 +7,5 @@ Production was built with `drizzle-kit push`, and its `drizzle.__drizzle_migrati
 New migrations are generated with `drizzle-kit generate`, reviewed, dry-run on a Neon branch, and applied to production by hand with psql.
 
 Known schema drift between these files and production is tracked in the issues linked from #6.
+
+Rollback SQL for a hand-applied migration lives in `rollback/<tag>.down.sql` (first: `0023_authjs_users`, #22).
