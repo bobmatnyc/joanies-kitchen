@@ -113,6 +113,8 @@ $RECYCLE.BIN/
 *.sql
 !/drizzle/*.sql
 !/drizzle/rollback/*.sql
+!/drizzle/archive/*.sql
+!/drizzle/archive/rollback/*.sql
 *.sqlite
 *.sqlite3
 *.sublime-project

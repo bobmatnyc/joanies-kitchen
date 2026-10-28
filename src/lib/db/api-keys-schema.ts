@@ -1,8 +1,9 @@
 import {
   boolean,
+  foreignKey,
   index,
   integer,
-  json,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -55,13 +56,13 @@ export const apiKeys = pgTable(
 
     // Key Identification
     name: varchar('name', { length: 100 }).notNull(), // Human-readable name (e.g., "Mobile App", "CI/CD Pipeline")
-    key_hash: varchar('key_hash', { length: 64 }).notNull().unique(), // SHA-256 hash of the actual API key (64 hex chars)
+    key_hash: varchar('key_hash', { length: 64 }).notNull().unique('api_keys_key_hash_key'), // SHA-256 hash of the actual API key (64 hex chars)
     key_prefix: varchar('key_prefix', { length: 12 }).notNull(), // First 8-12 chars for display (e.g., "jk_live_abc1")
 
     // Permission Scopes
     // JSON array of permission strings
     // Examples: ["read:recipes", "write:recipes", "read:ingredients", "write:meals"]
-    scopes: json('scopes').$type<string[]>().notNull().default([]),
+    scopes: jsonb('scopes').$type<string[]>().notNull().default([]),
 
     // Status and Lifecycle
     is_active: boolean('is_active').notNull().default(true), // Soft revocation without deletion
@@ -93,8 +94,8 @@ export const apiKeys = pgTable(
     keyPrefixIdx: index('api_keys_key_prefix_idx').on(table.key_prefix), // For display/search
     isActiveIdx: index('api_keys_is_active_idx').on(table.is_active),
     expiresAtIdx: index('api_keys_expires_at_idx').on(table.expires_at), // For expiration cleanup jobs
-    createdAtIdx: index('api_keys_created_at_idx').on(table.created_at.desc()),
-    lastUsedAtIdx: index('api_keys_last_used_at_idx').on(table.last_used_at.desc()), // For activity monitoring
+    createdAtIdx: index('api_keys_created_at_idx').on(table.created_at.desc().nullsFirst()),
+    lastUsedAtIdx: index('api_keys_last_used_at_idx').on(table.last_used_at.desc().nullsFirst()), // For activity monitoring
     environmentIdx: index('api_keys_environment_idx').on(table.environment),
 
     // Composite indexes for common queries
@@ -126,9 +127,7 @@ export const apiKeyUsage = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     // API Key Reference
-    api_key_id: uuid('api_key_id')
-      .notNull()
-      .references(() => apiKeys.id, { onDelete: 'cascade' }), // Cascade delete when key is deleted
+    api_key_id: uuid('api_key_id').notNull(), // FK below: cascade delete when key is deleted
 
     // Request Details
     endpoint: varchar('endpoint', { length: 255 }).notNull(), // API endpoint called (e.g., "/api/recipes")
@@ -151,15 +150,24 @@ export const apiKeyUsage = pgTable(
     error_code: varchar('error_code', { length: 50 }), // Application error code
 
     // Metadata
-    metadata: json('metadata').$type<Record<string, any>>(), // Additional custom metadata
+    metadata: jsonb('metadata').$type<Record<string, any>>(), // Additional custom metadata
 
     // Timestamp
     requested_at: timestamp('requested_at').notNull().defaultNow(),
   },
   (table) => ({
+    // #9: prod's FK carries the Postgres default name, not Drizzle's.
+    apiKeyFk: foreignKey({
+      name: 'api_key_usage_api_key_id_fkey',
+      columns: [table.api_key_id],
+      foreignColumns: [apiKeys.id],
+    }).onDelete('cascade'),
+
     // Performance indexes for analytics queries
     apiKeyIdIdx: index('api_key_usage_api_key_id_idx').on(table.api_key_id),
-    requestedAtIdx: index('api_key_usage_requested_at_idx').on(table.requested_at.desc()),
+    requestedAtIdx: index('api_key_usage_requested_at_idx').on(
+      table.requested_at.desc().nullsFirst()
+    ),
     endpointIdx: index('api_key_usage_endpoint_idx').on(table.endpoint),
     statusCodeIdx: index('api_key_usage_status_code_idx').on(table.status_code),
     methodIdx: index('api_key_usage_method_idx').on(table.method),
@@ -167,7 +175,7 @@ export const apiKeyUsage = pgTable(
     // Composite indexes for common analytics queries
     apiKeyDateIdx: index('api_key_usage_api_key_date_idx').on(
       table.api_key_id,
-      table.requested_at.desc()
+      table.requested_at.desc().nullsFirst()
     ),
     endpointStatusIdx: index('api_key_usage_endpoint_status_idx').on(
       table.endpoint,
@@ -178,7 +186,9 @@ export const apiKeyUsage = pgTable(
     errorIdx: index('api_key_usage_error_idx').on(table.error_code),
 
     // Index for performance monitoring
-    responseTimeIdx: index('api_key_usage_response_time_idx').on(table.response_time_ms.desc()),
+    responseTimeIdx: index('api_key_usage_response_time_idx').on(
+      table.response_time_ms.desc().nullsFirst()
+    ),
   })
 );
 

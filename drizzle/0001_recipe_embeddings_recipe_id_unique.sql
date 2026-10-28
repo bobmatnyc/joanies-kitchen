@@ -1,0 +1,1 @@
+ALTER TABLE "recipe_embeddings" ADD CONSTRAINT "recipe_embeddings_recipe_id_unique" UNIQUE("recipe_id");

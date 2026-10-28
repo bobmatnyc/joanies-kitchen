@@ -65,6 +65,7 @@ export const ingredients = pgTable(
     storage_tips: text('storage_tips'), // How to store properly (Joanie's advice)
     substitutions: text('substitutions'), // JSON array of substitution suggestions
     image_url: text('image_url'), // Image URL for ingredient (Unsplash, Pexels, or uploaded)
+    is_suitable_for_image: boolean('is_suitable_for_image').default(true), // #9: exists in prod
 
     // Flags
     is_common: boolean('is_common').notNull().default(false), // Frequently used ingredients (for autocomplete priority)
@@ -83,7 +84,7 @@ export const ingredients = pgTable(
   (table) => ({
     // Indexes for performance
     nameIdx: index('ingredients_name_idx').on(table.name), // Exact name lookup
-    nameLowerIdx: index('ingredients_name_lower_idx').on(sql`LOWER(${table.name})`), // Case-insensitive search
+    nameLowerIdx: index('ingredients_name_lower_idx').on(sql`lower(name)`), // Case-insensitive search
     displayNameIdx: index('ingredients_display_name_idx').on(table.display_name),
     slugIdx: index('ingredients_slug_idx').on(table.slug), // Slug-based lookup for URLs
     categoryIdx: index('ingredients_category_idx').on(table.category), // Filter by legacy category
@@ -96,14 +97,20 @@ export const ingredients = pgTable(
     // Trigram index for fuzzy search (requires pg_trgm extension)
     // This enables fast similarity searches like: SELECT * FROM ingredients WHERE name % 'onin'
     // Note: This requires the pg_trgm extension to be enabled in PostgreSQL
-    nameTrigramIdx: index('ingredients_name_trgm_idx').using(
-      'gin',
-      sql`${table.name} gin_trgm_ops`
-    ),
+    nameTrigramIdx: index('ingredients_name_trgm_idx').using('gin', table.name.op('gin_trgm_ops')),
     displayNameTrigramIdx: index('ingredients_display_name_trgm_idx').using(
       'gin',
-      sql`${table.display_name} gin_trgm_ops`
+      table.display_name.op('gin_trgm_ops')
     ),
+
+    // #9: indexes created in prod outside Drizzle; kept so the schema matches prod.
+    aliasesGinIdx: index('idx_ingredients_aliases_gin').using(
+      'gin',
+      table.aliases.op('gin_trgm_ops')
+    ),
+    legacyCategoryIdx: index('idx_ingredients_category').on(table.category),
+    legacyIsCommonIdx: index('idx_ingredients_is_common').on(table.is_common),
+    legacyNameIdx: index('idx_ingredients_name').on(table.name),
   })
 );
 
@@ -174,6 +181,9 @@ export const recipeIngredients = pgTable(
     positionIdx: index('recipe_ingredients_position_idx').on(table.recipe_id, table.position), // Ordered ingredient list
     optionalIdx: index('recipe_ingredients_optional_idx').on(table.recipe_id, table.is_optional), // Filter optional ingredients
     groupIdx: index('recipe_ingredients_group_idx').on(table.recipe_id, table.ingredient_group), // Group by section
+    // #9: indexes created in prod outside Drizzle; kept so the schema matches prod.
+    legacyIngredientIdx: index('idx_recipe_ingredients_ingredient').on(table.ingredient_id),
+    legacyRecipeIdx: index('idx_recipe_ingredients_recipe').on(table.recipe_id),
   })
 );
 

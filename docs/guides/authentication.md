@@ -70,25 +70,25 @@ The `CLERK_*`, `NEXT_PUBLIC_CLERK_*`, `ADMIN_USER_IDS` and `NEXT_PUBLIC_ADMIN_US
 
 ### 3. Apply migration 0023
 
-`drizzle/0023_authjs_users.sql` creates `users`, `accounts` and `verification_tokens`. It changes no existing table. Production is managed by hand (see `drizzle/README.md`): do **not** run `drizzle-kit migrate` against it.
+`drizzle/archive/0023_authjs_users.sql` creates `users`, `accounts` and `verification_tokens`. It changes no existing table. Production is managed by hand (see `drizzle/README.md`): do **not** run `drizzle-kit migrate` against it.
 
 Dry-run first on a Neon branch, inside a transaction that is rolled back:
 
 ```bash
 psql "$BRANCH_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -c 'BEGIN' -f drizzle/0023_authjs_users.sql -c '\dt users' -c 'ROLLBACK'
+  -c 'BEGIN' -f drizzle/archive/0023_authjs_users.sql -c '\dt users' -c 'ROLLBACK'
 ```
 
 Apply to production, with the owner's confirmation:
 
 ```bash
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -1 -f drizzle/0023_authjs_users.sql
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -1 -f drizzle/archive/0023_authjs_users.sql
 ```
 
 Rollback (drops only the three new tables; existing data is untouched):
 
 ```bash
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f drizzle/rollback/0023_authjs_users.down.sql
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f drizzle/archive/rollback/0023_authjs_users.down.sql
 ```
 
 The new tables are inert if the deployment is rolled back, so the rollback SQL is only needed to abandon Auth.js entirely.

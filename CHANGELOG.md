@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **db**: one baseline migration, `drizzle/0000_baseline_from_prod.sql`, replaces migrations 0000-0023 (moved to `drizzle/archive/`); the code schema now matches production, including `api_keys`/`api_key_usage`, `ingredients.is_suitable_for_image`, six indexes, three CHECK constraints, prod's FK names, `tools.slug` NOT NULL and the `recipe_embeddings.model_name` default; `drizzle/baseline-mark-applied.sql` records the baseline on production without running it (#9, #7)
 - **auth**: admin access comes from `users.is_admin`; `requireAdmin` and `checkAdminAccess` re-read it on every call and deny on a database error, and the session's `isAdmin` copy refreshes every 5 minutes (#22)
 - **api**: the API-key layer reports `authType: 'session'` instead of `'clerk'` (#22)
 - **crawl**: a partial discovery run is stored with status `partial` instead of `completed`; POST `/api/cron/daily-recipe` runs are stored with `run_type` `manual` instead of `daily` (#6)

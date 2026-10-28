@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   customType,
   decimal,
+  foreignKey,
   index,
   integer,
   pgEnum,
@@ -15,6 +18,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { chefs } from './chef-schema';
+import { ingredients } from './ingredients-schema';
+import { meals } from './meals-schema';
 
 // Re-export chefs for types.ts
 export { chefs };
@@ -257,7 +262,9 @@ export const recipes = pgTable(
       table.discovery_week
     ),
     slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
-    flaggedImageIdx: index('idx_recipes_flagged_images').on(table.image_flagged_for_regeneration),
+    flaggedImageIdx: index('idx_recipes_flagged_images')
+      .on(table.image_flagged_for_regeneration)
+      .where(sql`(image_flagged_for_regeneration = true)`),
     flaggedContentIdx: index('idx_recipes_flagged_content').on(table.content_flagged_for_cleanup),
     deletedAtIdx: index('idx_recipes_deleted_at').on(table.deleted_at),
     engagementIdx: index('idx_recipes_engagement').on(
@@ -281,8 +288,13 @@ export const recipes = pgTable(
     moderationStatusIdx: index('idx_recipes_moderation_status').on(table.moderation_status), // Index for moderation queue filtering
     moderationPendingIdx: index('idx_recipes_moderation_pending').on(
       table.moderation_status,
-      table.created_at.desc()
+      table.created_at.desc().nullsFirst()
     ), // Composite index for pending queue sorted by submission time
+    // #9: CHECK constraint as it exists in prod.
+    moderationStatusCheck: check(
+      'recipes_moderation_status_check',
+      sql`moderation_status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'flagged'::text])`
+    ),
   })
 );
 
@@ -296,12 +308,12 @@ export const recipeEmbeddings = pgTable(
       .references(() => recipes.id, { onDelete: 'cascade' }),
     embedding: vector('embedding').notNull(),
     embedding_text: text('embedding_text').notNull(),
-    model_name: varchar('model_name', { length: 100 }).notNull().default('jina-embeddings-v3'),
+    model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'), // #7: prod default
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    // Unique constraint: one embedding per recipe
+    // #9 (D7d): one embedding per recipe; added to prod by migration 0001.
     recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
   })
 );
@@ -484,9 +496,10 @@ export const joanieComments = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     // Flexible reference - comment can be attached to recipe, meal, or ingredient
-    recipe_id: text('recipe_id').references(() => recipes.id, { onDelete: 'cascade' }),
-    meal_id: uuid('meal_id'), // Will reference meals.id once imported
-    ingredient_id: uuid('ingredient_id'), // Will reference ingredients.id once imported
+    // #9: FKs are declared below with prod's Postgres-default names.
+    recipe_id: text('recipe_id'),
+    meal_id: uuid('meal_id'),
+    ingredient_id: uuid('ingredient_id'),
 
     // Comment content
     comment_text: text('comment_text').notNull(),
@@ -504,7 +517,32 @@ export const joanieComments = pgTable(
     mealIdIdx: index('joanie_comments_meal_id_idx').on(table.meal_id),
     ingredientIdIdx: index('joanie_comments_ingredient_id_idx').on(table.ingredient_id),
     commentTypeIdx: index('joanie_comments_type_idx').on(table.comment_type),
-    createdAtIdx: index('joanie_comments_created_at_idx').on(table.created_at.desc()),
+    createdAtIdx: index('joanie_comments_created_at_idx').on(table.created_at.desc().nullsFirst()),
+
+    // #9: FK names and CHECK constraints as they exist in prod.
+    recipeFk: foreignKey({
+      name: 'joanie_comments_recipe_id_fkey',
+      columns: [table.recipe_id],
+      foreignColumns: [recipes.id],
+    }).onDelete('cascade'),
+    mealFk: foreignKey({
+      name: 'joanie_comments_meal_id_fkey',
+      columns: [table.meal_id],
+      foreignColumns: [meals.id],
+    }).onDelete('cascade'),
+    ingredientFk: foreignKey({
+      name: 'joanie_comments_ingredient_id_fkey',
+      columns: [table.ingredient_id],
+      foreignColumns: [ingredients.id],
+    }).onDelete('cascade'),
+    commentTypeCheck: check(
+      'joanie_comments_comment_type_check',
+      sql`comment_type = ANY (ARRAY['story'::text, 'tip'::text, 'substitution'::text, 'general'::text])`
+    ),
+    singleReferenceCheck: check(
+      'joanie_comments_single_reference_check',
+      sql`((recipe_id IS NOT NULL) AND (meal_id IS NULL) AND (ingredient_id IS NULL)) OR ((meal_id IS NOT NULL) AND (recipe_id IS NULL) AND (ingredient_id IS NULL)) OR ((ingredient_id IS NOT NULL) AND (recipe_id IS NULL) AND (meal_id IS NULL))`
+    ),
   })
 );
 
@@ -551,7 +589,7 @@ export const tools = pgTable(
     image_url: text('image_url'), // Tool image (/images/tools/...)
 
     // SEO slug for friendly URLs
-    slug: varchar('slug', { length: 255 }).unique(), // SEO-friendly URL slug (e.g., "large-pot")
+    slug: varchar('slug', { length: 255 }).notNull().unique(), // SEO-friendly URL slug (e.g., "large-pot"); #9: NOT NULL in prod
 
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow(),

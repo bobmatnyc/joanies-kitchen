@@ -65,7 +65,7 @@ export const userProfiles = pgTable(
   (table) => ({
     // Indexes
     userIdIdx: index('user_profiles_user_id_idx').on(table.user_id),
-    usernameIdx: index('user_profiles_username_lower_idx').on(sql`LOWER(${table.username})`),
+    usernameIdx: index('user_profiles_username_lower_idx').on(sql`lower((username)::text)`),
     publicIdx: index('user_profiles_public_idx').on(table.is_public),
   })
 );
