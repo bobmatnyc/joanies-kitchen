@@ -2,6 +2,7 @@
 
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { checkAdminAccess } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { joanieComments, type NewJoanieComment } from '@/lib/db/schema';
 
@@ -11,8 +12,7 @@ import { joanieComments, type NewJoanieComment } from '@/lib/db/schema';
  * Personal notes and observations from Joanie attached to recipes, meals, or ingredients.
  * These are NOT user-generated - they're Joanie's authentic voice and cooking wisdom.
  *
- * NOTE: In production, these actions should be restricted to admin/Joanie's account only.
- * For now, they're open for development purposes.
+ * Reads are public. Create, update and delete require an admin (#13).
  */
 
 /**
@@ -109,11 +109,15 @@ export async function getAllComments() {
 
 /**
  * Create a new Joanie comment
- *
- * NOTE: In production, this should be restricted to admin/Joanie's account
+ * Admin only (#13).
  */
 export async function createComment(data: NewJoanieComment) {
   try {
+    const { isAdmin } = await checkAdminAccess(); // See #13: Joanie's voice is admin-written
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
+    }
+
     // Validate that exactly one reference is provided
     const referenceCount = [data.recipe_id, data.meal_id, data.ingredient_id].filter(
       Boolean
@@ -158,11 +162,15 @@ export async function createComment(data: NewJoanieComment) {
 
 /**
  * Update an existing Joanie comment
- *
- * NOTE: In production, this should be restricted to admin/Joanie's account
+ * Admin only (#13).
  */
 export async function updateComment(id: string, commentText: string) {
   try {
+    const { isAdmin } = await checkAdminAccess(); // See #13: Joanie's voice is admin-written
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
+    }
+
     if (!commentText || commentText.trim().length === 0) {
       return {
         success: false,
@@ -208,11 +216,15 @@ export async function updateComment(id: string, commentText: string) {
 
 /**
  * Delete a Joanie comment
- *
- * NOTE: In production, this should be restricted to admin/Joanie's account
+ * Admin only (#13).
  */
 export async function deleteComment(id: string) {
   try {
+    const { isAdmin } = await checkAdminAccess(); // See #13: Joanie's voice is admin-written
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
+    }
+
     const [comment] = await db.delete(joanieComments).where(eq(joanieComments.id, id)).returning();
 
     if (!comment) {

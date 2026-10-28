@@ -3,6 +3,7 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { recountChefRecipes } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -224,28 +225,11 @@ export async function getAllChefsAdmin() {
 
 /**
  * Update chef recipe count
- * Called automatically when recipes are added/removed
+ * Admin only. Server code calls `recountChefRecipes` from `@/lib/chef-recipe-count`.
  */
 export async function updateChefRecipeCount(chefId: string) {
-  try {
-    // Count recipes for this chef
-    const count = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(chefRecipes)
-      .where(eq(chefRecipes.chef_id, chefId));
-
-    const recipeCount = Number(count[0]?.count || 0);
-
-    await db
-      .update(chefs)
-      .set({ recipe_count: recipeCount, updated_at: new Date() })
-      .where(eq(chefs.id, chefId));
-
-    return { success: true, recipeCount };
-  } catch (error) {
-    console.error('Error updating chef recipe count:', error);
-    return { success: false, error: 'Failed to update recipe count' };
-  }
+  await requireAdmin(); // See #13: client-callable DB write, admin only
+  return recountChefRecipes(chefId);
 }
 
 /**
@@ -271,7 +255,7 @@ export async function linkRecipeToChef(params: {
       .returning();
 
     // Update chef recipe count
-    await updateChefRecipeCount(params.chefId);
+    await recountChefRecipes(params.chefId);
 
     // Update recipe to reference chef
     await db.update(recipes).set({ chef_id: params.chefId }).where(eq(recipes.id, params.recipeId));
@@ -311,7 +295,7 @@ export async function unlinkRecipeFromChef(params: { chef_id: string; recipeId: 
       );
 
     // Update chef recipe count
-    await updateChefRecipeCount(params.chef_id);
+    await recountChefRecipes(params.chef_id);
 
     // Remove chef reference from recipe
     await db.update(recipes).set({ chef_id: null }).where(eq(recipes.id, params.recipeId));

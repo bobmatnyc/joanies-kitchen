@@ -1,8 +1,8 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { del } from '@vercel/blob';
 import { asc, desc, eq, sql } from 'drizzle-orm';
+import { checkAdminAccess } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { heroBackgrounds, type NewHeroBackground } from '@/lib/db/schema';
 
@@ -29,9 +29,9 @@ export async function getActiveBackgrounds() {
  */
 export async function getAllBackgrounds() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+    const { isAdmin } = await checkAdminAccess(); // See #13: site-wide hero images, admin only
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
     }
 
     const backgrounds = await db
@@ -51,9 +51,9 @@ export async function getAllBackgrounds() {
  */
 export async function createBackground(imageUrl: string, displayOrder?: number) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+    const { isAdmin } = await checkAdminAccess(); // See #13: site-wide hero images, admin only
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
     }
 
     // If no display order provided, get the next highest order
@@ -88,9 +88,9 @@ export async function updateBackground(
   data: { is_active?: boolean; display_order?: number }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+    const { isAdmin } = await checkAdminAccess(); // See #13: site-wide hero images, admin only
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
     }
 
     const [updated] = await db
@@ -118,9 +118,9 @@ export async function updateBackground(
  */
 export async function deleteBackground(id: string) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+    const { isAdmin } = await checkAdminAccess(); // See #13: site-wide hero images, admin only
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
     }
 
     // Get the background to delete the blob
@@ -159,9 +159,9 @@ export async function deleteBackground(id: string) {
  */
 export async function reorderBackground(id: string, direction: 'up' | 'down') {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+    const { isAdmin } = await checkAdminAccess(); // See #13: site-wide hero images, admin only
+    if (!isAdmin) {
+      return { success: false, error: 'Admin access required' };
     }
 
     // Get the current background

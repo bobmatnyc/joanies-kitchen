@@ -4,13 +4,14 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { parseRecipeWithAI } from '@/lib/ai/recipe-parser';
+import { recountChefRecipes } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
-import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
+import { linkRecipeToChef } from './chefs';
 
 /**
  * Start a scraping job for a chef's recipes
@@ -202,7 +203,7 @@ async function scrapeAndParseRecipes(
       .where(eq(scrapingJobs.id, jobId));
 
     // Update chef recipe count
-    await updateChefRecipeCount(params.chefId);
+    await recountChefRecipes(params.chefId);
 
     revalidatePath('/admin/scraping');
   } catch (error) {
@@ -297,6 +298,8 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
  * Get scraping job status
  */
 export async function getScrapingJobStatus(jobId: string) {
+  await requireAdmin(); // See #13: scraping jobs are admin data
+
   try {
     const job = await db.query.scrapingJobs.findFirst({
       where: eq(scrapingJobs.id, jobId),

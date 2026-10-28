@@ -840,6 +840,12 @@ function categorizeIngredient(ingredientName: string): string {
  */
 export async function getRecipeRecommendations(mainRecipeId: string) {
   try {
+    // See #13: paid OpenRouter call; meal planning is a signed-in feature.
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Authentication required' };
+    }
+
     // Get the main recipe
     const [mainRecipe] = await db.select().from(recipes).where(eq(recipes.id, mainRecipeId));
 

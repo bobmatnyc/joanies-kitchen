@@ -2,6 +2,7 @@
 
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { checkAdminAccess } from '@/lib/admin';
 import {
   type IngestedRecipe,
   parseRecipeForIngestion,
@@ -9,7 +10,6 @@ import {
   serializeInstructions,
   serializeTags,
 } from '@/lib/ai/recipe-ingestion-parser';
-import { checkAdminAccess } from '@/lib/admin';
 import { invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
@@ -43,10 +43,7 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
   }
 }
 
-/**
- * Fetch recipe content from URL using Firecrawl
- */
-export async function fetchRecipeFromUrl(url: string): Promise<{
+type FetchResult = {
   success: boolean;
   data?: {
     markdown: string;
@@ -56,14 +53,40 @@ export async function fetchRecipeFromUrl(url: string): Promise<{
     sourceUrl: string;
   };
   error?: string;
-}> {
-  try {
-    // Check admin permissions
-    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
-    if (!isAdmin) {
-      return { success: false, error: 'Admin access required' };
-    }
+};
 
+type ParseResult = {
+  success: boolean;
+  data?: IngestedRecipe;
+  error?: string;
+};
+
+const ADMIN_REQUIRED = { success: false, error: 'Admin access required' } as const;
+
+/**
+ * #13: true only for a signed-in user whose `users.is_admin` is true (#22).
+ * A throwing auth or DB lookup counts as "not admin", so callers fail closed.
+ */
+async function isAdminCaller(): Promise<boolean> {
+  try {
+    return (await checkAdminAccess()).isAdmin;
+  } catch (error) {
+    console.error('[recipe-ingestion] Admin check failed; denying:', error);
+    return false;
+  }
+}
+
+/**
+ * Fetch recipe content from URL using Firecrawl (admin only).
+ */
+export async function fetchRecipeFromUrl(url: string): Promise<FetchResult> {
+  if (!(await isAdminCaller())) return ADMIN_REQUIRED; // See #13: Firecrawl is paid
+  return scrapeRecipeContent(url);
+}
+
+/** Server-internal Firecrawl step; every caller has already checked admin. */
+async function scrapeRecipeContent(url: string): Promise<FetchResult> {
+  try {
     // Validate URL
     const validation = isValidRecipeUrl(url);
     if (!validation.valid) {
@@ -100,23 +123,19 @@ export async function fetchRecipeFromUrl(url: string): Promise<{
 }
 
 /**
- * Parse recipe content using LLM
+ * Parse recipe content using LLM (admin only).
  */
 export async function parseRecipeContent(
   content: string,
   sourceUrl?: string
-): Promise<{
-  success: boolean;
-  data?: IngestedRecipe;
-  error?: string;
-}> {
-  try {
-    // Check admin permissions
-    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
-    if (!isAdmin) {
-      return { success: false, error: 'Admin access required' };
-    }
+): Promise<ParseResult> {
+  if (!(await isAdminCaller())) return ADMIN_REQUIRED; // See #13: LLM parse is paid
+  return parseIngestedContent(content, sourceUrl);
+}
 
+/** Server-internal LLM step; every caller has already checked admin. */
+async function parseIngestedContent(content: string, sourceUrl?: string): Promise<ParseResult> {
+  try {
     // Parse with LLM
     const parsed = await parseRecipeForIngestion(content, sourceUrl);
 
@@ -291,21 +310,17 @@ export async function ingestRecipeFromUrl(url: string): Promise<{
   };
   error?: string;
 }> {
-  try {
-    // Check admin permissions
-    const { isAdmin } = await checkAdminAccess(); // #22: users.is_admin, not the JWT
-    if (!isAdmin) {
-      return { success: false, error: 'Admin access required' };
-    }
+  if (!(await isAdminCaller())) return ADMIN_REQUIRED; // See #13: Firecrawl + LLM are paid
 
+  try {
     // Step 1: Fetch content
-    const fetchResult = await fetchRecipeFromUrl(url);
+    const fetchResult = await scrapeRecipeContent(url);
     if (!fetchResult.success || !fetchResult.data) {
       return { success: false, error: fetchResult.error || 'Failed to fetch recipe' };
     }
 
     // Step 2: Parse content
-    const parseResult = await parseRecipeContent(fetchResult.data.markdown, url);
+    const parseResult = await parseIngestedContent(fetchResult.data.markdown, url);
     if (!parseResult.success || !parseResult.data) {
       return { success: false, error: parseResult.error || 'Failed to parse recipe' };
     }
