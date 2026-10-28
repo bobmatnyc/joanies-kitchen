@@ -1,6 +1,6 @@
 # Roadmap Documentation
 
-The roadmap of record is the root [ROADMAP.md](../../ROADMAP.md). It covers the 2027-01-01 launch. Progress is tracked on the GitHub milestones M0 to M3 (label `launch`).
+The roadmap of record is the root [ROADMAP.md](../../ROADMAP.md). It covers the 2027-02-01 beta. Progress is tracked on the GitHub milestones M0 to M3 (label `launch`).
 
 ## Files in this directory
 
