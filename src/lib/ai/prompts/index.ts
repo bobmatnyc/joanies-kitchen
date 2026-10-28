@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * AI Prompt Store - Central Registry
  *
@@ -159,7 +160,7 @@ export function renderPrompt(
     modelOverride ||
     template.modelSuggestions.find((s) => s.priority === 'primary')?.model ||
     template.modelSuggestions[0]?.model ||
-    'google/gemini-2.0-flash-exp:free';
+    DEFAULT_AI_MODEL;
 
   return {
     system: template.systemPrompt,

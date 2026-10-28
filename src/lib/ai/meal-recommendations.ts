@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * AI-Powered Meal Recommendations
  *
@@ -76,7 +77,7 @@ Only return valid JSON, no additional text.`;
 
   try {
     const response = await client.chat.completions.create({
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       messages: [
         {
           role: 'user',

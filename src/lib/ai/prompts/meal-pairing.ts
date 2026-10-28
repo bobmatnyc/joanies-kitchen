@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Meal Pairing Prompts
  *
@@ -146,7 +147,7 @@ CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanator
   optionalVariables: ['databaseContext'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Excellent at structured JSON output, fast, free tier available',
     },
@@ -271,7 +272,7 @@ CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanator
   optionalVariables: ['availableIngredients', 'databaseContext'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Excellent at structured JSON output, fast, free tier available',
     },
@@ -382,7 +383,7 @@ CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanator
   optionalVariables: ['databaseContext'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Creative theme interpretation with reliable JSON output',
     },
@@ -493,7 +494,7 @@ CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanator
   optionalVariables: ['availableIngredients', 'databaseContext'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Creative and reliable, free tier available',
     },

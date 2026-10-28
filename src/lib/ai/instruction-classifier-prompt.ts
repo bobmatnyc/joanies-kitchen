@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Recipe Instruction Step Classifier - LLM Prompt Template
  *
@@ -484,7 +485,7 @@ async function classifyInstruction(instruction: string) {
         content: prompt,
       },
     ],
-    model: 'google/gemini-2.0-flash-exp:free',
+    model: DEFAULT_AI_MODEL,
     temperature: 0.1, // Low temperature for consistency
   });
 

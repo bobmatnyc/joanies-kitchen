@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Nutritional Estimation Prompts
  *
@@ -212,7 +213,7 @@ Common health goals to address:
       reason: 'Best at understanding substitution chemistry and impacts',
     },
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'alternative',
       reason: 'Good for common substitutions, cost-effective',
     },

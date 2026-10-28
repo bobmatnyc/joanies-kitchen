@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Recipe Instruction Classifier
  *
@@ -22,7 +23,7 @@ import {
   validateClassification,
 } from './instruction-classifier-prompt';
 
-const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free';
+const DEFAULT_MODEL = DEFAULT_AI_MODEL;
 const CLASSIFICATION_TEMPERATURE = 0.1; // Low for consistency
 
 /**
