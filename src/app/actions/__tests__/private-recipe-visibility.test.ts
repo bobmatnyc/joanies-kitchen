@@ -1,0 +1,358 @@
+// @vitest-environment node
+/**
+ * #32: a private recipe reaches only its owner and an admin.
+ *
+ * Every read path fixed under #32 runs against real Postgres (PGlite) with
+ * one private recipe P owned by OWNER. Per path and caller:
+ * - anonymous / other user: the result never contains P, and equals the
+ *   result after P is deleted (the "nonexistent recipe" answer);
+ * - owner / admin: the result contains P.
+ */
+
+import type { PGlite } from '@electric-sql/pglite';
+import { NextRequest } from 'next/server';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const OWNER = 'user_owner';
+const OTHER = 'user_other';
+const ADMIN = 'user_admin';
+// UUIDs: getOriginalRecipe parses the fork source with a hex-only pattern.
+const P = 'aaaaaaaa-0000-4000-8000-00000000000a';
+const Q = 'bbbbbbbb-0000-4000-8000-00000000000b';
+const R = 'cccccccc-0000-4000-8000-00000000000c';
+const FORK = 'dddddddd-0000-4000-8000-00000000000d';
+const INGREDIENT = '22222222-2222-4222-8222-222222222222';
+const TOOL = '33333333-3333-4333-8333-333333333333';
+const SECRET = 'Secret Stew';
+
+const state = vi.hoisted(() => ({
+  db: undefined as unknown,
+  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  embeddingStored: true,
+}));
+
+vi.mock('@/lib/auth', () => {
+  state.auth = vi.fn();
+  return { auth: (...args: unknown[]) => state.auth(...args) };
+});
+// #22: admin is read from users.is_admin; here only ADMIN carries the flag.
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async (userId: string) => userId === ADMIN,
+}));
+vi.mock('@/lib/db', () => ({
+  get db() {
+    return state.db;
+  },
+}));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock('@/app/actions/favorites', () => ({ addFavorite: vi.fn(async () => ({ success: true })) }));
+vi.mock('@/lib/ai/meal-recommendations', () => ({
+  generateMealRecommendations: vi.fn(async (recipe: { name: string }) => ({
+    basedOn: recipe.name,
+  })),
+}));
+vi.mock('@/lib/ai/embeddings', () => ({
+  generateEmbedding: vi.fn(async () => [0.1, 0.2]),
+  generateRecipeEmbedding: vi.fn(async () => ({
+    embedding: [0.1, 0.2],
+    embeddingText: 'text',
+    modelName: 'test-model',
+  })),
+}));
+vi.mock('@/lib/db/embeddings', () => ({
+  getRecipeEmbedding: vi.fn(async () => (state.embeddingStored ? { embedding: [0.1, 0.2] } : null)),
+  saveRecipeEmbedding: vi.fn(async () => undefined),
+  // Vector search knows nothing of visibility: it returns every candidate.
+  findSimilarRecipes: vi.fn(async () => [
+    { recipe_id: P, similarity: 0.95 },
+    { recipe_id: Q, similarity: 0.9 },
+    { recipe_id: R, similarity: 0.85 },
+  ]),
+}));
+
+import { getRecipesUsingIngredient } from '@/app/actions/ingredients';
+import { getRecipeRecommendations } from '@/app/actions/meals';
+import * as cloning from '@/app/actions/recipe-cloning';
+import { getRecipesPaginated } from '@/app/actions/recipes';
+import { findSimilarToRecipe } from '@/app/actions/semantic-search';
+import * as social from '@/app/actions/social';
+import { getToolBySlug } from '@/app/actions/tools';
+import { GET as paginatedGET } from '@/app/api/recipes/paginated/route';
+import { searchCaches } from '@/lib/cache';
+import { recipeIngredients } from '@/lib/db/ingredients-schema';
+import * as schema from '@/lib/db/schema';
+import { ingredientService } from '@/lib/services/ingredient-service';
+import { createVisibilityDb } from './recipe-visibility-db';
+
+type Role = 'anonymous' | 'otherUser' | 'owner' | 'admin';
+const ROLES: Role[] = ['anonymous', 'otherUser', 'owner', 'admin'];
+const USER_OF: Record<Role, string | null> = {
+  anonymous: null,
+  otherUser: OTHER,
+  owner: OWNER,
+  admin: ADMIN,
+};
+const ALLOWED: Record<Role, boolean> = {
+  anonymous: false,
+  otherUser: false,
+  owner: true,
+  admin: true,
+};
+
+function signInAs(role: Role) {
+  const userId = USER_OF[role];
+  state.auth.mockResolvedValue(
+    userId
+      ? {
+          userId,
+          sessionClaims: { metadata: { isAdmin: role === 'admin' ? 'true' : 'false' } },
+        }
+      : { userId: null, sessionClaims: null }
+  );
+}
+
+let client: PGlite;
+
+function recipeRow(id: string, userId: string, isPublic: boolean, name: string, source?: string) {
+  return {
+    id,
+    user_id: userId,
+    name,
+    description: `${name} description`,
+    ingredients: '[]',
+    instructions: '[]',
+    is_public: isPublic,
+    is_system_recipe: false,
+    source: source ?? null,
+    fork_count: 0,
+    like_count: 0,
+    created_at: new Date('2026-01-01T00:00:00Z'),
+    updated_at: new Date('2026-01-01T00:00:00Z'),
+  };
+}
+
+async function seed() {
+  const db = state.db as any;
+  for (const table of ['recipes', 'recipe_forks', 'recipe_ingredients', 'tools', 'recipe_tools']) {
+    await client.exec(`DELETE FROM "${table}";`);
+  }
+  await db.insert(schema.recipes).values([
+    // P is a private fork of Q, owned by OWNER.
+    recipeRow(P, OWNER, false, SECRET, `Forked from recipe ID: ${Q}`),
+    recipeRow(Q, OTHER, true, 'Open Soup'),
+    recipeRow(R, OTHER, true, 'Open Salad'),
+    // FORK is a public fork of P.
+    recipeRow(FORK, OTHER, true, 'Fork of stew', `Forked from recipe ID: ${P}`),
+  ]);
+  await db.insert(schema.recipeForks).values({
+    id: '44444444-4444-4444-8444-444444444444',
+    recipe_id: FORK,
+    original_recipe_id: P,
+    user_id: OTHER,
+    created_at: new Date('2026-01-02T00:00:00Z'),
+  });
+  await db.insert(recipeIngredients).values([
+    { id: '55555555-5555-4555-8555-555555555551', recipe_id: P, ingredient_id: INGREDIENT },
+    { id: '55555555-5555-4555-8555-555555555552', recipe_id: Q, ingredient_id: INGREDIENT },
+  ]);
+  await db.insert(schema.tools).values({
+    id: TOOL,
+    name: 'whisk',
+    display_name: 'Whisk',
+    category: 'utensil',
+    slug: 'whisk',
+    is_essential: false,
+    is_specialized: false,
+    created_at: new Date('2026-01-01T00:00:00Z'),
+    updated_at: new Date('2026-01-01T00:00:00Z'),
+  });
+  await db.insert(schema.recipeTools).values([
+    { id: '66666666-6666-4666-8666-666666666661', recipe_id: P, tool_id: TOOL },
+    { id: '66666666-6666-4666-8666-666666666662', recipe_id: Q, tool_id: TOOL },
+  ]);
+}
+
+/** Removes P the way a cascade delete would: the "nonexistent recipe" state. */
+async function deletePrivateRecipe() {
+  await client.exec(`
+    DELETE FROM "recipes" WHERE id = '${P}';
+    DELETE FROM "recipe_forks" WHERE original_recipe_id = '${P}' OR recipe_id = '${P}';
+    DELETE FROM "recipe_ingredients" WHERE recipe_id = '${P}';
+    DELETE FROM "recipe_tools" WHERE recipe_id = '${P}';
+  `);
+  searchCaches.similar.clear();
+}
+
+const hasP = (list: Array<{ id?: string; name?: string }> | undefined) =>
+  (list ?? []).some((r) => r.id === P || r.name === SECRET);
+
+async function paginatedRoute(query: string) {
+  const response = await paginatedGET(
+    new NextRequest(`http://localhost/api/recipes/paginated?${query}`)
+  );
+  return { body: await response.json(), cache: response.headers.get('cache-control') };
+}
+
+interface ReadPath {
+  name: string;
+  run: (role: Role) => Promise<any>;
+  /** True when the result exposes P (its row, its name, or content derived from it). */
+  sees: (result: any) => boolean;
+  /** Owner/admin outcome when it is not "sees P" (e.g. cloning your own recipe is refused). */
+  admitted?: (result: any, role: Role) => boolean;
+  /** Fields that legitimately differ once P is deleted, removed before comparing. */
+  normalize?: (result: any) => unknown;
+}
+
+const PATHS: ReadPath[] = [
+  {
+    name: 'findSimilarToRecipe — P as a candidate (stored embedding)',
+    run: () => findSimilarToRecipe(Q, 10),
+    sees: (r) => hasP(r.recipes),
+  },
+  {
+    name: 'findSimilarToRecipe — P as a candidate (embedding generated on demand)',
+    run: async () => {
+      state.embeddingStored = false;
+      return findSimilarToRecipe(Q, 10);
+    },
+    sees: (r) => hasP(r.recipes),
+  },
+  {
+    name: 'findSimilarToRecipe — P as the source recipe',
+    run: () => findSimilarToRecipe(P, 10),
+    sees: (r) => r.success === true,
+  },
+  {
+    name: 'getRecipesPaginated — filters.userId = owner',
+    run: () => getRecipesPaginated({ filters: { userId: OWNER } }),
+    sees: (r) => hasP(r.data?.recipes),
+  },
+  {
+    name: 'getRecipesPaginated — filters.isPublic = false',
+    run: () => getRecipesPaginated({ filters: { isPublic: false } }),
+    sees: (r) => hasP(r.data?.recipes),
+  },
+  {
+    name: 'GET /api/recipes/paginated?isPublic=false',
+    run: () => paginatedRoute('isPublic=false'),
+    sees: (r) => hasP(r.body.recipes),
+    // A response carrying P must never be stored by a shared cache.
+    admitted: (r) => hasP(r.body.recipes) && r.cache === 'private, no-store',
+  },
+  {
+    name: 'getRecipesUsingIngredient (server action)',
+    run: () => getRecipesUsingIngredient(INGREDIENT),
+    sees: (r) => hasP(r.recipes),
+  },
+  {
+    name: 'ingredientService.getRecipesUsingIngredient (v1 API)',
+    run: (role) =>
+      // The v1 route passes the caller resolved by requireScopes.
+      (ingredientService.getRecipesUsingIngredient as any)(
+        INGREDIENT,
+        {},
+        { userId: USER_OF[role], isAdmin: role === 'admin' }
+      ),
+    sees: (r) => hasP(r),
+  },
+  {
+    name: 'getToolBySlug — recipesUsingTool',
+    run: () => getToolBySlug('whisk'),
+    sees: (r) => hasP(r.recipesUsingTool),
+    // usageCount is a link count, outside #32 (see report).
+    normalize: (r) => ({ ...r, tool: { ...r.tool, usageCount: undefined } }),
+  },
+  {
+    name: 'recipe-cloning getRecipeForks(Q)',
+    run: () => cloning.getRecipeForks(Q),
+    sees: (r) => hasP(r),
+  },
+  {
+    name: 'recipe-cloning getOriginalRecipe(FORK)',
+    run: () => cloning.getOriginalRecipe(FORK),
+    sees: (r) => r?.id === P,
+  },
+  {
+    name: 'recipe-cloning getForkStats(P)',
+    run: () => cloning.getForkStats(P),
+    sees: (r) => r.name === SECRET,
+  },
+  {
+    name: 'recipe-cloning cloneRecipe(P)',
+    run: () => cloning.cloneRecipe(P),
+    sees: (r) => typeof r.clonedRecipe?.name === 'string' && r.clonedRecipe.name.includes(SECRET),
+    admitted: (r, role) =>
+      role === 'owner'
+        ? String(r.error).includes('cannot clone your own recipe')
+        : r.clonedRecipe?.name?.includes(SECRET) === true,
+  },
+  {
+    name: 'social forkRecipe(P)',
+    run: () => social.forkRecipe(P),
+    sees: (r) => typeof r.data?.name === 'string' && r.data.name.includes(SECRET),
+  },
+  {
+    name: 'social getOriginalRecipe(FORK)',
+    run: () => social.getOriginalRecipe(FORK),
+    sees: (r) => r.data?.originalRecipe?.id === P,
+  },
+  {
+    name: 'meals getRecipeRecommendations(P)',
+    run: () => getRecipeRecommendations(P),
+    sees: (r) => r.data?.basedOn === SECRET,
+  },
+];
+
+beforeAll(async () => {
+  const built = await createVisibilityDb(
+    [schema.recipes, schema.recipeForks, recipeIngredients, schema.tools, schema.recipeTools],
+    { ...schema, recipeIngredients }
+  );
+  client = built.client;
+  state.db = built.db;
+});
+
+afterAll(async () => {
+  await client?.close();
+});
+
+beforeEach(async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  state.embeddingStored = true;
+  searchCaches.similar.clear();
+  await seed();
+});
+
+describe.each(PATHS)('#32 $name', (path) => {
+  it.each(ROLES)('%s', async (role) => {
+    signInAs(role);
+    const result = await path.run(role);
+
+    if (ALLOWED[role]) {
+      const admitted = path.admitted ? path.admitted(result, role) : path.sees(result);
+      expect(admitted, JSON.stringify(result)).toBe(true);
+      return;
+    }
+
+    expect(path.sees(result), JSON.stringify(result)).toBe(false);
+    await deletePrivateRecipe();
+    const nonexistent = await path.run(role);
+    const normalize = path.normalize ?? ((r: unknown) => r);
+    expect(normalize(result)).toEqual(normalize(nonexistent));
+  });
+});
+
+describe('#32 findSimilarToRecipe cache', () => {
+  it("does not serve the owner's cached result to an anonymous caller", async () => {
+    signInAs('owner');
+    const ownerResult = await findSimilarToRecipe(Q, 10);
+    expect(hasP(ownerResult.recipes)).toBe(true);
+
+    signInAs('anonymous');
+    const anonymousResult = await findSimilarToRecipe(Q, 10);
+    expect(hasP(anonymousResult.recipes)).toBe(false);
+  });
+});

@@ -7,6 +7,11 @@ import {
   recipeIngredients,
 } from '@/lib/db/ingredients-schema';
 import { recipes } from '@/lib/db/schema';
+import {
+  ANONYMOUS_VIEWER,
+  type RecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 
 /**
  * IngredientService - Business logic for ingredient operations
@@ -159,7 +164,9 @@ export class IngredientService {
       limit?: number;
       offset?: number;
       sortBy?: 'popular' | 'recent' | 'rating';
-    }
+    },
+    // #32: the caller decides which private recipes are visible; default is public-only.
+    viewer: RecipeViewer = ANONYMOUS_VIEWER
   ): Promise<typeof recipes.$inferSelect[]> {
     const { limit = 50, offset = 0, sortBy = 'popular' } = options || {};
 
@@ -194,10 +201,13 @@ export class IngredientService {
       .select()
       .from(recipes)
       .where(
-        sql`${recipes.id} IN (${sql.join(
-          recipeIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
+        and(
+          sql`${recipes.id} IN (${sql.join(
+            recipeIds.map((id) => sql`${id}`),
+            sql`, `
+          )})`,
+          recipeVisibilityCondition(viewer) // #32: hide private recipes from non-owners
+        )
       )
       .orderBy(...orderBy)
       .limit(limit)

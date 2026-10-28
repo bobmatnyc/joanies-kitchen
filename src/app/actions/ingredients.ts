@@ -1,6 +1,6 @@
 'use server';
 
-import { asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   type Ingredient,
@@ -10,6 +10,7 @@ import {
   recipeIngredients,
 } from '@/lib/db/ingredients-schema';
 import { joanieComments, recipes } from '@/lib/db/schema';
+import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -262,30 +263,26 @@ export async function getRecipesUsingIngredient(
         break;
     }
 
+    // #32: link rows ignore visibility; list and count only recipes the caller may read.
+    const where = and(
+      sql`${recipes.id} IN (${sql.join(
+        recipeIds.map((id) => sql`${id}`),
+        sql`, `
+      )})`,
+      recipeVisibilityCondition(await getRecipeViewer())
+    );
+
     // Fetch recipes
     const recipesList = await db
       .select()
       .from(recipes)
-      .where(
-        sql`${recipes.id} IN (${sql.join(
-          recipeIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      )
+      .where(where)
       .orderBy(...orderBy)
       .limit(limit)
       .offset(offset);
 
     // Get total count
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(recipes)
-      .where(
-        sql`${recipes.id} IN (${sql.join(
-          recipeIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      );
+    const [countResult] = await db.select({ count: count() }).from(recipes).where(where);
 
     return {
       success: true,

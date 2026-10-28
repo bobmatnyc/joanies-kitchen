@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
+import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { hasAdminRecipeFields, pickRecipeWriteFields } from '@/lib/utils/recipe-write-fields'; // #33
@@ -1067,7 +1068,9 @@ export async function getRecipesPaginated({
   error?: string;
 }> {
   try {
-    const { userId } = await auth();
+    // #32: caller-supplied filters (userId, isPublic: false) must not widen visibility.
+    const viewer = await getRecipeViewer();
+    const userId = viewer.userId;
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions
@@ -1075,6 +1078,12 @@ export async function getRecipesPaginated({
 
     // CRITICAL: Exclude soft-deleted recipes
     conditions.push(isNull(recipes.deleted_at));
+
+    // #32: always applied; the branches below only narrow it.
+    const visibility = recipeVisibilityCondition(viewer);
+    if (visibility) {
+      conditions.push(visibility);
+    }
 
     // Access control: user's recipes OR public recipes
     if (filters.userId) {

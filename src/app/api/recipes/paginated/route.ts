@@ -2,6 +2,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getRecipesPaginated, type PaginationParams } from '@/app/actions/recipes';
 
 /**
+ * #32: a response that carries a private recipe is for its owner or an admin
+ * only, so a shared cache (CDN) must not store it. Public-only responses keep
+ * the shared cache.
+ */
+function cacheControlFor(recipes: Array<{ is_public: boolean | null }>): string {
+  return recipes.some((r) => r.is_public !== true)
+    ? 'private, no-store'
+    : 'public, s-maxage=60, stale-while-revalidate=120';
+}
+
+/**
  * API Route for paginated recipe fetching
  * Supports infinite scroll and filtering
  *
@@ -45,9 +56,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(result.data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
-      },
+      // #32: never let a shared cache store a private recipe.
+      headers: { 'Cache-Control': cacheControlFor(result.data.recipes) },
     });
   } catch (error) {
     console.error('Pagination API error:', error);
@@ -117,9 +127,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(result.data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
-      },
+      // #32: never let a shared cache store a private recipe.
+      headers: { 'Cache-Control': cacheControlFor(result.data.recipes) },
     });
   } catch (error) {
     console.error('Pagination API GET error:', error);

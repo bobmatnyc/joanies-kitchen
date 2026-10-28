@@ -28,6 +28,7 @@ import {
   updateShoppingListSchema,
   validateInput,
 } from '@/lib/meals/validation';
+import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import {
   consolidateShoppingListItems,
@@ -841,15 +842,16 @@ function categorizeIngredient(ingredientName: string): string {
 export async function getRecipeRecommendations(mainRecipeId: string) {
   try {
     // See #13: paid OpenRouter call; meal planning is a signed-in feature.
-    const { userId } = await auth();
-    if (!userId) {
+    const viewer = await getRecipeViewer();
+    if (!viewer.userId) {
       return { success: false, error: 'Authentication required' };
     }
 
     // Get the main recipe
     const [mainRecipe] = await db.select().from(recipes).where(eq(recipes.id, mainRecipeId));
 
-    if (!mainRecipe) {
+    // #32: the AI sees the recipe's content; a recipe the caller may not read answers as nonexistent.
+    if (!mainRecipe || !canViewRecipe(mainRecipe, viewer)) {
       return { success: false, error: 'Main recipe not found' };
     }
 
