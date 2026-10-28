@@ -5,7 +5,15 @@
  *
  * Calls the recipe-manager API to trigger scraping.
  * Runs independently from Next.js server actions.
+ *
+ * Requires CRON_SECRET (from the environment or .env.local); the route
+ * rejects calls without `Authorization: Bearer <CRON_SECRET>` (#11).
  */
+
+import path from 'node:path';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 interface ScraperConfig {
   weeksToScrape: number[];
@@ -38,6 +46,7 @@ async function callScrapeAPI(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.CRON_SECRET}`,
     },
     body: JSON.stringify({
       weeksAgo,
@@ -166,6 +175,12 @@ process.on('SIGTERM', () => {
   console.log('[Scraper] Final totals:', { totalScraped, totalStored, totalFailed });
   process.exit(0);
 });
+
+// #11: fail fast instead of looping on 401s.
+if (!process.env.CRON_SECRET) {
+  console.error('[Scraper] CRON_SECRET is not set; /api/recipes/scrape requires it.');
+  process.exit(1);
+}
 
 // Start the scraper
 const config: ScraperConfig = {

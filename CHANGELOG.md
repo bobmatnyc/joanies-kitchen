@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **costs**: per-call crawl cost ledger (`crawl_cost_events`) with a rate table and `trackCost()`; Tavily, Firecrawl, Jina, OpenRouter, Anthropic, Perplexity, Brave, SerpAPI and DALL-E calls record one row each, tagged with the discovery run id when one is in scope (#6)
 
+### Fixed
+
+- **api**: POST `/api/recipes/scrape` requires an admin session or `Authorization: Bearer <CRON_SECRET>`; other callers get 401 (403 for a signed-in non-admin) before any crawl starts. `test/scripts/standalone-scraper.ts` sends the bearer and exits if `CRON_SECRET` is unset (#11)
+
 ## [0.7.12] - 2026-04-11
 
 ### Added
