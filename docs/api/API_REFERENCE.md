@@ -687,6 +687,8 @@ Paginated recipe listing with advanced filters.
 
 Scrape recipe from URL (background job).
 
+**Auth**: admin session or `Authorization: Bearer <CRON_SECRET>`. Otherwise 401, or 403 for a signed-in non-admin (#11).
+
 **Body**:
 ```json
 {

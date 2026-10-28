@@ -4,6 +4,18 @@ API_URL="http://localhost:3002/api/batch-import-single"
 LOG_FILE="tmp/batch-import-single-$(date +%s).log"
 PROGRESS_FILE="tmp/batch-import-progress.txt"
 
+# #13: the route requires `Authorization: Bearer <CRON_SECRET>`. Read the secret
+# from the environment, else from .env.local. It is never echoed, and curl reads
+# the header from a process substitution so it stays off the command line.
+if [ -z "${CRON_SECRET:-}" ] && [ -f .env.local ]; then
+  CRON_SECRET=$(grep -E '^CRON_SECRET=' .env.local | tail -n 1 | cut -d= -f2- | tr -d "\"'")
+fi
+if [ -z "${CRON_SECRET:-}" ]; then
+  echo "CRON_SECRET is not set; $API_URL requires it." >&2
+  exit 1
+fi
+auth_header() { printf 'Authorization: Bearer %s\n' "$CRON_SECRET"; }
+
 # Create tmp directory if it doesn't exist
 mkdir -p tmp
 
@@ -29,7 +41,7 @@ import_recipe() {
   echo "🔗 $url" | tee -a "$LOG_FILE"
 
   response=$(curl -s -X POST "$API_URL" \
-    -H "Content-Type: application/json" \
+    -H "Content-Type: application/json" -H @<(auth_header) \
     -d "{\"url\": \"$url\", \"chefName\": \"$chef_name\", \"recipeIndex\": $recipe_index, \"totalRecipes\": $TOTAL_RECIPES}" \
     2>&1)
 

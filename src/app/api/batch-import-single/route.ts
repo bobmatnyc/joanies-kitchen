@@ -1,8 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { convertUrlToRecipe } from '@/app/actions/recipe-crawl';
+import { authorizeAdminOrCronSecret } from '@/lib/admin';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export async function POST(request: NextRequest) {
+  // #13: paid LLM conversion per URL — admin session or CRON_SECRET bearer only, checked before any work.
+  const denied = await authorizeAdminOrCronSecret(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { url, chefName, recipeIndex, totalRecipes } = body;

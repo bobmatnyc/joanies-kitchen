@@ -1,7 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { authorizeAdminOrCronSecret } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
+  // #11: paid crawl — admin session or CRON_SECRET bearer only, checked before any work.
+  const denied = await authorizeAdminOrCronSecret(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { weeksAgo = 0, maxResults = 5, autoApprove = true } = body;
