@@ -7,7 +7,7 @@ FILES=(
   "src/app/actions/ingredients.ts"
   "src/app/actions/meal-pairing.ts"
   "src/app/actions/rate-recipe.ts"
-  "src/app/actions/recipe-crawl.ts"
+  "src/lib/recipe-crawl.ts"
   "src/app/actions/recipe-search.ts"
   "src/app/actions/semantic-search.ts"
   "src/app/actions/admin.ts"

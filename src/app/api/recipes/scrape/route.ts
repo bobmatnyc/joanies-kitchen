@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
