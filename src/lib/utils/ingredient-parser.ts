@@ -204,6 +204,10 @@ export function isAllergen(ingredientName: string): boolean {
 export function suggestCategory(ingredientName: string): string {
   const normalized = normalizeIngredientName(ingredientName);
 
+  // #47: check stocks/broths first; otherwise 'chicken stock' matched the
+  // 'chicken' protein keyword before the stock keyword was reached.
+  if (/\b(stocks?|broths?|bouillon)\b/.test(normalized)) return 'stocks';
+
   // Category keyword mappings
   const categoryMap: Record<string, string[]> = {
     vegetables: [
@@ -273,7 +277,7 @@ export function suggestCategory(ingredientName: string): string {
     oils: ['oil', 'olive oil', 'vegetable oil', 'coconut oil', 'butter'],
     sweeteners: ['sugar', 'honey', 'syrup', 'maple syrup', 'agave'],
     baking: ['flour', 'baking powder', 'baking soda', 'yeast', 'vanilla extract'],
-    beverages: ['water', 'stock', 'broth', 'wine', 'beer', 'juice'],
+    beverages: ['water', 'wine', 'beer', 'juice'], // #47: stock/broth handled above
   };
 
   // Check each category

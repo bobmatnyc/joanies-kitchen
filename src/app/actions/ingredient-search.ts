@@ -20,6 +20,7 @@ import {
 } from '@/lib/db/ingredients-schema';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/consolidation-map';
+import { rankAndDedupeSuggestions } from '@/lib/ingredients/suggestion-ranking';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import type {
@@ -539,6 +540,11 @@ export async function getIngredientSuggestions(
       searchQueries.push(consolidatedQuery);
     }
 
+    // #47: fetch a wider candidate pool so ranking and dedup run before the
+    // final limit, and order exact/prefix matches first in SQL as well.
+    const candidateLimit = Math.min(validatedOptions.limit * 4, 100);
+    const matchRank = sql`CASE WHEN lower(${ingredients.name}) = ${normalizedQuery} OR lower(${ingredients.display_name}) = ${normalizedQuery} THEN 0 WHEN lower(${ingredients.name}) LIKE ${`${normalizedQuery}%`} OR lower(${ingredients.display_name}) LIKE ${`${normalizedQuery}%`} THEN 1 ELSE 2 END`;
+
     // OPTIMIZATION: Start with name-only search (fastest, uses primary index)
     const nameConditions: SQL[] = [
       or(
@@ -569,16 +575,24 @@ export async function getIngredientSuggestions(
       .from(ingredients)
       .where(and(...nameConditions))
       .orderBy(
+        matchRank, // #47: exact, then prefix, then substring
         desc(ingredients.is_common), // Common ingredients first
         asc(ingredients.name) // Then alphabetically
       )
-      .limit(validatedOptions.limit);
+      .limit(candidateLimit);
+    // #47: rank exact/prefix above substring, drop duplicates, fix categories.
+    const rankedNameSuggestions = rankAndDedupeSuggestions(
+      nameSuggestions,
+      normalizedQuery,
+      validatedOptions.limit
+    );
 
     // If we have enough results from name search, return early (saves 200-300ms)
-    if (nameSuggestions.length >= 10) {
+    // #47: compare the deduped count against the requested limit.
+    if (rankedNameSuggestions.length >= validatedOptions.limit) {
       const result = {
         success: true,
-        suggestions: nameSuggestions.map((s) => ({
+        suggestions: rankedNameSuggestions.map((s) => ({
           id: s.id,
           name: s.name,
           displayName: s.displayName,
@@ -627,15 +641,17 @@ export async function getIngredientSuggestions(
       })
       .from(ingredients)
       .where(and(...allConditions))
-      .orderBy(
-        desc(ingredients.is_common),
-        asc(ingredients.name)
-      )
-      .limit(validatedOptions.limit);
+      .orderBy(matchRank, desc(ingredients.is_common), asc(ingredients.name)) // #47
+      .limit(candidateLimit);
 
     const result = {
       success: true,
-      suggestions: allSuggestions.map((s) => ({
+      // #47: same ranking, dedup and category correction as the fast path.
+      suggestions: rankAndDedupeSuggestions(
+        allSuggestions,
+        normalizedQuery,
+        validatedOptions.limit
+      ).map((s) => ({
         id: s.id,
         name: s.name,
         displayName: s.displayName,

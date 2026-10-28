@@ -67,6 +67,7 @@ type IngredientCategory =
   | 'fruits'
   | 'proteins'
   | 'dairy'
+  | 'stocks' // #47: stocks/broths were misfiled as dairy; prompt now offers this category
   | 'grains'
   | 'spices'
   | 'herbs'
@@ -218,7 +219,7 @@ Extract each ingredient with the following structure:
 - amount: Numeric quantity (e.g., "2", "1/2", "1-2", empty string if none)
 - unit: Measurement unit (e.g., "cup", "tablespoon", "lb", "oz", "whole", empty string if none)
 - preparation: Preparation method (e.g., "chopped", "minced", "diced", empty string if none)
-- category: One of: vegetables, fruits, proteins, dairy, grains, spices, herbs, condiments, oils, sweeteners, nuts, other
+- category: One of: vegetables, fruits, proteins, dairy, grains, spices, herbs, condiments, oils, sweeteners, nuts, stocks, other (stocks, broths and bouillon are always "stocks", never dairy or proteins)
 
 IMPORTANT RULES:
 1. Normalize ingredient names to their base form (e.g., "red onion" → "onion", "fresh basil" → "basil")
