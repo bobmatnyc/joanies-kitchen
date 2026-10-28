@@ -311,8 +311,11 @@ export const recipeEmbeddings = pgTable(
     model_name: varchar('model_name', { length: 100 }).notNull().default('all-MiniLM-L6-v2'), // #7: prod default
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-  }
-  // #9 (D7a): prod has no unique constraint on recipe_id, so none is declared.
+  },
+  (table) => ({
+    // #9 (D7d): one embedding per recipe; added to prod by migration 0001.
+    recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
+  })
 );
 
 // Recipe Ratings table for individual user ratings

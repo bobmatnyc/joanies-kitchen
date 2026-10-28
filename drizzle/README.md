@@ -4,7 +4,7 @@
 
 Production already has this schema. Do NOT run the baseline against production, and do NOT run `drizzle-kit migrate` against production until the baseline is recorded there. To record it, run `baseline-mark-applied.sql` by hand with psql, once, after a dry run on a Neon branch. That file inserts the baseline's sha256 and journal `when` into `drizzle.__drizzle_migrations`. If the baseline file or its journal entry changes, recompute both values.
 
-Code, snapshot and baseline SQL agree; the only hand edit is the `CREATE EXTENSION` prepend. `chefs_embeddings` and `meals_embeddings` (`src/lib/db/embeddings-schema.ts`) are also pending and are not in `drizzle.config.ts`.
+The baseline's only hand edit is the `CREATE EXTENSION` prepend. `0001` adds `recipe_embeddings_recipe_id_unique` (owner ruling D7d); it is the first migration production runs after the baseline is recorded.
 
 New migrations are generated with `drizzle-kit generate`, reviewed, dry-run on a Neon branch, and applied to production by hand with psql.
 
