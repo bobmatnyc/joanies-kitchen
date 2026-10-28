@@ -71,7 +71,7 @@ OPENROUTER_API_KEY=sk-or-v1-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 **Brave Search:**
 ```
-BRAVE_SEARCH_API_KEY=BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key
 ```
 
 **Hugging Face:**
@@ -95,7 +95,7 @@ DATABASE_URL=postgresql://...                          # Production database
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...         # Live Clerk key
 CLERK_SECRET_KEY=sk_live_...                          # Live Clerk secret
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same across environments
-BRAVE_SEARCH_API_KEY=BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T  # Same across environments
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same across environments
 HUGGINGFACE_API_KEY=hf_...                            # Same across environments
 NEXT_PUBLIC_APP_URL=https://your-domain.com           # Production domain
 ```
@@ -112,7 +112,7 @@ DATABASE_URL=postgresql://...                          # Can use same or separat
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...         # Test Clerk key
 CLERK_SECRET_KEY=sk_test_...                          # Test Clerk secret
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same as production
-BRAVE_SEARCH_API_KEY=BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T  # Same as production
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same as production
 HUGGINGFACE_API_KEY=hf_...                            # Same as production
 # NEXT_PUBLIC_APP_URL - Leave empty (Vercel auto-generates)
 ```
@@ -129,7 +129,7 @@ DATABASE_URL=postgresql://...                          # Local or dev database
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...         # Test Clerk key
 CLERK_SECRET_KEY=sk_test_...                          # Test Clerk secret
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same as production
-BRAVE_SEARCH_API_KEY=BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T  # Same as production
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same as production
 HUGGINGFACE_API_KEY=hf_...                            # Same as production
 NEXT_PUBLIC_APP_URL=http://localhost:3004             # Local URL
 ```
@@ -197,7 +197,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3004             # Local URL
 1. Sign up for API access
 2. Navigate to **API Keys**
 3. Create new API key
-4. Copy key: `BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T`
+4. Copy key: `your-brave-search-api-key`
 
 **Cost:** Free tier available (2,000 queries/month)
 
@@ -355,7 +355,7 @@ CLERK_SECRET_KEY=
 
 # AI Services
 OPENROUTER_API_KEY=
-BRAVE_SEARCH_API_KEY=BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key
 HUGGINGFACE_API_KEY=
 
 # Application
