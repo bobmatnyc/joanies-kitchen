@@ -34,7 +34,7 @@
   "@type": "Recipe",
   "name": "Chicken Stir-Fry",
   "description": "Quick and easy chicken stir-fry...",
-  "image": ["https://recipes.help/images/chicken-stir-fry.jpg"],
+  "image": ["https://joanies.kitchen/images/chicken-stir-fry.jpg"],
   "author": {
     "@type": "Person",
     "name": "Joanie"
@@ -72,7 +72,7 @@
 - **Ingredients**: Priority 0.6, monthly updates
 
 ### Access
-- Production: `https://recipes.help/sitemap.xml`
+- Production: `https://joanies.kitchen/sitemap.xml`
 - Development: `http://localhost:3002/sitemap.xml`
 
 ### Validation
@@ -137,7 +137,7 @@ All pages include:
   - Rate limiting for aggressive bots
 
 ### Access
-- Production: `https://recipes.help/robots.txt`
+- Production: `https://joanies.kitchen/robots.txt`
 - Development: `http://localhost:3002/robots.txt`
 
 ### Key Rules
@@ -158,7 +158,7 @@ Disallow: /admin
 
 ### Validation
 - [ ] Test with [Google Robots Testing Tool](https://www.google.com/webmasters/tools/robots-testing-tool)
-- [ ] Verify with `curl https://recipes.help/robots.txt`
+- [ ] Verify with `curl https://joanies.kitchen/robots.txt`
 
 ---
 
@@ -171,12 +171,12 @@ Disallow: /admin
   - `metadataBase` set to production URL
   - Canonical URLs configured for all pages
   - Prevents duplicate content issues
-  - Works with both `recipes.help` and `joanies.kitchen` domains
+  - Uses NEXT_PUBLIC_APP_URL, falling back to `joanies.kitchen`
 
 ### Configuration
 ```typescript
 export const metadata: Metadata = {
-  metadataBase: new URL('https://recipes.help'),
+  metadataBase: new URL('https://joanies.kitchen'),
   alternates: {
     canonical: '/',
   },
@@ -195,7 +195,7 @@ export const metadata: Metadata = {
   - [ ] Check for schema errors in browser DevTools console
 
 - [ ] **Sitemap Validation**
-  - [ ] Verify sitemap generates without errors: `curl https://recipes.help/sitemap.xml`
+  - [ ] Verify sitemap generates without errors: `curl https://joanies.kitchen/sitemap.xml`
   - [ ] Confirm all 4,644+ recipes are included
   - [ ] Check ingredient pages are listed
   - [ ] Validate XML format with [XML Sitemap Validator](https://www.xml-sitemaps.com/validate-xml-sitemap.html)
@@ -206,7 +206,7 @@ export const metadata: Metadata = {
   - [ ] Check meta descriptions appear correctly in search preview
 
 - [ ] **robots.txt Validation**
-  - [ ] Access `https://recipes.help/robots.txt` and verify content
+  - [ ] Access `https://joanies.kitchen/robots.txt` and verify content
   - [ ] Test with Google Robots Testing Tool
   - [ ] Confirm sitemap URLs are correct
 
@@ -329,7 +329,7 @@ export const metadata: Metadata = {
   - Optimize for social sharing
 
 ### Domain Configuration
-- Primary domain: `recipes.help`
+- Primary domain: `joanies.kitchen`
 - Alternate domain: `joanies.kitchen`
 - Both domains should redirect to canonical URLs
 - Ensure consistent branding across domains

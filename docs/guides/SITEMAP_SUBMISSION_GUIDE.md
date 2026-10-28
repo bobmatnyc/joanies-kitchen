@@ -22,7 +22,7 @@
 ## 🌐 Sitemap URLs
 
 ### Primary Domain
-**Production URL**: https://recipes.help/sitemap.xml
+**Production URL**: https://joanies.kitchen/sitemap.xml
 **File Location**: `tmp/sitemap.xml` (downloaded)
 
 ### Alternate Domain
@@ -99,7 +99,7 @@ Both sitemaps are identical and ready for submission to search engines.
 
 ## 🤖 Robots.txt Configuration
 
-**Production URL**: https://recipes.help/robots.txt
+**Production URL**: https://joanies.kitchen/robots.txt
 **File Location**: `tmp/robots.txt` (downloaded)
 
 ### Key Directives
@@ -110,7 +110,7 @@ User-agent: *
 Allow: /
 
 # Sitemap declarations
-Sitemap: https://recipes.help/sitemap.xml
+Sitemap: https://joanies.kitchen/sitemap.xml
 Sitemap: https://joanies.kitchen/sitemap.xml
 
 # Crawl-delay for politeness
@@ -153,9 +153,9 @@ Allow: /rescue
 
 **Steps**:
 1. Sign in to Google Search Console
-2. Select property: `recipes.help` (add if not exists)
+2. Select property: `joanies.kitchen` (add if not exists)
 3. Navigate to **Sitemaps** (left sidebar)
-4. Enter sitemap URL: `https://recipes.help/sitemap.xml`
+4. Enter sitemap URL: `https://joanies.kitchen/sitemap.xml`
 5. Click **Submit**
 6. Repeat for alternate domain: `joanies.kitchen`
 
@@ -175,9 +175,9 @@ Allow: /rescue
 
 **Steps**:
 1. Sign in to Bing Webmaster Tools
-2. Add site: `recipes.help` (verify ownership)
+2. Add site: `joanies.kitchen` (verify ownership)
 3. Navigate to **Sitemaps** section
-4. Enter sitemap URL: `https://recipes.help/sitemap.xml`
+4. Enter sitemap URL: `https://joanies.kitchen/sitemap.xml`
 5. Click **Submit**
 6. Repeat for: `joanies.kitchen`
 
@@ -249,7 +249,7 @@ Allow: /rescue
 **URL**: https://www.xml-sitemaps.com/validate-xml-sitemap.html
 
 **Test**:
-- Paste: `https://recipes.help/sitemap.xml`
+- Paste: `https://joanies.kitchen/sitemap.xml`
 - Validate XML structure
 - Check for errors
 
@@ -257,7 +257,7 @@ Allow: /rescue
 **URL**: https://search.google.com/test/rich-results
 
 **Test Recipe Schema**:
-- URL: `https://recipes.help/recipes/[any-slug]`
+- URL: `https://joanies.kitchen/recipes/[any-slug]`
 - Verify JSON-LD schema detected
 - Check for schema errors
 - Confirm eligible for rich results
@@ -297,13 +297,13 @@ Allow: /rescue
 
 ```bash
 # Primary domain
-curl -s https://recipes.help/sitemap.xml -o tmp/sitemap.xml
+curl -s https://joanies.kitchen/sitemap.xml -o tmp/sitemap.xml
 
 # Alternate domain
 curl -s https://joanies.kitchen/sitemap.xml -o tmp/sitemap-joanies.xml
 
 # Robots.txt
-curl -s https://recipes.help/robots.txt -o tmp/robots.txt
+curl -s https://joanies.kitchen/robots.txt -o tmp/robots.txt
 ```
 
 **Files saved**:
@@ -315,15 +315,15 @@ curl -s https://recipes.help/robots.txt -o tmp/robots.txt
 
 ```bash
 # Check HTTP status
-curl -I https://recipes.help/sitemap.xml
+curl -I https://joanies.kitchen/sitemap.xml
 # Should return: HTTP/2 200
 
 # Count URLs
-curl -s https://recipes.help/sitemap.xml | grep -c "<loc>"
+curl -s https://joanies.kitchen/sitemap.xml | grep -c "<loc>"
 # Should return: 5159
 
 # Check XML validity
-curl -s https://recipes.help/sitemap.xml | xmllint --noout - && echo "Valid XML"
+curl -s https://joanies.kitchen/sitemap.xml | xmllint --noout - && echo "Valid XML"
 ```
 
 ### Monitor Crawl Activity
@@ -370,7 +370,7 @@ vercel logs --follow
 **Symptoms**: Status shows "Couldn't fetch" or "Pending"
 
 **Solutions**:
-1. Verify sitemap URL accessible: `curl -I https://recipes.help/sitemap.xml`
+1. Verify sitemap URL accessible: `curl -I https://joanies.kitchen/sitemap.xml`
 2. Check robots.txt doesn't block crawlers
 3. Ensure XML format valid
 4. Resubmit sitemap after 24 hours

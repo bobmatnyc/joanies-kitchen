@@ -931,20 +931,20 @@ For non-Next.js clients, use API routes:
 
 ```bash
 # Get recipes
-curl https://recipes.help/api/recipes?limit=10
+curl https://joanies.kitchen/api/recipes?limit=10
 
 # Search recipes
-curl https://recipes.help/api/search/semantic?q=pasta
+curl https://joanies.kitchen/api/search/semantic?q=pasta
 
 # Get recipe by ID
-curl https://recipes.help/api/recipes/recipe-uuid-123
+curl https://joanies.kitchen/api/recipes/recipe-uuid-123
 ```
 
 **Authentication**: Include Clerk session token in `Authorization` header
 
 ```bash
 curl -H "Authorization: Bearer ${CLERK_TOKEN}" \
-  https://recipes.help/api/recipes
+  https://joanies.kitchen/api/recipes
 ```
 
 ---
