@@ -49,7 +49,7 @@ Documentation for earlier phases may be located in:
 ### Current Development
 For current development documentation, see:
 - `/docs/development/` - Ongoing development guides
-- `/docs/roadmap/` - Current roadmap and future plans
+- `/ROADMAP.md` - Current roadmap
 - `/ROADMAP.md` - High-level project roadmap
 
 ## Performance Baselines
@@ -98,7 +98,7 @@ Phase documentation is archived because:
 4. Historical value for understanding launch preparation
 5. Performance baselines documented for future reference
 
-For current development processes and roadmap, see `/docs/roadmap/` and `/ROADMAP.md`.
+For current development processes and roadmap, see `/ROADMAP.md`.
 
 ---
 

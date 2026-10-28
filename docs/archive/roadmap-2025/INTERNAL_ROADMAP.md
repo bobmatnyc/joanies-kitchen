@@ -1,3 +1,5 @@
+> Superseded by /ROADMAP.md (2026-10-28)
+
 # Joanie's Kitchen: Internal Engineering Roadmap
 
 **Last Updated:** October 29, 2025
@@ -1201,7 +1203,7 @@ If the answer is "no" to any - reconsider or modify the approach.
 
 - **Public Roadmap:** `/ROADMAP.md` (user-facing)
 - **Project Overview:** `/README.md`
-- **Pivot Documentation:** `/docs/roadmap/ROADMAP_PIVOT.md` (original plan)
+- **Pivot Documentation:** `/docs/archive/roadmap-2025/ROADMAP_PIVOT.md` (original plan)
 - **Historical Roadmap:** `/docs/archive/roadmaps/ROADMAP_PHASE_1-6_COMPLETE.md`
 - **Project Organization:** `/docs/reference/PROJECT_ORGANIZATION.md`
 - **Authentication Guide:** `/docs/guides/AUTHENTICATION_GUIDE.md`
@@ -1213,7 +1215,7 @@ If the answer is "no" to any - reconsider or modify the approach.
 ## 📞 Support & Questions
 
 For questions about this roadmap or the zero-waste transformation:
-- Review `/docs/roadmap/ROADMAP_PIVOT.md` for detailed task breakdowns
+- Review `/docs/archive/roadmap-2025/ROADMAP_PIVOT.md` for detailed task breakdowns
 - Check `/CLAUDE.md` for project context and instructions
 - Refer to git commit history for implementation details
 - Contact: Engineering team

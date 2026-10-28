@@ -71,7 +71,7 @@ For current documentation, see:
 - `/ROADMAP.md` - Current project roadmap (80% complete)
 - `/docs/guides/` - Active user guides
 - `/docs/reference/` - Technical reference documentation
-- `/docs/roadmap/ROADMAP_PIVOT.md` - Detailed pivot strategy
+- `/docs/archive/roadmap-2025/ROADMAP_PIVOT.md` - Detailed pivot strategy
 
 ---
 

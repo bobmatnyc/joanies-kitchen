@@ -1,3 +1,5 @@
+> Superseded by /ROADMAP.md (2026-10-28)
+
 # Strategic Implementation Guide: Transforming to Zero-Waste Focus
 
 **For:** Claude Code (Implementation Partner)  
