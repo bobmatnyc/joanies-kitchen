@@ -49,7 +49,9 @@ export async function createVisibilityDb(
     const defs = config.columns.map((c) => {
       const base = `"${c.name}" ${c.getSQLType()}`;
       if (!options.constraints) return base;
-      return `${base}${c.primary ? ' PRIMARY KEY' : c.notNull ? ' NOT NULL' : ''}${defaultClause(c)}`;
+      // #44: column-level .unique() (e.g. user_profiles.username) is not in config.uniqueConstraints.
+      const unique = c.isUnique && !c.primary ? ' UNIQUE' : '';
+      return `${base}${c.primary ? ' PRIMARY KEY' : c.notNull ? ' NOT NULL' : ''}${unique}${defaultClause(c)}`;
     });
     if (options.constraints) {
       for (const u of config.uniqueConstraints) {

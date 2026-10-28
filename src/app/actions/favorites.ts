@@ -11,7 +11,7 @@ import {
   getRecipeViewer,
   recipeVisibilityCondition,
 } from '@/lib/recipe-visibility';
-import { toErrorMessage } from '@/lib/utils/error-handling';
+import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Favorites Server Actions
@@ -74,12 +74,12 @@ export async function addFavorite(recipeId: string) {
   } catch (error) {
     console.error('Error adding favorite:', error);
 
-    const errorMsg = toErrorMessage(error);
-    if (errorMsg.includes('unique')) {
+    // #44: match SQLSTATE 23505 (on error.cause), not message text.
+    if (isUniqueViolation(error)) {
       return { success: false, error: 'Recipe already in favorites' };
     }
 
-    return { success: false, error: errorMsg };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 

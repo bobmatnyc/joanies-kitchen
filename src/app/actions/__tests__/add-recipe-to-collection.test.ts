@@ -129,6 +129,9 @@ describe('addRecipeToCollection (#43)', () => {
     expect(await rows()).toHaveLength(1);
     const [collection] = await db().select().from(discovery.collections);
     expect(collection.recipe_count).toBe(1);
+    // #44: the failed duplicate must not bump the recipe's collection_count either.
+    const [r1] = await db().select().from(schema.recipes).where(eq(schema.recipes.id, R1));
+    expect(r1.collection_count).toBe(1);
   });
 
   it('keeps the #41 visibility gate: a private recipe of another user is not found', async () => {

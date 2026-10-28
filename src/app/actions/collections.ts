@@ -18,7 +18,7 @@ import {
   insertCollectionSchema,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
-import { toErrorMessage } from '@/lib/utils/error-handling';
+import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
  * Collection Server Actions
@@ -61,12 +61,13 @@ export async function createCollection(data: {
       .replace(/^-+|-+$/g, '');
 
     // Validate data
+    // #44: the schema is snake_case; camelCase keys failed validation on every create.
     const validatedData = insertCollectionSchema.parse({
-      userId,
+      user_id: userId,
       name: data.name,
       slug,
       description: data.description || null,
-      isPublic: data.isPublic ?? false,
+      is_public: data.isPublic ?? false,
     });
 
     // Create collection
@@ -79,12 +80,12 @@ export async function createCollection(data: {
   } catch (error) {
     console.error('Error creating collection:', error);
 
-    const errorMsg = toErrorMessage(error);
-    if (errorMsg.includes('unique')) {
+    // #44: match SQLSTATE 23505 (on error.cause), not message text.
+    if (isUniqueViolation(error)) {
       return { success: false, error: 'You already have a collection with this name' };
     }
 
-    return { success: false, error: errorMsg };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
@@ -530,15 +531,13 @@ export async function addRecipeToCollection(
   } catch (error) {
     console.error('Error adding recipe to collection:', error);
 
-    const errorMsg = toErrorMessage(error);
-    // #43: drizzle wraps the driver error, so the 'unique' text is only on `cause`;
-    // match SQLSTATE 23505 there, or the duplicate add surfaced a raw SQL dump.
-    const cause = (error as { cause?: { code?: string; message?: string } } | null)?.cause;
-    if (cause?.code === '23505' || errorMsg.includes('unique')) {
+    // #43: drizzle wraps the driver error, so SQLSTATE 23505 is only on `cause`.
+    // #44: shared helper, no 'unique' text fallback (it misreported other errors).
+    if (isUniqueViolation(error)) {
       return { success: false, error: 'Recipe already in this collection' };
     }
 
-    return { success: false, error: errorMsg };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
