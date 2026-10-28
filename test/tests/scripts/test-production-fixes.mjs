@@ -104,10 +104,12 @@ async function testProductionFixes() {
       .first()
       .textContent()
       .catch(() => '');
-    const contains1116 = betaText.includes('11/16');
+    // Mirrors BETA_LAUNCH_DATE in src/config/beta.ts (2027-02-01), formatted M/D/YY (#62)
+    const betaDateText = '2/1/27';
+    const contains1116 = betaText.includes(betaDateText);
 
     results.betaLaunchDate.status = contains1116 ? 'PASS' : 'FAIL';
-    results.betaLaunchDate.details = `Found text: "${betaText?.trim()}", Contains "11/16": ${contains1116 ? 'YES' : 'NO'}`;
+    results.betaLaunchDate.details = `Found text: "${betaText?.trim()}", Contains "${betaDateText}": ${contains1116 ? 'YES' : 'NO'}`;
     console.log(`✓ Status: ${results.betaLaunchDate.status}`);
     console.log(`  ${results.betaLaunchDate.details}\n`);
   } catch (error) {
