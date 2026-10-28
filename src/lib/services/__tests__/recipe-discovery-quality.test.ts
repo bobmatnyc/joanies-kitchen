@@ -572,8 +572,16 @@ describe('Tavily query tuning — single-recipe bias', () => {
 
   it('generic queries include exclusion terms to suppress roundups', () => {
     const queries = service.getRotatingQueries();
-    const genericQueries = queries.filter((q) => !q.includes('site:'));
-    const suppressionTerms = ['-roundup', '-listicle', '-"recipes to"', '-"best recipes"'];
+    // #54: generic queries are positions 0, 2, 4 (interleaved with chef queries); some contain `site:`.
+    const genericQueries = [queries[0], queries[2], queries[4]];
+    // #54: '-"recipes that"' added; the query set uses it and weekday rotation can select only it.
+    const suppressionTerms = [
+      '-roundup',
+      '-listicle',
+      '-"recipes to"',
+      '-"best recipes"',
+      '-"recipes that"',
+    ];
     const suppressedCount = genericQueries.filter((q) =>
       suppressionTerms.some((term) => q.includes(term))
     ).length;
@@ -900,9 +908,9 @@ describe('QA Fix 5 (MEDIUM) — /blogs/<cat>/<slug> single-recipe fallback after
     // lidiasitaly.com is in ALLOWED_DOMAINS; /blogs/recipes/creamy-pasta has no
     // structural-promo segments and does not match any bare-archive or blocked path.
     const service = makeService('fake-firecrawl-key');
-    expect(
-      service.isValidRecipeUrl('https://lidiasitaly.com/blogs/recipes/creamy-pasta')
-    ).toBe(true);
+    expect(service.isValidRecipeUrl('https://lidiasitaly.com/blogs/recipes/creamy-pasta')).toBe(
+      true
+    );
   });
 
   it('isHubPage returns true for /blogs/<cat>/<slug> (confirming old guard would have dropped it)', () => {
@@ -1026,10 +1034,7 @@ describe('QA Fix 6 (LOW) — /blog/<slug> recipe added for extraction when Firec
   });
 
   it('no double-add: /blog/<slug> appears exactly once in discovered when Firecrawl absent', async () => {
-    const service = new RecipeDiscoveryService(
-      'fake-tavily-key',
-      undefined
-    ) as unknown as {
+    const service = new RecipeDiscoveryService('fake-tavily-key', undefined) as unknown as {
       discoverRecipeUrls: (opts?: object) => Promise<Array<{ url: string }>>;
     };
 

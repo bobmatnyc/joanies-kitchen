@@ -1,0 +1,110 @@
+# #54: CI gate. typecheck and lint are ratchets (fail only if the error count rises above the
+# committed baseline in .github/*-baseline.txt); test must pass outright. No secrets are used.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # pnpm version comes from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: tsc --noEmit (ratchet)
+        run: |
+          # Fail closed: a tsc crash must not read as "0 errors".
+          rc=0
+          pnpm exec tsc --noEmit > tsc.log 2>&1 || rc=$?
+          count=$(grep -c 'error TS' tsc.log || true)
+          baseline=$(tr -d '[:space:]' < .github/tsc-baseline.txt)
+          echo "tsc exit: $rc, errors: $count (baseline: $baseline)"
+          if [ "$rc" -ne 0 ] && [ "$count" -eq 0 ]; then
+            tail -40 tsc.log
+            echo "::error::tsc exited $rc without reporting any error TS line (crash or bad invocation)"
+            exit 1
+          fi
+          # Errors with no file location (e.g. TS5023 unknown option) are config errors, not code errors.
+          if grep -q '^error TS' tsc.log; then
+            grep '^error TS' tsc.log
+            echo "::error::tsc reported a global (non-file) error; bad invocation or config"
+            exit 1
+          fi
+          if [ "$rc" -eq 0 ] && [ "$count" -ne 0 ]; then
+            echo "::error::tsc exited 0 but the log has error TS lines; unexpected output"
+            exit 1
+          fi
+          if [ "$count" -gt "$baseline" ]; then
+            grep 'error TS' tsc.log | head -100
+            echo "::error::tsc errors rose from $baseline to $count"
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::tsc errors dropped from $baseline to $count; lower .github/tsc-baseline.txt to $count"
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:run
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: biome check src (ratchet)
+        run: |
+          # Fail closed: only exit 0 (clean) or 1 (diagnostics) with a parseable JSON summary counts.
+          rc=0
+          pnpm exec biome check src --reporter=json > biome-report.json 2> biome.err || rc=$?
+          if [ "$rc" -gt 1 ]; then
+            cat biome.err
+            echo "::error::biome exited $rc (crash or config error)"
+            exit 1
+          fi
+          count=$(node -e 'const j=JSON.parse(require("fs").readFileSync("biome-report.json","utf8")); if(!Number.isInteger(j.summary.errors)) process.exit(3); console.log(j.summary.errors)') || {
+            head -c 2000 biome-report.json biome.err
+            echo "::error::could not parse biome JSON summary"
+            exit 1
+          }
+          baseline=$(tr -d '[:space:]' < .github/biome-baseline.txt)
+          echo "biome exit: $rc, errors: $count (baseline: $baseline)"
+          if [ "$rc" -eq 1 ] && [ "$count" -eq 0 ]; then
+            cat biome.err
+            echo "::error::biome exited 1 but reported no errors"
+            exit 1
+          fi
+          if [ "$count" -gt "$baseline" ]; then
+            echo "::error::biome errors rose from $baseline to $count"
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::biome errors dropped from $baseline to $count; lower .github/biome-baseline.txt to $count"
+          fi

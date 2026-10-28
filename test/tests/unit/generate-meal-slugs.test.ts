@@ -10,7 +10,7 @@ import {
   ensureUniqueSlug,
   generateMealSlug,
   regenerateMealSlug,
-} from '../../src/lib/utils/meal-slug';
+} from '../../../src/lib/utils/meal-slug';
 
 describe('generateMealSlug', () => {
   it('should generate basic slug from meal name', () => {
