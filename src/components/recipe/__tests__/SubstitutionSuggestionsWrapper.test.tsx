@@ -1,0 +1,101 @@
+// #67: signed-out visitors must not trigger the paid substitution action on page load.
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SubstitutionSuggestionsWrapper } from '../SubstitutionSuggestionsWrapper';
+
+const auth = vi.hoisted(() => ({
+  value: { isLoaded: true, isSignedIn: false, userId: null as string | null },
+}));
+const subAction = vi.hoisted(() => vi.fn());
+const inventoryAction = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/auth-client', () => ({ useAuth: () => auth.value }));
+vi.mock('@/app/actions/substitutions', () => ({
+  getMultipleIngredientSubstitutions: subAction,
+}));
+vi.mock('@/app/actions/inventory', () => ({ getUserInventory: inventoryAction }));
+
+const INGREDIENTS = ['butter', 'flour'];
+const RESULTS = INGREDIENTS.map((ingredient) => ({
+  ingredient,
+  substitutions: [],
+  source: 'static',
+  notes: 'none',
+}));
+
+// fresh element each call: rerendering the same element would be bailed out by React
+const makeUi = () => (
+  <SubstitutionSuggestionsWrapper recipeId="r1" recipeName="Cake" ingredients={INGREDIENTS} />
+);
+function renderWrapper() {
+  return render(makeUi());
+}
+
+beforeEach(() => {
+  subAction.mockReset();
+  inventoryAction.mockReset();
+  subAction.mockResolvedValue({ success: true, data: RESULTS });
+  inventoryAction.mockResolvedValue({ success: true, data: [] });
+});
+
+describe('SubstitutionSuggestionsWrapper', () => {
+  it('signed out: zero action calls on mount, exactly one after several clicks', async () => {
+    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    renderWrapper();
+    const button = await screen.findByRole('button', { name: /show substitutions/i });
+    expect(subAction).toHaveBeenCalledTimes(0);
+
+    // synchronous burst: all clicks land before React re-renders, so only the ref guard stops them
+    act(() => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+
+    await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
+    expect(inventoryAction).not.toHaveBeenCalled();
+  });
+
+  it('signed in: loads on mount without a click', async () => {
+    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    renderWrapper();
+    await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
+  });
+
+  it('auth loading then signed in: fetches on mount, never shows the button', async () => {
+    auth.value = { isLoaded: false, isSignedIn: false, userId: null };
+    const { rerender } = renderWrapper();
+    expect(subAction).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
+
+    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    rerender(makeUi());
+    await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
+  });
+
+  it('signed in then signed out: no refetch until a click', async () => {
+    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    const { rerender } = renderWrapper();
+    await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
+
+    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    rerender(makeUi());
+    await screen.findByRole('button', { name: /show substitutions/i });
+    expect(subAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('error after click: retry control fetches once more', async () => {
+    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    subAction.mockResolvedValueOnce({ success: false, error: 'boom' });
+    renderWrapper();
+    fireEvent.click(await screen.findByRole('button', { name: /show substitutions/i }));
+    const retry = await screen.findByRole('button', { name: /try again/i });
+    expect(subAction).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(retry);
+    await waitFor(() => expect(subAction).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText(/smart substitutions/i)).toBeTruthy();
+  });
+});

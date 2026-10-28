@@ -14,7 +14,7 @@
  */
 
 import { CheckCircle2, ChevronDown, ChevronUp, Info, Lightbulb, Loader2, Star } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getMultipleIngredientSubstitutions } from '@/app/actions/substitutions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,12 @@ interface SubstitutionSuggestionsProps {
 
   /** Optional CSS class */
   className?: string;
+
+  /**
+   * #67: when true, no server action runs on mount; the fetch starts only after
+   * the visitor clicks "Show substitutions". Used for signed-out visitors.
+   */
+  loadOnClick?: boolean;
 }
 
 /**
@@ -264,14 +270,31 @@ export function SubstitutionSuggestions({
   recipeName,
   userIngredients,
   className = '',
+  loadOnClick = false,
 }: SubstitutionSuggestionsProps) {
   const [results, setResults] = useState<SubstitutionResult[]>([]);
-  const [loading, setLoading] = useState(true);
+  // #67: click-to-load mode starts idle; auto mode (signed-in) fetches on mount as before
+  const [requested, setRequested] = useState(!loadOnClick);
+  const requestedRef = useRef(!loadOnClick);
+  const [loading, setLoading] = useState(!loadOnClick);
+  // #67: bumped by the retry button to re-run the fetch effect after an error
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // First item expanded by default
   const [isSectionOpen, setIsSectionOpen] = useState(true);
 
+  // #67: the ref blocks a second click in the same tick, before state re-renders
+  const handleShowClick = () => {
+    if (requestedRef.current) return;
+    requestedRef.current = true;
+    setLoading(true);
+    setRequested(true);
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: #67 `attempt` is a retry trigger, not read in the body
   useEffect(() => {
+    // #67: never call the paid server action until the visitor asked for it
+    if (!requested) return;
     async function fetchSubstitutions() {
       if (!missingIngredients || missingIngredients.length === 0) {
         setLoading(false);
@@ -301,7 +324,14 @@ export function SubstitutionSuggestions({
     }
 
     fetchSubstitutions();
-  }, [missingIngredients, recipeName, userIngredients]);
+  }, [requested, attempt, missingIngredients, recipeName, userIngredients]);
+
+  // #67: one explicit retry after a failed click-to-load fetch
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setAttempt((n) => n + 1);
+  };
 
   // Toggle expanded state for an ingredient
   const toggleExpanded = (index: number) => {
@@ -329,6 +359,26 @@ export function SubstitutionSuggestions({
   // Don't render if no missing ingredients
   if (!missingIngredients || missingIngredients.length === 0) {
     return null;
+  }
+
+  // #67: idle state for signed-out visitors, with an explicit control
+  if (!requested) {
+    return (
+      <Card className={`border-2 border-jk-sage ${className}`}>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-jk-sage" />
+            Smart Substitutions
+          </CardTitle>
+          <CardDescription>Can&apos;t find an ingredient? Try these alternatives</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button type="button" variant="outline" onClick={handleShowClick}>
+            Show substitutions
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Loading state
@@ -363,6 +413,12 @@ export function SubstitutionSuggestions({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-red-600 text-center">{error}</p>
+          {/* #67: retry control so an error is not a dead end */}
+          <div className="mt-3 text-center">
+            <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
+              Try again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
