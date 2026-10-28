@@ -46,7 +46,9 @@ export const recipeDiscoveryRuns = pgTable(
   (table) => ({
     statusIdx: index('idx_recipe_discovery_runs_status').on(table.status),
     runTypeIdx: index('idx_recipe_discovery_runs_run_type').on(table.run_type),
-    startedAtIdx: index('idx_recipe_discovery_runs_started_at').on(table.started_at.desc()),
+    startedAtIdx: index('idx_recipe_discovery_runs_started_at').on(
+      table.started_at.desc().nullsFirst()
+    ),
   })
 );
 
