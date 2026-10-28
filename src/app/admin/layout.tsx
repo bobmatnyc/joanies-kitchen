@@ -64,6 +64,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 >
                   Crawl Recipes
                 </Link>
+                <Link
+                  href="/admin/crawl-monitor"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  Crawl Monitor
+                </Link>
               </nav>
             </div>
 
