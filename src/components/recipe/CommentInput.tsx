@@ -134,7 +134,8 @@ export function CommentInput({
             onClick={handleSubmit}
             disabled={isPending || !content.trim() || isOverLimit}
             size="sm"
-            className="min-h-[36px] min-w-[36px]"
+            // #47: button rule now layered, so this min size is honoured; keep the 44px touch target
+            className="min-h-[44px] min-w-[44px]"
             aria-label="Submit comment"
           >
             <Send className="w-4 h-4 sm:mr-2" />

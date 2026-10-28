@@ -203,7 +203,8 @@ export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: Re
                           type="button"
                           onClick={() => setEditRating(value)}
                           className={cn(
-                            'min-w-[36px] min-h-[36px] flex items-center justify-center',
+                            // #47: button rule now layered, so this min size is honoured; keep the 44px touch target
+                            'min-w-[44px] min-h-[44px] flex items-center justify-center',
                             'transition-all rounded-md',
                             'focus:outline-none focus:ring-2 focus:ring-ring',
                             'hover:scale-110'

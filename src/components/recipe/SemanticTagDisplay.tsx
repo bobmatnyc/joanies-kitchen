@@ -160,7 +160,7 @@ export function SemanticTagDisplay({
             <div key={category} className="space-y-1.5">
               <button
                 onClick={() => setIsOtherExpanded(true)}
-                className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground uppercase tracking-wide transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground uppercase tracking-wide transition-colors"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
                 <span>

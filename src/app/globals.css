@@ -372,15 +372,18 @@
 }
 
 /* Touch-friendly button styling */
-.btn,
-button,
-a[role="button"] {
-  min-height: 44px;
-  min-width: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
+/* #47: in @layer base so Tailwind utilities (justify-start, p-*, min-h-*) win; unlayered CSS beat every layered utility */
+@layer base {
+  .btn,
+  button,
+  a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+  }
 }
 
 /* Mobile-optimized card hover states (use active instead) */
