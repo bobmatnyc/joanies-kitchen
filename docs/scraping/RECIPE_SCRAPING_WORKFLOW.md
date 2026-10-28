@@ -36,8 +36,8 @@ This document captures the successful workflow for batch importing recipes from 
 
 ## Architecture Pattern
 
-### 1. Server Action (Core Logic)
-**File**: `src/app/actions/recipe-crawl.ts`
+### 1. Crawl Core (Server-Internal)
+**File**: `src/lib/recipe-crawl.ts` (not a server action; the admin-gated action wrappers live in `src/app/actions/recipe-crawl.ts`, #13)
 
 ```typescript
 export async function convertUrlToRecipe(url: string): Promise<{
@@ -399,7 +399,7 @@ project/
 ├── src/
 │   ├── app/
 │   │   ├── actions/
-│   │   │   └── recipe-crawl.ts          # Core server action
+│   │   │   └── recipe-crawl.ts          # Admin-gated action wrappers
 │   │   └── api/
 │   │       └── batch-import-single/
 │   │           └── route.ts             # API endpoint

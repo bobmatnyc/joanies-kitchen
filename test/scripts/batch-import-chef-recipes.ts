@@ -19,7 +19,7 @@
 import { db } from '@/lib/db/index.js';
 import { recipes } from '@/lib/db/schema.js';
 import { sql, eq } from 'drizzle-orm';
-import { convertUrlToRecipe } from '@/app/actions/recipe-crawl.js';
+import { convertUrlToRecipe } from '@/lib/recipe-crawl.js';
 import fs from 'fs/promises';
 
 interface RecipeURL {
