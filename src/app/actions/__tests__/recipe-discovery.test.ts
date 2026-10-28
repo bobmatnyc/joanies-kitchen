@@ -8,8 +8,15 @@
  * - Test data setup
  */
 
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { requireAuth } from '@/lib/auth-guard';
 import { discoverRecipeFromUrl, discoverRecipes } from '../recipe-discovery';
+
+// #54: authentication is covered by its own test below; elsewhere treat the caller as signed in.
+vi.mock('@/lib/auth-guard', () => ({
+  requireAuth: vi.fn(async () => ({ userId: 'test-user' })),
+  checkAuth: vi.fn(async () => ({ userId: 'test-user' })),
+}));
 
 describe('Recipe Discovery Pipeline', () => {
   // Skip tests if API keys not available
@@ -141,21 +148,36 @@ describe('Recipe Discovery Pipeline', () => {
   });
 
   describe('Error Handling', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
     it('should handle missing API keys', async () => {
-      // Temporarily clear API key
-      const originalKey = process.env.OPENROUTER_API_KEY;
+      const saved = { ...process.env };
       delete process.env.OPENROUTER_API_KEY;
+      delete process.env.BRAVE_API_KEY;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('network disabled in test');
+        })
+      );
 
       try {
-        // #54: discoverRecipes requires an authenticated session before it checks API keys,
-        // so with no session (and no keys) it rejects instead of returning success: false.
-        await expect(discoverRecipes('test')).rejects.toThrow(/Authentication required/);
+        const result = await discoverRecipes('test');
+        expect(result.success).toBe(false);
+        expect(result.recipes).toEqual([]);
+        expect(result.errors?.[0]).toMatchObject({ step: 'initialization' });
       } finally {
-        // Restore API key
-        if (originalKey) {
-          process.env.OPENROUTER_API_KEY = originalKey;
-        }
+        process.env = saved;
       }
+    });
+
+    it('should reject unauthenticated callers', async () => {
+      vi.mocked(requireAuth).mockRejectedValueOnce(
+        new Error('Authentication required. Please sign in to use recipe discovery.')
+      );
+      await expect(discoverRecipes('test')).rejects.toThrow(/Authentication required/);
     });
 
     it('should report errors in results', async () => {
