@@ -206,9 +206,6 @@ CREATE TABLE "recipe_embeddings" (
 	"model_name" varchar(100) DEFAULT 'all-MiniLM-L6-v2' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone DEFAULT now()
-	-- #9: recipe_embeddings_recipe_id_unique is declared in code (and in the
-	-- snapshot) but absent from prod; it is pending an owner ruling, so this
-	-- baseline omits it.
 );
 --> statement-breakpoint
 CREATE TABLE "recipe_flags" (

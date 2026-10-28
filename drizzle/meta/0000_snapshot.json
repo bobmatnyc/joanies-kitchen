@@ -1,5 +1,5 @@
 {
-  "id": "09849b16-5a73-49d5-bc1c-ef20dc6484cc",
+  "id": "670f303d-f2ab-4b1e-8b79-3061e41a3995",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2285,15 +2285,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "recipe_embeddings_recipe_id_unique": {
-          "name": "recipe_embeddings_recipe_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "recipe_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

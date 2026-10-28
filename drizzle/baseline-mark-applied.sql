@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
 );
 
 INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
-SELECT 'adcc7ddff619daeb1e05600a0fed9a57b5c075c2fc0a18274cc6417be9bea9c9', 1793228616978
+SELECT '1ed34f4e21898721a23cbd94ec2dfd35537501650492e0198dbe85b7c050f838', 1793228970346
 WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations
-  WHERE hash = 'adcc7ddff619daeb1e05600a0fed9a57b5c075c2fc0a18274cc6417be9bea9c9'
+  WHERE hash = '1ed34f4e21898721a23cbd94ec2dfd35537501650492e0198dbe85b7c050f838'
 );
 
 SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id;
