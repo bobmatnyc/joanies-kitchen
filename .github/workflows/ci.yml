@@ -1,0 +1,79 @@
+# #54: CI gate. typecheck and lint are ratchets (fail only if the error count rises above the
+# committed baseline in .github/*-baseline.txt); test must pass outright. No secrets are used.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # pnpm version comes from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: tsc --noEmit (ratchet)
+        run: |
+          pnpm exec tsc --noEmit > tsc.log 2>&1 || true
+          count=$(grep -c 'error TS' tsc.log || true)
+          baseline=$(tr -d '[:space:]' < .github/tsc-baseline.txt)
+          echo "tsc errors: $count (baseline: $baseline)"
+          if [ "$count" -gt "$baseline" ]; then
+            grep 'error TS' tsc.log | head -100
+            echo "::error::tsc errors rose from $baseline to $count"
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::tsc errors dropped from $baseline to $count; lower .github/tsc-baseline.txt to $count"
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:run
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: biome check src (ratchet)
+        run: |
+          pnpm exec biome check src > biome.log 2>&1 || true
+          count=$(grep -oE '^Found [0-9]+ error' biome.log | grep -oE '[0-9]+' || true)
+          count=${count:-0}
+          baseline=$(tr -d '[:space:]' < .github/biome-baseline.txt)
+          echo "biome errors: $count (baseline: $baseline)"
+          if [ "$count" -gt "$baseline" ]; then
+            tail -40 biome.log
+            echo "::error::biome errors rose from $baseline to $count"
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::biome errors dropped from $baseline to $count; lower .github/biome-baseline.txt to $count"
+          fi

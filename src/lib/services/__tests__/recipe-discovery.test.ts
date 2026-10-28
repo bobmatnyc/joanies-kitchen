@@ -184,7 +184,9 @@ describe('RecipeDiscoveryService — rotating query generation', () => {
 
   it('chef queries include chef name in quotes', () => {
     const queries: string[] = service.getRotatingQueries();
-    const chefQueries = queries.filter((q: string) => q.includes('site:'));
+    // #54: generic queries also contain `site:` (multi-site OR), so select chef queries by
+    // position: getRotatingQueries() interleaves generic, chef, generic, chef, generic.
+    const chefQueries = [queries[1], queries[3]];
     for (const q of chefQueries) {
       // Should be: "Chef Name" recipe site:domain
       expect(q).toMatch(/^"[^"]+"\s+recipe\s+site:/);

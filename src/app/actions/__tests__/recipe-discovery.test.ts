@@ -147,8 +147,9 @@ describe('Recipe Discovery Pipeline', () => {
       delete process.env.OPENROUTER_API_KEY;
 
       try {
-        const result = await discoverRecipes('test');
-        expect(result.success).toBe(false);
+        // #54: discoverRecipes requires an authenticated session before it checks API keys,
+        // so with no session (and no keys) it rejects instead of returning success: false.
+        await expect(discoverRecipes('test')).rejects.toThrow(/Authentication required/);
       } finally {
         // Restore API key
         if (originalKey) {

@@ -79,7 +79,8 @@ describe('validateParsedRecipe', () => {
     const recipe = { ...VALID_RECIPE, name: '' };
     const result = validateParsedRecipe(recipe);
     expect(result.isValid).toBe(false);
-    expect(result.errors[0].code).toBe('SV-002');
+    // #54: an empty name is reported as MISSING_NAME (SV-001); INVALID_NAME (SV-002) is for non-string names.
+    expect(result.errors[0].code).toBe('SV-001');
   });
 
   it('should fail validation for missing ingredients', () => {
@@ -152,7 +153,7 @@ describe('validateSerialization', () => {
     // Manually create object with toString override to produce [object Object]
     const problematicRecipe = {
       name: 'Test',
-      ingredients: [{ name: 'flour', quantity: {} as any }], // Object instead of string
+      ingredients: [{ name: 'flour', quantity: String({}) }], // String({}) === '[object Object]'
       instructions: ['Step 1'],
     };
 
