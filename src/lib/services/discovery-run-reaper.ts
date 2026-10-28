@@ -76,3 +76,16 @@ export async function reapStaleDiscoveryRuns(
   }
   return reaped.length;
 }
+
+/**
+ * #6: callers about to start a run reap first but must not let a reaper
+ * failure block the new run. Logs the error under `logPrefix` and returns 0.
+ */
+export async function reapStaleDiscoveryRunsFailOpen(logPrefix: string): Promise<number> {
+  try {
+    return await reapStaleDiscoveryRuns();
+  } catch (error) {
+    console.error(`${logPrefix} Stale-run reaper failed; continuing:`, error);
+    return 0;
+  }
+}

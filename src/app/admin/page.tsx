@@ -195,6 +195,9 @@ export default function AdminDashboard() {
             <Button asChild className="w-full bg-green-600 hover:bg-green-700">
               <Link href="/admin/crawl">Crawl Web for Recipes</Link>
             </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/admin/crawl-monitor">Crawl Monitor</Link>
+            </Button>
             <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
               <Link href="/admin/system-recipe-ingest">System Recipe Ingest</Link>
             </Button>

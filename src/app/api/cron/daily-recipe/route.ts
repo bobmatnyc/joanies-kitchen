@@ -20,7 +20,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
-import { reapStaleDiscoveryRuns } from '@/lib/services/discovery-run-reaper';
+import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,12 +58,8 @@ function isAuthorized(request: NextRequest): boolean {
  * logged and never blocks the new run.
  */
 async function reapStaleRuns(): Promise<void> {
-  try {
-    const reaped = await reapStaleDiscoveryRuns();
-    if (reaped > 0) console.warn(`[DailyRecipeCron] Reaped ${reaped} stale run(s)`);
-  } catch (error) {
-    console.error('[DailyRecipeCron] Stale-run reaper failed; continuing:', error);
-  }
+  const reaped = await reapStaleDiscoveryRunsFailOpen('[DailyRecipeCron]');
+  if (reaped > 0) console.warn(`[DailyRecipeCron] Reaped ${reaped} stale run(s)`);
 }
 
 // ---------------------------------------------------------------------------

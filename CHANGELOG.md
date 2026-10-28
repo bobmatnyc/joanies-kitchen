@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **crawl**: admin-only read API in `@/app/actions/crawl-monitor` over `@/lib/crawl-monitor`: paged discovery runs with item counts by outcome, run detail with items and ledger cost by provider and operation, spend for today, this month (UTC) and all time, and one newest-first list of discovery runs and scraping jobs (#6)
 - **crawl**: failed item writes add one `item writes failed: N` error to the run; the cron and `/api/recipes/scrape` responses carry `tracked` (#6)
 - **crawl**: the local and pm2 scrapers (`scraper:daily`, `scraper:once`, `continuous-scraper.ts`, `/api/recipes/scrape`) record discovery runs with `run_type` `local` or `manual` (#6)
+- **admin**: `/admin/crawl-monitor` shows crawl spend for today, this month and all time with tables by provider and by provider and operation, the running job (polled every 12 s while a run is live and the tab is visible), a paged run history with expandable run detail, and a confirmed "Run crawl now" button backed by the admin-only `triggerManualCrawl` action, which starts one budgeted `manual` discovery run and refuses while one is running (#6)
 
 ### Changed
 
