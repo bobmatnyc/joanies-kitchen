@@ -140,10 +140,21 @@ describe('getIngredientSuggestions (#47)', () => {
       category: null,
       isCommon,
     }));
-    const got = await names(q, 4);
+    const got = await names(q, 9);
     const prefixCount = data.filter(([, d]) => d.toLowerCase().startsWith(q)).length;
     // Every prefix match (up to the limit) precedes every word-prefix match.
-    expect(got.slice(0, Math.min(prefixCount, 4)).every((n) => n.toLowerCase().startsWith(q))).toBe(true);
-    if (got.includes(wordPrefix)) expect(got.indexOf(wordPrefix)).toBeGreaterThanOrEqual(prefixCount);
+    expect(got.slice(0, prefixCount).every((n) => n.toLowerCase().startsWith(q))).toBe(true);
+    expect(got).toContain(wordPrefix);
+    expect(got.indexOf(wordPrefix)).toBeGreaterThanOrEqual(prefixCount);
+  });
+
+  // #47: matchTier falls back to name when display_name is empty.
+  it('ranks an exact name match with empty display_name as exact', async () => {
+    mocks.rows = [
+      { id: 'a', name: 'chicken breast', displayName: 'Chicken Breast', category: null, isCommon: true },
+      { id: 'b', name: 'chicken', displayName: '', category: null, isCommon: false },
+    ];
+    const result = await getIngredientSuggestions('chicken', { limit: 2 });
+    expect(result.suggestions[0].id).toBe('b');
   });
 });

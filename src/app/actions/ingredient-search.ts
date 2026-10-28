@@ -545,7 +545,8 @@ export async function getIngredientSuggestions(
     const candidateLimit = Math.min(validatedOptions.limit * 4, 100);
     // #47: rank on display_name (what the user sees), not name: a row with
     // name='chicken' and display_name='Frying Chicken' must not rank as exact.
-    const matchRank = sql`CASE WHEN lower(${ingredients.display_name}) = ${normalizedQuery} THEN 0 WHEN lower(${ingredients.display_name}) LIKE ${`${normalizedQuery}%`} THEN 1 ELSE 2 END`;
+    // Empty display_name falls back to name, matching matchTier in suggestion-ranking.ts.
+    const matchRank = sql`CASE WHEN lower(COALESCE(NULLIF(${ingredients.display_name}, ''), ${ingredients.name})) = ${normalizedQuery} THEN 0 WHEN lower(COALESCE(NULLIF(${ingredients.display_name}, ''), ${ingredients.name})) LIKE ${`${normalizedQuery}%`} THEN 1 ELSE 2 END`;
 
     // OPTIMIZATION: Start with name-only search (fastest, uses primary index)
     const nameConditions: SQL[] = [
