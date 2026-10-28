@@ -9,6 +9,7 @@ import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { linkRecipeToChef, updateChefRecipeCount } from './chefs';
 
 /**
@@ -134,9 +135,10 @@ async function scrapeAndParseRecipes(
             description: parsed.description || '',
             ingredients: JSON.stringify(parsed.ingredients),
             instructions: JSON.stringify(parsed.instructions),
-            prep_time: parsed.prepTime || null,
-            cook_time: parsed.cookTime || null,
-            servings: parsed.servings || null,
+            // #12: coerce to integer-or-null so free text never reaches the integer column.
+            prep_time: toRecipeInt(parsed.prepTime),
+            cook_time: toRecipeInt(parsed.cookTime),
+            servings: toRecipeInt(parsed.servings),
             difficulty: parsed.difficulty || null,
             cuisine: parsed.cuisine || null,
             tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
@@ -256,9 +258,10 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
         description: parsed.description || '',
         ingredients: JSON.stringify(parsed.ingredients),
         instructions: JSON.stringify(parsed.instructions),
-        prep_time: parsed.prepTime || null,
-        cook_time: parsed.cookTime || null,
-        servings: parsed.servings || null,
+        // #12: coerce to integer-or-null so free text never reaches the integer column.
+        prep_time: toRecipeInt(parsed.prepTime),
+        cook_time: toRecipeInt(parsed.cookTime),
+        servings: toRecipeInt(parsed.servings),
         difficulty: parsed.difficulty || null,
         cuisine: parsed.cuisine || null,
         tags: parsed.tags ? JSON.stringify(parsed.tags) : null,

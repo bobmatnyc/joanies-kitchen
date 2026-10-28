@@ -38,6 +38,7 @@ import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // ============================================================================
@@ -92,15 +93,6 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
   } catch (_error) {
     return { valid: false, error: 'Invalid URL format' };
   }
-}
-
-/**
- * Parse time strings to minutes
- */
-function parseTimeToMinutes(timeStr: number | null | undefined): number | null {
-  if (timeStr === null || timeStr === undefined) return null;
-  if (typeof timeStr === 'number') return timeStr;
-  return null;
 }
 
 /**
@@ -185,9 +177,10 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         cuisine: parsedRecipe.cuisine || null,
         tags: tagsJson,
         difficulty: parsedRecipe.difficulty || null,
-        prep_time: parseTimeToMinutes(parsedRecipe.prep_time),
-        cook_time: parseTimeToMinutes(parsedRecipe.cook_time),
-        servings: parsedRecipe.servings,
+        // #12: the parser accepts any number (4.5 fails an integer column).
+        prep_time: toRecipeInt(parsedRecipe.prep_time),
+        cook_time: toRecipeInt(parsedRecipe.cook_time),
+        servings: toRecipeInt(parsedRecipe.servings),
         image_url: parsedRecipe.image_url || null,
         images: parsedRecipe.image_url ? JSON.stringify([parsedRecipe.image_url]) : null,
         is_ai_generated: false,
@@ -276,9 +269,10 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         description: parsedRecipe.description || '',
         ingredients: ingredientsJson,
         instructions: instructionsJson,
-        prep_time: parseTimeToMinutes(parsedRecipe.prep_time),
-        cook_time: parseTimeToMinutes(parsedRecipe.cook_time),
-        servings: parsedRecipe.servings,
+        // #12: the parser accepts any number (4.5 fails an integer column).
+        prep_time: toRecipeInt(parsedRecipe.prep_time),
+        cook_time: toRecipeInt(parsedRecipe.cook_time),
+        servings: toRecipeInt(parsedRecipe.servings),
         difficulty: parsedRecipe.difficulty || null,
         cuisine: parsedRecipe.cuisine || null,
         tags: tagsJson,

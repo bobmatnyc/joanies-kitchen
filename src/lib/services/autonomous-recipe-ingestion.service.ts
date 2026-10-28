@@ -30,6 +30,8 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { describeDbError } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { type ChefDiscoveryService, getChefDiscoveryService } from './chef-discovery.service';
 import {
   createDiscoveryRun,
@@ -394,7 +396,8 @@ export class AutonomousRecipeIngestionService {
         recipeId = await this.storeRecipe(recipe, chefId, url, discovered.searchQuery);
       } catch (storeErr) {
         // storeRecipe already logs internally; surface into errors[] so it's visible in run metrics
-        const msg = storeErr instanceof Error ? storeErr.message : String(storeErr);
+        // #12: record the Postgres error on err.cause, not the Drizzle "Failed query" wrapper.
+        const msg = describeDbError(storeErr);
         m.errors.push(`Store failed for "${recipe.title}" (${url}): ${msg}`);
         console.error(`[AutonomousIngestion] Store threw unexpectedly: ${msg}`);
         await record('failed', `store failed: ${msg}`);
@@ -418,7 +421,8 @@ export class AutonomousRecipeIngestionService {
       }
       await record('stored', null, recipeId);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
+      // #12: surface the underlying DB error (and SQLSTATE) when one is wrapped.
+      const msg = describeDbError(error);
       console.error(`[AutonomousIngestion] Error processing ${url}: ${msg}`);
       m.errors.push(`${url}: ${msg}`);
       await record('failed', msg);
@@ -502,9 +506,10 @@ export class AutonomousRecipeIngestionService {
         description: recipe.description ?? '',
         ingredients: JSON.stringify(recipe.ingredients),
         instructions: JSON.stringify(recipe.instructions),
-        prep_time: recipe.prep_time,
-        cook_time: recipe.cook_time,
-        servings: recipe.servings,
+        // #12: integer columns get an integer or null, whatever the extractor produced.
+        prep_time: toRecipeInt(recipe.prep_time),
+        cook_time: toRecipeInt(recipe.cook_time),
+        servings: toRecipeInt(recipe.servings),
         cuisine: recipe.cuisine,
         tags: JSON.stringify(recipe.tags),
         images: recipe.image_url ? JSON.stringify([recipe.image_url]) : JSON.stringify([]),

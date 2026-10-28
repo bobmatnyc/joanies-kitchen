@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 /**
  * Upload and parse recipe using AI
@@ -48,9 +49,10 @@ export async function uploadRecipeWithAI(params: {
         description: parsed.description || '',
         ingredients: JSON.stringify(parsed.ingredients),
         instructions: JSON.stringify(parsed.instructions),
-        prep_time: parsed.prepTime || null,
-        cook_time: parsed.cookTime || null,
-        servings: parsed.servings || null,
+        // #12: coerce to integer-or-null so free text never reaches the integer column.
+        prep_time: toRecipeInt(parsed.prepTime),
+        cook_time: toRecipeInt(parsed.cookTime),
+        servings: toRecipeInt(parsed.servings),
         difficulty: parsed.difficulty || null,
         cuisine: parsed.cuisine || null,
         tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
@@ -122,9 +124,10 @@ export async function uploadRecipeFromUrl(url: string) {
         description: parsed.description || '',
         ingredients: JSON.stringify(parsed.ingredients),
         instructions: JSON.stringify(parsed.instructions),
-        prep_time: parsed.prepTime || null,
-        cook_time: parsed.cookTime || null,
-        servings: parsed.servings || null,
+        // #12: coerce to integer-or-null so free text never reaches the integer column.
+        prep_time: toRecipeInt(parsed.prepTime),
+        cook_time: toRecipeInt(parsed.cookTime),
+        servings: toRecipeInt(parsed.servings),
         difficulty: parsed.difficulty || null,
         cuisine: parsed.cuisine || null,
         tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
