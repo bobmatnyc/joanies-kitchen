@@ -227,7 +227,15 @@ async function generateAISubstitutions(
 
     return result;
   } catch (error) {
-    console.error('AI substitution generation failed:', error);
+    // #24: log the HTTP status (e.g. OpenRouter 404 on a ZDR/guardrail mismatch) as structured
+    // fields so it is greppable in production logs. Failures are never cached (the cache write
+    // sits on the success path above), so a transient error does not stick for 24 hours.
+    const status = (error as { status?: unknown } | null)?.status;
+    console.error('AI substitution generation failed', {
+      ingredient,
+      status: typeof status === 'number' ? status : undefined,
+      message: error instanceof Error ? error.message : String(error),
+    });
 
     // Return empty result on error
     return {

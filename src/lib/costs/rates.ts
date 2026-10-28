@@ -80,6 +80,7 @@ export const LLM_TOKEN_PRICES: Readonly<Record<string, LlmTokenPrice>> = {
   sonar: { inputUsdPerMTok: 1, outputUsdPerMTok: 1, requestUsd: 0.005 },
   'google/gemini-2.0-flash-exp:free': { inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
   'google/gemini-2.5-flash-lite': { inputUsdPerMTok: 0.1, outputUsdPerMTok: 0.4 }, // #24
+  'google/gemini-3.1-flash-lite': { inputUsdPerMTok: 0.25, outputUsdPerMTok: 1.5 }, // #24: ZDR-compliant
   'meta-llama/llama-3.2-3b-instruct:free': { inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
   'mistralai/mistral-7b-instruct:free': { inputUsdPerMTok: 0, outputUsdPerMTok: 0 },
 };
