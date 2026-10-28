@@ -751,7 +751,7 @@ describe('Prompt Rendering', () => {
     expect(rendered.user).toContain('Grilled Salmon');
     expect(rendered.user).toContain('Mediterranean');
     expect(rendered.user).not.toContain('{{');
-    expect(rendered.config.model).toBe('google/gemini-2.0-flash-exp:free');
+    expect(rendered.config.model).toBe('google/gemini-2.5-flash-lite');
   });
 
   it('should validate required variables', () => {

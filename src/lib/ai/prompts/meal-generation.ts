@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Meal Generation Prompts
  *
@@ -72,7 +73,7 @@ IMPORTANT: Ensure courses complement each other in:
   variables: ['mainDish', 'cuisine', 'dietaryRestrictions', 'servings', 'occasion'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Excellent at creative meal planning with good JSON formatting',
     },
@@ -147,7 +148,7 @@ Consider preparation timing:
   optionalVariables: ['dietaryRestrictions'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Fast and accurate for side dish generation',
     },
@@ -238,7 +239,7 @@ Return as JSON:
       reason: 'Excellent cultural knowledge and thoughtful explanations',
     },
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'fallback',
       reason: 'Good for standard themes, cost-effective',
     },
@@ -414,7 +415,7 @@ Focus on {{season}} characteristics:
   variables: ['season', 'region', 'cuisine', 'dietaryRestrictions', 'servings', 'mealType'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Good seasonal knowledge and creative suggestions',
     },
@@ -508,7 +509,7 @@ Budget-smart strategies to incorporate:
   variables: ['budgetPerServing', 'servings', 'dietaryRestrictions', 'pantryStaples', 'cuisine'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Cost-effective model for budget meal planning',
     },

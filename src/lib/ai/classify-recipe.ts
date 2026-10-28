@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * #13: server-internal, deliberately NOT 'use server'. Classification spends
  * OpenRouter credits and writes `recipes.instruction_metadata`; the
@@ -48,7 +49,7 @@ export async function classifyAndStoreRecipe(recipeId: string): Promise<{
         instruction_metadata: JSON.stringify(metadata),
         instruction_metadata_version: '1.0.0',
         instruction_metadata_generated_at: new Date(),
-        instruction_metadata_model: 'google/gemini-2.0-flash-exp:free',
+        instruction_metadata_model: DEFAULT_AI_MODEL,
       })
       .where(eq(recipes.id, recipeId));
 

@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Ingredient Substitution AI Prompts
  *
@@ -101,7 +102,7 @@ Return as JSON:
   optionalVariables: ['recipeName', 'cookingMethod', 'cuisineType', 'dietaryRestrictions'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Fast, accurate, and free. Excellent knowledge of ingredients and cooking.',
     },

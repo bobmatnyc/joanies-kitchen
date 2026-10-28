@@ -542,7 +542,7 @@ Return as JSON:
   optionalVariables: ['optionalParam'],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: 'google/gemini-2.5-flash-lite',
       priority: 'primary',
       reason: 'Fast and cost-effective',
     },

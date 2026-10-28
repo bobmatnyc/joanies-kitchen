@@ -1,3 +1,4 @@
+import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
 /**
  * Recipe Analysis Prompts
  *
@@ -170,7 +171,7 @@ Variation types to consider:
   ],
   modelSuggestions: [
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'primary',
       reason: 'Creative and fast for generating variations',
     },
@@ -360,7 +361,7 @@ Return as JSON:
       reason: 'Excellent at nuanced skill assessment',
     },
     {
-      model: 'google/gemini-2.0-flash-exp:free',
+      model: DEFAULT_AI_MODEL,
       priority: 'alternative',
       reason: 'Good for standard difficulty estimation',
     },
