@@ -109,6 +109,7 @@ export function IngredientSearchBar({
         slug: null,
         description: null,
         image_url: null,
+        is_suitable_for_image: true, // #9: prod column default
         storage_tips: null,
         substitutions: null,
         usage_count: 0,
