@@ -7,7 +7,7 @@ import {
 } from '@/app/actions/semantic-search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
-/** #17/#57: 429 (with Retry-After) over the rate limit, 503 at the cost ceiling. */
+/** #17/#57: 429 (with Retry-After) over the rate limit; 503 for a limiter outage or the cost ceiling. */
 function searchResponse(result: SemanticSearchResult) {
   if (result.errorCode === 'RATE_LIMITED') {
     return NextResponse.json(result, {

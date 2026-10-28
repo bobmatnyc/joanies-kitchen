@@ -1,3 +1,8 @@
+// DEPLOY ORDER (#17/#57): 1) #9 baseline migration lands; 2) the usage_counters
+// migration is generated and applied in prod; 3) only then deploy this code.
+// Without the table the limiter and alert dedupe fail closed: every cache-miss
+// search returns LIMITER_UNAVAILABLE (503).
+
 /**
  * #17/#57: fixed-window counters for rate limits and alert dedupe.
  *

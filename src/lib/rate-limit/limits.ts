@@ -11,6 +11,8 @@ export const RATE_LIMITS = {
   'semantic-search': { limit: 30, windowSec: 60 },
   /** `findSimilarToRecipe` (similar-recipes widget on every recipe page). */
   'similar-recipes': { limit: 60, windowSec: 60 },
+  /** `getMultipleIngredientSubstitutions`, counted only when a call reaches the AI path. */
+  substitutions: { limit: 20, windowSec: 60 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS;

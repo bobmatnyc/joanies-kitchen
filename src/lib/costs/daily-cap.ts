@@ -8,7 +8,12 @@
  * into — and throws `PaidCallBlockedError` at or above the cap, or when the
  * spend query fails (fail closed). Crossing 80% and 100% logs one
  * `[ALERT:cost-ceiling]` error per threshold per UTC day, deduped through
- * `usage_counters`.
+ * `usage_counters`; if that dedupe write fails the alert is still logged.
+ *
+ * Known limits (#57): spend can undercount, because `trackCost` fails open and
+ * a lost ledger write is invisible to this sum. Concurrent callers can also
+ * overshoot the cap slightly: the check runs before the spend is booked
+ * (check-then-spend race), so calls in flight at the crossing all proceed.
  * Test: `src/lib/costs/__tests__/daily-cap.test.ts`
  */
 
@@ -89,17 +94,19 @@ export async function maybeAlertCostThresholds(
     const pct = Math.round(fraction * 100);
     const memoKey = `${dayKey}:${pct}`;
     if (alerted.has(memoKey)) continue;
+    const line = `${COST_ALERT_TAG} threshold=${pct}% spend_usd=${spendUsd.toFixed(4)} cap_usd=${DAILY_COST_CAP_USD} day=${dayKey}`;
+    let count: number;
     try {
-      const count = await incrementCounter(db, 'cost-alert', `pct:${pct}`, day);
-      alerted.add(memoKey);
-      if (count !== 1) continue;
-      // #57: no mail provider or admin-notification store exists; the tagged log is the channel.
-      console.error(
-        `${COST_ALERT_TAG} threshold=${pct}% spend_usd=${spendUsd.toFixed(4)} cap_usd=${DAILY_COST_CAP_USD} day=${dayKey}`
-      );
+      count = await incrementCounter(db, 'cost-alert', `pct:${pct}`, day);
     } catch (error) {
+      // #57: a duplicate alert beats a lost one — emit undeduped when the counter fails.
       console.error(`[CostCap] alert dedupe failed for ${pct}% on ${dayKey}:`, error);
+      console.error(`${line} dedupe=failed`);
+      continue;
     }
+    alerted.add(memoKey);
+    // #57: no mail provider or admin-notification store exists; the tagged log is the channel.
+    if (count === 1) console.error(line);
   }
 }
 

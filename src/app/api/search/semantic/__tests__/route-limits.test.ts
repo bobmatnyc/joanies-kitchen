@@ -28,6 +28,13 @@ describe('#17 /api/search/semantic limits', () => {
     expect(response.headers.get('retry-after')).toBe('17');
   });
 
+  it('returns 503, not 429, when the limiter is unavailable', async () => {
+    search.mockResolvedValueOnce(refused('LIMITER_UNAVAILABLE'));
+    const response = await GET(new NextRequest('http://localhost/api/search/semantic?q=soup'));
+    expect(response.status).toBe(503);
+    expect(response.headers.get('retry-after')).toBeNull();
+  });
+
   it('returns 503 at the daily cost ceiling', async () => {
     search.mockResolvedValueOnce(refused('COST_CAP_REACHED'));
     const request = new NextRequest('http://localhost/api/search/semantic', {

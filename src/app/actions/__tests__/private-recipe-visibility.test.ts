@@ -426,4 +426,18 @@ describe('#17 findSimilarToRecipe rerank and rate limit', () => {
     expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
     expect(rerankCalls()).toBe(0);
   });
+
+  it('a limiter outage returns LIMITER_UNAVAILABLE, not RATE_LIMITED', async () => {
+    vi.mocked(enforceRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      reason: 'unavailable',
+      retryAfterSec: 42,
+      limit: 60,
+    });
+    vi.mocked(findSimilarRecipes).mockClear();
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 10);
+    expect(result).toMatchObject({ success: false, errorCode: 'LIMITER_UNAVAILABLE' });
+    expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+  });
 });

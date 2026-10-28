@@ -114,7 +114,7 @@ describe('#57 daily cost ceiling', () => {
     expect(alertLines()).toHaveLength(4);
   });
 
-  it('an alert dedupe failure is logged and the cap still blocks', async () => {
+  it('an alert dedupe failure still emits the tagged alert and the cap still blocks', async () => {
     await spend(DAILY_COST_CAP_USD);
     const failingInsert = {
       select: db.select.bind(db),
@@ -124,6 +124,8 @@ describe('#57 daily cost ceiling', () => {
     } as unknown as UsageDb;
     const error = await assertWithinDailyCap({ db: failingInsert, now: NOW }).catch((e) => e);
     expect(error.code).toBe('COST_CAP_REACHED');
-    expect(alertLines()).toHaveLength(0);
+    // #57: a duplicate alert beats a lost one; both thresholds fire undeduped.
+    expect(alertLines()).toHaveLength(2);
+    expect(alertLines().join('\n')).toContain('dedupe=failed');
   });
 });

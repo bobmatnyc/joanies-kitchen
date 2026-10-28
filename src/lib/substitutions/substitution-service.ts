@@ -329,6 +329,11 @@ export async function getSubstitutions(
   return markAsUserAvailable(aiResult, context?.userIngredients);
 }
 
+/** #17: true when `getSubstitutions` would reach the paid AI path (no static or cache hit). */
+export function needsAiSubstitution(ingredient: string): boolean {
+  return getStaticSubstitutions(ingredient) === null && getCachedSubstitutions(ingredient) === null;
+}
+
 /**
  * Batch substitution lookup for multiple ingredients
  *
