@@ -23,8 +23,30 @@ import { Client } from 'pg';
 
 const PATTERN = String.raw`\m(stocks?|broths?|bouillon|consomm[eé])\M`;
 
-// Rows matched by PATTERN that are not stocks. Fill in after reviewing a dry run.
-const ID_DENYLIST: string[] = [];
+// Owner ruling D6c (#51): move liquid stocks and broths only. Rows matched by
+// PATTERN that are dry/concentrated products or not stocks are excluded here.
+const ID_DENYLIST: string[] = [
+  // Dry or concentrated products
+  '1add460b-0870-4e6b-8d0a-5ac21b05cb23', // beef bouillon concentrate
+  'b8189256-78a1-40bf-8d5a-3bd2cf57aaf3', // beef bouillon cube
+  '4360fadd-7e8d-4e04-a246-5b52276a60e4', // beef bouillon granules
+  'a8760589-7c7a-4c0b-ad51-5a995be0d17b', // beef bouillon paste
+  '43ce0d4a-973a-4371-8cec-746f10577825', // beef stock concentrate
+  '36bb8288-cf8c-4019-95ac-d3b297ddcaf6', // bouillon cube
+  'fd553b2f-1a17-40f6-a52b-036ba0158195', // chicken bouillon cube
+  '497e6fbd-947a-492b-84ab-90c8811f959c', // chicken stock cube
+  'b2de9900-0a8a-4a1f-a793-8b81634f6753', // stock cubes
+  'd8004fcf-f59a-4d5a-bd4d-cfa99679e7c6', // vegetable bouillon cube
+  'b6182081-e0bf-4640-b77a-628b78a70652', // vegetable bouillon granules
+  '1e3babf2-208e-4b40-b2a7-af692136e2f3', // vegetable stock cube
+  // Not a stock
+  '14f43cd1-a119-438a-9449-a2a6512d7b46', // beef consomme soup
+  'f6849777-1e35-4e4e-9031-ac1814102ade', // water or mild stock
+  // Ambiguous, excluded: may mean the dry product; owner can add later
+  '652e7bb0-90fc-4b7e-9616-222bce747bbb', // beef bouillon
+  '7be1693b-3787-4a6a-8119-ab6e5b378414', // bouillon (display: Chicken Bouillon)
+  'fffbc9cc-fe06-40d6-80b0-d99725f910ba', // chicken bouillon
+];
 
 const MATCH_WHERE = `(name ~* $1 OR display_name ~* $1)
   AND category IS DISTINCT FROM 'stocks'
