@@ -12,6 +12,7 @@ import 'server-only';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { renderPrompt } from '@/lib/ai/prompts';
 import { INGREDIENT_SUBSTITUTION_GENERATOR } from '@/lib/ai/prompts/ingredient-substitution';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { STATIC_SUBSTITUTION_LIBRARY } from './static-library';
 import type { CachedSubstitution, SubstitutionContext, SubstitutionResult } from './types';
 
@@ -227,6 +228,8 @@ async function generateAISubstitutions(
 
     return result;
   } catch (error) {
+    // #57: a cost-ceiling block must surface as a typed error, not an empty "success".
+    if (isPaidCallBlocked(error)) throw error;
     // #24: log the HTTP status (e.g. OpenRouter 404 on a ZDR/guardrail mismatch) as structured
     // fields so it is greppable in production logs. Failures are never cached (the cache write
     // sits on the success path above), so a transient error does not stick for 24 hours.

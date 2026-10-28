@@ -7,6 +7,7 @@
  */
 
 import { auth } from '@/lib/auth';
+import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   getBatchSubstitutions,
@@ -24,7 +25,7 @@ interface ActionResult<T> {
   data?: T;
   error?: string;
   /** #17: typed refusal before any paid AI call. */
-  errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE';
+  errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE' | PaidCallBlockedCode; // #57: cost codes
   retryAfterSec?: number;
 }
 
@@ -177,6 +178,10 @@ export async function getMultipleIngredientSubstitutions(
     };
   } catch (error) {
     console.error('Error getting multiple ingredient substitutions:', error);
+    // #57: the daily cost ceiling returns its typed code.
+    if (isPaidCallBlocked(error)) {
+      return { success: false, error: error.message, errorCode: error.code };
+    }
     return {
       success: false,
       error: toErrorMessage(error),

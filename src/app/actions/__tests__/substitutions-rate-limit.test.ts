@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   db: undefined as unknown,
   dbDown: false,
   create: vi.fn(),
+  realClient: false,
 }));
 
 vi.mock('server-only', () => ({}));
@@ -25,10 +26,19 @@ vi.mock('@/lib/rate-limit/counter', async (importOriginal) => ({
     return state.db;
   },
 }));
-vi.mock('@/lib/ai/openrouter-server', () => ({
-  getOpenRouterClient: () => ({ chat: { completions: { create: state.create } } }),
-}));
+// #57: `realClient` switches to the real getOpenRouterClient -> withChatCostTracking wrapper.
+vi.mock('@/lib/ai/openrouter-server', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/lib/ai/openrouter-server')>();
+  return {
+    ...real,
+    getOpenRouterClient: () =>
+      state.realClient
+        ? real.getOpenRouterClient()
+        : { chat: { completions: { create: state.create } } },
+  };
+});
 
+import { crawlCostEvents } from '@/lib/db/autonomous-scraper-schema';
 import { usageCounters } from '@/lib/db/usage-counters-schema';
 import { RATE_LIMITS } from '@/lib/rate-limit';
 import { getMultipleIngredientSubstitutions } from '../substitutions';
@@ -47,7 +57,11 @@ const novel = () =>
     .join('')}`;
 
 beforeAll(async () => {
-  const built = await createVisibilityDb([usageCounters], { usageCounters }, { constraints: true });
+  const built = await createVisibilityDb(
+    [usageCounters, crawlCostEvents],
+    { usageCounters, crawlCostEvents },
+    { constraints: true }
+  );
   client = built.client;
   state.db = built.db;
 });
@@ -57,8 +71,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await client.exec('DELETE FROM "usage_counters";');
+  await client.exec('DELETE FROM "usage_counters"; DELETE FROM "crawl_cost_events";');
   state.dbDown = false;
+  state.realClient = false;
   state.create.mockReset();
   state.create.mockResolvedValue({
     choices: [{ message: { content: JSON.stringify({ substitutions: [] }) } }],
@@ -93,5 +108,30 @@ describe('#17 getMultipleIngredientSubstitutions rate limit', () => {
     const result = await getMultipleIngredientSubstitutions([novel()]);
     expect(result).toMatchObject({ success: false, errorCode: 'LIMITER_UNAVAILABLE' });
     expect(state.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('#57 daily cap on the substitutions AI path', () => {
+  afterAll(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('the $10 cap blocks the provider call through the real client wrapper', async () => {
+    await (state.db as any).insert(crawlCostEvents).values({
+      provider: 'openrouter',
+      operation: 'chat:test',
+      usd: '10.000000',
+      created_at: new Date(),
+    });
+    state.realClient = true;
+    vi.stubEnv('OPENROUTER_API_KEY', 'test-key');
+    const providerFetch = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', providerFetch);
+
+    const result = await getMultipleIngredientSubstitutions([novel()]);
+
+    expect(providerFetch).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ success: false, errorCode: 'COST_CAP_REACHED' });
   });
 });
