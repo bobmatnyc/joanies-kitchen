@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
+import { hasAdminRecipeFields, pickRecipeWriteFields } from '@/lib/utils/recipe-write-fields'; // #33
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // Get all unique tags from recipes
@@ -248,12 +249,17 @@ export async function createRecipe(
       return { success: false, error: 'Authentication required' };
     }
 
+    // #33: copy only allowlisted columns; admin-only ones need users.is_admin.
+    const isAdmin = hasAdminRecipeFields(data) && (await checkAdminAccess()).isAdmin;
+    const allowed = pickRecipeWriteFields(data, isAdmin);
+
     // Generate unique slug from recipe name
     const slug = await generateUniqueSlug(data.name);
 
     // Ensure ingredients and instructions are JSON strings if they're arrays
     const recipeData = {
-      ...data,
+      ...allowed, // #33: never the raw client payload
+      name: data.name,
       user_id: userId,
       slug, // Add generated slug
       ingredients:
@@ -322,8 +328,10 @@ export async function updateRecipe(
       return { success: false, error: 'Shared recipes cannot be modified' };
     }
 
+    // #33: copy only allowlisted columns; admin-only ones need users.is_admin.
+    const isAdmin = hasAdminRecipeFields(data) && (await checkAdminAccess()).isAdmin;
     // Ensure ingredients and instructions are JSON strings if they're arrays
-    const updateData: any = { ...data };
+    const updateData: Partial<NewRecipe> = pickRecipeWriteFields(data, isAdmin);
 
     if (data.ingredients) {
       updateData.ingredients =
@@ -341,7 +349,7 @@ export async function updateRecipe(
       updateData.tags = typeof data.tags === 'string' ? data.tags : JSON.stringify(data.tags);
     }
 
-    updateData.updatedAt = new Date();
+    updateData.updated_at = new Date(); // #33: server-set; was `updatedAt`, not a column
 
     const result = await db
       .update(recipes)
