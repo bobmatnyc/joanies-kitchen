@@ -3,7 +3,7 @@
 import { upload } from '@vercel/blob/client';
 import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   createBackground,
   deleteBackground,
@@ -19,18 +19,20 @@ export function HeroBackgroundManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    loadBackgrounds();
-  }, [loadBackgrounds]);
-
-  async function loadBackgrounds() {
+  // No deps: the loader reads only state setters. An unmemoized loader re-ran
+  // the mount effect on every render and looped server-action POSTs.
+  const loadBackgrounds = useCallback(async () => {
     setIsLoading(true);
     const result = await getAllBackgrounds();
     if (result.success && result.data) {
       setBackgrounds(result.data);
     }
     setIsLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    loadBackgrounds();
+  }, [loadBackgrounds]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

@@ -36,6 +36,154 @@ interface InventoryMatchSectionProps {
 }
 
 /**
+ * Match recipe ingredients to user's inventory
+ * Uses fuzzy matching to handle variations in ingredient names
+ */
+function matchIngredientsToInventory(
+  recipeIngredients: string[],
+  inventoryItems: any[]
+): IngredientMatch[] {
+  return recipeIngredients.map((ingredient) => {
+    // Parse ingredient string (e.g., "2 cups flour" → "flour")
+    const parsedIngredient = parseIngredientName(ingredient);
+
+    // Find match in inventory (fuzzy match by name)
+    const match = inventoryItems.find((item) => {
+      const inventoryName = (
+        item.ingredient?.display_name ||
+        item.ingredient?.name ||
+        ''
+      ).toLowerCase();
+
+      // Check if inventory item name contains parsed ingredient or vice versa
+      return inventoryName.includes(parsedIngredient) || parsedIngredient.includes(inventoryName);
+    });
+
+    return {
+      ingredient: ingredient,
+      hasIt: !!match,
+      inventoryItem: match
+        ? {
+            quantity: match.quantity,
+            unit: match.unit,
+            status: match.status,
+            ingredient_name: match.ingredient?.display_name || match.ingredient?.name || '',
+          }
+        : undefined,
+    };
+  });
+}
+
+/**
+ * Parse ingredient name from full ingredient string
+ * Removes amounts, numbers, units to extract core ingredient name
+ */
+function parseIngredientName(ingredient: string): string {
+  // Convert to lowercase for matching
+  let parsed = ingredient.toLowerCase().trim();
+
+  // Remove common units (cups, tsp, tbsp, oz, lbs, etc.)
+  const units = [
+    'cup',
+    'cups',
+    'tablespoon',
+    'tablespoons',
+    'tbsp',
+    'teaspoon',
+    'teaspoons',
+    'tsp',
+    'ounce',
+    'ounces',
+    'oz',
+    'pound',
+    'pounds',
+    'lb',
+    'lbs',
+    'gram',
+    'grams',
+    'g',
+    'kilogram',
+    'kilograms',
+    'kg',
+    'milliliter',
+    'milliliters',
+    'ml',
+    'liter',
+    'liters',
+    'l',
+    'pinch',
+    'dash',
+    'handful',
+    'clove',
+    'cloves',
+    'can',
+    'cans',
+    'package',
+    'packages',
+    'piece',
+    'pieces',
+    'slice',
+    'slices',
+    'sprig',
+    'sprigs',
+    'stalk',
+    'stalks',
+  ];
+
+  const unitPattern = new RegExp(`\\b(${units.join('|')})\\b`, 'gi');
+  parsed = parsed.replace(unitPattern, '');
+
+  // Remove numbers and fractions (1, 2, 1/2, 3.5, etc.)
+  parsed = parsed.replace(/\b\d+\/\d+|\b\d+\.?\d*\b/g, '');
+
+  // Remove common descriptors
+  const descriptors = [
+    'fresh',
+    'dried',
+    'frozen',
+    'canned',
+    'organic',
+    'chopped',
+    'diced',
+    'sliced',
+    'minced',
+    'grated',
+    'shredded',
+    'crushed',
+    'whole',
+    'ground',
+    'raw',
+    'cooked',
+    'large',
+    'small',
+    'medium',
+    'extra',
+    'fine',
+    'finely',
+    'roughly',
+    'thinly',
+    'thickly',
+    'boneless',
+    'skinless',
+    'peeled',
+    'unpeeled',
+    'ripe',
+    'green',
+  ];
+
+  const descriptorPattern = new RegExp(`\\b(${descriptors.join('|')})\\b`, 'gi');
+  parsed = parsed.replace(descriptorPattern, '');
+
+  // Remove special characters and extra spaces
+  parsed = parsed.replace(/[,()[\]]/g, ' ');
+  parsed = parsed.replace(/\s+/g, ' ').trim();
+
+  // Return the first significant word group (usually the core ingredient)
+  const words = parsed.split(' ').filter(Boolean);
+  return words.length > 0 ? words.join(' ') : ingredient.toLowerCase();
+}
+
+/**
  * InventoryMatchSection - Displays "You Have / You Need" for recipe ingredients
  *
  * Features:
@@ -86,155 +234,9 @@ export function InventoryMatchSection({
     }
 
     checkInventory();
-  }, [isSignedIn, userId, ingredients, matchIngredientsToInventory]);
-
-  /**
-   * Match recipe ingredients to user's inventory
-   * Uses fuzzy matching to handle variations in ingredient names
-   */
-  function matchIngredientsToInventory(
-    recipeIngredients: string[],
-    inventoryItems: any[]
-  ): IngredientMatch[] {
-    return recipeIngredients.map((ingredient) => {
-      // Parse ingredient string (e.g., "2 cups flour" → "flour")
-      const parsedIngredient = parseIngredientName(ingredient);
-
-      // Find match in inventory (fuzzy match by name)
-      const match = inventoryItems.find((item) => {
-        const inventoryName = (
-          item.ingredient?.display_name ||
-          item.ingredient?.name ||
-          ''
-        ).toLowerCase();
-
-        // Check if inventory item name contains parsed ingredient or vice versa
-        return inventoryName.includes(parsedIngredient) || parsedIngredient.includes(inventoryName);
-      });
-
-      return {
-        ingredient: ingredient,
-        hasIt: !!match,
-        inventoryItem: match
-          ? {
-              quantity: match.quantity,
-              unit: match.unit,
-              status: match.status,
-              ingredient_name: match.ingredient?.display_name || match.ingredient?.name || '',
-            }
-          : undefined,
-      };
-    });
-  }
-
-  /**
-   * Parse ingredient name from full ingredient string
-   * Removes amounts, numbers, units to extract core ingredient name
-   */
-  function parseIngredientName(ingredient: string): string {
-    // Convert to lowercase for matching
-    let parsed = ingredient.toLowerCase().trim();
-
-    // Remove common units (cups, tsp, tbsp, oz, lbs, etc.)
-    const units = [
-      'cup',
-      'cups',
-      'tablespoon',
-      'tablespoons',
-      'tbsp',
-      'teaspoon',
-      'teaspoons',
-      'tsp',
-      'ounce',
-      'ounces',
-      'oz',
-      'pound',
-      'pounds',
-      'lb',
-      'lbs',
-      'gram',
-      'grams',
-      'g',
-      'kilogram',
-      'kilograms',
-      'kg',
-      'milliliter',
-      'milliliters',
-      'ml',
-      'liter',
-      'liters',
-      'l',
-      'pinch',
-      'dash',
-      'handful',
-      'clove',
-      'cloves',
-      'can',
-      'cans',
-      'package',
-      'packages',
-      'piece',
-      'pieces',
-      'slice',
-      'slices',
-      'sprig',
-      'sprigs',
-      'stalk',
-      'stalks',
-    ];
-
-    const unitPattern = new RegExp(`\\b(${units.join('|')})\\b`, 'gi');
-    parsed = parsed.replace(unitPattern, '');
-
-    // Remove numbers and fractions (1, 2, 1/2, 3.5, etc.)
-    parsed = parsed.replace(/\b\d+\/\d+|\b\d+\.?\d*\b/g, '');
-
-    // Remove common descriptors
-    const descriptors = [
-      'fresh',
-      'dried',
-      'frozen',
-      'canned',
-      'organic',
-      'chopped',
-      'diced',
-      'sliced',
-      'minced',
-      'grated',
-      'shredded',
-      'crushed',
-      'whole',
-      'ground',
-      'raw',
-      'cooked',
-      'large',
-      'small',
-      'medium',
-      'extra',
-      'fine',
-      'finely',
-      'roughly',
-      'thinly',
-      'thickly',
-      'boneless',
-      'skinless',
-      'peeled',
-      'unpeeled',
-      'ripe',
-      'green',
-    ];
-
-    const descriptorPattern = new RegExp(`\\b(${descriptors.join('|')})\\b`, 'gi');
-    parsed = parsed.replace(descriptorPattern, '');
-
-    // Remove special characters and extra spaces
-    parsed = parsed.replace(/[,()[\]]/g, ' ');
-    parsed = parsed.replace(/\s+/g, ' ').trim();
-
-    // Return the first significant word group (usually the core ingredient)
-    const words = parsed.split(' ').filter(Boolean);
-    return words.length > 0 ? words.join(' ') : ingredient.toLowerCase();
-  }
+    // The matcher is module-scope, so it is not a dep. As a component-body
+    // function it changed every render and looped getUserInventory POSTs.
+  }, [isSignedIn, userId, ingredients]);
 
   // Calculate match statistics
   const haveCount = matches.filter((m) => m.hasIt).length;

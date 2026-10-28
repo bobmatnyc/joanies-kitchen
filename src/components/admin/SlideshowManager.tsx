@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronUp, Edit, Eye, EyeOff, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   deletePhoto,
   getAllPhotosAdmin,
@@ -36,11 +36,9 @@ export function SlideshowManager() {
   const [editingPhoto, setEditingPhoto] = useState<SlideshowPhoto | null>(null);
   const [editCaption, setEditCaption] = useState('');
 
-  useEffect(() => {
-    loadPhotos();
-  }, [loadPhotos]);
-
-  async function loadPhotos() {
+  // No deps: the loader reads only state setters. An unmemoized loader re-ran
+  // the mount effect on every render and looped server-action POSTs.
+  const loadPhotos = useCallback(async () => {
     try {
       const data = await getAllPhotosAdmin();
       setPhotos(data);
@@ -49,7 +47,11 @@ export function SlideshowManager() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadPhotos();
+  }, [loadPhotos]);
 
   async function handleToggleActive(photo: SlideshowPhoto) {
     try {
