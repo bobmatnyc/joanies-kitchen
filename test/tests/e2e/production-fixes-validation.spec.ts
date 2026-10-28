@@ -29,7 +29,7 @@ test.describe('Production Fixes Validation - localhost:3005', () => {
       await page.waitForLoadState('networkidle');
 
       // Look for AlphaStamp component with beta launch date
-      const alphaStamp = await page.locator('text=/BETA LAUNCH 11\\/16/i').first();
+      const alphaStamp = await page.locator('text=/BETA LAUNCH 2\\/1\\/27/i').first();
       await expect(alphaStamp).toBeVisible({ timeout: 10000 });
 
       // Take screenshot as evidence
