@@ -1,177 +1,123 @@
 # Joanie's Kitchen Roadmap
 
-**Last Updated:** March 29, 2026
-**Current Status:** 🟢 **LAUNCHED** (October 27, 2025)
-**Go-Live Date:** 🎯 **June 1, 2026**
-**Current Version:** v0.7.11
+**Launch date: Friday 2027-01-01.**
+**Last updated:** 2026-10-28
 
----
+This is the roadmap of record. Older roadmaps are in [docs/archive/roadmap-2025](docs/archive/roadmap-2025/).
 
-## 🎯 Project Vision
+Joanie's Kitchen helps people waste less food by cooking with what they already have.
 
-Joanie's Kitchen helps people waste less food by making it easy to cook with what they already have. Inspired by Joanie Zisk's philosophy of resourcefulness and zero-waste cooking, we're building technology that serves people and the planet—not consumption.
+## Values filter
 
-**Core Mission:** Stop food waste. Start cooking with what you have.
-
----
-
-## ✅ What We've Built (Launch v1.0)
-
-### Phase 1-2: Core Waste Reduction Tools
-**Completed:** October 2025
-
-Built the foundation for zero-waste cooking:
-- **"What's in Your Fridge?"** feature - Enter your ingredients, find recipes you can make right now
-- **Smart Recipe Matching** - See what you have vs. what you need for every recipe
-- **Ingredient Substitutions** - Get suggestions when you're missing ingredients
-- **Recipe Enhancement** - All recipes now show resourcefulness scores and waste-reduction tips
-
-### Phase 3-4: Content & Navigation
-**Completed:** October 2025
-
-Created educational content and intuitive navigation:
-- **4 Rescue Ingredient Guides** - Save wilting greens, aging vegetables, leftover proteins, and excess herbs
-- **4 Learning Guides** - Zero-waste kitchen basics, substitution guide, stock from scraps, FIFO management
-- **Zero-Waste Recipe Collection** - Curated recipes that align with our philosophy
-- **Redesigned Navigation** - Organized around waste reduction, not luxury consumption
-
-### Phase 5-6: Database & Polish
-**Completed:** October 2025
-
-Enriched content and prepared for launch:
-- **4,644 Recipes** - All scored for resourcefulness and tagged with waste-reduction metadata
-- **495 Ingredient Pages** - Browse ingredients with storage tips, substitutions, and related recipes
-- **Performance Optimized** - Lightning-fast search (<200ms) and page loads
-- **SEO Foundation** - 5,159+ pages indexed with comprehensive meta data
-- **Expert Content System** - Infrastructure for Joanie's personal chef notes
-
----
-
-## 🎯 Go-Live Milestone
-
-### Full Production Launch - June 1, 2026
-**Target Date:** June 1, 2026
-**Status:** In Preparation
-
-Transition from beta/soft launch to full production release:
-- Complete Phase 7 implementation
-- Production infrastructure scaling
-- Marketing and outreach campaign
-- Performance monitoring and optimization
-- Community growth initiatives
-
----
-
-## 🚧 Current Focus
-
-### Phase 7: User Engagement & Community
-**Timeline:** November 2025 - May 2026
-**Status:** In Progress (v0.7.11)
-
-**Completed in Phase 7 so far:**
-- Type-safe REST API v1 with full coverage
-- Type transformation layer (DB→FE consistency)
-- Security hardening (API key hygiene)
-- Comprehensive REST API integration test suite
-- Autonomous recipe & chef scraper (daily recipe acquisition pipeline)
-
-Making Joanie's Kitchen personal and interactive:
-
-**User Accounts & Profiles**
-- Create an account and save your favorite recipes
-- Track your cooking history and activity
-- Customize your preferences and dietary needs
-
-**Recipe Interactions**
-- Like and save recipes to your personal collection
-- Comment and share your cooking experiences
-- Rate recipes to help others discover the best ones
-- Flag inappropriate content to keep our community healthy
-
-**User-Generated Content**
-- Upload your own zero-waste recipes
-- Share recipe variations you've tried
-- Add photos of your finished dishes
-- Contribute to our growing recipe database
-
-**Shopping Lists**
-- Generate shopping lists from any recipe
-- Add or remove items as needed
-- Check off items as you shop
-- Share lists with family and friends
-
-**Community Building**
-- Follow other zero-waste cooking enthusiasts
-- Share waste-reduction tips and techniques
-- Join challenges to reduce food waste together
-- Earn recognition for contributions
-
----
-
-## 🔮 Future Vision
-
-### V1.1: Persistence & Intelligence (December 2025)
-Making your fridge data work for you:
-- **Persistent Fridge Inventory** - Save your ingredients across sessions and devices
-- **Expiration Tracking** - Get alerts when ingredients are about to go bad
-- **Waste Impact Dashboard** - See how much food and money you've saved
-- **Community Substitutions** - Share and discover substitutions that actually work
-
-### V1.2: AI Enhancement & Planning (January 2026)
-Smarter tools for less waste:
-- **Photo Recognition** - Snap a picture of your fridge to auto-detect ingredients
-- **Advanced Substitutions** - AI-powered suggestions that understand allergies and dietary needs
-- **Meal Planning** - Weekly meal plans optimized to use what you have
-- **Social Challenges** - Challenge friends to reduce waste together
-
-### V1.3+: Ecosystem & Impact (February 2026+)
-Building a zero-waste movement:
-- **Garden Integration** - Track harvests and get recipes for seasonal abundance
-- **Seasonal Produce Guides** - Know what's in season in your region
-- **Community Recipe Contributions** - A curated library of user-submitted zero-waste recipes
-- **Environmental Impact Tracking** - See the carbon, water, and waste impact of your cooking choices
-
----
-
-## 📊 By The Numbers
-
-**Launch Metrics (October 2025):**
-- 4,644 recipes with resourcefulness scores
-- 495 ingredients with detailed information
-- 99.9% ingredient extraction coverage
-- <200ms search performance
-- 10/10 performance score
-- 5,159+ indexed pages
-
-**What's Next:**
-- User accounts and authentication
-- Recipe saving and interaction features
-- Shopping list generation
-- Community engagement tools
-
----
-
-## 💡 Our Philosophy
-
-Every feature we build asks these questions:
-1. Does this help users waste less food?
-2. Does this promote cooking with what you have?
+Before we build a feature, we ask:
+1. Does it help people waste less food?
+2. Does it promote cooking with what you have?
 3. Would Joanie approve?
-4. Does this serve resourcefulness or consumption?
+4. Does it serve resourcefulness, not consumption?
 
-If the answer is no to any question, we don't build it.
+If the answer to any of these is no, we do not build it.
 
----
+## Tracking
 
-## 🔗 Learn More
+Work is tracked on the GitHub milestones M0 to M3, and issues carry the `launch` label. The milestone due dates below are the dates of record.
 
-- **About Joanie's Philosophy:** [/philosophy](/philosophy)
-- **How It Works:** [/how-it-works](/how-it-works)
-- **Zero-Waste Kitchen Guide:** [/learn/zero-waste-kitchen](/learn/zero-waste-kitchen)
+## Schedule
 
----
+| Milestone | Due | Theme |
+|-----------|-----|-------|
+| M0 | Fri 2026-11-06 | Foundation, legal and hygiene |
+| M1 | Fri 2026-11-20 | Core user loop, safe to open (held, see below) |
+| M2 | Fri 2026-12-04 | Buffer, plus zero-waste features |
+| M3 | Fri 2026-12-18 | Launch readiness |
+| Freeze | 2026-12-19 to 2026-12-31 | Bug fixes only |
+| Launch | Fri 2027-01-01 | Go live |
 
-**Joanie's Kitchen is a living project.** We're constantly learning, improving, and finding new ways to help people waste less food. This roadmap reflects our current thinking and priorities—things may change as we learn from our users and the real-world impact of our work.
+### M0: Foundation, legal and hygiene (due 2026-11-06)
 
-**Last Review:** March 29, 2026
-**Next Review:** June 1, 2026 (Go-Live milestone)
+- Launch date corrected in the repo and on the site (the AlphaStamp component and its e2e test).
+- Privacy policy and terms of service, linked from the footer and `/sign-in`.
+- Google OAuth consent screen: privacy and terms URLs, "In production", submitted for Google verification. Verification can take weeks, so it starts here.
+- A published support contact, also linked on the consent screen.
+- A staging environment: its own Neon branch, `AUTH_*` variables and Google redirect URIs.
+- CI on every PR (`tsc`, `vitest`, lint), with branch protection on main.
+- Test debt: fix the 4 failing tests on main. Take the 56 `tsc` errors to 0, or add a ratchet that blocks new ones.
+- Schema drift (#7, #9): one baseline migration that matches production, and a decision on the `*_backup_*` tables.
+- #17: rate-limit public semantic search and skip rerank for anonymous users.
+- Clerk wrap-up: verify and close #22 and #21, remove the `CLERK_*` Vercel variables, and fix Clerk references in current docs.
+- Remove the dead pm2 `recipe-scraper` and `scraper:*` scripts.
+
+### M1: Core user loop, safe to open (due 2026-11-20)
+
+**Held.** M1 build work waits for the owner's registration decision. Auth.js (#22) admits only pre-seeded users and the emails in `AUTH_ADMIN_EMAILS`. The options are:
+- (a) open Google sign-up to anyone;
+- (b) an invite list or waitlist;
+- (c) read-only launch: public browsing, accounts by invite.
+
+Before registration opens:
+- Error monitoring and alerting for server and client errors.
+- A Neon backup and restore drill, with the restore time recorded.
+- Account deletion and data export (JSON).
+- Content reporting, with an admin queue in `/admin` (hide, restore, ban).
+
+The core loop:
+- Sign-up, implemented to the chosen model. Clean up `/registration-closed`, `/sign-up` and `/user-profile`.
+- #2: home page images, smart substitutions and "recipes like this" fixed or confirmed fixed.
+- Profiles, favorites, collections, ratings, comments and sharing verified end to end as a signed-in Google user.
+- A shopping list page that goes from a meal to a list. Only the API exists today.
+- Finish the plan-a-week flow in `/meals`.
+
+### M2: Buffer, plus zero-waste features (due 2026-12-04)
+
+M2 is the schedule buffer. If M0 or M1 slips, cut from the list below in this order. Whatever is cut moves to "After launch".
+
+Required:
+- Recipe attribution and takedown: crawled recipes show source and author and link to the original. A published takedown process, with an admin action that removes a recipe and blocks its source URL from re-crawl.
+- Crawler alerts (the deferred S5 of #6): email or Slack on a budget breach or failed runs.
+
+Cut list, first cut first:
+1. Waste-impact dashboard (saved and used).
+2. Expiry alerts (use-first notifications).
+3. Persistent fridge and inventory, saved per user.
+4. Fix for the `triggerManualCrawl` double-start race (low risk, since runs are budget-capped).
+
+### M3: Launch readiness (due 2026-12-18)
+
+- Content: set the recipe count and quality bar, and audit recipe, ingredient and chef pages.
+- Performance: Core Web Vitals on home, recipe, search, sign-in and fridge pages.
+- SEO: sitemap, metadata and OG images.
+- Accessibility: WCAG AA checks on the core flows only.
+- Load: a smoke test of the core flows at expected launch traffic.
+- Cost guard: a spend ceiling and alert for AI and crawl costs.
+- Uptime checks on `/` and the auth endpoints.
+- Staging rehearsal: deploy the launch build to staging, run the checklist, then promote to production.
+
+### Freeze (2026-12-19 to 2026-12-31)
+
+- Bug fixes only, each verified on staging before production.
+- A launch checklist (`GO_LIVE_PLAN.md`) with a rollback plan and named people on call.
+
+### Launch (Fri 2027-01-01)
+
+- Remove the AlphaStamp, or change it to "Launched".
+- Announcement.
+- Watch for 72 hours: error rate, sign-ups, spend and the support inbox.
+
+## Shipped so far
+
+- Phases 1-6 (October 2025): "What's in Your Fridge?" matching, ingredient substitutions, recipe resourcefulness scores, rescue-ingredient and learning guides, 4,644 recipes, 495 ingredient pages, search and SEO foundation.
+- Phase 7 groundwork: REST API v1, type-safe data layer, and an automated recipe and chef crawler.
+- Crawl spend monitoring and admin dashboard (#6).
+- Auth on paid routes (#11, #13).
+- Auth.js with Google sign-in, replacing Clerk (#22).
+
+## After launch
+
+Ideas from the old roadmap. None is scheduled.
+- Waste-impact dashboard, expiry alerts and persistent fridge, if cut from M2.
+- Community substitutions.
+- Photo recognition of fridge contents.
+- AI substitutions that account for allergies and diet.
+- Social challenges.
+- Garden integration and seasonal produce guides.
+- Community recipe contributions.
+- Environmental impact tracking.

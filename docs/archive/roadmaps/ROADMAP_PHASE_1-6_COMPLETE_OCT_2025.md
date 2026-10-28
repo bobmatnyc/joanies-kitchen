@@ -2,7 +2,7 @@
 # ⚠️ HISTORICAL REFERENCE - PHASE 1-6 COMPLETION (OCTOBER 2025)
 
 **This is an archived version of the roadmap documenting Phases 1-6 completion.**
-**For current roadmap, see `/ROADMAP.md` (public) or `/docs/roadmap/INTERNAL_ROADMAP.md` (internal).**
+**For current roadmap, see `/ROADMAP.md` (public) or `/docs/archive/roadmap-2025/INTERNAL_ROADMAP.md` (internal).**
 
 ---
 
@@ -838,7 +838,7 @@ If the answer is "no" to any - reconsider or modify the approach.
 ## 🔗 Related Documentation
 
 - **Project Overview:** `/README.md`
-- **Pivot Documentation:** `/docs/roadmap/ROADMAP_PIVOT.md` (original plan)
+- **Pivot Documentation:** `/docs/archive/roadmap-2025/ROADMAP_PIVOT.md` (original plan)
 - **Project Organization:** `/docs/reference/PROJECT_ORGANIZATION.md`
 - **Authentication Guide:** `/docs/guides/AUTHENTICATION_GUIDE.md`
 - **Environment Setup:** `/docs/guides/ENVIRONMENT_SETUP.md`
@@ -849,7 +849,7 @@ If the answer is "no" to any - reconsider or modify the approach.
 ## 📞 Support & Questions
 
 For questions about this roadmap or the zero-waste transformation:
-- Review `/docs/roadmap/ROADMAP_PIVOT.md` for detailed task breakdowns
+- Review `/docs/archive/roadmap-2025/ROADMAP_PIVOT.md` for detailed task breakdowns
 - Check `/CLAUDE.md` for project context and instructions
 - Refer to git commit history for implementation details
 

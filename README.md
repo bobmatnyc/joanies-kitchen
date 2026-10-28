@@ -8,7 +8,7 @@ An AI-powered seasonal recipe collection and meal planning application celebrati
 
 > Note: `recipes.help` is a deprecated, dead domain. The canonical production URL is `https://joanies.kitchen` (www redirects to apex).
 
-**🎯 Go-Live Date: June 1, 2026**
+**🎯 Go-Live Date: January 1, 2027**
 
 ---
 

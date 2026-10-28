@@ -134,7 +134,7 @@ For current, active documentation, see:
 
 ### Planning
 - **`/ROADMAP.md`** - Current project roadmap
-- **`/docs/roadmap/`** - Detailed roadmap documentation
+- **`/ROADMAP.md`** - Roadmap of record. Older roadmaps: `docs/archive/roadmap-2025/`
 - **`/docs/post-launch/`** - Post-launch plans
 
 ### Issues

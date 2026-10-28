@@ -1,3 +1,5 @@
+> Superseded by /ROADMAP.md (2026-10-28)
+
 # Joanie's Kitchen Roadmap
 
 **Last Updated:** October 29, 2025
