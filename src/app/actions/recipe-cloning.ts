@@ -2,10 +2,15 @@
 
 import { randomUUID } from 'node:crypto';
 import { auth } from '@/lib/auth';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
+import {
+  canViewRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { addFavorite } from './favorites';
@@ -46,7 +51,8 @@ interface CloneRecipeOptions {
  */
 export async function cloneRecipe(originalRecipeId: string, modifications?: CloneRecipeOptions) {
   try {
-    const { userId } = await auth();
+    const viewer = await getRecipeViewer();
+    const { userId } = viewer;
 
     if (!userId) {
       return { success: false, error: 'Please sign in to clone recipes' };
@@ -59,7 +65,8 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
       .where(eq(recipes.id, originalRecipeId))
       .limit(1);
 
-    if (!originalRecipe) {
+    // #32: cloning copies content; a recipe the caller may not read answers as nonexistent.
+    if (!originalRecipe || !canViewRecipe(originalRecipe, viewer)) {
       return { success: false, error: 'Original recipe not found' };
     }
 
@@ -161,9 +168,11 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
  */
 export async function getOriginalRecipe(recipeId: string): Promise<Recipe | null> {
   try {
+    // #32: both the fork and its original must be readable by the caller.
+    const viewer = await getRecipeViewer();
     const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
 
-    if (!recipe || !recipe.source) {
+    if (!recipe || !canViewRecipe(recipe, viewer) || !recipe.source) {
       return null;
     }
 
@@ -180,7 +189,7 @@ export async function getOriginalRecipe(recipeId: string): Promise<Recipe | null
       .where(eq(recipes.id, originalRecipeId))
       .limit(1);
 
-    return originalRecipe || null;
+    return originalRecipe && canViewRecipe(originalRecipe, viewer) ? originalRecipe : null;
   } catch (error) {
     console.error('Error fetching original recipe:', error);
     return null;
@@ -220,7 +229,13 @@ export async function getRecipeForks(recipeId: string): Promise<Recipe[]> {
     const forks = await db
       .select()
       .from(recipes)
-      .where(sql`${recipes.source} LIKE ${`%${recipeId}%`}`)
+      .where(
+        and(
+          sql`${recipes.source} LIKE ${`%${recipeId}%`}`,
+          // #32: forks are private by default; list only those the caller may read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(recipes.created_at);
 
     return forks;
@@ -241,7 +256,8 @@ export async function getForkStats(recipeId: string) {
         name: recipes.name,
       })
       .from(recipes)
-      .where(eq(recipes.id, recipeId))
+      // #32: a private recipe's name reaches only its owner or an admin.
+      .where(and(eq(recipes.id, recipeId), recipeVisibilityCondition(await getRecipeViewer())))
       .limit(1);
 
     return recipe || { forkCount: 0, name: 'Unknown' };

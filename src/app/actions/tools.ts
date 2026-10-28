@@ -3,6 +3,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipeTools, tools } from '@/lib/db/schema';
+import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export interface Tool {
@@ -380,10 +381,14 @@ export async function getToolBySlug(slug: string): Promise<{
         .select()
         .from(recipes)
         .where(
-          sql`${recipes.id} IN (${sql.join(
-            recipeIds.map((id) => sql`${id}`),
-            sql`, `
-          )})`
+          and(
+            sql`${recipes.id} IN (${sql.join(
+              recipeIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`,
+            // #32: link rows ignore visibility; show only recipes the caller may read.
+            recipeVisibilityCondition(await getRecipeViewer())
+          )
         )
         .orderBy(sql`${recipes.like_count} DESC`, sql`${recipes.system_rating} DESC`)
         .limit(12);

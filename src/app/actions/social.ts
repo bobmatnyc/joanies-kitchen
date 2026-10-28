@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ==================
@@ -202,7 +203,8 @@ export async function forkRecipe(
   originalRecipeId: string
 ): Promise<DataResult<typeof recipes.$inferSelect> | SuccessResult> {
   try {
-    const { userId } = await auth();
+    const viewer = await getRecipeViewer();
+    const { userId } = viewer;
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -215,7 +217,8 @@ export async function forkRecipe(
       .where(eq(recipes.id, originalRecipeId))
       .limit(1);
 
-    if (originalRecipe.length === 0) {
+    // #32: forking copies content; a recipe the caller may not read answers as nonexistent.
+    if (originalRecipe.length === 0 || !canViewRecipe(originalRecipe[0], viewer)) {
       return { success: false, error: 'Recipe not found' };
     }
 
@@ -310,7 +313,19 @@ export async function getOriginalRecipe(
       .where(eq(recipeForks.recipe_id, forkedRecipeId))
       .limit(1);
 
-    if (forkInfo.length === 0) {
+    // #32: both the fork and its original must be readable by the caller.
+    const viewer = await getRecipeViewer();
+    const [forked] = await db
+      .select({ is_public: recipes.is_public, user_id: recipes.user_id })
+      .from(recipes)
+      .where(eq(recipes.id, forkedRecipeId))
+      .limit(1);
+    if (
+      forkInfo.length === 0 ||
+      !forked ||
+      !canViewRecipe(forked, viewer) ||
+      !canViewRecipe(forkInfo[0].originalRecipe, viewer)
+    ) {
       return { success: true, data: null };
     }
 

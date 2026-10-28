@@ -51,7 +51,7 @@ import { ingredientService } from '@/lib/services';
  */
 export const GET = requireScopes(
   [SCOPES.READ_INGREDIENTS, SCOPES.READ_RECIPES],
-  async (request: NextRequest, _auth, context: RouteContext) => {
+  async (request: NextRequest, authContext, context: RouteContext) => {
     try {
       // Extract slug from route params
       const slugResult = await getRequiredParam(context, 'slug');
@@ -82,11 +82,16 @@ export const GET = requireScopes(
       const offset = (page - 1) * limit;
 
       // Fetch recipes using this ingredient
-      const recipes = await ingredientService.getRecipesUsingIngredient(ingredient.id, {
-        sortBy,
-        limit: limit + 1, // Fetch one extra to check if there are more
-        offset,
-      });
+      const recipes = await ingredientService.getRecipesUsingIngredient(
+        ingredient.id,
+        {
+          sortBy,
+          limit: limit + 1, // Fetch one extra to check if there are more
+          offset,
+        },
+        // #32: the caller sees public recipes plus their own private ones.
+        { userId: authContext.userId, isAdmin: false }
+      );
 
       // Check if there are more results
       const hasMore = recipes.length > limit;

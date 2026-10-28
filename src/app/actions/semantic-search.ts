@@ -12,6 +12,12 @@ import {
 import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
+import {
+  canViewRecipe,
+  getRecipeViewer,
+  recipeViewerScope,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { type RankingMode, rankRecipes } from '@/lib/search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -302,8 +308,23 @@ export async function findSimilarToRecipe(
   limit: number = 10
 ): Promise<SemanticSearchResult> {
   try {
-    // Generate cache key
-    const cacheKey = generateSimilarRecipesKey(recipeId, limit);
+    // #32: a private recipe is visible only to its owner or an admin.
+    const viewer = await getRecipeViewer();
+
+    // #32: a hidden source answers exactly like a nonexistent one, before any cache read or paid call.
+    const recipe = await db.query.recipes.findFirst({
+      where: eq(recipes.id, recipeId),
+    });
+    if (!recipe || !canViewRecipe(recipe, viewer)) {
+      return {
+        success: false,
+        recipes: [],
+        error: 'Recipe not found',
+      };
+    }
+
+    // #32: results depend on the caller, so the cache key does too.
+    const cacheKey = `${generateSimilarRecipesKey(recipeId, limit)}:${recipeViewerScope(viewer)}`;
 
     // Check cache
     const cached = searchCaches.similar.get<SemanticSearchResult>(cacheKey);
@@ -314,24 +335,15 @@ export async function findSimilarToRecipe(
       return cached;
     }
 
-    // Get the recipe's embedding
+    // Get the recipe's embedding, generating and saving it when missing
     const embedding = await getRecipeEmbedding(recipeId);
-
-    if (!embedding) {
-      // Generate embedding if missing
-      const recipe = await db.query.recipes.findFirst({
-        where: eq(recipes.id, recipeId),
-      });
-
-      if (!recipe) {
-        return {
-          success: false,
-          recipes: [],
-          error: 'Recipe not found',
-        };
-      }
-
-      // Generate and save embedding
+    let embeddingVector: number[];
+    if (embedding) {
+      embeddingVector =
+        typeof embedding.embedding === 'string'
+          ? JSON.parse(embedding.embedding)
+          : embedding.embedding;
+    } else {
       const embeddingResult = await generateRecipeEmbedding(recipe);
       const { saveRecipeEmbedding } = await import('@/lib/db/embeddings');
       await saveRecipeEmbedding(
@@ -340,64 +352,8 @@ export async function findSimilarToRecipe(
         embeddingResult.embeddingText,
         embeddingResult.modelName
       );
-
-      // Use the newly generated embedding
-      const embeddingVector = embeddingResult.embedding;
-      const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5);
-
-      // Get recipe details and exclude the original recipe
-      const recipeIds = similar.map((e) => e.recipe_id).filter((id) => id !== recipeId);
-
-      if (recipeIds.length === 0) {
-        return { success: true, recipes: [] };
-      }
-
-      const similarRecipes = await db
-        .select()
-        .from(recipes)
-        .where(inArray(recipes.id, recipeIds));
-
-      let recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
-        const sim = similar.find((s) => s.recipe_id === r.id);
-        return {
-          ...r,
-          similarity: sim?.similarity || 0,
-        };
-      });
-
-      // Semantic rerank with Jina Reranker v2 (graceful fallback on failure)
-      const rerankQuery = `${recipe.name}. ${recipe.description ?? ''}`.trim();
-      const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
-      if (rerankedIndices) {
-        recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
-      }
-
-      // Apply ranking (use semantic mode for similar recipes)
-      const rankedRecipes = rankRecipes(recipesWithSimilarity, {
-        mode: 'semantic', // Prioritize similarity for similar recipe recommendations
-      });
-
-      const finalRecipes = rankedRecipes.slice(0, limit);
-
-      const result = {
-        success: true,
-        recipes: finalRecipes,
-      };
-
-      // Store in cache
-      searchCaches.similar.set(cacheKey, result);
-      if (ENABLE_CACHE_STATS) {
-        console.log(`[Cache MISS] Similar recipes: ${recipeId}`);
-      }
-
-      return result;
+      embeddingVector = embeddingResult.embedding;
     }
-
-    // Use existing embedding
-    const embeddingVector =
-      typeof embedding.embedding === 'string'
-        ? JSON.parse(embedding.embedding)
-        : embedding.embedding;
 
     const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5);
 
@@ -408,10 +364,11 @@ export async function findSimilarToRecipe(
       return { success: true, recipes: [] };
     }
 
+    // #32: vector search ignores visibility; drop recipes the caller may not read.
     const similarRecipes = await db
       .select()
       .from(recipes)
-      .where(inArray(recipes.id, recipeIds));
+      .where(and(inArray(recipes.id, recipeIds), recipeVisibilityCondition(viewer)));
 
     let recipesWithSimilarity: RecipeWithSimilarity[] = similarRecipes.map((r) => {
       const sim = similar.find((s) => s.recipe_id === r.id);
@@ -422,16 +379,10 @@ export async function findSimilarToRecipe(
     });
 
     // Semantic rerank with Jina Reranker v2 (graceful fallback on failure)
-    const sourceRecipe = await db.query.recipes.findFirst({
-      where: eq(recipes.id, recipeId),
-      columns: { name: true, description: true },
-    });
-    if (sourceRecipe) {
-      const rerankQuery = `${sourceRecipe.name}. ${sourceRecipe.description ?? ''}`.trim();
-      const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
-      if (rerankedIndices) {
-        recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
-      }
+    const rerankQuery = `${recipe.name}. ${recipe.description ?? ''}`.trim();
+    const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
+    if (rerankedIndices) {
+      recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
     }
 
     // Apply ranking (use semantic mode for similar recipes)
