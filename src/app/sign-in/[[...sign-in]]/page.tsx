@@ -1,5 +1,7 @@
+import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/auth';
 import { isAuthConfigured } from '@/lib/auth-env';
 import { safeCallbackPath } from '@/lib/auth-routes';
 
@@ -19,6 +21,10 @@ export default async function SignInPage({
   const callbackUrl = safeCallbackPath(params.callbackUrl);
   const configured = isAuthConfigured();
 
+  // #22: Auth.js links a new OAuth login to whoever is already signed in, so a
+  // signed-in visitor must never start a second Google sign-in from here.
+  if ((await auth()).userId) redirect(callbackUrl);
+
   return (
     <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 text-center">
@@ -32,6 +38,8 @@ export default async function SignInPage({
           <form
             action={async () => {
               'use server';
+              // #22: re-check at submit time (the visitor may have signed in elsewhere).
+              if ((await auth()).userId) redirect(callbackUrl);
               await signIn('google', { redirectTo: callbackUrl });
             }}
           >

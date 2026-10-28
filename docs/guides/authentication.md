@@ -101,6 +101,14 @@ The new tables are inert if the deployment is rolled back, so the rollback SQL i
 pnpm auth:seed-user --id <old-clerk-user-id>    # email taken from AUTH_ADMIN_EMAILS
 ```
 
+**Recovery if the admin signed in before seeding.** The seed then fails on `users_email_unique`, because the email already belongs to the new UUID row. Delete that row (its `accounts` row is removed by the cascade), then re-run the seed and sign in again:
+
+```sql
+DELETE FROM users WHERE email = '<the admin email>' AND id <> '<old-clerk-user-id>';
+```
+
+Anything the user created while signed in under the UUID stays keyed to that UUID and is left unattached.
+
 ```bash
 pnpm auth:seed-user --id <users.id> [--email <google-email>] [--admin] [--dry-run]
 # or: make auth-seed-user ID=<users.id> EMAIL=<google-email> ADMIN=1

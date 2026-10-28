@@ -1,0 +1,79 @@
+/**
+ * #22: a signed-in visitor must not start a second Google sign-in, because
+ * Auth.js would link the new Google account to the current user.
+ */
+import type { ReactElement, ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  auth: vi.fn(),
+  signIn: vi.fn(),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
+}));
+
+vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/auth', () => ({ signIn: mocks.signIn }));
+vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
+
+import SignInPage from '@/app/sign-in/[[...sign-in]]/page';
+
+const SIGNED_OUT = { userId: null };
+const SIGNED_IN = { userId: 'user_a' };
+
+function render(callbackUrl?: string) {
+  return SignInPage({ searchParams: Promise.resolve(callbackUrl ? { callbackUrl } : {}) });
+}
+
+/** Depth-first search of the returned element tree for the <form>. */
+function findFormAction(node: ReactNode): (() => Promise<void>) | null {
+  if (!node || typeof node !== 'object') return null;
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findFormAction(child);
+      if (found) return found;
+    }
+    return null;
+  }
+  const el = node as ReactElement<{ action?: () => Promise<void>; children?: ReactNode }>;
+  if (el.type === 'form' && el.props.action) return el.props.action;
+  return findFormAction(el.props?.children);
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  vi.stubEnv('AUTH_SECRET', 's');
+  vi.stubEnv('AUTH_GOOGLE_ID', 'id');
+  vi.stubEnv('AUTH_GOOGLE_SECRET', 'secret');
+});
+
+describe('SignInPage', () => {
+  it('redirects a signed-in visitor to the safe callback path instead of offering sign-in', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_IN);
+    await expect(render('/favorites')).rejects.toThrow('NEXT_REDIRECT:/favorites');
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it('never redirects a signed-in visitor off-site', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_IN);
+    await expect(render('//evil.example')).rejects.toThrow('NEXT_REDIRECT:/');
+  });
+
+  it('refuses to start Google sign-in if the visitor signed in after the page loaded', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    const action = findFormAction(await render('/favorites'));
+    expect(action).not.toBeNull();
+    mocks.auth.mockResolvedValue(SIGNED_IN);
+    await expect(action?.()).rejects.toThrow('NEXT_REDIRECT:/favorites');
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it('starts Google sign-in for a signed-out visitor', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    const action = findFormAction(await render('/favorites'));
+    await action?.();
+    expect(mocks.signIn).toHaveBeenCalledWith('google', { redirectTo: '/favorites' });
+  });
+});

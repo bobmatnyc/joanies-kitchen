@@ -189,8 +189,7 @@ The application includes an admin dashboard for managing recipes and users.
 ### Documentation
 
 - **[Admin Setup Guide](./docs/guides/admin-setup.md)** (coming soon)
-- **Debug endpoint**: `http://localhost:3004/api/debug-session`
-- **Validation script**: `node scripts/validate-admin-setup.js`
+- **[Authentication guide](./docs/guides/authentication.md)** — admin emails (`AUTH_ADMIN_EMAILS`), seeding, and checking `/api/auth/session`
 
 ---
 
