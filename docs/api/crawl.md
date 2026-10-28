@@ -8,8 +8,9 @@ POST /api/crawl/weekly
 
 ## Authentication
 
-- **Localhost**: No authentication required
-- **Production**: Requires authentication (to be implemented)
+Admin session or `Authorization: Bearer <CRON_SECRET>`. Otherwise 401, or 403 for a
+signed-in non-admin (#13). The `Host` header is not trusted, so localhost calls need
+the bearer too.
 
 ## Request Body
 
@@ -57,6 +58,7 @@ POST /api/crawl/weekly
 ```bash
 curl -X POST http://localhost:3001/api/crawl/weekly \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $CRON_SECRET" \
   -d '{"weeksAgo": 0, "maxResults": 10}'
 ```
 
@@ -64,6 +66,7 @@ curl -X POST http://localhost:3001/api/crawl/weekly \
 ```bash
 curl -X POST http://localhost:3001/api/crawl/weekly \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $CRON_SECRET" \
   -d '{"weeksAgo": 1, "maxResults": 10, "cuisine": "Italian"}'
 ```
 
@@ -71,6 +74,7 @@ curl -X POST http://localhost:3001/api/crawl/weekly \
 ```bash
 curl -X POST http://localhost:3001/api/crawl/weekly \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $CRON_SECRET" \
   -d '{"weeksAgo": 2, "maxResults": 5, "autoApprove": true}'
 ```
 
@@ -78,7 +82,10 @@ curl -X POST http://localhost:3001/api/crawl/weekly \
 ```typescript
 const result = await fetch('http://localhost:3001/api/crawl/weekly', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.CRON_SECRET}`,
+  },
   body: JSON.stringify({
     weeksAgo: 0,
     maxResults: 10,
@@ -91,9 +98,11 @@ console.log(data);
 
 ### Python
 ```python
+import os
 import requests
 
-response = requests.post('http://localhost:3001/api/crawl/weekly', json={
+response = requests.post('http://localhost:3001/api/crawl/weekly',
+    headers={'Authorization': f"Bearer {os.environ['CRON_SECRET']}"}, json={
     'weeksAgo': 0,
     'maxResults': 10,
     'cuisine': 'Italian'
@@ -112,7 +121,7 @@ print(data)
 }
 ```
 
-### Unauthorized (Production)
+### Unauthorized
 ```json
 {
   "error": "Authentication required"

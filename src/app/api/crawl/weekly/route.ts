@@ -1,20 +1,13 @@
-import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
 import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { authorizeAdminOrCronSecret } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
+  // #13: paid crawl — admin session or CRON_SECRET bearer only; replaces the spoofable Host-header check.
+  const denied = await authorizeAdminOrCronSecret(request);
+  if (denied) return denied;
+
   try {
-    // Get host header
-    const headersList = await headers();
-    const host = headersList.get('host') || '';
-    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
-
-    // Skip auth for localhost
-    if (!isLocalhost) {
-      // For production, add auth check here
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
     // Parse request body
     const body = await request.json();
     const { weeksAgo = 0, cuisine, maxResults = 10, autoApprove = false } = body;
