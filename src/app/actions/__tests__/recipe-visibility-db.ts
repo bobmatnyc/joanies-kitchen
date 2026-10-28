@@ -10,10 +10,29 @@
  */
 
 import { PGlite } from '@electric-sql/pglite';
-import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core';
+import { is, SQL } from 'drizzle-orm';
+import { getTableConfig, PgDialect, type PgColumn, type PgTable } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/pglite';
 
-export async function createVisibilityDb(tables: PgTable[], schema: Record<string, unknown>) {
+/** #43: DEFAULT clause for a static or SQL-expression column default; '' when none. */
+function defaultClause(column: PgColumn): string {
+  const value = column.default as unknown;
+  if (!column.hasDefault || value === undefined || value === null) return '';
+  if (is(value, SQL)) return ` DEFAULT ${new PgDialect().sqlToQuery(value).sql}`;
+  if (typeof value === 'string') return ` DEFAULT '${value.replace(/'/g, "''")}'`;
+  if (typeof value === 'number' || typeof value === 'boolean') return ` DEFAULT ${value}`;
+  return '';
+}
+
+/**
+ * `constraints: true` (#43) also emits NOT NULL, PRIMARY KEY, DEFAULT and UNIQUE
+ * constraints. Off by default so existing tests keep their constraint-free tables.
+ */
+export async function createVisibilityDb(
+  tables: PgTable[],
+  schema: Record<string, unknown>,
+  options: { constraints?: boolean } = {}
+) {
   const client = new PGlite();
   const enums = new Set<string>();
   for (const table of tables) {
@@ -27,7 +46,18 @@ export async function createVisibilityDb(tables: PgTable[], schema: Record<strin
         await client.exec(`CREATE TYPE "${pgEnum.enumName}" AS ENUM (${values});`);
       }
     }
-    const columns = config.columns.map((c) => `"${c.name}" ${c.getSQLType()}`).join(', ');
+    const defs = config.columns.map((c) => {
+      const base = `"${c.name}" ${c.getSQLType()}`;
+      if (!options.constraints) return base;
+      return `${base}${c.primary ? ' PRIMARY KEY' : c.notNull ? ' NOT NULL' : ''}${defaultClause(c)}`;
+    });
+    if (options.constraints) {
+      for (const u of config.uniqueConstraints) {
+        const cols = u.columns.map((c) => `"${c.name}"`).join(', ');
+        defs.push(`CONSTRAINT "${u.name}" UNIQUE (${cols})`);
+      }
+    }
+    const columns = defs.join(', ');
     await client.exec(`CREATE TABLE "${config.name}" (${columns});`);
   }
   return { client, db: drizzle(client, { schema }) };
