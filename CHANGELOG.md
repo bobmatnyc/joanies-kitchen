@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **api**: POST `/api/recipes/scrape` requires an admin session or `Authorization: Bearer <CRON_SECRET>`; other callers get 401 (403 for a signed-in non-admin) before any crawl starts. `test/scripts/standalone-scraper.ts` sends the bearer and exits if `CRON_SECRET` is unset (#11)
 - **api**: POST `/api/batch-import-small`, `/api/batch-import-single` and `/api/crawl/weekly` require an admin session or `Authorization: Bearer <CRON_SECRET>`; `/api/crawl/weekly` no longer trusts a `localhost` `Host` header. The unused `/api/batch-import` route is removed. `test/scripts/batch-import-*.sh` and `test/scripts/test-crawl.ts` send the bearer and exit if `CRON_SECRET` is unset (#13)
 - **actions**: the `crawlWeeklyRecipes`, `crawlAndStoreRecipes` and `convertUrlToRecipe` server actions require an admin and throw `Admin access required` before any paid call. `searchRecipesOnline`, `storeRecipe` and `validateRecipe` are no longer client-callable actions. The crawl pipeline moves to `src/lib/recipe-crawl.ts` for routes, cron and scripts. The unguarded `/test-crawl` page is removed; use `/admin/crawl` (#13)
+- **actions**: `searchWebRecipes` and `parseRecipeFromUrl` return an `Authentication required` error to a signed-out caller before any OpenRouter call; their only UI, `/discover`, already requires sign-in. The unused `estimateRecipePrice` action is removed (#13)
 
 ## [0.7.12] - 2026-04-11
 

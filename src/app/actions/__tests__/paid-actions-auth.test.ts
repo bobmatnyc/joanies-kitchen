@@ -41,8 +41,10 @@ vi.mock('@/lib/db', () => ({
   db: { insert: mocks.dbWrite, update: mocks.dbWrite, delete: mocks.dbWrite },
 }));
 vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: mocks.dbWrite }));
+vi.mock('@/app/actions/recipes', () => ({ createRecipe: mocks.dbWrite }));
 
 import * as crawlActions from '@/app/actions/recipe-crawl';
+import * as searchActions from '@/app/actions/recipe-search';
 
 const ROOT = path.resolve(__dirname, '../../../..');
 const fetchSpy = vi.fn();
@@ -147,6 +149,50 @@ describe('internal-only crawl steps', () => {
       expect(name in crawlActions).toBe(false);
     }
   );
+});
+
+interface SignedInAction {
+  name: string;
+  run: () => Promise<{ success: boolean; error?: string }>;
+}
+
+const SIGNED_IN_ACTIONS: SignedInAction[] = [
+  { name: 'searchWebRecipes', run: () => searchActions.searchWebRecipes({ query: 'pad thai' }) },
+  {
+    name: 'parseRecipeFromUrl',
+    run: () => searchActions.parseRecipeFromUrl('https://example.com/recipe'),
+  },
+];
+
+describe.each(SIGNED_IN_ACTIONS)('$name (signed-in action)', (action) => {
+  it('returns an auth error to a signed-out caller and does no paid work', async () => {
+    signedOut();
+    const result = await action.run();
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Authentication required/);
+    expectNoPaidWork();
+  });
+
+  it('returns an error and does no paid work when the auth check throws', async () => {
+    mocks.auth.mockRejectedValue(new Error('clerk unavailable'));
+    const result = await action.run();
+    expect(result.success).toBe(false);
+    expectNoPaidWork();
+  });
+
+  it('runs for any signed-in user', async () => {
+    signedIn(undefined);
+    await action.run();
+    expect(mocks.llmCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('estimateRecipePrice', () => {
+  it('is removed: no caller exists, so it is not a client-callable action', async () => {
+    vi.doMock('@/app/actions/semantic-search', () => ({ semanticSearchRecipes: vi.fn() }));
+    const mealActions = await import('@/app/actions/meal-suggestions');
+    expect('estimateRecipePrice' in mealActions).toBe(false);
+  });
 });
 
 // Resolved at run time so this file still loads on a commit without the module.

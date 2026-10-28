@@ -1,6 +1,5 @@
 'use server';
 
-import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { deduplicateAcrossCourses } from '@/lib/meals/recipe-classification';
 import { type RecipeWithSimilarity, semanticSearchRecipes } from './semantic-search';
 
@@ -545,63 +544,5 @@ function parseTags(tagsJson: string | null): string[] {
     return JSON.parse(tagsJson) as string[];
   } catch {
     return [];
-  }
-}
-
-// ============================================================================
-// LLM-Powered Price Estimation (Advanced Feature)
-// ============================================================================
-
-export async function estimateRecipePrice(
-  _recipeId: string,
-  ingredients: string[]
-): Promise<{
-  success: boolean;
-  estimatedCost?: number;
-  breakdown?: Record<string, number>;
-  error?: string;
-}> {
-  try {
-    const client = getOpenRouterClient();
-
-    const prompt = `Estimate the total cost of these ingredients for a recipe. Provide prices in USD.
-
-Ingredients:
-${ingredients.map((ing, i) => `${i + 1}. ${ing}`).join('\n')}
-
-Respond in this JSON format:
-{
-  "total_cost": 25.50,
-  "breakdown": {
-    "ingredient_name": price_in_dollars
-  }
-}`;
-
-    const completion = await client.chat.completions.create({
-      model: 'google/gemini-2.0-flash-exp:free',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that estimates grocery prices accurately.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-    });
-
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      return { success: false, error: 'No response from AI' };
-    }
-
-    const result = JSON.parse(content);
-    return {
-      success: true,
-      estimatedCost: result.total_cost,
-      breakdown: result.breakdown,
-    };
-  } catch (error) {
-    console.error('Failed to estimate recipe price:', error);
-    return { success: false, error: 'Failed to estimate price' };
   }
 }
