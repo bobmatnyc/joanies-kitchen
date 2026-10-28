@@ -27,6 +27,9 @@ describe('toRecipeInt', () => {
     ['4 to 6', 4],
     ['8-12', 8],
     ['8 to 12', 8],
+    ['4 - 6', 4],
+    // a minus only negates when it touches the digits
+    ['Prep - 30 min', 30],
     // a unit keeps its leading quantity
     ['3 quarts', 3],
     ['Serves 4', 4],

@@ -16,6 +16,7 @@ import { chefs } from '@/lib/db/chef-schema';
 import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 /**
@@ -191,9 +192,10 @@ export async function saveIngestedRecipe(recipeData: {
       description: recipeData.description,
       ingredients: serializeIngredients(recipeData.ingredients),
       instructions: serializeInstructions(recipeData.instructions),
-      prep_time: recipeData.prep_time,
-      cook_time: recipeData.cook_time,
-      servings: recipeData.servings,
+      // #12: server-action input is client-controlled; write an integer or null.
+      prep_time: toRecipeInt(recipeData.prep_time),
+      cook_time: toRecipeInt(recipeData.cook_time),
+      servings: toRecipeInt(recipeData.servings),
       difficulty: recipeData.difficulty,
       cuisine: recipeData.cuisine,
       tags: serializeTags(recipeData.tags),

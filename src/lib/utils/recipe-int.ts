@@ -26,9 +26,9 @@ export function toRecipeInt(value: unknown): number | null {
   if (typeof value === 'number') {
     n = value;
   } else if (typeof value === 'string') {
-    // A leading minus counts only when it sits directly on the first number,
-    // so the range separator in "8-12" never makes 12 negative.
-    const match = value.match(/(-?)\s*(\d+(?:\.\d+)?)/);
+    // #12: a minus counts only when it touches the digits, so "Prep - 30 min" → 30.
+    // A range "8-12" is safe: the scan stops at 8 before reaching "-12".
+    const match = value.match(/(-?)(\d+(?:\.\d+)?)/);
     if (!match) return null;
     n = Number(`${match[1]}${match[2]}`);
   } else {

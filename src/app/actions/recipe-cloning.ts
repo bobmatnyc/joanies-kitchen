@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { addFavorite } from './favorites';
 
 /**
@@ -89,9 +90,10 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
       // Copy metadata (with optional modifications)
       difficulty: modifications?.difficulty || originalRecipe.difficulty,
       cuisine: modifications?.cuisine || originalRecipe.cuisine,
-      prep_time: modifications?.prepTime ?? originalRecipe.prep_time,
-      cook_time: modifications?.cookTime ?? originalRecipe.cook_time,
-      servings: modifications?.servings ?? originalRecipe.servings,
+      // #12: modifications come from the client; an invalid value keeps the original.
+      prep_time: toRecipeInt(modifications?.prepTime) ?? originalRecipe.prep_time,
+      cook_time: toRecipeInt(modifications?.cookTime) ?? originalRecipe.cook_time,
+      servings: toRecipeInt(modifications?.servings) ?? originalRecipe.servings,
       nutrition_info: modifications?.nutritionInfo || originalRecipe.nutrition_info,
 
       // Attribution: Store reference to original

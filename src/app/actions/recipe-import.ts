@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth-guard';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
 
 /**
@@ -36,9 +37,10 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
         chef_id: null,
         name: parsedRecipe.title,
         description: parsedRecipe.description,
-        prep_time: parsedRecipe.prepTime,
-        cook_time: parsedRecipe.cookTime,
-        servings: parsedRecipe.servings,
+        // #12: markdown frontmatter is untyped at runtime ("4 to 6" passes the type).
+        prep_time: toRecipeInt(parsedRecipe.prepTime),
+        cook_time: toRecipeInt(parsedRecipe.cookTime),
+        servings: toRecipeInt(parsedRecipe.servings),
         difficulty: parsedRecipe.difficulty as 'easy' | 'medium' | 'hard' | undefined,
         cuisine: parsedRecipe.cuisine,
         image_url: parsedRecipe.imageUrl,
