@@ -1,4 +1,9 @@
 // #72: unit tests for ratchet.mjs.
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { compare, formatBaseline, parseBaseline, parseBiome, parseTsc } from './ratchet.mjs';
 
@@ -71,4 +76,42 @@ describe('parsing', () => {
     const t = 'a:TS1 3\nb:TS2 1\n';
     expect(formatBaseline(parseBaseline(t))).toBe(t);
   });
+});
+
+describe('biome fatal', () => {
+  it('fails on a fatal diagnostic', () => {
+    const t = JSON.stringify({
+      summary: { errors: 1 },
+      diagnostics: [
+        { category: 'lint/r', severity: 'error', location: { path: { file: 'a.ts' } } },
+        { category: 'parse', severity: 'fatal', location: { path: { file: 'b.ts' } } },
+      ],
+    });
+    expect(parseBiome(t, 1).failure).toMatch(/fatal/);
+  });
+});
+
+describe('CLI', () => {
+  const script = join(dirname(fileURLToPath(import.meta.url)), 'ratchet.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'ratchet-'));
+  const w = (n, c) => {
+    const f = join(dir, n);
+    writeFileSync(f, c);
+    return f;
+  };
+  const run = (...args) => {
+    try {
+      execFileSync('node', [script, 'check', ...args], { stdio: 'pipe' });
+      return 0;
+    } catch (e) {
+      return e.status;
+    }
+  };
+  const log = w('t.log', 'a.ts(1,1): error TS1: x\n');
+  const bl = w('bl.txt', 'a.ts:TS1 1\n');
+  it('passes cleanly', () => expect(run('tsc', log, '2', bl)).toBe(0));
+  it('fails on a new key', () => expect(run('tsc', log, '2', w('bl2.txt', 'z.ts:TS9 1\n'))).toBe(1));
+  it('fails on a missing baseline', () => expect(run('tsc', log, '2', join(dir, 'nope.txt'))).toBe(1));
+  it('fails on a crash rc', () => expect(run('tsc', w('e.log', ''), '137', bl)).toBe(1));
+  it('fails on an empty rc argument', () => expect(run('tsc', log, '', bl)).toBe(1));
 });

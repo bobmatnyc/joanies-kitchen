@@ -52,6 +52,9 @@ export function parseBiome(text, rc) {
   if (!j || !Array.isArray(j.diagnostics) || !j.summary || !Number.isInteger(j.summary.errors)) {
     return { failure: 'biome JSON lacks diagnostics[] / summary.errors' };
   }
+  // #72: a fatal diagnostic is counted in no summary field, so it must fail outright.
+  const fatal = j.diagnostics.find((x) => x.severity === 'fatal');
+  if (fatal) return { failure: `biome reported a fatal diagnostic (${fatal.category ?? 'unknown'}); not ratcheted` };
   const keys = [];
   for (const d of j.diagnostics.filter((x) => x.severity === 'error')) {
     const file = d.location?.path?.file;
@@ -108,6 +111,10 @@ function run(argv) {
   if (!parse || (mode !== 'check' && mode !== 'generate') || (mode === 'check' && !baselineFile)) {
     console.error('usage: ratchet.mjs check|generate tsc|biome <output-file> <exit-code> [baseline-file]');
     return 2;
+  }
+  if (!/^\d+$/.test(String(rcArg ?? ''))) {
+    console.log(`::error::${tool}: exit code argument must be an integer, got ${JSON.stringify(rcArg)}`);
+    return 1;
   }
   let parsed;
   try {
