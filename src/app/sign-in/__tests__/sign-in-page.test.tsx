@@ -70,6 +70,15 @@ describe('SignInPage', () => {
     expect(mocks.signIn).not.toHaveBeenCalled();
   });
 
+  it('links the Terms and Privacy Policy next to the Google button', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const html = renderToStaticMarkup(await render('/favorites'));
+    expect(html).toContain('By continuing you agree to the');
+    expect(html).toContain('href="/terms"');
+    expect(html).toContain('href="/privacy"');
+  });
+
   it('starts Google sign-in for a signed-out visitor', async () => {
     mocks.auth.mockResolvedValue(SIGNED_OUT);
     const action = findFormAction(await render('/favorites'));

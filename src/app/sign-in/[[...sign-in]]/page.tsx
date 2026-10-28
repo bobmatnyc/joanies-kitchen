@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,17 @@ export default async function SignInPage({
             <Button type="submit" size="lg" className="w-full">
               Continue with Google
             </Button>
+            <p className="mt-4 text-xs text-muted-foreground">
+              By continuing you agree to the{' '}
+              <Link href="/terms" className="underline">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </form>
         ) : (
           <p className="text-sm text-muted-foreground">
