@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const captured = vi.hoisted(() => ({
   queries: [] as { sql: string; params: unknown[] }[],
   rows: [] as unknown[][],
+  fail: false,
 }));
 
 vi.mock('@/lib/db', async () => {
@@ -16,6 +17,7 @@ vi.mock('@/lib/db', async () => {
   return {
     db: drizzle(async (sql, params) => {
       captured.queries.push({ sql, params });
+      if (captured.fail) throw new Error('connection refused');
       return { rows: captured.rows };
     }),
   };
@@ -25,6 +27,7 @@ import {
   LOCAL_STALE_RUN_CUTOFF_MS,
   reapedRunError,
   reapStaleDiscoveryRuns,
+  reapStaleDiscoveryRunsFailOpen,
   STALE_RUN_CUTOFF_MS,
 } from '@/lib/services/discovery-run-reaper';
 
@@ -33,6 +36,7 @@ const NOW = new Date('2026-10-28T06:00:00.000Z');
 beforeEach(() => {
   captured.queries = [];
   captured.rows = [];
+  captured.fail = false;
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 
@@ -111,5 +115,26 @@ describe('reapStaleDiscoveryRuns', () => {
     await expect(reapStaleDiscoveryRuns(0, NOW)).rejects.toThrow(RangeError);
     await expect(reapStaleDiscoveryRuns(Number.NaN, NOW)).rejects.toThrow(RangeError);
     expect(captured.queries).toHaveLength(0);
+  });
+});
+
+describe('reapStaleDiscoveryRunsFailOpen', () => {
+  it('resolves to 0 and logs under the caller prefix when the reap rejects', async () => {
+    captured.fail = true;
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await expect(reapStaleDiscoveryRunsFailOpen('[CrawlMonitor]')).resolves.toBe(0);
+
+    expect(captured.queries).toHaveLength(1);
+    expect(error).toHaveBeenCalledWith(
+      '[CrawlMonitor] Stale-run reaper failed; continuing:',
+      // Drizzle wraps the driver error; the original is its cause.
+      expect.objectContaining({ cause: expect.objectContaining({ message: 'connection refused' }) })
+    );
+  });
+
+  it('returns the reaped count when the reap succeeds', async () => {
+    captured.rows = [['run-a']];
+    await expect(reapStaleDiscoveryRunsFailOpen('[CrawlMonitor]')).resolves.toBe(1);
   });
 });
