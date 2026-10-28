@@ -1,8 +1,10 @@
 /**
  * #6 S2: POST /api/recipes/scrape caps maxResults and reports `tracked`.
+ * Calls are authorized with the CRON_SECRET bearer (#11); the auth guard
+ * itself is covered by paid-routes-auth.test.ts.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runRecordedWeeklyCrawl = vi.hoisted(() =>
   vi.fn(async () => ({
@@ -15,12 +17,26 @@ const runRecordedWeeklyCrawl = vi.hoisted(() =>
   }))
 );
 vi.mock('@/lib/services/recorded-weekly-crawl', () => ({ runRecordedWeeklyCrawl }));
+// No Clerk session in tests; the bearer path never reaches it.
+vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: null, sessionClaims: null })) }));
+
+const SECRET = 'test-secret';
+
+beforeEach(() => {
+  vi.stubEnv('CRON_SECRET', SECRET);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 import { POST } from '@/app/api/recipes/scrape/route';
 
 function post(body: unknown) {
   const req = new Request('http://localhost/api/recipes/scrape', {
     method: 'POST',
+    headers: { authorization: `Bearer ${SECRET}` },
     body: JSON.stringify(body),
   });
   return POST(req as unknown as Parameters<typeof POST>[0]);

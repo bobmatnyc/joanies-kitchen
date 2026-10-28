@@ -886,12 +886,19 @@ export async function crawlWeeklyRecipes(
     cuisine?: string;
     maxResults?: number;
     autoApprove?: boolean;
+    /**
+     * #6 S2: checked before each paid URL; returning false stops the week.
+     * Server-side callers only (e.g. the run budget in recorded-weekly-crawl).
+     */
+    shouldContinue?: () => boolean;
   }
 ): Promise<{
   success: boolean;
   weekInfo: WeekInfo;
   stats: CrawlStats;
   recipes: CrawlRecipeResult[];
+  /** URLs discovered but never processed because `shouldContinue` returned false. */
+  stoppedUrls?: string[];
   error?: string;
 }> {
   const weekInfo = getWeekInfo(weeksAgo);
@@ -905,6 +912,7 @@ export async function crawlWeeklyRecipes(
   };
 
   const recipeResults: CrawlRecipeResult[] = [];
+  const stoppedUrls: string[] = [];
 
   try {
     console.log(`[Weekly Pipeline] Starting discovery for ${formatWeekInfo(weekInfo)}`);
@@ -929,7 +937,12 @@ export async function crawlWeeklyRecipes(
     console.log(`[Weekly Pipeline] Step 1 complete: Discovered ${stats.searched} recipes`);
 
     // Process each discovered recipe
-    for (const result of discovery.recipes) {
+    for (const [index, result] of discovery.recipes.entries()) {
+      if (options?.shouldContinue && !options.shouldContinue()) {
+        stoppedUrls.push(...discovery.recipes.slice(index).map((r) => r.url));
+        console.warn(`[Weekly Pipeline] Stopped before ${stoppedUrls.length} URL(s)`);
+        break;
+      }
       try {
         console.log(`[Weekly Pipeline] Processing: ${result.url}`);
 
@@ -1014,6 +1027,7 @@ export async function crawlWeeklyRecipes(
       weekInfo,
       stats,
       recipes: recipeResults,
+      stoppedUrls,
     };
   } catch (error: unknown) {
     const errorMsg = toErrorMessage(error);

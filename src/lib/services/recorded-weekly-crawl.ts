@@ -8,7 +8,6 @@
  * before each paid URL inside a week, so a run overshoots by at most one URL.
  */
 
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
 import {
   currentRunSpend,
   formatBudgetExceeded,
@@ -17,6 +16,8 @@ import {
   setCostRunId,
   withCostRun,
 } from '@/lib/costs';
+// #16: the ungated pipeline; the '@/app/actions' wrapper requires a Clerk admin session.
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 import {
   createDiscoveryRun,
   type DiscoveryRunStatus,

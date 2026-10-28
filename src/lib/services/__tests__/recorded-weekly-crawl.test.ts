@@ -46,7 +46,7 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
-vi.mock('@/app/actions/recipe-crawl', async () => {
+vi.mock('@/lib/recipe-crawl', async () => {
   const { trackCost } = await import('@/lib/costs');
   return {
     crawlWeeklyRecipes: vi.fn(

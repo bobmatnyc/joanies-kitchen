@@ -26,7 +26,7 @@ vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({ evaluateRecipeQuality: vi.
 vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null }) }));
 vi.mock('@/lib/serpapi', () => ({ filterRecipeSites: vi.fn(), searchRecipesWithSerpAPI: vi.fn() }));
 
-import { crawlWeeklyRecipes } from '@/app/actions/recipe-crawl';
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 
 afterEach(() => {
   vi.restoreAllMocks();
