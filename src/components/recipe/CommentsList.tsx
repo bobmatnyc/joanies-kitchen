@@ -1,7 +1,7 @@
 'use client';
 
 import { MessageSquare } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getRecipeComments } from '@/app/actions/social';
 import { CommentItem } from '@/components/recipe/CommentItem';
@@ -58,40 +58,43 @@ export function CommentsList({
   const [offset, setOffset] = useState(initialComments.length);
 
   // Load comments from server
-  const loadComments = async (startOffset: number, replace = false) => {
-    setIsLoading(true);
-    try {
-      const result = await getRecipeComments(recipeId);
+  const loadComments = useCallback(
+    async (startOffset: number, replace = false) => {
+      setIsLoading(true);
+      try {
+        const result = await getRecipeComments(recipeId);
 
-      if (result.success && result.data) {
-        const newComments = result.data.slice(startOffset, startOffset + COMMENTS_PER_PAGE);
+        if (result.success && result.data) {
+          const newComments = result.data.slice(startOffset, startOffset + COMMENTS_PER_PAGE);
 
-        if (replace) {
-          setComments(result.data.slice(0, startOffset + COMMENTS_PER_PAGE));
+          if (replace) {
+            setComments(result.data.slice(0, startOffset + COMMENTS_PER_PAGE));
+          } else {
+            setComments((prev) => [...prev, ...newComments]);
+          }
+
+          // Check if there are more comments to load
+          setHasMore(startOffset + newComments.length < result.data.length);
+          setOffset(startOffset + newComments.length);
         } else {
-          setComments((prev) => [...prev, ...newComments]);
+          throw new Error(result.error || 'Failed to load comments');
         }
-
-        // Check if there are more comments to load
-        setHasMore(startOffset + newComments.length < result.data.length);
-        setOffset(startOffset + newComments.length);
-      } else {
-        throw new Error(result.error || 'Failed to load comments');
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        toast.error('Failed to load comments');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading comments:', error);
-      toast.error('Failed to load comments');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [recipeId]
+  );
 
-  // Load initial comments if not provided
+  // Deps resolve to primitives (recipeId, initial count): an unmemoized loader
+  // re-ran this effect on every render and looped server-action POSTs.
   useEffect(() => {
     if (initialComments.length === 0) {
       loadComments(0, true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialComments.length, loadComments]);
 
   const handleLoadMore = () => {

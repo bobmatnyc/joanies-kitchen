@@ -1,8 +1,8 @@
 'use client';
 
 import { MessageSquare } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { getRecipeCommentCount, getRecipeComments } from '@/app/actions/social';
+import { useCallback, useEffect, useState } from 'react';
+import { getRecipeComments } from '@/app/actions/social';
 import { CommentInput } from '@/components/recipe/CommentInput';
 import { CommentsList } from '@/components/recipe/CommentsList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,39 +36,27 @@ export function RecipeComments({ recipeId, currentUserId, isAuthenticated }: Rec
   const [commentCount, setCommentCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load comments and count
-  const loadCommentsData = async () => {
+  // getRecipeComments returns every unflagged comment, so its length is the count.
+  const loadCommentsData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [commentsResult, countResult] = await Promise.all([
-        getRecipeComments(recipeId),
-        getRecipeCommentCount(recipeId),
-      ]);
-
-      if (commentsResult.success && commentsResult.data) {
-        setComments(commentsResult.data);
-      }
-
-      if (countResult.success) {
-        setCommentCount(countResult.data || 0);
+      const result = await getRecipeComments(recipeId);
+      if (result.success && result.data) {
+        setComments(result.data);
+        setCommentCount(result.data.length);
       }
     } catch (error) {
       console.error('Error loading comments:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [recipeId]);
 
-  // Load on mount
+  // Deps resolve to recipeId: an unmemoized loader re-ran this effect on every
+  // render and looped server-action POSTs.
   useEffect(() => {
     loadCommentsData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadCommentsData]);
-
-  // Refresh comments after new comment added
-  const handleCommentAdded = async () => {
-    await loadCommentsData();
-  };
 
   return (
     <Card id="comments-section">
@@ -88,7 +76,7 @@ export function RecipeComments({ recipeId, currentUserId, isAuthenticated }: Rec
         {/* Comment Input */}
         <CommentInput
           recipeId={recipeId}
-          onCommentAdded={handleCommentAdded}
+          onCommentAdded={loadCommentsData}
           isAuthenticated={isAuthenticated}
         />
 
