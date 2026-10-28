@@ -2,10 +2,13 @@
 
 /**
  * One-time recipe scraper
- * Usage: tsx scripts/scrape-once.ts [weeksAgo] [maxRecipes]
+ * Usage: tsx test/scripts/scrape-once.ts [weeksAgo] [maxRecipes]
+ *
+ * Records one `recipe_discovery_runs` row (run_type 'local') with a budget,
+ * per-URL items and cost events (#6 S2).
  */
 
-import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
+import { runRecordedWeeklyCrawl } from '@/lib/services/recorded-weekly-crawl';
 
 async function main() {
   const weeksAgo = Number(process.argv[2]) || 0;
@@ -13,10 +16,20 @@ async function main() {
 
   console.log(`Scraping recipes from ${weeksAgo} weeks ago (max: ${maxRecipes})...`);
 
-  const result = await crawlWeeklyRecipes(weeksAgo, {
-    maxResults: maxRecipes,
+  const run = await runRecordedWeeklyCrawl({
+    weeks: [weeksAgo],
+    maxResultsPerWeek: maxRecipes,
     autoApprove: true,
+    runType: 'local',
   });
+  console.log(
+    `Run ${run.runId ?? '(untracked)'}: status=${run.status}, cost=$${run.costUsd.toFixed(4)}`
+  );
+  const result = run.weeks[0];
+  if (!result) {
+    console.log('No week was crawled:', run.errors);
+    return;
+  }
 
   console.log('\nResults:', {
     discovered: result.stats.searched,

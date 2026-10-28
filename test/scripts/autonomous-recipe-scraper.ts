@@ -18,6 +18,7 @@
  *   JINA_API_KEY       - Fallback extractor 1
  *   ANTHROPIC_API_KEY  - For Claude structuring + chef bio generation
  *   DATABASE_URL       - PostgreSQL connection string
+ *   CRON_RUN_BUDGET_USD - Per-run USD budget (default: DEFAULT_RUN_BUDGET_USD)
  */
 
 import { config } from 'dotenv';
@@ -138,6 +139,8 @@ async function main() {
     dryRun: DRY_RUN,
     maxRecipes: MAX_RECIPES,
     searchQuery: SEARCH_QUERY,
+    // #6 S2: local/pm2 runs report into recipe_discovery_runs as 'local'.
+    runType: 'local',
   });
 
   printSummary(result, DRY_RUN);

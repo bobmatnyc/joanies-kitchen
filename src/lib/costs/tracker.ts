@@ -48,6 +48,16 @@ export interface CostEventRow {
 
 interface CostContext {
   runId: string | null;
+  /** #6 S2: USD of every cost event booked in this scope, whether or not its ledger row landed. */
+  spentUsd: number;
+  /** #6 S2: ledger inserts in this scope that failed or timed out. */
+  writeFailures: number;
+}
+
+/** In-memory spend of the enclosing `withCostRun()` scope. */
+export interface RunSpend {
+  spentUsd: number;
+  writeFailures: number;
 }
 
 const costContext = new AsyncLocalStorage<CostContext>();
@@ -77,16 +87,29 @@ export function reportUnknownCost(message: string): void {
 
 /**
  * Runs `fn` with a mutable cost context so every `trackCost()` beneath it
- * picks up the run id set later via `setCostRunId()`.
+ * picks up the run id set later via `setCostRunId()` and adds its USD to the
+ * scope's in-memory spend (read with `currentRunSpend()`).
  */
 export function withCostRun<T>(fn: () => Promise<T>): Promise<T> {
-  return costContext.run({ runId: null }, fn);
+  return costContext.run({ runId: null, spentUsd: 0, writeFailures: 0 }, fn);
 }
 
 /** Attaches a discovery run id to the current cost context. Non-UUID ids are ignored. */
 export function setCostRunId(runId: string | null): void {
   const store = costContext.getStore();
   if (store) store.runId = runId && UUID_RE.test(runId) ? runId : null;
+}
+
+/**
+ * Why: a run's budget must trip even when every ledger insert fails, so spend
+ * cannot be read back from `crawl_cost_events` (#6 S2).
+ * What: Returns a copy of the enclosing scope's in-memory spend and ledger
+ * write-failure count, or null outside `withCostRun()`.
+ * Test: `currentRunSpend counts spend and write failures when the ledger insert throws`
+ */
+export function currentRunSpend(): RunSpend | null {
+  const store = costContext.getStore();
+  return store ? { spentUsd: store.spentUsd, writeFailures: store.writeFailures } : null;
 }
 
 /** Run id of the enclosing `withCostRun()` scope, or null. */
@@ -157,7 +180,8 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * What: Resolves the USD figure, then awaits the insert into `crawl_cost_events`,
  * bounded by `COST_LEDGER_WRITE_TIMEOUT_MS`. A failed or timed-out insert is
  * logged and swallowed (fail-open); an unknown operation throws outside
- * production before any write.
+ * production before any write. Inside `withCostRun()` the USD is added to the
+ * scope's in-memory spend before the write, and a failed write is counted.
  * Test: `trackCost logs and swallows a failed insert`,
  * `a failed ledger insert does not abort a Tavily search`,
  * `trackCost resolves within the timeout when the insert never resolves`,
@@ -166,10 +190,14 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export async function trackCost(input: TrackCostInput): Promise<CostEventRow> {
   const row = resolveCost(input);
   const label = `${row.provider}:${row.operation} ($${row.usd.toFixed(6)})`;
+  const store = costContext.getStore();
+  // #6 S2: count spend before the write, so a failed or hung insert still counts.
+  if (store) store.spentUsd += row.usd;
   try {
     await withTimeout(insertCostEvent(row), COST_LEDGER_WRITE_TIMEOUT_MS);
   } catch (error) {
     // #6: fail-open on purpose — losing a ledger row must never abort a crawl.
+    if (store) store.writeFailures += 1;
     if (error instanceof LedgerWriteTimeoutError) {
       console.error(
         `[CostLedger] Timed out recording cost event ${label} after ${COST_LEDGER_WRITE_TIMEOUT_MS}ms; continuing`
