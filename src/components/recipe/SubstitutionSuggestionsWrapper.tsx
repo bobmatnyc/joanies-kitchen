@@ -228,6 +228,8 @@ export function SubstitutionSuggestionsWrapper({
       recipeName={recipeName}
       userIngredients={userIngredients}
       className={className}
+      // #67: signed-out visitors must click before any paid AI call is made
+      loadOnClick={!isSignedIn}
     />
   );
 }
