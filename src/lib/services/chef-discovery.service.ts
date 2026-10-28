@@ -11,7 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { eq } from 'drizzle-orm';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
-import { trackLlmResponse } from '@/lib/costs';
+import { assertWithinDailyCap, trackLlmResponse } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 
@@ -168,6 +168,8 @@ export class ChefDiscoveryService {
    * Use Claude Haiku to summarise a chef bio from page content
    */
   private async summariseBio(chefName: string, pageContent: string): Promise<string> {
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const message = await this.anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 300,

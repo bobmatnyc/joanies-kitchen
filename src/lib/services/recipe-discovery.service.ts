@@ -15,7 +15,7 @@
  * - Day-of-week query rotation for diversity
  */
 
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 
 export interface DiscoveredRecipeUrl {
   url: string;
@@ -435,6 +435,8 @@ export class RecipeDiscoveryService {
     try {
       console.log(`[RecipeDiscovery] Harvesting child links from listicle: ${listicleUrl}`);
 
+      // #57: daily cost ceiling hard stop before the paid call.
+      await assertWithinDailyCap();
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
         headers: {
@@ -627,6 +629,8 @@ export class RecipeDiscoveryService {
     }
   ): Promise<Omit<DiscoveredRecipeUrl, 'searchQuery'>[]> {
     const { maxResults, searchDepth, includeDomains = [] } = options;
+    // #57: daily cost ceiling hard stop before the paid call; outside the retry loop.
+    await assertWithinDailyCap();
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {

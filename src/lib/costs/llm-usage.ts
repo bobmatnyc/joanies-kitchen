@@ -3,6 +3,7 @@
  */
 
 import type OpenAI from 'openai';
+import { assertWithinDailyCap } from './daily-cap';
 import {
   type CostProvider,
   computeLlmCost,
@@ -114,6 +115,7 @@ type CreateFn = OpenAI['chat']['completions']['create'];
  * non-streaming calls, asks OpenRouter for usage accounting
  * (`usage: { include: true }`), awaits the response, and records it via
  * `trackLlmResponse`. Streaming calls pass through untracked with a warning.
+ * Every call first runs the #57 daily-cap guard, which may throw `PaidCallBlockedError`.
  * The wrapper returns a plain Promise, so `.withResponse()` is unavailable.
  * Test: `withChatCostTracking records an OpenRouter completion`
  */
@@ -128,6 +130,8 @@ export function withChatCostTracking<T extends OpenAI>(client: T, provider: Cost
     body: Parameters<CreateFn>[0],
     options?: Parameters<CreateFn>[1]
   ): Promise<unknown> => {
+    // #57: hard stop before the paid call, streaming or not.
+    await assertWithinDailyCap();
     if (body.stream) {
       console.warn(`[CostLedger] Streaming ${provider} completion is not cost-tracked`);
       return original(body, options);

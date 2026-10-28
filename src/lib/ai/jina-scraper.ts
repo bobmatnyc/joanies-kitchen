@@ -1,5 +1,5 @@
 import 'server-only';
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 
 /**
  * Jina.ai Reader API - Web scraping utility
@@ -65,6 +65,8 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
 
     console.log('[Jina] Scraping URL:', url);
 
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     // Call Jina.ai Reader API
     const response = await fetch(jinaUrl, {
       method: 'GET',

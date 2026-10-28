@@ -52,6 +52,8 @@ export const COST_RATES: Readonly<Record<string, CostRate>> = {
   // Jina bills reader and embeddings by token.
   'jina:reader': { usdPerUnit: JINA_USD_PER_TOKEN, unit: 'token' },
   'jina:embeddings': { usdPerUnit: JINA_USD_PER_TOKEN, unit: 'token' },
+  // #57: rerank was untracked; ~$0.00004 per call (estimate from #17).
+  'jina:rerank': { usdPerUnit: 0.00004, unit: 'request' },
   // Per-request search APIs.
   'brave:web-search': { usdPerUnit: 0.005, unit: 'request' },
   'serpapi:search': { usdPerUnit: 0.015, unit: 'request' },

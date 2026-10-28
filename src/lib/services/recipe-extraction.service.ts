@@ -15,7 +15,7 @@
 import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
-import { trackCost, withChatCostTracking } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost, withChatCostTracking } from '@/lib/costs';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 export interface ScrapedRecipe {
@@ -197,6 +197,8 @@ export class RecipeExtractionService {
    * Extract using Firecrawl with schema.org JSON-LD extraction
    */
   private async extractWithFirecrawl(url: string): Promise<ScrapedRecipe | null> {
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const result = (await this.firecrawl.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
@@ -243,6 +245,8 @@ export class RecipeExtractionService {
    * Fetch content via Tavily Extract API
    */
   private async fetchWithTavilyExtract(url: string): Promise<string | null> {
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const response = await fetch('https://api.tavily.com/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

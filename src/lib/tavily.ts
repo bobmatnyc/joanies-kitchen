@@ -13,7 +13,7 @@
  */
 
 import 'server-only';
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 
 // Type definitions for Tavily responses
 export interface TavilySearchParams {
@@ -154,6 +154,8 @@ export async function searchRecipesWithTavily(
       excludeDomains: requestBody.exclude_domains?.length,
     });
 
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     // Make API request
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',

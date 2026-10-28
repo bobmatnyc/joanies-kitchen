@@ -13,7 +13,7 @@
  * - Comprehensive error handling
  */
 
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 import type { Recipe } from '@/lib/db/schema';
 
 // Constants
@@ -140,6 +140,8 @@ async function callJinaEmbeddings(
     );
   }
 
+  // #57: daily cost ceiling hard stop before the paid call.
+  await assertWithinDailyCap();
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {

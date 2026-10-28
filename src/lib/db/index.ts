@@ -6,6 +6,7 @@ import * as autonomousScraperSchema from './autonomous-scraper-schema';
 import * as chefSchema from './chef-schema';
 import * as ingredientsSchema from './ingredients-schema';
 import * as schema from './schema';
+import * as usageCountersSchema from './usage-counters-schema'; // #17: rate-limit counters
 import * as userDiscoverySchema from './user-discovery-schema';
 
 // Ensure we have a valid DATABASE_URL
@@ -30,6 +31,7 @@ const allSchemas = {
   ...apiKeysSchema,
   ...autonomousScraperSchema,
   ...authSchema, // #22: Auth.js tables
+  ...usageCountersSchema, // #17/#57: rate-limit and alert counters
 };
 
 const sql = neon(databaseUrl);

@@ -12,7 +12,7 @@
 import 'server-only';
 import { and, isNull, or, sql } from 'drizzle-orm';
 import { put } from '@vercel/blob';
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { generateFoodPhotographyPrompt, checkOllamaHealth, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
@@ -105,6 +105,8 @@ async function fetchDalleImageUrl(prompt: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
 
+  // #57: daily cost ceiling hard stop before the paid call.
+  await assertWithinDailyCap();
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
