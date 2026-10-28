@@ -19,6 +19,9 @@ const PUBLIC = [
   /^\/shared/,
   /^\/discover/,
   /^\/meals$/,
+  // Legal pages: Google's OAuth consent screen links to both.
+  /^\/privacy$/,
+  /^\/terms$/,
   /^\/api\/auth\//,
 ];
 const PROTECTED = [

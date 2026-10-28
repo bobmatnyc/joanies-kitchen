@@ -21,6 +21,8 @@ describe('decideRoute', () => {
     ['/', ANON, 'allow'],
     ['/sign-in', ANON, 'allow'],
     ['/api/auth/callback/google', ANON, 'allow'],
+    ['/privacy', ANON, 'allow'],
+    ['/terms', ANON, 'allow'],
   ] as const)('%s for %o → %s', (path, session, expected) => {
     expect(decideRoute(path, session)).toBe(expected);
   });

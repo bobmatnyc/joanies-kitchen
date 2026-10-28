@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **legal**: public `/privacy` and `/terms` pages, linked from the footer, the sitemap and `/sign-in` ("By continuing you agree to the Terms and Privacy Policy"); the support contact is `NEXT_PUBLIC_SUPPORT_EMAIL`, falling back to the GitHub issues page
 - **auth**: sign-in uses Auth.js (NextAuth v5) with Google as the only provider and 7-day JWT sessions; `/sign-in` shows one "Continue with Google" button and `/sign-up` redirects to it (#22)
 - **auth**: registration is closed — only a Google account with a verified email that matches a pre-seeded `users` row can sign in; a database error, a missing email or an unknown email denies the login (#22)
 - **db**: migration 0023 adds `users` (with `is_admin`), `accounts` and `verification_tokens`; rollback SQL in `drizzle/rollback/0023_authjs_users.down.sql` (#22)

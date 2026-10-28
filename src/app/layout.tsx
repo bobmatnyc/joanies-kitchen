@@ -8,8 +8,8 @@ import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GuestDataMigration } from '@/components/meals/GuestDataMigration';
-import { MobileNav } from '@/components/navigation/MobileNav';
 import { DesktopNav } from '@/components/navigation/DesktopNav';
+import { MobileNav } from '@/components/navigation/MobileNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { AlphaStamp } from '@/components/shared/AlphaStamp';
 import './globals.css';
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     template: "%s | Joanie's Kitchen",
   },
   description:
-    "Stop food waste. Cook from your fridge with no-waste recipes curated by Joanie Zisk. Find meals using what you already have — with smart substitutions so nothing goes to waste.",
+    'Stop food waste. Cook from your fridge with no-waste recipes curated by Joanie Zisk. Find meals using what you already have — with smart substitutions so nothing goes to waste.',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -214,6 +214,17 @@ export default function RootLayout({
               <p className="text-jk-sage font-ui text-xs mt-2 italic">
                 Cook With What You Have. Waste Nothing.
               </p>
+              <nav
+                aria-label="Legal"
+                className="text-jk-linen font-ui text-xs mt-3 flex justify-center gap-4"
+              >
+                <Link href="/privacy" className="hover:underline">
+                  Privacy Policy
+                </Link>
+                <Link href="/terms" className="hover:underline">
+                  Terms of Service
+                </Link>
+              </nav>
             </div>
           </footer>
 
