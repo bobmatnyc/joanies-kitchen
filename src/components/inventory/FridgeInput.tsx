@@ -185,16 +185,28 @@ export function FridgeInput({
                       key={suggestion.id}
                       type="button"
                       onClick={() => handleAddIngredient(suggestion)}
-                      className="w-full text-left px-4 py-3 hover:bg-jk-sage/10 border-b border-jk-sage/10 last:border-b-0 transition-colors"
+                      // #47: globals.css styles every button as centered inline-flex,
+                      // unlayered, so it beats these utilities; `!justify-start` and
+                      // the full-width inner row restore left alignment.
+                      className="w-full !justify-start text-left px-4 py-3 hover:bg-jk-sage/10 border-b border-jk-sage/10 last:border-b-0 transition-colors"
                     >
-                      <div className="font-medium text-sm text-jk-olive">
-                        {suggestion.displayName}
-                      </div>
-                      {suggestion.category && (
-                        <div className="text-xs text-jk-charcoal/60 capitalize mt-0.5">
-                          {suggestion.category}
-                        </div>
-                      )}
+                      {/* #47: name and category in one left-aligned row, separated by a gap and a badge. */}
+                      <span
+                        data-testid="suggestion-row"
+                        className="flex w-full items-center justify-between gap-3 text-left"
+                      >
+                        <span className="font-medium text-sm text-jk-olive truncate">
+                          {suggestion.displayName}
+                        </span>
+                        {suggestion.category && (
+                          <span
+                            data-testid="suggestion-category"
+                            className="shrink-0 rounded-full bg-jk-sage/15 px-2 py-0.5 text-xs text-jk-charcoal/60 capitalize"
+                          >
+                            {suggestion.category}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   ))}
               </div>
