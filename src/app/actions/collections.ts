@@ -492,11 +492,12 @@ export async function addRecipeToCollection(
     const position = (maxPosition?.max ?? -1) + 1;
 
     // Add recipe to collection
+    // #43: the schema is snake_case; camelCase keys failed validation on every add.
     const validatedData = insertCollectionRecipeSchema.parse({
-      collectionId,
-      recipeId,
+      collection_id: collectionId,
+      recipe_id: recipeId,
       position,
-      personalNote: personalNote || null,
+      personal_note: personalNote || null,
     });
 
     const [newCollectionRecipe] = await db
@@ -530,7 +531,10 @@ export async function addRecipeToCollection(
     console.error('Error adding recipe to collection:', error);
 
     const errorMsg = toErrorMessage(error);
-    if (errorMsg.includes('unique')) {
+    // #43: drizzle wraps the driver error, so the 'unique' text is only on `cause`;
+    // match SQLSTATE 23505 there, or the duplicate add surfaced a raw SQL dump.
+    const cause = (error as { cause?: { code?: string; message?: string } } | null)?.cause;
+    if (cause?.code === '23505' || errorMsg.includes('unique')) {
       return { success: false, error: 'Recipe already in this collection' };
     }
 
