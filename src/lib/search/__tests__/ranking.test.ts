@@ -2,7 +2,7 @@
  * Test suite for ranking algorithm
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '@/lib/db/schema';
 import type { RecipeWithSimilarity } from '../ranking';
 import {
@@ -105,6 +105,16 @@ function createMockRecipe(overrides: Partial<Recipe> = {}): Recipe {
 }
 
 describe('Ranking Algorithm', () => {
+  // Pin "now": ranking/trending scorers call new Date() internally.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('calculateRecipeScore', () => {
     it('should calculate weighted score from components', () => {
       const recipe = createMockRecipe({

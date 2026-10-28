@@ -2,7 +2,7 @@
  * Test suite for normalization utilities
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   calculateCompletenessScore,
   calculateEngagementScore,
@@ -15,6 +15,17 @@ import {
 } from '../normalization';
 
 describe('Normalization Utilities', () => {
+  // Pin "now": the scorers call new Date() internally, so a moving wall clock
+  // makes exact assertions flaky (expected 1, got 0.9999999997).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('normalizeRating', () => {
     it('should normalize ratings to 0-1 scale', () => {
       expect(normalizeRating(0)).toBe(0);
