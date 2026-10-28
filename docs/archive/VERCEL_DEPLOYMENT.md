@@ -149,9 +149,9 @@ postgresql://user:password@host/database?sslmode=require
 #### `BRAVE_SEARCH_API_KEY` (Required)
 **Description**: Brave Search API key for web recipe search and discovery
 
-**Format**: `BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T`
+**Format**: `your-brave-search-api-key`
 
-**Value**: `BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T`
+**Value**: `your-brave-search-api-key`
 
 **How to get**:
 1. Go to: https://brave.com/search/api/
@@ -582,7 +582,7 @@ pnpm db:migrate
 
 #### Brave Search API
 - [ ] Account created: https://brave.com/search/api
-- [ ] API key obtained: `BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T`
+- [ ] API key obtained: `your-brave-search-api-key`
 - [ ] Usage tier confirmed
 - [ ] Rate limits reviewed
 

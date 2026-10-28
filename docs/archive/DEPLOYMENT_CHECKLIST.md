@@ -18,7 +18,7 @@
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Production key (pk_live_)
 - [ ] `CLERK_SECRET_KEY` - Production key (sk_live_)
 - [ ] `OPENROUTER_API_KEY` - API key with sufficient credits
-- [ ] `BRAVE_SEARCH_API_KEY` - API key (BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T)
+- [ ] `BRAVE_SEARCH_API_KEY` - API key (your-brave-search-api-key)
 - [ ] `HUGGINGFACE_API_KEY` - API token with Read permissions
 - [ ] `NEXT_PUBLIC_APP_URL` - Production domain URL
 
@@ -50,7 +50,7 @@
 - [ ] Usage limits reviewed
 
 **Brave Search:**
-- [ ] API key obtained: BSA2IWyjQXpnW3qLL7rykFt8VxOzc8T
+- [ ] API key obtained: your-brave-search-api-key
 - [ ] API quota confirmed
 - [ ] Search functionality tested locally
 
