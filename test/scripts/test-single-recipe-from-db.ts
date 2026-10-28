@@ -10,7 +10,7 @@
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { classifyRecipe } from '@/app/actions/classify-instructions';
+import { classifyAndStoreRecipe } from '@/lib/ai/classify-recipe';
 
 const recipeId = process.argv[2];
 
@@ -70,7 +70,7 @@ async function testSingleRecipe() {
 
   console.log('🚀 Classifying recipe...\n');
 
-  const result = await classifyRecipe(recipeId);
+  const result = await classifyAndStoreRecipe(recipeId);
 
   if (!result.success) {
     console.error(`❌ Classification failed: ${result.error}`);

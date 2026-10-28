@@ -1,7 +1,7 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
+import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { type NewSlideshowPhoto, type SlideshowPhoto, slideshowPhotos } from '@/lib/db/schema';
 
@@ -37,14 +37,7 @@ export async function getPhoto(id: string): Promise<SlideshowPhoto | null> {
 export async function createPhoto(
   data: Omit<NewSlideshowPhoto, 'id' | 'created_at' | 'updated_at'>
 ): Promise<SlideshowPhoto> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized: Must be signed in');
-  }
-
-  // TODO: Add admin check when admin system is implemented
-  // For now, any authenticated user can add photos
+  await requireAdmin(); // See #13: site-wide slideshow, admin only
 
   const [photo] = await db
     .insert(slideshowPhotos)
@@ -65,13 +58,7 @@ export async function updatePhoto(
   id: string,
   data: Partial<Omit<NewSlideshowPhoto, 'id' | 'created_at'>>
 ): Promise<SlideshowPhoto> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized: Must be signed in');
-  }
-
-  // TODO: Add admin check when admin system is implemented
+  await requireAdmin(); // See #13: site-wide slideshow, admin only
 
   const [photo] = await db
     .update(slideshowPhotos)
@@ -93,13 +80,7 @@ export async function updatePhoto(
  * Delete a slideshow photo (admin only)
  */
 export async function deletePhoto(id: string): Promise<void> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized: Must be signed in');
-  }
-
-  // TODO: Add admin check when admin system is implemented
+  await requireAdmin(); // See #13: site-wide slideshow, admin only
 
   await db.delete(slideshowPhotos).where(eq(slideshowPhotos.id, id));
 }
@@ -108,13 +89,7 @@ export async function deletePhoto(id: string): Promise<void> {
  * Get all photos (including inactive) for admin management
  */
 export async function getAllPhotosAdmin(): Promise<SlideshowPhoto[]> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized: Must be signed in');
-  }
-
-  // TODO: Add admin check when admin system is implemented
+  await requireAdmin(); // See #13: site-wide slideshow, admin only
 
   const photos = await db.select().from(slideshowPhotos).orderBy(slideshowPhotos.display_order);
 
@@ -125,13 +100,7 @@ export async function getAllPhotosAdmin(): Promise<SlideshowPhoto[]> {
  * Reorder photos by updating display_order
  */
 export async function reorderPhotos(photoIds: string[]): Promise<void> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized: Must be signed in');
-  }
-
-  // TODO: Add admin check when admin system is implemented
+  await requireAdmin(); // See #13: site-wide slideshow, admin only
 
   // Update each photo's display_order based on its position in the array
   await db.transaction(async (tx) => {

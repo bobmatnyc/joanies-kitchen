@@ -7,63 +7,23 @@
 'use server';
 
 import { eq } from 'drizzle-orm';
-import { classifyRecipeInstructions } from '@/lib/ai/instruction-classifier';
+import { requireAdmin } from '@/lib/admin';
+import { classifyAndStoreRecipe } from '@/lib/ai/classify-recipe';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import type { InstructionMetadata } from '@/types/instruction-metadata';
 
 /**
- * Classifies a single recipe's instructions
+ * Classifies a single recipe's instructions (admin only).
+ * Scripts call `classifyAndStoreRecipe` from `@/lib/ai/classify-recipe`.
  */
 export async function classifyRecipe(recipeId: string): Promise<{
   success: boolean;
   metadata?: InstructionMetadata[];
   error?: string;
 }> {
-  try {
-    // Get recipe
-    const recipe = await db.query.recipes.findFirst({
-      where: eq(recipes.id, recipeId),
-    });
-
-    if (!recipe) {
-      return { success: false, error: 'Recipe not found' };
-    }
-
-    // Parse instructions
-    const instructions = JSON.parse(recipe.instructions) as string[];
-
-    if (instructions.length === 0) {
-      return { success: false, error: 'No instructions to classify' };
-    }
-
-    // Classify
-    const metadata = await classifyRecipeInstructions(instructions, {
-      recipeName: recipe.name,
-      cuisine: recipe.cuisine || undefined,
-      difficulty: recipe.difficulty || undefined,
-    });
-
-    if (metadata.length === 0) {
-      return { success: false, error: 'Classification failed' };
-    }
-
-    // Save to database
-    await db
-      .update(recipes)
-      .set({
-        instruction_metadata: JSON.stringify(metadata),
-        instruction_metadata_version: '1.0.0',
-        instruction_metadata_generated_at: new Date(),
-        instruction_metadata_model: 'google/gemini-2.0-flash-exp:free',
-      })
-      .where(eq(recipes.id, recipeId));
-
-    return { success: true, metadata };
-  } catch (error) {
-    console.error('Failed to classify recipe:', error);
-    return { success: false, error: 'Classification failed' };
-  }
+  await requireAdmin(); // See #13: paid OpenRouter call and a write to any recipe
+  return classifyAndStoreRecipe(recipeId);
 }
 
 /**
