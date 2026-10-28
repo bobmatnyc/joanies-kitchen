@@ -24,7 +24,8 @@ import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
-import { toErrorMessage } from '@/lib/utils/error-handling';
+import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { formatWeekInfo, getWeekInfo, type WeekInfo } from '@/lib/week-utils';
 
 // Types
@@ -511,7 +512,8 @@ export async function storeRecipe(
         instructions: JSON.stringify(recipe.instructions),
         prep_time: parseTimeToMinutes(recipe.prepTime),
         cook_time: parseTimeToMinutes(recipe.cookTime),
-        servings: recipe.servings || null,
+        // #12: LLM output may be a range string ("4 to 6"); write an integer or null.
+        servings: toRecipeInt(recipe.servings),
         cuisine: recipe.cuisine || null,
         tags: JSON.stringify(recipe.tags || []),
         difficulty: recipe.difficulty || null,
@@ -560,7 +562,8 @@ export async function storeRecipe(
       recipeId: savedRecipe.id,
     };
   } catch (error: unknown) {
-    const errorMsg = toErrorMessage(error);
+    // #12: report the Postgres error on err.cause, not the Drizzle wrapper.
+    const errorMsg = describeDbError(error);
     console.error(`[Store] Error storing recipe:`, errorMsg);
     return {
       success: false,
@@ -572,18 +575,15 @@ export async function storeRecipe(
 /**
  * Parses time strings to minutes
  */
-function parseTimeToMinutes(timeStr?: string): number | null {
-  if (!timeStr) return null;
-
-  // Extract numbers from string
-  const match = timeStr.match(/(\d+)/);
-  if (!match) return null;
-
-  const value = parseInt(match[1], 10);
+function parseTimeToMinutes(timeStr?: unknown): number | null {
+  // #12: the LLM sometimes returns a bare number; route both shapes through the
+  // shared integer coercion so the column only ever gets an integer or null.
+  const value = toRecipeInt(timeStr);
+  if (value === null) return null;
 
   // Check for hours
-  if (timeStr.toLowerCase().includes('hour')) {
-    return value * 60;
+  if (typeof timeStr === 'string' && timeStr.toLowerCase().includes('hour')) {
+    return toRecipeInt(value * 60);
   }
 
   // Default to minutes
@@ -803,7 +803,8 @@ async function storeRecipeWithWeek(
         instructions: JSON.stringify(recipe.instructions),
         prep_time: parseTimeToMinutes(recipe.prepTime),
         cook_time: parseTimeToMinutes(recipe.cookTime),
-        servings: recipe.servings || null,
+        // #12: LLM output may be a range string ("4 to 6"); write an integer or null.
+        servings: toRecipeInt(recipe.servings),
         cuisine: recipe.cuisine || null,
         tags: JSON.stringify(recipe.tags || []),
         difficulty: recipe.difficulty || null,
@@ -856,7 +857,8 @@ async function storeRecipeWithWeek(
       recipeId: savedRecipe.id,
     };
   } catch (error: unknown) {
-    const errorMsg = toErrorMessage(error);
+    // #12: report the Postgres error on err.cause, not the Drizzle wrapper.
+    const errorMsg = describeDbError(error);
     console.error(`[Store] Error storing recipe:`, errorMsg);
     console.error(`[Store] Error details:`, {
       recipeName: recipe.name,
