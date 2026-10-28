@@ -60,7 +60,11 @@ export const GET = requireScopes([SCOPES.READ_FAVORITES], async (request: NextRe
     const { data: validatedQuery } = parsed;
 
     // Fetch user's favorites
-    const favorites = await socialService.getFavorites(auth.userId!);
+    const favorites = await socialService.getFavorites(
+      auth.userId!,
+      // #41: the API caller sees public recipes plus their own private ones (as in #32).
+      { userId: auth.userId, isAdmin: false }
+    );
 
     // Apply sorting (defaults guaranteed by schema)
     let sortedFavorites = applySorting(

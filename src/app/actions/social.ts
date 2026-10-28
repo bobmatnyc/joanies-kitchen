@@ -6,7 +6,12 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
-import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import {
+  canViewRecipe,
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ==================
@@ -72,6 +77,11 @@ export async function toggleRecipeLike(recipeId: string): Promise<LikeToggleResu
         likesCount: likesCount.data || 0,
       };
     } else {
+      // #41: a recipe the caller cannot see is answered as nonexistent.
+      if (!(await findViewableRecipe(recipeId, await getRecipeViewer()))) {
+        return { success: false, error: 'Recipe not found' };
+      }
+
       // Like: add new like
       await db.insert(recipeLikes).values({
         recipe_id: recipeId,
@@ -175,7 +185,13 @@ export async function getUserLikedRecipes(): Promise<
       })
       .from(recipeLikes)
       .innerJoin(recipes, eq(recipeLikes.recipe_id, recipes.id))
-      .where(eq(recipeLikes.user_id, userId))
+      .where(
+        and(
+          eq(recipeLikes.user_id, userId),
+          // #41: drop liked recipes the viewer can no longer read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(desc(recipeLikes.created_at));
 
     return {

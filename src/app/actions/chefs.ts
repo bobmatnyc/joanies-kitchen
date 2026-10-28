@@ -7,6 +7,7 @@ import { recountChefRecipes } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -129,7 +130,13 @@ export async function getChefBySlug(slug: string) {
       })
       .from(chefRecipes)
       .innerJoin(recipes, eq(chefRecipes.recipe_id, recipes.id))
-      .where(eq(chefRecipes.chef_id, chef.id))
+      .where(
+        and(
+          eq(chefRecipes.chef_id, chef.id),
+          // #41: a chef page shows only recipes the viewer may read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(desc(recipes.created_at))
       .limit(24);
 

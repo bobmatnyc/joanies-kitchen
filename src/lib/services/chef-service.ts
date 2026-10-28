@@ -3,6 +3,11 @@ import { db } from '@/lib/db';
 import { chefRecipes, chefs, type Chef, type NewChef } from '@/lib/db/chef-schema';
 import { parseChef, parseRecipe, type ParsedChef, type ParsedRecipe } from '@/lib/db/transformers';
 import { recipes } from '@/lib/db/schema';
+import {
+  ANONYMOUS_VIEWER,
+  type RecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 
 /**
  * ChefService - Business logic for chef operations
@@ -72,7 +77,8 @@ export class ChefService {
    */
   async findRecipesByChef(
     chefId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
+    viewer: RecipeViewer = ANONYMOUS_VIEWER
   ): Promise<ParsedRecipe[]> {
     const { limit = 24, offset = 0 } = options || {};
 
@@ -82,7 +88,12 @@ export class ChefService {
       })
       .from(chefRecipes)
       .innerJoin(recipes, eq(chefRecipes.recipe_id, recipes.id))
-      .where(eq(chefRecipes.chef_id, chefId))
+      .where(
+        and(
+          eq(chefRecipes.chef_id, chefId),
+          recipeVisibilityCondition(viewer) // #41: only recipes the viewer may read
+        )
+      )
       .orderBy(desc(recipes.created_at))
       .limit(limit)
       .offset(offset);

@@ -2,6 +2,11 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
+  ANONYMOUS_VIEWER,
+  type RecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
+import {
   type Collection,
   collectionRecipes,
   collections,
@@ -212,7 +217,10 @@ export class CollectionService {
   /**
    * Get all recipes in a collection
    */
-  async getRecipes(collectionId: string): Promise<typeof recipes.$inferSelect[]> {
+  async getRecipes(
+    collectionId: string,
+    viewer: RecipeViewer = ANONYMOUS_VIEWER
+  ): Promise<typeof recipes.$inferSelect[]> {
     const collectionRecipesList = await db
       .select({
         recipe: recipes,
@@ -220,7 +228,12 @@ export class CollectionService {
       })
       .from(collectionRecipes)
       .innerJoin(recipes, eq(collectionRecipes.recipe_id, recipes.id))
-      .where(eq(collectionRecipes.collection_id, collectionId))
+      .where(
+        and(
+          eq(collectionRecipes.collection_id, collectionId),
+          recipeVisibilityCondition(viewer) // #41: only recipes the viewer may read
+        )
+      )
       .orderBy(collectionRecipes.position);
 
     return collectionRecipesList.map((cr) => cr.recipe);

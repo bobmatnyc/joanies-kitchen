@@ -28,7 +28,12 @@ import {
   updateShoppingListSchema,
   validateInput,
 } from '@/lib/meals/validation';
-import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import {
+  canViewRecipe,
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import {
   consolidateShoppingListItems,
@@ -252,7 +257,13 @@ export async function getMealById(id: unknown) {
       })
       .from(mealRecipes)
       .innerJoin(recipes, eq(mealRecipes.recipe_id, recipes.id))
-      .where(eq(mealRecipes.meal_id, validatedId))
+      .where(
+        and(
+          eq(mealRecipes.meal_id, validatedId),
+          // #41: a meal shows only recipes the viewer may read, whoever owns it.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(mealRecipes.display_order);
 
     const mealWithRecipes = {
@@ -299,7 +310,13 @@ export async function getMealBySlug(slug: string) {
       })
       .from(mealRecipes)
       .innerJoin(recipes, eq(mealRecipes.recipe_id, recipes.id))
-      .where(eq(mealRecipes.meal_id, meal.id))
+      .where(
+        and(
+          eq(mealRecipes.meal_id, meal.id),
+          // #41: a meal shows only recipes the viewer may read, whoever owns it.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(mealRecipes.display_order);
 
     const mealWithRecipes = {
@@ -339,6 +356,11 @@ export async function addRecipeToMeal(data: unknown) {
 
     if (!meal) {
       return { success: false, error: 'Meal not found' };
+    }
+
+    // #41: a recipe the caller cannot see is answered as nonexistent.
+    if (!(await findViewableRecipe(validatedData.recipe_id, await getRecipeViewer()))) {
+      return { success: false, error: 'Recipe not found' };
     }
 
     const [newMealRecipe] = await db.insert(mealRecipes).values(validatedData).returning();

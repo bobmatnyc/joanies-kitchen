@@ -5,6 +5,11 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { recipeViews } from '@/lib/db/user-discovery-schema';
+import {
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 
 /**
  * Recipe Views Server Actions
@@ -25,12 +30,8 @@ export async function trackRecipeView(recipeId: string): Promise<void> {
   try {
     const { userId } = await auth();
 
-    // Verify recipe exists
-    const [recipe] = await db
-      .select({ id: recipes.id })
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
+    // #41: record views only of recipes the caller may read.
+    const recipe = await findViewableRecipe(recipeId, await getRecipeViewer());
 
     if (!recipe) {
       console.error('Recipe not found for view tracking:', recipeId);
@@ -83,7 +84,13 @@ export async function getRecentlyViewedRecipes(limit: number = 10): Promise<Reci
       })
       .from(recipeViews)
       .innerJoin(recipes, eq(recipeViews.recipe_id, recipes.id))
-      .where(eq(recipeViews.user_id, userId))
+      .where(
+        and(
+          eq(recipeViews.user_id, userId),
+          // #41: drop viewed recipes the viewer can no longer read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .orderBy(desc(recipeViews.viewed_at))
       .limit(limit * 2); // Get extra to handle duplicates
 
@@ -288,7 +295,13 @@ export async function getUserViewHistory(
       })
       .from(recipeViews)
       .innerJoin(recipes, eq(recipeViews.recipe_id, recipes.id))
-      .where(eq(recipeViews.user_id, userId))
+      .where(
+        and(
+          eq(recipeViews.user_id, userId),
+          // #41: drop viewed recipes the viewer can no longer read.
+          recipeVisibilityCondition(await getRecipeViewer())
+        )
+      )
       .groupBy(recipes.id)
       .orderBy(desc(sql`MAX(${recipeViews.viewed_at})`))
       .limit(limit)

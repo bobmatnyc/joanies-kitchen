@@ -21,6 +21,7 @@ import {
   getRequiredParam,
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
+import { findViewableRecipe } from '@/lib/recipe-visibility';
 import { collectionService } from '@/lib/services/collection-service';
 import {
   addRecipeToCollectionSchema,
@@ -83,7 +84,11 @@ export const GET = requireScopes(
       }
 
       // Get recipes in collection
-      const recipes = await collectionService.getRecipes(collectionId.data);
+      const recipes = await collectionService.getRecipes(
+        collectionId.data,
+        // #41: the API caller sees public recipes plus their own private ones (as in #32).
+        { userId: auth.userId, isAdmin: false }
+      );
 
       // Apply pagination
       const { items: paginatedRecipes, total } = applyPagination(
@@ -147,6 +152,12 @@ export const POST = requireScopes(
       if ('error' in parsed) return parsed.error;
 
       const { data: validatedData } = parsed;
+
+      // #41: a recipe the caller cannot see is answered as nonexistent.
+      const viewer = { userId: auth.userId, isAdmin: false };
+      if (!(await findViewableRecipe(validatedData.recipeId, viewer))) {
+        return apiNotFound('Recipe');
+      }
 
       // Check if recipe is already in collection
       const isAlreadyInCollection = await collectionService.isRecipeInCollection(

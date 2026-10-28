@@ -56,7 +56,7 @@ import { listChefRecipesQuerySchema } from '@/lib/validations/chef-api';
  */
 export const GET = requireScopes(
   [SCOPES.READ_CHEFS, SCOPES.READ_RECIPES],
-  async (request: NextRequest, _auth, context: RouteContext) => {
+  async (request: NextRequest, auth, context: RouteContext) => {
     try {
       // Extract slug from route params
       const slugResult = await getRequiredParam(context, 'slug');
@@ -80,10 +80,12 @@ export const GET = requireScopes(
       const offset = (validatedQuery.page! - 1) * validatedQuery.limit!;
 
       // Fetch recipes for this chef
-      const recipes = await chefService.findRecipesByChef(chef.id, {
-        limit: validatedQuery.limit!,
-        offset,
-      });
+      const recipes = await chefService.findRecipesByChef(
+        chef.id,
+        { limit: validatedQuery.limit!, offset },
+        // #41: the API caller sees public recipes plus their own private ones (as in #32).
+        { userId: auth.userId, isAdmin: false }
+      );
 
       // For pagination, we use the chef's recipe_count as total
       const total = chef.recipe_count || 0;
