@@ -58,31 +58,45 @@ afterEach(() => {
   mocks.insertValues.mockReset();
 });
 
+/** Runs the action against one canned extraction reply; returns the INSERT row. */
+async function insertedRow(fields: Record<string, unknown>) {
+  mocks.llmCreate
+    .mockResolvedValueOnce(
+      llmReply({
+        name: 'Leftover Soup',
+        description: 'Soup',
+        ingredients: ['1 onion'],
+        instructions: ['Cook it'],
+        confidenceScore: 0.9,
+        isValid: true,
+        ...fields,
+      })
+    )
+    .mockResolvedValueOnce(llmReply({ cuisine: 'American', tags: [], difficulty: 'easy' }));
+
+  const result = await discoverRecipeFromUrl('https://example.com/soup');
+
+  expect(result.success).toBe(true);
+  expect(mocks.insertValues).toHaveBeenCalledTimes(1);
+  return mocks.insertValues.mock.calls[0][0];
+}
+
 describe('discoverRecipeFromUrl integer fields (#12)', () => {
-  it('writes servings "4 to 6" as 4 and coerces time strings', async () => {
-    mocks.llmCreate
-      .mockResolvedValueOnce(
-        llmReply({
-          name: 'Leftover Soup',
-          description: 'Soup',
-          ingredients: ['1 onion'],
-          instructions: ['Cook it'],
-          prepTime: '15 minutes',
-          cookTime: 30,
-          servings: '4 to 6',
-          confidenceScore: 0.9,
-          isValid: true,
-        })
-      )
-      .mockResolvedValueOnce(llmReply({ cuisine: 'American', tags: [], difficulty: 'easy' }));
-
-    const result = await discoverRecipeFromUrl('https://example.com/soup');
-
-    expect(result.success).toBe(true);
-    expect(mocks.insertValues).toHaveBeenCalledTimes(1);
-    const row = mocks.insertValues.mock.calls[0][0];
+  it('writes servings "4 to 6" as 4', async () => {
+    const row = await insertedRow({
+      prepTime: '15 minutes',
+      cookTime: '30 minutes',
+      servings: '4 to 6',
+    });
     expect(row.servings).toBe(4);
     expect(row.prep_time).toBe(15);
     expect(row.cook_time).toBe(30);
+  });
+
+  it('accepts bare-number times from the LLM', async () => {
+    const row = await insertedRow({ prepTime: 15, cookTime: 30, servings: 4 });
+    expect(row.prep_time).toBe(15);
+    expect(row.cook_time).toBe(30);
+    expect(row.servings).toBe(4);
   });
 });
