@@ -307,7 +307,8 @@ const RecipeSuggestionCard = memo(function RecipeSuggestionCard({
             size="sm"
             onClick={handleAdd}
             disabled={isAdding}
-            className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui min-h-[36px] text-xs"
+            // #47: button rule now layered, so this min size is honoured; keep the 44px touch target
+            className="bg-jk-tomato hover:bg-jk-tomato/90 text-white font-ui min-h-[44px] text-xs"
           >
             {isAdding ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add'}
           </Button>
