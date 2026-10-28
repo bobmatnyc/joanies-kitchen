@@ -98,4 +98,52 @@ describe('getIngredientSuggestions (#47)', () => {
       expect(s.category).toBe('stocks');
     }
   });
+
+  // #47: production rows (name differs from display_name), in the order the
+  // SQL returned them, hitting the early-return fast path (>= limit rows).
+  it.each([
+    [
+      'chicken',
+      [
+        ['chicken', 'Frying Chicken', true],
+        ['chicken breast', 'Chicken Breast', true],
+        ['chicken broth', 'Chicken Broth', true],
+        ['chicken stock', 'Chicken Stock', true],
+        ['chicken base', 'Chicken Base', false],
+        ['chicken bouillon', 'Chicken Bouillon', false],
+        ['chicken carcasses', 'Chicken Carcasses', false],
+        ['chicken cutlets', 'Chicken Cutlets', false],
+        ['chicken drummettes', 'Chicken Drummettes', false],
+      ],
+      'Frying Chicken',
+    ],
+    [
+      'stock',
+      [
+        ['stock', 'Vegetable or Chicken Stock', false],
+        ['stock cubes', 'Stock Cubes', false],
+        ['chicken stock', 'Chicken Stock', true],
+        ['beef stock concentrate', 'Beef Stock Concentrate', false],
+        ['fish stock', 'Fish Stock', false],
+        ['ham stock', 'Ham Stock', false],
+        ['lobster stock', 'Lobster Stock', false],
+        ['meat stock', 'Meat Stock', false],
+        ['turkey stock', 'Turkey Stock', false],
+      ],
+      'Vegetable or Chicken Stock',
+    ],
+  ] as const)('ranks prefix before word-prefix on the production path: %s', async (q, data, wordPrefix) => {
+    mocks.rows = data.map(([name, displayName, isCommon], i) => ({
+      id: String(i),
+      name,
+      displayName,
+      category: null,
+      isCommon,
+    }));
+    const got = await names(q, 4);
+    const prefixCount = data.filter(([, d]) => d.toLowerCase().startsWith(q)).length;
+    // Every prefix match (up to the limit) precedes every word-prefix match.
+    expect(got.slice(0, Math.min(prefixCount, 4)).every((n) => n.toLowerCase().startsWith(q))).toBe(true);
+    if (got.includes(wordPrefix)) expect(got.indexOf(wordPrefix)).toBeGreaterThanOrEqual(prefixCount);
+  });
 });

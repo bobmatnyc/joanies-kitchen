@@ -543,7 +543,9 @@ export async function getIngredientSuggestions(
     // #47: fetch a wider candidate pool so ranking and dedup run before the
     // final limit, and order exact/prefix matches first in SQL as well.
     const candidateLimit = Math.min(validatedOptions.limit * 4, 100);
-    const matchRank = sql`CASE WHEN lower(${ingredients.name}) = ${normalizedQuery} OR lower(${ingredients.display_name}) = ${normalizedQuery} THEN 0 WHEN lower(${ingredients.name}) LIKE ${`${normalizedQuery}%`} OR lower(${ingredients.display_name}) LIKE ${`${normalizedQuery}%`} THEN 1 ELSE 2 END`;
+    // #47: rank on display_name (what the user sees), not name: a row with
+    // name='chicken' and display_name='Frying Chicken' must not rank as exact.
+    const matchRank = sql`CASE WHEN lower(${ingredients.display_name}) = ${normalizedQuery} THEN 0 WHEN lower(${ingredients.display_name}) LIKE ${`${normalizedQuery}%`} THEN 1 ELSE 2 END`;
 
     // OPTIMIZATION: Start with name-only search (fastest, uses primary index)
     const nameConditions: SQL[] = [

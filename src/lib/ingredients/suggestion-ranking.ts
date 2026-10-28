@@ -46,7 +46,9 @@ export function suggestionDedupKey(value: string): string {
 function matchTier(s: RankableSuggestion, query: string): number {
   const q = suggestionDedupKey(query);
   let best = 3;
-  for (const field of [s.name, s.displayName]) {
+  // #47: tier by the text the user SEES. Production has a row name='chicken'
+  // with display_name='Frying Chicken'; matching on `name` ranked it as exact.
+  for (const field of [s.displayName || s.name]) {
     const v = field.toLowerCase().replace(/[-_\s]+/g, ' ').trim();
     const key = suggestionDedupKey(field);
     if (key === q || v === query) return 0;
