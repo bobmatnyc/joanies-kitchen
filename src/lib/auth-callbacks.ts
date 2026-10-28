@@ -1,6 +1,12 @@
 import type { Account, Profile, User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import { findUserIdByEmail, getUserAdminFlag, normalizeEmail } from '@/lib/auth-users';
+import { isEnvAdminEmail } from '@/lib/auth-env';
+import {
+  findUserIdByEmail,
+  getUserAdminFlag,
+  grantUserAdmin,
+  normalizeEmail,
+} from '@/lib/auth-users';
 
 /**
  * Auth.js callbacks that need the database — #22.
@@ -9,8 +15,10 @@ import { findUserIdByEmail, getUserAdminFlag, normalizeEmail } from '@/lib/auth-
  * `users.is_admin`. These callbacks run in Node only (`src/auth.ts`); the
  * edge middleware never imports this file.
  * What: `authorizeSignIn` admits a Google login only when its verified email
- * matches a pre-seeded `users` row; `refreshAdminClaim` copies `is_admin`
- * into the JWT at most every ADMIN_CLAIM_TTL_MS. Both fail closed.
+ * matches a pre-seeded `users` row or is listed in AUTH_ADMIN_EMAILS;
+ * `refreshAdminClaim` sets `is_admin` for a listed email at sign-in and
+ * copies `is_admin` into the JWT at most every ADMIN_CLAIM_TTL_MS. Both fail
+ * closed.
  * Test: `src/lib/__tests__/auth-callbacks.test.ts`
  */
 
@@ -25,7 +33,7 @@ interface SignInParams {
 
 /**
  * Returns true only for a Google account whose verified email belongs to a
- * pre-seeded user. A missing email, an unverified email, an unknown email,
+ * pre-seeded user or is listed in AUTH_ADMIN_EMAILS. A missing email, an unverified email, an unknown email,
  * another provider, or a database error all return false (Auth.js then
  * redirects to `/sign-in?error=AccessDenied`).
  */
@@ -38,6 +46,10 @@ export async function authorizeSignIn({ user, account, profile }: SignInParams):
 
   const email = normalizeEmail(user?.email ?? profile?.email);
   if (!email) return false;
+
+  // #22 (A06): a listed admin email may sign in without a seeded row. It is
+  // checked only after the provider and verified-email gates above.
+  if (isEnvAdminEmail(email)) return true;
 
   try {
     // #22: closed registration — only pre-seeded emails may sign in.
@@ -59,11 +71,12 @@ interface JwtParams {
 /**
  * Keeps `token.isAdmin` in step with `users.is_admin`.
  *
- * On sign-in (`user` present) the id is copied into `token.sub` and the flag
- * is read at once. Afterwards it is re-read when older than the TTL. A user
- * row that no longer exists ends the session (returns null). A DB error
- * clears the admin flag and leaves the timestamp stale so the next call
- * retries.
+ * On sign-in (`user` present) the id is copied into `token.sub`; a user whose
+ * email is in AUTH_ADMIN_EMAILS first gets `is_admin = true` written to the
+ * DB (a failed write leaves the token non-admin); then the flag is read.
+ * Afterwards it is re-read when older than the TTL. A user row that no
+ * longer exists ends the session (returns null). A DB error clears the admin
+ * flag and leaves the timestamp stale so the next call retries.
  */
 export async function refreshAdminClaim({
   token,
@@ -73,6 +86,18 @@ export async function refreshAdminClaim({
   if (user?.id) {
     token.sub = user.id;
     token.adminCheckedAt = 0;
+    token.isAdmin = false;
+    if (isEnvAdminEmail(user.email)) {
+      try {
+        // #22 (A06): a listed email becomes an admin in the DB at sign-in.
+        await grantUserAdmin(user.id);
+      } catch (error) {
+        // #22: fail closed — the grant failed, so the token carries no admin;
+        // adminCheckedAt stays 0 so the next call re-reads users.is_admin.
+        console.error('[auth] admin grant failed; isAdmin cleared:', error);
+        return token;
+      }
+    }
   }
   if (!token.sub) return token;
 

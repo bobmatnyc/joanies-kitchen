@@ -6,10 +6,13 @@
  * Clerk id) so all of their data stays attached.
  *
  * Usage:
- *   pnpm auth:seed-user --id <users.id> --email <google-email> [--admin] [--dry-run]
+ *   pnpm auth:seed-user --id <users.id> [--email <google-email>] [--admin] [--dry-run]
  *
- * Reads DATABASE_URL from .env.local (or the environment). Requires
- * migration 0023 to be applied. Re-running without --admin revokes admin.
+ * Without --email the single address in AUTH_ADMIN_EMAILS is used (#22 A06);
+ * an AUTH_ADMIN_EMAILS address is always seeded as admin. Emails are printed
+ * masked. Reads DATABASE_URL and AUTH_ADMIN_EMAILS from .env.local (or the
+ * environment). Requires migration 0023 to be applied. Re-running an
+ * unlisted email without --admin revokes admin.
  * See docs/guides/authentication.md.
  */
 
@@ -31,7 +34,9 @@ async function main(): Promise<void> {
 
   const { db } = await import('../src/lib/db');
   const row = await seedAuthUser(db, args);
-  console.log(`Upserted users row: id=${row.id} is_admin=${row.isAdmin} email=${maskEmail(args.email)}`);
+  console.log(
+    `Upserted users row: id=${row.id} is_admin=${row.isAdmin} email=${maskEmail(args.email)}`
+  );
 }
 
 main().catch((error: unknown) => {

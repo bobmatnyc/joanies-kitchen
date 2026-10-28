@@ -7,12 +7,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   findUserIdByEmail: vi.fn(),
   getUserAdminFlag: vi.fn(),
+  grantUserAdmin: vi.fn(),
 }));
 
 vi.mock('@/lib/auth-users', async () => ({
   normalizeEmail: (e: string | null | undefined) => e?.trim().toLowerCase() || null,
   findUserIdByEmail: mocks.findUserIdByEmail,
   getUserAdminFlag: mocks.getUserAdminFlag,
+  grantUserAdmin: mocks.grantUserAdmin,
 }));
 
 import { ADMIN_CLAIM_TTL_MS, authorizeSignIn, refreshAdminClaim } from '@/lib/auth-callbacks';
@@ -33,6 +35,9 @@ function signInWith(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  // #22: never inherit a real admin list from the host environment.
+  vi.stubEnv('AUTH_ADMIN_EMAILS', '');
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   mocks.findUserIdByEmail.mockImplementation(async (email: string) =>
     email === SEEDED ? 'user_seeded' : null
@@ -116,5 +121,71 @@ describe('refreshAdminClaim', () => {
     await expect(
       refreshAdminClaim({ token: { sub: 'user_gone', isAdmin: true, adminCheckedAt: 0 }, now: NOW })
     ).resolves.toBeNull();
+  });
+});
+
+describe('AUTH_ADMIN_EMAILS (#22 A06)', () => {
+  const LISTED = 'listed-admin@example.test';
+  const NOW = 10_000_000;
+
+  beforeEach(() => {
+    vi.stubEnv('AUTH_ADMIN_EMAILS', ` ${LISTED.toUpperCase()} , other@example.test`);
+    mocks.grantUserAdmin.mockResolvedValue(undefined);
+  });
+
+  it('admits a verified listed email that has no seeded row, without a lookup', async () => {
+    await expect(signInWith({ email: LISTED })).resolves.toBe(true);
+    expect(mocks.findUserIdByEmail).not.toHaveBeenCalled();
+  });
+
+  it('denies a listed email Google has not verified', async () => {
+    await expect(signInWith({ email: LISTED, verified: false })).resolves.toBe(false);
+  });
+
+  it('denies a listed email from a non-Google provider', async () => {
+    await expect(signInWith({ email: LISTED, provider: 'github' })).resolves.toBe(false);
+  });
+
+  it('still denies an unlisted, unseeded email and a DB error for an unlisted email', async () => {
+    await expect(signInWith({ email: 'stranger@example.test' })).resolves.toBe(false);
+    mocks.findUserIdByEmail.mockRejectedValue(new Error('db down'));
+    await expect(signInWith({ email: 'stranger@example.test' })).resolves.toBe(false);
+  });
+
+  it('grants nothing when the variable is unset', async () => {
+    vi.stubEnv('AUTH_ADMIN_EMAILS', undefined);
+    await expect(signInWith({ email: LISTED })).resolves.toBe(false);
+    mocks.getUserAdminFlag.mockResolvedValue(false);
+    const token = await refreshAdminClaim({
+      token: {},
+      user: { id: 'u1', email: LISTED },
+      now: NOW,
+    });
+    expect(mocks.grantUserAdmin).not.toHaveBeenCalled();
+    expect(token).toMatchObject({ isAdmin: false });
+  });
+
+  it('writes is_admin = true at sign-in, then reads it back from the DB', async () => {
+    mocks.getUserAdminFlag.mockResolvedValue(true);
+    const token = await refreshAdminClaim({
+      token: {},
+      user: { id: 'u1', email: LISTED },
+      now: NOW,
+    });
+    expect(mocks.grantUserAdmin).toHaveBeenCalledWith('u1');
+    expect(mocks.getUserAdminFlag).toHaveBeenCalledWith('u1');
+    expect(token).toMatchObject({ sub: 'u1', isAdmin: true, adminCheckedAt: NOW });
+  });
+
+  it('clears isAdmin and leaves the check stale when the admin grant fails', async () => {
+    mocks.grantUserAdmin.mockRejectedValue(new Error('db down'));
+    mocks.getUserAdminFlag.mockResolvedValue(true);
+    const token = await refreshAdminClaim({
+      token: { isAdmin: true },
+      user: { id: 'u1', email: LISTED },
+      now: NOW,
+    });
+    expect(token).toMatchObject({ sub: 'u1', isAdmin: false, adminCheckedAt: 0 });
+    expect(mocks.getUserAdminFlag).not.toHaveBeenCalled();
   });
 });

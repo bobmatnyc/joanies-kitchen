@@ -1,4 +1,5 @@
 import type { PgDatabase } from 'drizzle-orm/pg-core';
+import { getAdminEmails } from '@/lib/auth-env';
 import { normalizeEmail } from '@/lib/auth-users';
 import { users } from '@/lib/db/auth-schema';
 
@@ -10,9 +11,12 @@ import { users } from '@/lib/db/auth-schema';
  * an existing (Clerk-era) user id keeps all of that user's data attached.
  * The id and email are passed on the command line so no PII is committed.
  * What: `parseSeedArgs` validates `--id`, `--email`, `--admin`, `--dry-run`
- * and throws on anything missing or malformed. `seedAuthUser` upserts the
- * row by id and sets `is_admin` to exactly the flag given (re-running
- * without `--admin` revokes admin).
+ * and throws on anything missing or malformed. Without `--email` it takes
+ * the single email in AUTH_ADMIN_EMAILS (#22 A06) and refuses when that list
+ * is empty or holds more than one. An email in AUTH_ADMIN_EMAILS is always
+ * seeded as admin. `seedAuthUser` upserts the row by id and sets `is_admin`
+ * to the resolved flag (re-running an unlisted email without `--admin`
+ * revokes admin).
  * Test: `src/lib/__tests__/auth-seed.test.ts`
  */
 
@@ -24,11 +28,11 @@ export interface SeedArgs {
 }
 
 export const SEED_USAGE =
-  'Usage: pnpm auth:seed-user --id <users.id> --email <google-email> [--admin] [--dry-run]';
+  'Usage: pnpm auth:seed-user --id <users.id> [--email <google-email>] [--admin] [--dry-run]';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function parseSeedArgs(argv: string[]): SeedArgs {
+export function parseSeedArgs(argv: string[], adminEmails: string[] = getAdminEmails()): SeedArgs {
   let id: string | undefined;
   let email: string | undefined;
   let isAdmin = false;
@@ -55,11 +59,24 @@ export function parseSeedArgs(argv: string[]): SeedArgs {
 
   const trimmedId = id?.trim();
   if (!trimmedId) throw new Error(`--id is required. ${SEED_USAGE}`);
-  const normalized = normalizeEmail(email);
-  if (!normalized) throw new Error(`--email is required. ${SEED_USAGE}`);
+  let normalized = normalizeEmail(email);
+  if (!normalized) {
+    // #22 (A06): fall back to AUTH_ADMIN_EMAILS only when it names exactly one email.
+    if (adminEmails.length === 0) {
+      throw new Error(`--email is required (AUTH_ADMIN_EMAILS is unset or empty). ${SEED_USAGE}`);
+    }
+    if (adminEmails.length > 1) {
+      throw new Error(
+        `--email is required: AUTH_ADMIN_EMAILS lists ${adminEmails.length} emails. ${SEED_USAGE}`
+      );
+    }
+    normalized = adminEmails[0];
+  }
   if (!EMAIL_RE.test(normalized)) throw new Error(`--email is not a valid email address.`);
 
-  return { id: trimmedId, email: normalized, isAdmin, dryRun };
+  // #22 (A06): a listed email is always an admin, matching what sign-in grants.
+  const listed = adminEmails.includes(normalized);
+  return { id: trimmedId, email: normalized, isAdmin: isAdmin || listed, dryRun };
 }
 
 /** Upserts the user row by id. Throws on a DB error (e.g. the email belongs to another id). */

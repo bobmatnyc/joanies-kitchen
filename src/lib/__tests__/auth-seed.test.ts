@@ -1,10 +1,14 @@
 /** #22: the seed script's argument parsing and upsert. Fixtures use example.test only. */
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/db', () => ({ db: {} }));
 
 import { drizzle } from 'drizzle-orm/pg-proxy';
 import { maskEmail, parseSeedArgs, seedAuthUser } from '@/lib/auth-seed';
+
+// #22: never inherit a real admin list from the host environment.
+beforeEach(() => vi.stubEnv('AUTH_ADMIN_EMAILS', ''));
+afterEach(() => vi.unstubAllEnvs());
 
 describe('parseSeedArgs', () => {
   it('parses id, a normalized email and flags', () => {
@@ -29,7 +33,7 @@ describe('parseSeedArgs', () => {
 
   it.each([
     [['--email', 'p@example.test'], '--id is required'],
-    [['--id', 'u1'], '--email is required'],
+    [['--id', 'u1'], 'AUTH_ADMIN_EMAILS is unset or empty'],
     [['--id', '  ', '--email', 'p@example.test'], '--id is required'],
     [['--id', 'u1', '--email', 'not-an-email'], 'not a valid email'],
     [['--id', '--email', 'p@example.test'], '--id needs a value'],
@@ -37,6 +41,41 @@ describe('parseSeedArgs', () => {
     [['--id', 'u1', '--email', 'p@example.test', '--admn'], 'Unknown argument'],
   ])('rejects %o', (argv, message) => {
     expect(() => parseSeedArgs(argv)).toThrow(message);
+  });
+});
+
+describe('parseSeedArgs with AUTH_ADMIN_EMAILS (#22 A06)', () => {
+  const LISTED = 'listed-admin@example.test';
+
+  it('takes the single listed email when --email is omitted and seeds it as admin', () => {
+    expect(parseSeedArgs(['--id', 'user_old'], [LISTED])).toEqual({
+      id: 'user_old',
+      email: LISTED,
+      isAdmin: true,
+      dryRun: false,
+    });
+  });
+
+  it('seeds a listed --email as admin even without --admin', () => {
+    expect(parseSeedArgs(['--id', 'u1', '--email', LISTED.toUpperCase()], [LISTED])).toMatchObject({
+      isAdmin: true,
+    });
+  });
+
+  it('keeps an unlisted --email non-admin without --admin', () => {
+    expect(parseSeedArgs(['--id', 'u1', '--email', 'p@example.test'], [LISTED])).toMatchObject({
+      isAdmin: false,
+    });
+  });
+
+  it('refuses to guess when the list holds more than one email', () => {
+    expect(() => parseSeedArgs(['--id', 'u1'], [LISTED, 'b@example.test'])).toThrow(
+      'AUTH_ADMIN_EMAILS lists 2 emails'
+    );
+  });
+
+  it('refuses when the list is empty', () => {
+    expect(() => parseSeedArgs(['--id', 'u1'], [])).toThrow('AUTH_ADMIN_EMAILS is unset or empty');
   });
 });
 

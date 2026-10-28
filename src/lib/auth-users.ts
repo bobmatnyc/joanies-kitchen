@@ -25,6 +25,11 @@ export async function findUserIdByEmail(email: string): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
+/** Sets `users.is_admin = true` for the id. Throws on DB error. */
+export async function grantUserAdmin(userId: string): Promise<void> {
+  await db.update(users).set({ is_admin: true }).where(eq(users.id, userId));
+}
+
 /**
  * Returns `users.is_admin` for the id, or null when no such user exists.
  * Throws on DB error.
