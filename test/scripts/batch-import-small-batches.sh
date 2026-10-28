@@ -8,6 +8,18 @@ set -e
 API_URL="http://localhost:3002/api/batch-import-small"
 LOG_FILE="tmp/batch-import-$(date +%s).log"
 
+# #13: the route requires `Authorization: Bearer <CRON_SECRET>`. Read the secret
+# from the environment, else from .env.local. It is never echoed, and curl reads
+# the header from a process substitution so it stays off the command line.
+if [ -z "${CRON_SECRET:-}" ] && [ -f .env.local ]; then
+  CRON_SECRET=$(grep -E '^CRON_SECRET=' .env.local | tail -n 1 | cut -d= -f2- | tr -d "\"'")
+fi
+if [ -z "${CRON_SECRET:-}" ]; then
+  echo "CRON_SECRET is not set; $API_URL requires it." >&2
+  exit 1
+fi
+auth_header() { printf 'Authorization: Bearer %s\n' "$CRON_SECRET"; }
+
 echo "🚀 Starting batch import with small batches (10 recipes at a time)" | tee -a "$LOG_FILE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
@@ -15,7 +27,7 @@ echo "" | tee -a "$LOG_FILE"
 # Chef: Alton Brown (12 recipes)
 echo "👨‍🍳 Alton Brown (12 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Alton Brown",
   "urls": [
     "https://altonbrown.com/recipes/good-eats-roast-thanksgiving-turkey/",
@@ -32,7 +44,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Alton Brown",
   "urls": [
     "https://www.foodnetwork.com/recipes/alton-brown/fried-chicken-recipe-1939165",
@@ -43,7 +55,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Bren Smith (11 recipes)
 echo -e "\n\n👨‍🍳 Bren Smith (11 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Bren Smith",
   "urls": [
     "https://www.greenwave.org/recipes-1/bbq-kelp-carrots",
@@ -60,7 +72,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Bren Smith",
   "urls": [
     "https://riverheadnewsreview.timesreview.com/2014/07/56138/how-do-you-eat-kelp-here-are-two-recipes/"
@@ -70,7 +82,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Cristina Scarpaleggia (12 recipes)
 echo -e "\n\n👨‍🍳 Cristina Scarpaleggia (12 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Cristina Scarpaleggia",
   "urls": [
     "https://en.julskitchen.com/first-course/soup/best-pappa-al-pomodoro",
@@ -87,7 +99,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Cristina Scarpaleggia",
   "urls": [
     "https://en.julskitchen.com/dessert/grape-focaccia",
@@ -98,7 +110,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Dan Barber (11 recipes)
 echo -e "\n\n👨‍🍳 Dan Barber (11 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Dan Barber",
   "urls": [
     "https://food52.com/recipes/9111-dan-barber-s-braised-short-ribs",
@@ -115,7 +127,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Dan Barber",
   "urls": [
     "https://www.tastingtable.com/687150/recipe-vegetable-chips-blue-hill-restaurant-dan-barber/"
@@ -124,7 +136,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 
 # Chef: David Zilber (6 recipes)
 echo -e "\n\n👨‍🍳 David Zilber (6 recipes)" | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "David Zilber",
   "urls": [
     "https://www.highsnobiety.com/p/david-zilber-interview/",
@@ -139,7 +151,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Ina Garten (12 recipes)
 echo -e "\n\n👨‍🍳 Ina Garten (12 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Ina Garten",
   "urls": [
     "https://barefootcontessa.com/recipes/baked-fontina",
@@ -156,7 +168,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Ina Garten",
   "urls": [
     "https://www.foodnetwork.com/recipes/ina-garten/salty-oatmeal-chocolate-chunk-cookies-5468289",
@@ -166,7 +178,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 
 # Chef: Jeremy Fox (7 recipes)
 echo -e "\n\n👨‍🍳 Jeremy Fox (7 recipes)" | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Jeremy Fox",
   "urls": [
     "https://thechalkboardmag.com/recipes-from-chef-jeremy-fox-new-cookbook-on-vegetables/",
@@ -182,7 +194,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Kirsten & Christopher Shockey (13 recipes)
 echo -e "\n\n👨‍🍳 Kirsten & Christopher Shockey (13 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Kirsten & Christopher Shockey",
   "urls": [
     "https://www.thedoctorskitchen.com/recipes/kirsten-shockey-s-be-good-to-your-gut-fennel-chutney",
@@ -199,7 +211,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Kirsten & Christopher Shockey",
   "urls": [
     "https://www.motherearthnews.com/real-food/fermenting-garlic-scapes-zbcz1506/",
@@ -211,7 +223,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 # Chef: Nancy Silverton (11 recipes)
 echo -e "\n\n👨‍🍳 Nancy Silverton (11 recipes)" | tee -a "$LOG_FILE"
 echo "Batch 1 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Nancy Silverton",
   "urls": [
     "https://ooni.com/blogs/recipes/nancy-silvertons-pizza-dough",
@@ -228,7 +240,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 }' 2>&1 | tee -a "$LOG_FILE"
 
 echo -e "\nBatch 2 of 2..." | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Nancy Silverton",
   "urls": [
     "https://www.foodgal.com/2017/04/nancy-silvertons-polenta-cake-with-brutti-ma-buoni-topping/"
@@ -237,7 +249,7 @@ curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
 
 # Chef: Tamar Adler (7 recipes)
 echo -e "\n\n👨‍🍳 Tamar Adler (7 recipes)" | tee -a "$LOG_FILE"
-curl -X POST "$API_URL" -H "Content-Type: application/json" -d '{
+curl -X POST "$API_URL" -H "Content-Type: application/json" -H @<(auth_header) -d '{
   "chefName": "Tamar Adler",
   "urls": [
     "https://food52.com/blog/4193-an-everlasting-piece-of-pork-belly-tamar-adler",

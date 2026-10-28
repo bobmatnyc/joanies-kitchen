@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **api**: POST `/api/recipes/scrape` requires an admin session or `Authorization: Bearer <CRON_SECRET>`; other callers get 401 (403 for a signed-in non-admin) before any crawl starts. `test/scripts/standalone-scraper.ts` sends the bearer and exits if `CRON_SECRET` is unset (#11)
+- **api**: POST `/api/batch-import-small`, `/api/batch-import-single` and `/api/crawl/weekly` require an admin session or `Authorization: Bearer <CRON_SECRET>`; `/api/crawl/weekly` no longer trusts a `localhost` `Host` header. The unused `/api/batch-import` route is removed. `test/scripts/batch-import-*.sh` and `test/scripts/test-crawl.ts` send the bearer and exit if `CRON_SECRET` is unset (#13)
 
 ## [0.7.12] - 2026-04-11
 

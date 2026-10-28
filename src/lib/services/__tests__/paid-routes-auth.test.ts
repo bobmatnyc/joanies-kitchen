@@ -1,5 +1,5 @@
 /**
- * #11: routes that start paid work run only for a Clerk admin or the
+ * #11, #13: routes that start paid work run only for a Clerk admin or the
  * CRON_SECRET bearer; every other caller is rejected before any provider
  * call, DB write or outbound fetch.
  */
@@ -21,7 +21,14 @@ vi.mock('@/app/actions/recipe-crawl', () => ({
 vi.mock('@/lib/db', () => ({
   db: { insert: mocks.dbWrite, update: mocks.dbWrite, delete: mocks.dbWrite },
 }));
+// #13: crawl/weekly used to trust this Host header; every request here spoofs localhost.
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ host: 'localhost:3000' }),
+}));
 
+import { POST as batchImportSinglePost } from '@/app/api/batch-import-single/route';
+import { POST as batchImportSmallPost } from '@/app/api/batch-import-small/route';
+import { POST as crawlWeeklyPost } from '@/app/api/crawl/weekly/route';
 import { POST as scrapePost } from '@/app/api/recipes/scrape/route';
 
 type Handler = (req: never) => Promise<Response>;
@@ -40,6 +47,27 @@ const ROUTES: PaidRoute[] = [
     handler: scrapePost as Handler,
     url: 'http://localhost/api/recipes/scrape',
     body: { weeksAgo: 0, maxResults: 2 },
+    paidWork: mocks.crawlWeeklyRecipes,
+  },
+  {
+    name: 'POST /api/batch-import-small',
+    handler: batchImportSmallPost as Handler,
+    url: 'http://localhost/api/batch-import-small',
+    body: { urls: ['https://example.com/recipe'], chefName: 'Test Chef' },
+    paidWork: mocks.convertUrlToRecipe,
+  },
+  {
+    name: 'POST /api/batch-import-single',
+    handler: batchImportSinglePost as Handler,
+    url: 'http://localhost/api/batch-import-single',
+    body: { url: 'https://example.com/recipe', chefName: 'Test Chef' },
+    paidWork: mocks.convertUrlToRecipe,
+  },
+  {
+    name: 'POST /api/crawl/weekly',
+    handler: crawlWeeklyPost as Handler,
+    url: 'http://localhost/api/crawl/weekly',
+    body: { weeksAgo: 0, maxResults: 5 },
     paidWork: mocks.crawlWeeklyRecipes,
   },
 ];
