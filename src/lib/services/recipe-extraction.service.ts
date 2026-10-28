@@ -16,6 +16,7 @@ import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 import { trackCost, withChatCostTracking } from '@/lib/costs';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 export interface ScrapedRecipe {
   url: string;
@@ -361,9 +362,10 @@ Return ONLY the JSON object, no other text.`;
         chef_name?: string;
         ingredients?: string[];
         instructions?: string[];
-        prep_time?: number;
-        cook_time?: number;
-        servings?: number;
+        // #12: the LLM returns free text here ("4 to 6", "3 quarts") despite the prompt.
+        prep_time?: unknown;
+        cook_time?: unknown;
+        servings?: unknown;
         cuisine?: string;
         tags?: string[];
         image_url?: string;
@@ -380,9 +382,10 @@ Return ONLY the JSON object, no other text.`;
         chef_name: data.chef_name,
         ingredients: data.ingredients ?? [],
         instructions: data.instructions ?? [],
-        prep_time: data.prep_time,
-        cook_time: data.cook_time,
-        servings: data.servings,
+        // #12: coerce to integer-or-undefined so a range string never reaches the DB.
+        prep_time: toRecipeInt(data.prep_time) ?? undefined,
+        cook_time: toRecipeInt(data.cook_time) ?? undefined,
+        servings: toRecipeInt(data.servings) ?? undefined,
         cuisine: data.cuisine,
         tags: data.tags ?? [],
         image_url: data.image_url,
@@ -405,13 +408,8 @@ Return ONLY the JSON object, no other text.`;
     const instructions = this.extractInstructions(data);
 
     const servingsRaw = data.recipeYield ?? data.servings;
-    let servings: number | undefined;
-    if (typeof servingsRaw === 'number') {
-      servings = servingsRaw;
-    } else if (typeof servingsRaw === 'string') {
-      const match = servingsRaw.match(/(\d+)/);
-      servings = match ? parseInt(match[1]) : undefined;
-    }
+    // #12: same shared coercion as the LLM path.
+    const servings = toRecipeInt(servingsRaw) ?? undefined;
 
     const tags: string[] = [];
     if (data.recipeCuisine) tags.push(data.recipeCuisine);

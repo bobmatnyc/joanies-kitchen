@@ -7,6 +7,7 @@ import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
 // Get all unique tags from recipes
@@ -265,6 +266,10 @@ export async function createRecipe(
           ? data.tags
           : JSON.stringify(data.tags)
         : null,
+      // #12: callers pass LLM/web values (saveDiscoveredRecipe, importWebRecipe); coerce here.
+      prep_time: toRecipeInt(data.prep_time),
+      cook_time: toRecipeInt(data.cook_time),
+      servings: toRecipeInt(data.servings),
     };
 
     const result = await db.insert(recipes).values(recipeData).returning();

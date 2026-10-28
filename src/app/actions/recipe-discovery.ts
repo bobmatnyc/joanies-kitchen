@@ -20,6 +20,7 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 // ============================================================================
 // Type Definitions
@@ -376,19 +377,6 @@ async function saveDiscoveredRecipe(
     throw new Error('Authentication required to save discovered recipes');
   }
 
-  // Parse time strings to minutes
-  const parsePrepTime = (timeStr?: string): number | null => {
-    if (!timeStr) return null;
-    const match = timeStr.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
-  };
-
-  const parseCookTime = (timeStr?: string): number | null => {
-    if (!timeStr) return null;
-    const match = timeStr.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
-  };
-
   // Create recipe object for embedding generation
   const recipeForEmbedding: Partial<Recipe> = {
     name: recipe.name,
@@ -420,9 +408,10 @@ async function saveDiscoveredRecipe(
       description: recipe.description,
       ingredients: JSON.stringify(recipe.ingredients),
       instructions: JSON.stringify(recipe.instructions),
-      prep_time: parsePrepTime(recipe.prepTime),
-      cook_time: parseCookTime(recipe.cookTime),
-      servings: recipe.servings || null,
+      // #12: LLM JSON is unvalidated ("4 to 6", or a bare number that broke .match).
+      prep_time: toRecipeInt(recipe.prepTime),
+      cook_time: toRecipeInt(recipe.cookTime),
+      servings: toRecipeInt(recipe.servings),
       cuisine: metadata.cuisine,
       tags: JSON.stringify(metadata.tags),
       difficulty: metadata.difficulty,
