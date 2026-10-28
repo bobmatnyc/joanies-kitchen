@@ -323,7 +323,8 @@ export default function Home() {
                   />
                 </div>
                 {/* Decorative accents */}
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-jk-tomato/10 rounded-full -z-10"></div>
+                {/* Pulled in on phones: -right-6 pushed this 8px past the 16px page padding and scrolled the page sideways */}
+                <div className="absolute -bottom-6 -right-4 md:-right-6 w-32 h-32 bg-jk-tomato/10 rounded-full -z-10"></div>
                 <div className="absolute -top-6 -left-6 w-24 h-24 bg-jk-sage/20 rounded-full -z-10"></div>
               </div>
 
