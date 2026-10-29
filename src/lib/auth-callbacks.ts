@@ -1,9 +1,12 @@
 import type { Account, Profile, User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import { isWithinGracePeriod } from '@/lib/account-deletion';
+import { issueUndoToken } from '@/lib/account-deletion/undo-token';
 import { isEnvAdminEmail } from '@/lib/auth-env';
 import {
+  findPendingDeletionByEmail,
   findUserIdByEmail,
-  getUserAdminFlag,
+  getUserSessionState,
   grantUserAdmin,
   normalizeEmail,
 } from '@/lib/auth-users';
@@ -18,9 +21,14 @@ import {
  * matches a pre-seeded `users` row or is listed in AUTH_ADMIN_EMAILS;
  * `refreshAdminClaim` sets `is_admin` for a listed email at sign-in and
  * copies `is_admin` into the JWT at most every ADMIN_CLAIM_TTL_MS. Both fail
- * closed.
- * Test: `src/lib/__tests__/auth-callbacks.test.ts`
+ * closed. #103: a user with a pending account deletion gets no session —
+ * sign-in redirects to the undo page and the refresh ends an existing JWT.
+ * Test: `src/lib/__tests__/auth-callbacks.test.ts`,
+ * `src/lib/account-deletion/__tests__/account-deletion.test.ts`
  */
+
+/** #103: where a blocked sign-in sends a user with a pending deletion. */
+export const UNDO_DELETION_PATH = '/account/undo-deletion';
 
 /** How long the JWT copy of `is_admin` is trusted before it is re-read. */
 export const ADMIN_CLAIM_TTL_MS = 5 * 60 * 1000;
@@ -36,8 +44,16 @@ interface SignInParams {
  * pre-seeded user or is listed in AUTH_ADMIN_EMAILS. A missing email, an unverified email, an unknown email,
  * another provider, or a database error all return false (Auth.js then
  * redirects to `/sign-in?error=AccessDenied`).
+ *
+ * #103: a user with a pending deletion is refused a session. Inside the grace
+ * period the callback returns the undo page URL with a signed undo token
+ * (Auth.js redirects there without signing in); after it, false.
  */
-export async function authorizeSignIn({ user, account, profile }: SignInParams): Promise<boolean> {
+export async function authorizeSignIn({
+  user,
+  account,
+  profile,
+}: SignInParams): Promise<boolean | string> {
   // #22: Google is the only provider; anything else is refused.
   if (account?.provider !== 'google') return false;
 
@@ -46,6 +62,23 @@ export async function authorizeSignIn({ user, account, profile }: SignInParams):
 
   const email = normalizeEmail(user?.email ?? profile?.email);
   if (!email) return false;
+
+  try {
+    // #103: checked before the admin shortcut so no email bypasses it.
+    const pending = await findPendingDeletionByEmail(email);
+    if (pending) {
+      if (!isWithinGracePeriod(pending.requestedAt)) return false;
+      const token = issueUndoToken({
+        userId: pending.userId,
+        requestedAtMs: pending.requestedAt.getTime(),
+      });
+      return `${UNDO_DELETION_PATH}?token=${encodeURIComponent(token)}`;
+    }
+  } catch (error) {
+    // #103: fail closed — an unknown deletion state must not admit a login.
+    console.error('[auth] deletion-state lookup failed; denying sign-in:', error);
+    return false;
+  }
 
   // #22 (A06): a listed admin email may sign in without a seeded row. It is
   // checked only after the provider and verified-email gates above.
@@ -75,7 +108,8 @@ interface JwtParams {
  * email is in AUTH_ADMIN_EMAILS first gets `is_admin = true` written to the
  * DB (a failed write leaves the token non-admin); then the flag is read.
  * Afterwards it is re-read when older than the TTL. A user row that no
- * longer exists ends the session (returns null). A DB error clears the admin
+ * longer exists, or (#103) has a pending account deletion, ends the session
+ * (returns null) at the next re-read, so within the TTL. A DB error clears the admin
  * flag and leaves the timestamp stale so the next call retries.
  */
 export async function refreshAdminClaim({
@@ -105,10 +139,12 @@ export async function refreshAdminClaim({
   if (now - checkedAt < ADMIN_CLAIM_TTL_MS) return token;
 
   try {
-    const flag = await getUserAdminFlag(token.sub);
+    const state = await getUserSessionState(token.sub);
     // #22: the user row is gone — end the session.
-    if (flag === null) return null;
-    token.isAdmin = flag;
+    if (state === null) return null;
+    // #103: a pending account deletion ends the session.
+    if (state.deletionPending) return null;
+    token.isAdmin = state.isAdmin;
     token.adminCheckedAt = now;
   } catch (error) {
     // #22: fail closed — drop admin until a refresh succeeds.

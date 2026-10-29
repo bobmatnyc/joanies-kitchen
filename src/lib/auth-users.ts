@@ -43,3 +43,43 @@ export async function getUserAdminFlag(userId: string): Promise<boolean | null> 
   if (rows.length === 0) return null;
   return rows[0].isAdmin === true;
 }
+
+/** #103: what the JWT refresh needs about a user; null when no such user exists. */
+export interface UserSessionState {
+  isAdmin: boolean;
+  deletionPending: boolean;
+}
+
+/**
+ * Returns `is_admin` and whether an account deletion is pending, in one read,
+ * or null when no such user exists. Throws on DB error.
+ */
+export async function getUserSessionState(userId: string): Promise<UserSessionState | null> {
+  const rows = await db
+    .select({ isAdmin: users.is_admin, deletionRequestedAt: users.deletion_requested_at })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (rows.length === 0) return null;
+  return {
+    isAdmin: rows[0].isAdmin === true,
+    deletionPending: rows[0].deletionRequestedAt !== null,
+  };
+}
+
+/**
+ * #103: returns the id and request time of the user with this (normalized)
+ * email when that user has a pending account deletion, else null. Throws on DB error.
+ */
+export async function findPendingDeletionByEmail(
+  email: string
+): Promise<{ userId: string; requestedAt: Date } | null> {
+  const rows = await db
+    .select({ id: users.id, requestedAt: users.deletion_requested_at })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  const row = rows[0];
+  if (!row?.requestedAt) return null;
+  return { userId: row.id, requestedAt: row.requestedAt };
+}

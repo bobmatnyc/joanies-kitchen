@@ -1,7 +1,8 @@
-import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
+import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 import { ProfileEditor } from '@/components/profile/ProfileEditor';
+import { auth } from '@/lib/auth';
 
 export const metadata = {
   title: "Edit Profile - Joanie's Kitchen",
@@ -48,6 +49,12 @@ export default async function EditProfilePage() {
           >
             Download my data
           </a>
+        </section>
+
+        {/* #103: account soft delete with a 30-day undo. */}
+        <section className="bg-white rounded-lg shadow-sm p-8 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Delete account</h2>
+          <DeleteAccountSection />
         </section>
       </div>
     </div>

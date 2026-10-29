@@ -15,6 +15,12 @@ vi.mock('@/lib/auth-users', async () => ({
   findUserIdByEmail: mocks.findUserIdByEmail,
   getUserAdminFlag: mocks.getUserAdminFlag,
   grantUserAdmin: mocks.grantUserAdmin,
+  // #103: covered against PGlite in account-deletion.test.ts; here no user is pending.
+  findPendingDeletionByEmail: async () => null,
+  getUserSessionState: async (id: string) => {
+    const flag = await mocks.getUserAdminFlag(id);
+    return flag === null ? null : { isAdmin: flag === true, deletionPending: false };
+  },
 }));
 
 import { ADMIN_CLAIM_TTL_MS, authorizeSignIn, refreshAdminClaim } from '@/lib/auth-callbacks';

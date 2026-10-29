@@ -2,6 +2,7 @@
 
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { requireAdmin } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -448,7 +449,9 @@ export async function getRecipeComments(
       .where(
         and(
           eq(recipeComments.recipe_id, recipeId),
-          eq(recipeComments.is_flagged, false) // Don't show flagged comments
+          eq(recipeComments.is_flagged, false), // Don't show flagged comments
+          // #103: hide comments by an author with a pending account deletion.
+          authorNotPendingDeletion(recipeComments.user_id)
         )
       )
       .orderBy(desc(recipeComments.created_at));
@@ -588,7 +591,13 @@ export async function getRecipeCommentCount(recipeId: string): Promise<DataResul
     const result = await db
       .select({ count: count() })
       .from(recipeComments)
-      .where(and(eq(recipeComments.recipe_id, recipeId), eq(recipeComments.is_flagged, false)));
+      .where(
+        and(
+          eq(recipeComments.recipe_id, recipeId),
+          eq(recipeComments.is_flagged, false),
+          authorNotPendingDeletion(recipeComments.user_id) // #103
+        )
+      );
 
     return {
       success: true,
