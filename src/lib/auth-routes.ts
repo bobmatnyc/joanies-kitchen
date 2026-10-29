@@ -27,7 +27,7 @@ const PUBLIC = [
 const PROTECTED = [
   /^\/recipes\/new/,
   /^\/recipes\/edit/,
-  /^\/recipes$/,
+  // /recipes is public: the page lists only public recipes (47b8c93).
   /^\/meals\/new/,
   /^\/meal-plans/,
 ];

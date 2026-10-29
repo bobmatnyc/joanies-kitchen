@@ -530,7 +530,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           )}
 
           {/* Utility Actions */}
-          <Link href={`/recipes/${recipe.id}/similar`} className="contents">
+          <Link href={`/recipes/${recipe.slug || recipe.id}/similar`} className="contents">
             <Button
               variant="outline"
               className="min-h-[44px] min-w-[44px]"

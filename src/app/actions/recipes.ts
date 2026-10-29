@@ -1057,6 +1057,9 @@ export async function getRecipesOfTheDay() {
 }
 
 // Get recipes with pagination, filtering, and sorting
+/** Largest page `getRecipesPaginated` returns; matches the /api/recipes/paginated cap. */
+const MAX_RECIPES_PAGE_SIZE = 100;
+
 export async function getRecipesPaginated({
   page = 1,
   limit = 24,
@@ -1071,6 +1074,11 @@ export async function getRecipesPaginated({
     // #32: caller-supplied filters (userId, isPublic: false) must not widen visibility.
     const viewer = await getRecipeViewer();
     const userId = viewer.userId;
+    // A server action is callable directly, so cap the page size here, not only in the API route.
+    page = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
+    limit = Number.isFinite(limit)
+      ? Math.min(MAX_RECIPES_PAGE_SIZE, Math.max(1, Math.floor(limit)))
+      : 24;
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions
