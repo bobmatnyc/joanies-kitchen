@@ -38,6 +38,8 @@ export const RATE_LIMITS = {
   'recipe-ingest-api': { limit: 100, windowSec: 86_400 },
   /** #58: `GET /api/account/export`, per user: one read of every user-owned table. */
   'account-export': { limit: 3, windowSec: 3_600 },
+  /** #105: `reportComment`, per user: bounds report spam across many comments. */
+  'comment-report': { limit: 20, windowSec: 3_600 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS;

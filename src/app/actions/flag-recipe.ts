@@ -9,12 +9,13 @@
 
 'use server';
 
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { checkAdminAccess, requireAdmin } from '@/lib/admin';
 import { auth } from '@/lib/auth';
+import { applyCommentFlagAction } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
-import { recipeFlags, recipes } from '@/lib/db/schema';
+import { recipeComments, recipeFlags, recipes } from '@/lib/db/schema';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -83,10 +84,17 @@ export async function flagRecipe(
     }
 
     // #59: one report per user per recipe, whatever its status.
+    // #105: comment reports also carry recipe_id; they do not count here.
     const existing = await db
       .select({ id: recipeFlags.id })
       .from(recipeFlags)
-      .where(and(eq(recipeFlags.recipe_id, recipeId), eq(recipeFlags.user_id, userId)))
+      .where(
+        and(
+          eq(recipeFlags.recipe_id, recipeId),
+          eq(recipeFlags.user_id, userId),
+          isNull(recipeFlags.comment_id)
+        )
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -140,7 +148,13 @@ export async function getFlagCount(recipeId: string): Promise<number> {
     const result = await db
       .select({ count: count() })
       .from(recipeFlags)
-      .where(and(eq(recipeFlags.recipe_id, recipeId), eq(recipeFlags.status, 'pending')));
+      .where(
+        and(
+          eq(recipeFlags.recipe_id, recipeId),
+          eq(recipeFlags.status, 'pending'),
+          isNull(recipeFlags.comment_id) // #105: recipe reports only
+        )
+      );
 
     return result[0]?.count || 0;
   } catch (error: unknown) {
@@ -170,7 +184,8 @@ export async function hasUserFlagged(recipeId: string): Promise<boolean> {
         and(
           eq(recipeFlags.recipe_id, recipeId),
           eq(recipeFlags.user_id, userId),
-          eq(recipeFlags.status, 'pending')
+          eq(recipeFlags.status, 'pending'),
+          isNull(recipeFlags.comment_id) // #105: recipe reports only
         )
       )
       .limit(1);
@@ -197,6 +212,12 @@ export async function getAllFlags(
     id: string;
     recipe_id: string;
     recipeName: string;
+    /** #105: set for a comment report. */
+    comment_id: string | null;
+    /** #105: the reported comment's text; null when not a comment report or deleted. */
+    commentContent: string | null;
+    /** #105: true while the reported comment is hidden. */
+    commentHidden: boolean;
     user_id: string;
     reason: string;
     description: string | null;
@@ -225,6 +246,9 @@ export async function getAllFlags(
         id: recipeFlags.id,
         recipe_id: recipeFlags.recipe_id,
         recipeName: recipes.name,
+        comment_id: recipeFlags.comment_id,
+        commentContent: recipeComments.content,
+        commentHidden: recipeComments.is_flagged,
         user_id: recipeFlags.user_id,
         reason: recipeFlags.reason,
         description: recipeFlags.description,
@@ -236,6 +260,7 @@ export async function getAllFlags(
       })
       .from(recipeFlags)
       .leftJoin(recipes, eq(recipeFlags.recipe_id, recipes.id))
+      .leftJoin(recipeComments, eq(recipeFlags.comment_id, recipeComments.id)) // #105
       .orderBy(desc(recipeFlags.created_at))
       .limit(limit);
 
@@ -246,6 +271,9 @@ export async function getAllFlags(
       id: flag.id,
       recipe_id: flag.recipe_id,
       recipeName: flag.recipeName || 'Unknown Recipe',
+      comment_id: flag.comment_id,
+      commentContent: flag.commentContent,
+      commentHidden: flag.commentHidden ?? false,
       user_id: flag.user_id,
       reason: flag.reason || 'other',
       description: flag.description,
@@ -394,7 +422,9 @@ export type FlagQueueAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
  * (`deleted_at`, `deleted_by`) and resolves the flag. A recipe write that
  * touches no row, or any thrown error, returns `success: false`; the flag is
  * only updated after the recipe write succeeds.
- * Test: `src/app/actions/__tests__/report-moderation.test.ts`
+ * #105: a comment report (`comment_id` set) delegates to `applyCommentFlagAction`.
+ * Test: `src/app/actions/__tests__/report-moderation.test.ts`,
+ * `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function actOnRecipeFlag(
   flagId: string,
@@ -409,13 +439,32 @@ export async function actOnRecipeFlag(
     }
 
     const [flag] = await db
-      .select({ id: recipeFlags.id, recipe_id: recipeFlags.recipe_id })
+      .select({
+        id: recipeFlags.id,
+        recipe_id: recipeFlags.recipe_id,
+        comment_id: recipeFlags.comment_id,
+      })
       .from(recipeFlags)
       .where(eq(recipeFlags.id, flagId))
       .limit(1);
 
     if (!flag) {
       return { success: false, error: 'Flag not found' };
+    }
+
+    // #105: a comment report acts on the comment, never on the recipe.
+    if (flag.comment_id) {
+      const failure = await applyCommentFlagAction(
+        { id: flag.id, comment_id: flag.comment_id },
+        action,
+        userId,
+        reviewNotes || null
+      );
+      if (failure) return { success: false, error: failure };
+      console.log(`[Flag Queue] Admin ${userId} applied ${action} to comment flag ${flagId}`);
+      revalidatePath('/admin/flags');
+      revalidatePath(`/recipes/${flag.recipe_id}`);
+      return { success: true };
     }
 
     const now = new Date();

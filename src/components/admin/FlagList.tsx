@@ -5,6 +5,7 @@
  * - Shows flag details (reason, description, reporter)
  * - Links to flagged recipe
  * - Actions to dismiss, hide or remove the reported recipe (#59)
+ * - #105: a comment report shows the comment and acts on the comment
  */
 
 'use client';
@@ -33,6 +34,9 @@ interface FlagData {
   id: string;
   recipe_id: string;
   recipeName: string;
+  comment_id: string | null; // #105
+  commentContent: string | null;
+  commentHidden: boolean;
   user_id: string;
   reason: string;
   description: string | null;
@@ -99,6 +103,10 @@ function FlagCard({ flag }: { flag: FlagData }) {
   };
 
   const isPending = flag.status === 'pending';
+  // #105: comment reports act on the comment; button and dialog text name the target.
+  const target = flag.comment_id ? 'comment' : 'recipe';
+  const Target = flag.comment_id ? 'Comment' : 'Recipe';
+  const canUnhide = flag.comment_id ? flag.commentHidden : flag.status === 'resolved';
 
   return (
     <>
@@ -135,6 +143,18 @@ function FlagCard({ flag }: { flag: FlagData }) {
           </div>
         </CardHeader>
         <CardContent>
+          {flag.comment_id && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline">Comment report</Badge>
+                {flag.commentHidden && <Badge variant="secondary">Comment hidden</Badge>}
+              </div>
+              <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-md whitespace-pre-wrap">
+                {flag.commentContent ?? '(comment deleted)'}
+              </p>
+            </div>
+          )}
+
           {flag.description && (
             <div className="mb-4">
               <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">{flag.description}</p>
@@ -154,7 +174,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 </Link>
               </Button>
 
-              {flag.status === 'resolved' && (
+              {canUnhide && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -162,7 +182,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                   className="text-green-600 hover:text-green-700"
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  Unhide recipe
+                  Unhide {target}
                 </Button>
               )}
 
@@ -184,7 +204,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                     className="text-orange-600 hover:text-orange-700"
                   >
                     <EyeOff className="w-4 h-4 mr-2" />
-                    Hide recipe
+                    Hide {target}
                   </Button>
                   <Button
                     variant="outline"
@@ -193,7 +213,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
                     className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Remove recipe
+                    Remove {target}
                   </Button>
                 </>
               )}
@@ -219,17 +239,21 @@ function FlagCard({ flag }: { flag: FlagData }) {
           <DialogHeader>
             <DialogTitle>
               {selectedAction === 'dismiss' && 'Dismiss Report'}
-              {selectedAction === 'hide' && 'Hide Recipe'}
-              {selectedAction === 'remove' && 'Remove Recipe'}
-              {selectedAction === 'unhide' && 'Unhide Recipe'}
+              {selectedAction === 'hide' && `Hide ${Target}`}
+              {selectedAction === 'remove' && `Remove ${Target}`}
+              {selectedAction === 'unhide' && `Unhide ${Target}`}
             </DialogTitle>
             <DialogDescription>
               {selectedAction === 'dismiss' &&
-                'Mark this report reviewed. The recipe is unchanged.'}
+                (flag.comment_id
+                  ? 'Dismiss every pending report on this comment and un-hide it.'
+                  : 'Mark this report reviewed. The recipe is unchanged.')}
               {selectedAction === 'hide' &&
-                'Hide this recipe from public view and resolve the report.'}
+                `Hide this ${target} from public view and resolve the report.`}
               {selectedAction === 'remove' &&
-                'Remove this recipe (soft delete) and resolve the report.'}
+                (flag.comment_id
+                  ? 'Delete this comment and resolve its reports.'
+                  : 'Remove this recipe (soft delete) and resolve the report.')}
             </DialogDescription>
           </DialogHeader>
 

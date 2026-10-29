@@ -1,9 +1,10 @@
 'use client';
 
-import { Edit2, Trash2, User } from 'lucide-react';
+import { Edit2, Flag, Trash2, User } from 'lucide-react';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteRecipeComment, updateRecipeComment } from '@/app/actions/social';
+import { ReportCommentDialog } from '@/components/recipe/ReportCommentDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,7 @@ export function CommentItem({ comment, currentUserId, onEdit, onDelete }: Commen
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false); // #105
   const [isPending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -276,6 +278,19 @@ export function CommentItem({ comment, currentUserId, onEdit, onDelete }: Commen
                     </Button>
                   </div>
                 )}
+
+                {/* #105: signed-in non-owners can report; the server re-checks both. */}
+                {currentUserId && !isOwner && (
+                  <Button
+                    onClick={() => setShowReportDialog(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground flex-shrink-0"
+                    aria-label="Report comment"
+                  >
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
 
               {/* Comment Content */}
@@ -286,6 +301,17 @@ export function CommentItem({ comment, currentUserId, onEdit, onDelete }: Commen
           )}
         </CardContent>
       </Card>
+
+      {currentUserId && !isOwner && (
+        <ReportCommentDialog
+          commentId={comment.id}
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          onReported={(hidden) => {
+            if (hidden) onDelete?.(); // #105: refresh so the hidden comment drops out
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
