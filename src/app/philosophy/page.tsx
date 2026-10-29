@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Joanie's Philosophy | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: "Joanie's Philosophy",
   description:
     "The story behind our zero-waste cooking platform. Learn about Joanie's approach to resourceful cooking, FIFO principles, and why technology should help with food waste.",
 };

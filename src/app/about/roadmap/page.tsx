@@ -5,7 +5,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: "Roadmap | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Roadmap',
   description: 'Track our journey from concept to version 1.0 and beyond',
 };
 

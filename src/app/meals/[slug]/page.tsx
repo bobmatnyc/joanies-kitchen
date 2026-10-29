@@ -65,12 +65,14 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!result.success || !result.data) {
     return {
-      title: "Meal Not Found | Joanie's Kitchen",
+      // #138: the root layout's title.template appends the brand.
+      title: 'Meal Not Found',
     };
   }
 
   return {
-    title: `${result.data.name} | Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${result.data.name}`,
     description: result.data.description || 'View meal details and recipes',
   };
 }

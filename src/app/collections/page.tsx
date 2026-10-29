@@ -2,7 +2,8 @@ import { getPublicCollections } from '@/app/actions/collections';
 import { CollectionCard } from '@/components/collections/CollectionCard';
 
 export const metadata = {
-  title: "Collections - Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Collections',
   description: 'Browse recipe collections from the community',
 };
 

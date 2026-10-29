@@ -117,6 +117,7 @@ export default async function MyRecipesPage({ searchParams }: PageProps) {
 }
 
 export const metadata = {
-  title: "My Recipes | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'My Recipes',
   description: 'Manage your personal recipe collection',
 };

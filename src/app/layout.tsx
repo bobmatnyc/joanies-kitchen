@@ -12,6 +12,7 @@ import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { AlphaStamp } from '@/components/shared/AlphaStamp';
+import { SITE_TITLE_TEMPLATE } from '@/lib/site-title';
 import './globals.css';
 
 // Joanie's Kitchen Typography
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen'),
   title: {
     default: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
-    template: "%s | Joanie's Kitchen",
+    template: SITE_TITLE_TEMPLATE, // #138: page titles must not repeat the brand
   },
   description:
     'Stop food waste. Cook from your fridge with no-waste recipes curated by Joanie Zisk. Find meals using what you already have — with smart substitutions so nothing goes to waste.',

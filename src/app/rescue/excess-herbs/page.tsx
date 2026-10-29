@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Rescue Excess Herbs | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Rescue Excess Herbs',
   description:
     "Don't let fresh herbs go to waste. Learn techniques for using wilting cilantro, parsley, basil, and more before they turn slimy.",
 };

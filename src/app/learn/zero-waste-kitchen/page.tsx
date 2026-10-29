@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Zero-Waste Kitchen Guide | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Zero-Waste Kitchen Guide',
   description:
     'Master FIFO principles, scrap utilization, composting basics, and storage tips to eliminate food waste in your kitchen.',
 };

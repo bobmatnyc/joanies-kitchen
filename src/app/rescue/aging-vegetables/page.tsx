@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Rescue Aging Vegetables | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Rescue Aging Vegetables',
   description:
     "Don't throw out soft carrots, wrinkly peppers, or overripe tomatoes. Learn rescue techniques, storage tips, and when vegetables are truly past saving.",
 };

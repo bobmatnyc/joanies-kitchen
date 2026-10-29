@@ -10,7 +10,8 @@ import { auth } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Create Recipe | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Create Recipe',
   description: 'Create a new recipe with AI or detailed form',
 };
 

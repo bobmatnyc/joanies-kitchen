@@ -1,4 +1,7 @@
-import { loadVisibleRecipeOrNotFound } from './recipe-access';
+import type { Metadata } from 'next';
+import { NOT_FOUND_METADATA } from '@/lib/not-found-metadata';
+import { parseRecipeTags } from '@/lib/types/parsers';
+import { findVisibleRecipe, loadVisibleRecipeOrNotFound } from './recipe-access';
 
 interface RecipeLayoutProps {
   children: React.ReactNode;
@@ -14,11 +17,17 @@ interface RecipeLayoutProps {
  * SEO CRITICAL: Handles server-side 301 redirect from UUID to slug URLs
  * for better SEO (search engines prefer slug URLs over UUIDs).
  */
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
-  // #134: a missing or hidden recipe is a 404 here too, so no title or description
-  // from a recipe the viewer cannot see reaches the metadata.
-  const recipe = await loadVisibleRecipeOrNotFound(slug);
+  // #138: no notFound() here. Next re-runs this while rendering the 404, and a throw
+  // drops not-found.tsx's title and robots. The layout below owns the 404 (#134).
+  // A missing or hidden recipe gets the fixed 404 metadata, so no private field leaks.
+  const recipe = await findVisibleRecipe(slug);
+  if (!recipe) return NOT_FOUND_METADATA;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
 
   // Prefer slug over ID for canonical URL (SEO best practice)
@@ -30,7 +39,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const firstImage = images.length > 0 ? images[0] : recipe.image_url;
 
   return {
-    title: `${recipe.name} | Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: recipe.name,
     description:
       recipe.description ||
       `Delicious ${recipe.name} recipe from Joanie's Kitchen - ${recipe.cuisine ? `${recipe.cuisine} cuisine` : 'Easy to make'}`,
@@ -60,14 +70,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: recipe.description || `Delicious ${recipe.name} recipe`,
       images: firstImage ? [firstImage] : undefined,
     },
+    // #138: tags is a JSON string; spreading it emitted one keyword per character.
     keywords: [
       recipe.name,
       recipe.cuisine,
-      ...(recipe.tags || []),
+      ...parseRecipeTags(recipe.tags),
       'recipe',
       'cooking',
       'zero waste cooking',
-    ].filter(Boolean),
+    ].filter((keyword): keyword is string => Boolean(keyword)),
   };
 }
 

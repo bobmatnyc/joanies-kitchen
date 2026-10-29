@@ -5,7 +5,8 @@ import { ProfileEditor } from '@/components/profile/ProfileEditor';
 import { auth } from '@/lib/auth';
 
 export const metadata = {
-  title: "Edit Profile - Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Edit Profile',
   description: 'Edit your chef profile',
 };
 

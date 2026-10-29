@@ -11,23 +11,36 @@ function isUUID(str: string): boolean {
 }
 
 /**
+ * Why: #138 — `generateMetadata` needs the recipe without calling `notFound()`. Next
+ * resolves every layout's metadata again while it renders the 404, so a throwing
+ * `generateMetadata` dropped the not-found page's `<title>` and robots tags.
+ * What: the recipe when the viewer may see it (#32 rule via `getRecipe`); `null` for a
+ * missing or hidden recipe, with no difference between the two. Any other failure
+ * throws, so a database outage is a 500, not a 404. Memoised per request, so the
+ * layout and `generateMetadata` share one lookup.
+ * Test: `src/app/recipes/[slug]/__tests__/recipe-not-found.test.ts`
+ */
+export const findVisibleRecipe = cache(async (slugOrId: string) => {
+  const result = await getRecipe(slugOrId);
+  if (result.success && result.data) return result.data;
+  if (result.error && HIDDEN_RECIPE_ERRORS.has(result.error)) return null;
+  throw new Error(`Failed to load recipe: ${result.error ?? 'unknown error'}`);
+});
+
+/**
  * Why: #134 — the recipe page answered 200 with a client-rendered "Recipe Not Found"
  * for missing and private recipes, and indexable metadata.
- * What: loads the recipe through `getRecipe` (the #32 visibility rule). A missing or
- * hidden recipe calls `notFound()`; a visible recipe reached by UUID redirects to its
- * slug. Any other failure throws, so a database outage is a 500, not a 404.
- * Memoised per request, so the layout and `generateMetadata` share one lookup.
+ * What: `findVisibleRecipe`, then `notFound()` for a missing or hidden recipe; a
+ * visible recipe reached by UUID redirects to its slug. Layout only — #138: a
+ * `notFound()` from `generateMetadata` strips the 404 page's metadata.
  * Test: `src/app/recipes/[slug]/__tests__/recipe-not-found.test.ts`
  */
 export const loadVisibleRecipeOrNotFound = cache(async (slugOrId: string) => {
-  const result = await getRecipe(slugOrId);
-  if (!result.success || !result.data) {
-    if (result.error && HIDDEN_RECIPE_ERRORS.has(result.error)) notFound();
-    throw new Error(`Failed to load recipe: ${result.error ?? 'unknown error'}`);
-  }
+  const recipe = await findVisibleRecipe(slugOrId);
+  if (!recipe) notFound();
   // #134: redirect only after the visibility check, so a UUID never reveals a hidden slug.
-  if (isUUID(slugOrId) && result.data.slug) {
-    redirect(`/recipes/${result.data.slug}`);
+  if (isUUID(slugOrId) && recipe.slug) {
+    redirect(`/recipes/${recipe.slug}`);
   }
-  return result.data;
+  return recipe;
 });

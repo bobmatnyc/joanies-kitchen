@@ -9,7 +9,8 @@ import { BookOpen, GraduationCap, Recycle, RotateCcw, Shuffle, Soup } from 'luci
 import Link from 'next/link';
 
 export const metadata = {
-  title: "Learn Zero-Waste Techniques | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Learn Zero-Waste Techniques',
   description:
     "Master zero-waste cooking techniques. Learn FIFO principles, substitution strategies, stock from scraps, and Joanie's resourceful approach.",
 };

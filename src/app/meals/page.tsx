@@ -81,6 +81,7 @@ export default async function MealsPage({ searchParams }: PageProps) {
 }
 
 export const metadata = {
-  title: "Browse Meals | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Browse Meals',
   description: 'Discover complete meals shared by our community',
 };

@@ -1,4 +1,3 @@
-import { auth } from '@/lib/auth';
 import { Edit, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -6,6 +5,7 @@ import { getCollectionBySlug } from '@/app/actions/collections';
 import { GenerateShoppingListButton } from '@/components/collections/GenerateShoppingListButton';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/auth';
 
 interface CollectionDetailPageProps {
   params: Promise<{
@@ -122,7 +122,8 @@ export async function generateMetadata({ params }: CollectionDetailPageProps) {
   }
 
   return {
-    title: `${collection.name} by ${username} - Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${collection.name} by ${username}`,
     description:
       collection.description ||
       `A recipe collection by ${username} with ${collection.recipe_count} recipes`,

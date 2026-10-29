@@ -10,7 +10,8 @@ import { AlertCircle, Carrot, Drumstick, Flower, Leaf } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: "Rescue Ingredients | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Rescue Ingredients',
   description:
     'What to do with ingredients about to go bad. Find recipes for wilting greens, aging vegetables, leftover proteins, and excess herbs.',
 };

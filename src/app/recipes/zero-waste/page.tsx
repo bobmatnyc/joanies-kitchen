@@ -14,7 +14,8 @@ import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Zero-Waste Recipe Collection | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Zero-Waste Recipe Collection',
   description:
     'Resourceful recipes that help you cook with what you have and waste nothing. High flexibility, seasonal ingredients, and scrap utilization.',
 };

@@ -4,7 +4,8 @@ import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 import { ChefViewToggle } from '@/components/discover/ChefViewToggle';
 
 export const metadata = {
-  title: "No-Waste Chefs | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'No-Waste Chefs',
   description:
     "Discover chefs who share Joanie's no-waste philosophy — cooking creatively with what you have and wasting nothing.",
 };
@@ -19,9 +20,7 @@ export default async function DiscoverChefsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-heading text-jk-olive mb-2">No-Waste Chefs</h1>
-          <p className="text-jk-olive/60">
-            Chefs who cook with what they have — and waste nothing
-          </p>
+          <p className="text-jk-olive/60">Chefs who cook with what they have — and waste nothing</p>
         </div>
 
         <ChefHat className="w-12 h-12 text-jk-olive/20 hidden md:block" />

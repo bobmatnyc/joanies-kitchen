@@ -9,7 +9,8 @@ import { UndoDeletionForm } from './UndoDeletionForm';
  * to sign-in. `no-referrer` keeps the token out of outgoing Referer headers.
  */
 export const metadata = {
-  title: "Undo account deletion - Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Undo account deletion',
   referrer: 'no-referrer' as const,
   robots: { index: false, follow: false },
 };

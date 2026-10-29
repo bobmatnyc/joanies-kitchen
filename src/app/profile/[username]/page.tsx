@@ -1,4 +1,3 @@
-import { auth } from '@/lib/auth';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,6 +7,7 @@ import { CollectionCard } from '@/components/collections/CollectionCard';
 import { ProfileDisplay } from '@/components/profile/ProfileDisplay';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/auth';
 
 interface ChefProfilePageProps {
   params: Promise<{
@@ -149,7 +149,8 @@ export async function generateMetadata({ params }: ChefProfilePageProps) {
   }
 
   return {
-    title: `${profile.display_name} (@${profile.username}) - Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${profile.display_name} (@${profile.username})`,
     description: profile.bio || `Check out ${profile.display_name}'s recipes and collections`,
   };
 }
