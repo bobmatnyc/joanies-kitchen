@@ -55,6 +55,10 @@ scripts/*
 !scripts/version.ts
 # #38: prebuild runs this to write src/generated/background-images.json
 !scripts/generate-background-manifest.ts
+# #96 D57: prebuild fetches the pinned embedding model; the trace check runs after build
+!scripts/fetch-embedding-model.ts
+!scripts/check-embedding-traces.ts
+!scripts/lib/
 
 # Data acquisition (large files)
 data/
