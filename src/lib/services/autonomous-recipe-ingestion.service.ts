@@ -63,6 +63,8 @@ import {
 const ZERO_WASTE_TAGS = ['zero-waste', 'scraped'];
 const EXTRACTION_DELAY_MS = 2000; // 2 seconds between URL extractions
 const SYSTEM_USER_ID = 'system';
+/** #6: item error for the URL in flight when the deadline hit. */
+export const ABANDONED_IN_FLIGHT_ERROR = 'deadline: abandoned in flight; may have stored late';
 
 /** `ScrapedRecipe.extraction_method` -> `recipe_discovery_run_items.extraction_tier`. */
 const EXTRACTION_TIERS: Record<ScrapedRecipe['extraction_method'], string> = {
@@ -103,6 +105,8 @@ interface RunMetrics {
    * item rows and moves no counters, so the finalized counters match the items.
    */
   closed: boolean;
+  /** #6: URLs that already have (or are writing) their item row. */
+  itemUrls: Set<string>;
 }
 
 export interface IngestionRunResult {
@@ -198,6 +202,7 @@ export class AutonomousRecipeIngestionService {
       itemWriteFailures: 0,
       tracked: false,
       closed: false,
+      itemUrls: new Set(),
     };
     const deadlineAt = options.deadlineAt;
     // #6: records the deadline stop once and closes the metrics to late writes.
@@ -334,6 +339,17 @@ export class AutonomousRecipeIngestionService {
             deadlineAt
           );
           if (processed === DEADLINE_HIT) {
+            // #6: the abandoned URL still gets its one item row before close.
+            const inFlight = urlsToProcess[i].url;
+            if (!m.itemUrls.has(inFlight)) {
+              await this.recordItem(m, {
+                runId,
+                url: inFlight,
+                extractionTier: 'none',
+                outcome: 'failed',
+                error: ABANDONED_IN_FLIGHT_ERROR,
+              });
+            }
             stopAtDeadline();
             break;
           }
@@ -488,6 +504,8 @@ export class AutonomousRecipeIngestionService {
         return;
       }
 
+      // #6: stored after the deadline closed the run; its item row already says so.
+      if (m.closed) return;
       m.recipesStored++;
       console.log(`[AutonomousIngestion] Stored recipe: "${recipe.title}" (${recipeId})`);
       // Record first stored recipe as today's Recipe of the Day
@@ -507,6 +525,7 @@ export class AutonomousRecipeIngestionService {
   /** Writes one item row; a failed write on a tracked run is counted, never thrown. */
   private async recordItem(m: RunMetrics, item: RunItemInput): Promise<void> {
     if (m.closed) return;
+    m.itemUrls.add(item.url);
     const written = await recordRunItem(item);
     if (!written && isTrackedRunId(item.runId)) m.itemWriteFailures++;
   }
@@ -524,7 +543,7 @@ export class AutonomousRecipeIngestionService {
         recipe.chef_name,
         chefWebsite
       );
-      if (chefProfile.isNew) m.chefsCreated++;
+      if (chefProfile.isNew && !m.closed) m.chefsCreated++;
       return chefProfile.id;
     } catch (chefErr) {
       const msg = chefErr instanceof Error ? chefErr.message : String(chefErr);

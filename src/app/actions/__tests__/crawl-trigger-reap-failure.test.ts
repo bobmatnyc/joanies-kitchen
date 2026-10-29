@@ -56,6 +56,11 @@ vi.mock('@/lib/services/chef-discovery.service', () => ({ getChefDiscoveryServic
 
 import { triggerManualCrawl } from '@/app/actions/crawl-trigger';
 import { DEFAULT_RUN_BUDGET_USD, MAX_RUN_BUDGET_USD } from '@/lib/costs';
+import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import {
+  CRON_FUNCTION_LIMIT_MS,
+  FINALIZE_SAFETY_MARGIN_MS,
+} from '@/lib/services/crawl-run-deadline';
 
 const runInserts = () =>
   mocks.queries.filter((q) => /^insert into "recipe_discovery_runs"/.test(q.sql));
@@ -114,5 +119,18 @@ describe('triggerManualCrawl when the stale-run reaper throws', () => {
     expect(params).toContain('manual');
     expect(params).toContain(MAX_RUN_BUDGET_USD.toFixed(6));
     expect(MAX_RUN_BUDGET_USD).toBe(100);
+  });
+});
+
+describe('#6: triggerManualCrawl run deadline', () => {
+  it('passes a deadline computed at action entry', async () => {
+    const run = vi.spyOn(getAutonomousRecipeIngestionService(), 'runDailyDiscovery');
+    const before = Date.now();
+    await triggerAndRun();
+    const after = Date.now();
+    const budget = CRON_FUNCTION_LIMIT_MS - FINALIZE_SAFETY_MARGIN_MS;
+    const { deadlineAt } = run.mock.calls[0][0] ?? {};
+    expect(deadlineAt).toBeGreaterThanOrEqual(before + budget);
+    expect(deadlineAt).toBeLessThanOrEqual(after + budget);
   });
 });

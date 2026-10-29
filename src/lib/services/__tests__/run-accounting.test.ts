@@ -99,7 +99,7 @@ import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import type { ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
-type Plan = 'stored' | 'no-recipe' | 'low-quality' | 'store-fails' | 'hang';
+type Plan = 'stored' | 'no-recipe' | 'low-quality' | 'store-fails' | 'hang' | 'late';
 
 const url = (slug: string) => `https://www.example-kitchen.com/recipes/${slug}`;
 
@@ -123,6 +123,7 @@ function buildService(opts: {
   plans: Record<string, Plan>;
   searchUsd?: number;
   extractUsd?: number;
+  lateMs?: number;
 }) {
   const service = new AutonomousRecipeIngestionService();
   const extractRecipe = vi.fn(async (u: string) => {
@@ -134,6 +135,11 @@ function buildService(opts: {
     const plan = opts.plans[u] ?? 'stored';
     // An extraction that outlives the function limit (the 2026-10-29 run).
     if (plan === 'hang') return new Promise<never>(() => undefined);
+    // Resolves after the deadline with a storable recipe.
+    if (plan === 'late') {
+      await new Promise((r) => setTimeout(r, opts.lateMs ?? 0));
+      return recipeFor(u, 'stored');
+    }
     return plan === 'no-recipe' ? null : recipeFor(u, plan);
   });
   const internals = service as unknown as Record<string, unknown>;
@@ -343,11 +349,15 @@ describe('#6: deadline finalize', () => {
     expect(result.status).toBe('partial');
     const run = runUpdate();
     const rows = items();
-    expect(rows.map((r) => r.outcome)).toEqual(['stored', 'stored']);
+    expect(rows.map((r) => r.outcome)).toEqual(['stored', 'stored', 'failed']);
+    expect(rows[2]).toMatchObject({
+      url: url('hang'),
+      error: 'deadline: abandoned in flight; may have stored late',
+    });
     expect(run).toMatchObject({
       status: 'partial',
       urls_discovered: 4,
-      recipes_stored: rows.length,
+      recipes_stored: rows.filter((r) => r.outcome === 'stored').length,
       recipes_extracted: 2,
       recipes_skipped: 0,
     });
@@ -372,4 +382,34 @@ describe('#6: Fail-Open check on finalize', () => {
       expect.any(Error)
     );
   });
+});
+
+describe('#6: work that resolves after the deadline', () => {
+  it('an extraction resolving after close writes nothing and moves no counter', async () => {
+    const urls = ['a', 'late', 'c'].map(url);
+    const { service } = buildService({ urls, plans: { [url('late')]: 'late' }, lateMs: 150 });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 50,
+    });
+    const rowsAtFinalize = items().length;
+    await new Promise((r) => setTimeout(r, 250)); // let the late extraction resolve
+
+    const rows = items();
+    expect(rows).toHaveLength(rowsAtFinalize);
+    expect(rows.filter((r) => r.url === url('late'))).toEqual([
+      expect.objectContaining({
+        outcome: 'failed',
+        error: 'deadline: abandoned in flight; may have stored late',
+      }),
+    ]);
+    // No storeRecipe insert for the late URL, and one finalize only.
+    expect(
+      fake.state.inserts.filter((i) => i.table === 'recipes' && i.values.source === url('late'))
+    ).toHaveLength(0);
+    expect(runUpdate()).toMatchObject({ recipes_stored: 1, recipes_extracted: 1 });
+    expect(result.recipesStored).toBe(1);
+  }, 2000);
 });
