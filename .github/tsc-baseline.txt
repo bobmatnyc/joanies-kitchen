@@ -1,6 +1,5 @@
 src/components/recipe/__tests__/RecipeCard.test.tsx:TS2339 4
 src/components/recipe/__tests__/RecipeCard.test.tsx:TS2700 2
-src/lib/db/__tests__/transformers.test.ts:TS2352 1
 src/lib/db/__tests__/transformers.test.ts:TS2724 1
 src/lib/validations/__tests__/validation.test.ts:TS2304 29
 src/lib/validations/__tests__/validation.test.ts:TS2582 19
