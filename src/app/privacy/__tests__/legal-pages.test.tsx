@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PrivacyPage from '@/app/privacy/page';
 import TermsPage from '@/app/terms/page';
-import { SUPPORT_ISSUES_URL } from '@/lib/site-contact';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -24,8 +23,8 @@ describe('PrivacyPage', () => {
     ]) {
       expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
-    const contacts = screen.getAllByRole('link', { name: 'our GitHub issues page' });
-    expect(contacts[0]).toHaveAttribute('href', SUPPORT_ISSUES_URL);
+    const contacts = screen.getAllByRole('link', { name: 'support@1mc.io' });
+    expect(contacts[0]).toHaveAttribute('href', 'mailto:support@1mc.io');
     expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
       'href',
       '/terms'
