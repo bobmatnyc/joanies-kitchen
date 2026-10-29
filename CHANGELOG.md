@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **account**: users can request deletion of their account from `/profile/edit`, choosing to delete their public recipes (default) or keep them as "deleted user", and confirming by typing their email; admins cannot delete themselves. The request hides the user's recipes, profile and comments at once and ends their session within 5 minutes. For 30 days a Google sign-in is refused and offers "Undo deletion" instead, which restores exactly the earlier visibility. Migration `0004` adds `users.deletion_requested_at`, `users.deletion_keep_recipes` and `recipe_flags.comment_id` (#103)
 - **account**: signed-in users can download their own data as JSON from `GET /api/account/export` ("Download my data" on `/profile/edit`); the export covers every user-owned table, omits OAuth tokens and API key hashes, is never cached, is limited to 3 per hour, and fails with 500 rather than return a partial file (#58)
 - **moderation**: recipe reports accept a `harassment` reason, confirm receipt ("we review reports within 7 days") and reject a second report from the same user; admins can hide and unhide a comment (`setCommentHidden`), and each report in `/admin/flags` has dismiss, hide-recipe (`moderation_status` `rejected`) and remove-recipe (`deleted_at`/`deleted_by`) actions that record reviewer and time (#59)
 - **auth**: the header user icon shows the signed-in user's Google profile picture, with name initials (else email) when there is none or it fails to load

@@ -41,6 +41,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 import { actOnRecipeFlag, flagRecipe } from '@/app/actions/flag-recipe';
 import { getRecipesPaginated, searchRecipes } from '@/app/actions/recipes';
 import { getRecipeCommentCount, getRecipeComments, setCommentHidden } from '@/app/actions/social';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
@@ -82,8 +83,9 @@ async function rows(sql: string) {
 
 beforeAll(async () => {
   const made = await createVisibilityDb(
-    [schema.recipes, schema.recipeFlags, schema.recipeComments, userProfiles],
-    { ...schema, userProfiles }
+    // #103: comment reads check the author's users row for a pending deletion.
+    [schema.recipes, schema.recipeFlags, schema.recipeComments, userProfiles, users],
+    { ...schema, userProfiles, users }
   );
   client = made.client;
   state.db = made.db;

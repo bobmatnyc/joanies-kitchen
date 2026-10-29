@@ -23,6 +23,12 @@ export const users = pgTable('users', {
   // #22: replaces Clerk sessionClaims.metadata.isAdmin.
   is_admin: boolean('is_admin').default(false).notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
+  // #103: set when the user requests account deletion; null = active. The
+  // 30-day grace period and the purge (S5) run from this timestamp.
+  deletion_requested_at: timestamp('deletion_requested_at'),
+  // #103: the user's choice at request time — true keeps public recipes as
+  // "deleted user" at purge; false/null deletes them.
+  deletion_keep_recipes: boolean('deletion_keep_recipes'),
 });
 
 export const accounts = pgTable(

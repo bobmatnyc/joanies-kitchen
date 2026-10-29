@@ -150,7 +150,7 @@ async function searchRecipesByCategory(
         OR ${recipes.description}::text ILIKE ANY(ARRAY[${terms.map((t) => `%${t}%`).join(',')}])
       )
       AND ${recipes.id} != ${excludeRecipeId}
-      AND (${recipes.is_public} = true OR ${recipes.is_system_recipe} = true) AND ${recipes.moderation_status} IS DISTINCT FROM 'rejected'`
+      AND (${recipes.is_public} = true OR ${recipes.is_system_recipe} = true) AND ${recipes.moderation_status} IS DISTINCT FROM 'rejected' AND ${recipes.deleted_at} IS NULL`
     )
     .orderBy(desc(recipes.system_rating), desc(recipes.created_at))
     .limit(10);

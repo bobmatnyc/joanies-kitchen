@@ -13,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -350,6 +351,8 @@ export const recipeFlags = pgTable(
       .notNull()
       .references(() => recipes.id, { onDelete: 'cascade' }),
     user_id: text('user_id').notNull(), // users.id of reporter
+    // #103: set for a comment report (S6); null for a recipe report.
+    comment_id: uuid('comment_id'),
     reason: text('reason', {
       enum: ['inappropriate', 'spam', 'copyright', 'quality', 'harassment', 'other'],
     }).notNull(),
@@ -371,6 +374,10 @@ export const recipeFlags = pgTable(
     statusIdx: index('recipe_flags_status_idx').on(table.status),
     userIdIdx: index('recipe_flags_user_id_idx').on(table.user_id),
     createdAtIdx: index('recipe_flags_created_at_idx').on(table.created_at.desc()),
+    // #103: one report per user per comment (S6).
+    commentUserUnique: uniqueIndex('recipe_flags_comment_user_unique')
+      .on(table.comment_id, table.user_id)
+      .where(sql`${table.comment_id} IS NOT NULL`),
   })
 );
 

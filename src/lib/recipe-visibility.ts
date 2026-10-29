@@ -33,9 +33,16 @@ export async function getRecipeViewer(): Promise<RecipeViewer> {
 
 /** True when the viewer may read this recipe row. */
 export function canViewRecipe(
-  recipe: { is_public: boolean | null; user_id: string; moderation_status?: string | null },
+  recipe: {
+    is_public: boolean | null;
+    user_id: string;
+    moderation_status?: string | null;
+    deleted_at?: Date | null;
+  },
   viewer: RecipeViewer
 ): boolean {
+  // #103: a soft-deleted recipe is public to no one (isPublicRecipe); its
+  // owner and admins still see it, as with a rejected recipe.
   // #102: a rejected (hidden) recipe is public to no one; its owner and admins still see it.
   if (isPublicRecipe(recipe) || viewer.isAdmin) return true;
   return viewer.userId !== null && recipe.user_id === viewer.userId;

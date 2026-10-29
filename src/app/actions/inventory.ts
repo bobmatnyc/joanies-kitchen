@@ -546,7 +546,7 @@ export async function matchRecipesToInventory(options?: {
       LEFT JOIN ingredients i ON ri.ingredient_id = i.id
       WHERE
         r.deleted_at IS NULL
-        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status IS DISTINCT FROM 'rejected'))
+        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status IS DISTINCT FROM 'rejected' AND r.deleted_at IS NULL))
       GROUP BY
         r.id, r.name, r.slug, r.description, r.image_url, r.images,
         r.prep_time, r.cook_time, r.servings, r.difficulty, r.cuisine,

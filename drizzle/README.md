@@ -15,6 +15,18 @@ Production is on the migrate path. `drizzle.__drizzle_migrations` on production 
 3. Dry run `drizzle-kit migrate` on a Neon branch of production.
 4. After owner/Architect go-ahead, apply it to production with `drizzle-kit migrate`.
 
+### Production host check
+
+Before any read or write against production, assert the connection host matches
+
+```
+^ep-jolly-snow-addxski4\.[a-z0-9.-]+\.aws\.neon\.tech$
+```
+
+Use the unpooled URL (`DATABASE_URL_UNPOOLED`): the regex rejects a `-pooler` host. Do read-only checks inside `BEGIN READ ONLY`. Never print the URL.
+
+`0004` (#103) is `ADD COLUMN` (nullable, no default, so no table rewrite) plus one `CREATE UNIQUE INDEX` on `recipe_flags`. It does not use `CONCURRENTLY`: `recipe_flags` had 0 rows on production on 2026-10-29, and `drizzle-kit migrate` runs each migration in a transaction, where `CONCURRENTLY` is not allowed.
+
 Do not edit a migration after it is applied anywhere: the migrator stores each file's sha256.
 
 ## `baseline-mark-applied.sql`
