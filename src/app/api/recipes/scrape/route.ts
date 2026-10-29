@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
 import { runRecordedWeeklyCrawl } from '@/lib/services/recorded-weekly-crawl';
 
+// A37: request-time only; a POST handler has nothing to prerender.
+export const dynamic = 'force-dynamic';
+
 /** #6 S2: ceiling on URLs per request; each one is a paid Firecrawl + LLM call. */
 const MAX_SCRAPE_RESULTS = 50;
 

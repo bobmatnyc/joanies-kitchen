@@ -42,6 +42,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:run
 
+  # A37: Vercel Preview may build with no DATABASE_URL; the build must not need one.
+  build-without-database-url:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: next build with DATABASE_URL unset
+        run: |
+          unset DATABASE_URL
+          pnpm build
+
   lint:
     runs-on: ubuntu-latest
     steps:
