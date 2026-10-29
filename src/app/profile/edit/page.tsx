@@ -33,6 +33,22 @@ export default async function EditProfilePage() {
 
           <ProfileEditor profile={profile} />
         </div>
+
+        {/* #58: self-serve export of the user's own data. */}
+        <section className="bg-white rounded-lg shadow-sm p-8 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Your data</h2>
+          <p className="text-gray-600 mb-4">
+            Download a JSON file with your profile, recipes, collections, meals, inventory and other
+            data you have saved.
+          </p>
+          <a
+            href="/api/account/export"
+            download
+            className="inline-block rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
+          >
+            Download my data
+          </a>
+        </section>
       </div>
     </div>
   );
