@@ -4,41 +4,30 @@ import { ChefHat } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { useRecipeImageFallback } from '@/hooks/useRecipeImageFallback';
 import type { Recipe } from '@/lib/db/schema';
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 
 interface SharedRecipeCarouselProps {
   recipes: Recipe[];
 }
 
+// #94: a load error advances to the next candidate, then the themed placeholder.
+function RecipeHeroImage({ recipe }: { recipe: Recipe }) {
+  const { src, onError } = useRecipeImageFallback(recipe);
+  return (
+    <Image
+      src={src}
+      alt={recipe.name}
+      fill
+      className="object-cover"
+      loading="lazy"
+      onError={onError}
+    />
+  );
+}
+
 export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
-  const getHeroImage = (recipe: Recipe): string => {
-    // Parse images JSON and get first image
-    if (recipe.images) {
-      try {
-        const parsed = JSON.parse(recipe.images as string);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed[0];
-        }
-      } catch (_e) {
-        // Continue to fallback
-      }
-    }
-
-    // Parse tags for themed placeholder
-    let tags: string[] = [];
-    if (recipe.tags) {
-      try {
-        tags = JSON.parse(recipe.tags as string);
-      } catch (_e) {
-        // Ignore parse errors
-      }
-    }
-
-    // Fallback to imageUrl or themed placeholder
-    return recipe.image_url || getPlaceholderImage(tags);
-  };
-
   if (recipes.length === 0) {
     return null;
   }
@@ -47,9 +36,8 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
     <div className="relative">
       <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth">
         {recipes.map((recipe) => {
-          const heroImage = getHeroImage(recipe);
-          const images = recipe.images ? JSON.parse(recipe.images as string) : [];
-          const imageCount = images.length > 0 ? images.length : recipe.image_url ? 1 : 0;
+          // #94: shared resolver; the old unguarded JSON.parse here could throw and break the carousel.
+          const imageCount = getRecipeImageUrls(recipe.images).length || (recipe.image_url ? 1 : 0);
 
           return (
             <Link
@@ -58,18 +46,7 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
               className="flex-none w-64 snap-start group"
             >
               <div className="relative aspect-video rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all hover:scale-105 bg-gray-200">
-                <Image
-                  src={heroImage}
-                  alt={recipe.name}
-                  fill
-                  className="object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    // Fallback to a colored background on error
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
+                <RecipeHeroImage recipe={recipe} />
 
                 {/* Gradient overlay for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

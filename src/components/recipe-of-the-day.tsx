@@ -4,10 +4,10 @@ import { ChefHat, Clock, Leaf, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import type { RecipeOfTheDayResponse } from '@/app/api/recipes/recipe-of-day/route';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
-import type { RecipeOfTheDayResponse } from '@/app/api/recipes/recipe-of-day/route';
+import { useRecipeImageFallback } from '@/hooks/useRecipeImageFallback';
 
 function parseTags(tagsJson: string | null): string[] {
   if (!tagsJson) return [];
@@ -19,22 +19,12 @@ function parseTags(tagsJson: string | null): string[] {
   }
 }
 
-function getHeroImage(data: RecipeOfTheDayResponse): string {
-  if (data.images) {
-    try {
-      const parsed = JSON.parse(data.images);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-    } catch {
-      // fall through
-    }
-  }
-  if (data.image_url) return data.image_url;
-  return getPlaceholderImage(parseTags(data.tags));
-}
-
 export function RecipeOfTheDay() {
   const [data, setData] = useState<RecipeOfTheDayResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  // #94: shared resolver replaces getHeroImage (returned parsed[0] unchecked); called before the
+  // early returns, and a hero load error advances to the next candidate.
+  const { src: heroImage, onError: onHeroError } = useRecipeImageFallback(data ?? {});
 
   useEffect(() => {
     fetch('/api/recipes/recipe-of-day')
@@ -74,7 +64,6 @@ export function RecipeOfTheDay() {
   }
 
   const recipeHref = data.slug ? `/recipes/${data.slug}` : `/recipes/${data.recipe_id}`;
-  const heroImage = getHeroImage(data);
   const tags = parseTags(data.tags);
 
   return (
@@ -89,6 +78,7 @@ export function RecipeOfTheDay() {
           className="object-cover group-hover:scale-105 transition-transform duration-700"
           priority
           quality={85}
+          onError={onHeroError}
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-jk-charcoal/70 via-jk-charcoal/20 to-transparent" />
