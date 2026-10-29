@@ -3,6 +3,7 @@
 import { ChefHat, FolderHeart, Heart, LogIn, LogOut, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
+import { UserAvatar } from '@/components/auth/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useUser } from '@/lib/auth-client';
@@ -46,12 +47,11 @@ export function AuthButtons() {
           aria-label="Account menu"
           className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border bg-muted"
         >
-          {user.imageUrl ? (
-            // biome-ignore lint/performance/noImgElement: tiny remote avatar; next/image needs a domain allowlist
-            <img src={user.imageUrl} alt="" className="h-8 w-8 object-cover" />
-          ) : (
-            <User className="h-4 w-4" />
-          )}
+          <UserAvatar
+            image={user.imageUrl}
+            name={user.fullName}
+            email={user.primaryEmailAddress?.emailAddress ?? null}
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 p-1">
