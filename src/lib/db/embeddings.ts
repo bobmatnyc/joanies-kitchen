@@ -68,32 +68,8 @@ export async function saveRecipeEmbedding(
       throw new EmbeddingDatabaseError(`Recipe not found: ${recipeId}`, 'save', { recipeId });
     }
 
-    // Check if embedding already exists
-    const existingEmbedding = await db.query.recipeEmbeddings.findFirst({
-      where: eq(recipeEmbeddings.recipe_id, recipeId),
-    });
-
-    if (existingEmbedding) {
-      // Update existing embedding
-      const [updated] = await db
-        .update(recipeEmbeddings)
-        .set({
-          embedding,
-          embedding_text: embeddingText,
-          model_name: modelName,
-          updated_at: new Date(),
-        })
-        .where(eq(recipeEmbeddings.recipe_id, recipeId))
-        .returning();
-
-      // Update the recipe's embedding_model field as well
-      await db.update(recipes).set({ embedding_model: modelName }).where(eq(recipes.id, recipeId));
-
-      return updated;
-    }
-
-    // Insert new embedding
-    const [created] = await db
+    // recipe_embeddings_recipe_id_unique (0001): upsert, not insert
+    const [saved] = await db
       .insert(recipeEmbeddings)
       .values({
         recipe_id: recipeId,
@@ -101,12 +77,21 @@ export async function saveRecipeEmbedding(
         embedding_text: embeddingText,
         model_name: modelName,
       })
+      .onConflictDoUpdate({
+        target: recipeEmbeddings.recipe_id,
+        set: {
+          embedding,
+          embedding_text: embeddingText,
+          model_name: modelName,
+          updated_at: new Date(),
+        },
+      })
       .returning();
 
     // Update the recipe's embedding_model field
     await db.update(recipes).set({ embedding_model: modelName }).where(eq(recipes.id, recipeId));
 
-    return created;
+    return saved;
   } catch (error: any) {
     if (error instanceof EmbeddingDatabaseError) {
       throw error;

@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **embeddings**: saving a recipe embedding is a single upsert on `recipe_id`, so a repeat or concurrent save replaces the row instead of failing with a unique-constraint error (23505)
 - **costs**: a paid call with missing or zero usage (LLM response without `usage`, empty Jina reader page, Firecrawl crawl with no credits or pages, Tavily extract with nothing extracted) now books a typical-call floor cost instead of $0, and a short Jina reader cost rounds up to the ledger's $0.000001 resolution (#77)
 - **costs**: Jina embedding calls book tokens × `JINA_USD_PER_TOKEN`, rounded up to $0.000001, so semantic search spend counts toward the $10/day cap instead of being stored as $0; a response without usage is estimated from input length (#75)
 - **search**: home search autocomplete ranks exact and prefix matches above substring matches, drops duplicate suggestions (case, plural or repeated row), shows stocks and broths as "stocks" instead of Dairy, and shows each row left-aligned with the category as a separate badge (#47)
