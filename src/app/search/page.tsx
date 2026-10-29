@@ -53,7 +53,7 @@ function SearchPageContent() {
       try {
         const searchOptions = {
           limit: 50,
-          minSimilarity: 0.3,
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           cuisine,
           difficulty,
           includePrivate: true,

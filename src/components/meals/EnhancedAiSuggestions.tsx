@@ -104,7 +104,7 @@ export const EnhancedAiSuggestions = memo(function EnhancedAiSuggestions({
         preferSeasonal,
         currentSeason: getCurrentSeason(),
         limit: 3,
-        minSimilarity: 0.4,
+        // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       };
 
       const result = await getSmartMealSuggestions(params);

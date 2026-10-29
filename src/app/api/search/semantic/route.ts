@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/search/semantic?q=query&mode=semantic&limit=20&minSimilarity=0.5
+ * GET /api/search/semantic?q=query&mode=semantic&limit=20[&minSimilarity=0.65]
  *
  * Alternative GET endpoint for simple searches
  */
@@ -86,7 +86,10 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
     const mode = searchParams.get('mode') || 'semantic';
     const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const minSimilarity = parseFloat(searchParams.get('minSimilarity') || '0.5');
+    // #96 D57: calibrated cutoff — no (or a non-number) minSimilarity leaves it
+    // undefined, so search applies SEARCH_MIN_SIMILARITY plus the relative trim.
+    const rawMinSimilarity = Number.parseFloat(searchParams.get('minSimilarity') ?? '');
+    const minSimilarity = Number.isFinite(rawMinSimilarity) ? rawMinSimilarity : undefined;
     const cuisine = searchParams.get('cuisine') || undefined;
     const difficulty = searchParams.get('difficulty') || undefined;
 

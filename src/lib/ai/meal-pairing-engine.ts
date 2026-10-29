@@ -146,7 +146,7 @@ async function searchRecipesByCourse(
     // Use Recipe Manager's semantic search
     const result = await semanticSearchRecipes(enhancedQuery, {
       limit: options.limit || 5,
-      minSimilarity: 0.5,
+      // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       includePrivate: false, // Only search public/system recipes
     });
 

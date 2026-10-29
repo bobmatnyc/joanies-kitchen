@@ -74,22 +74,22 @@ export const AiRecipeSuggestions = memo(function AiRecipeSuggestions({
       const [appetizerResult, mainResult, sideResult, dessertResult] = await Promise.all([
         semanticSearchRecipes(`${baseQuery} appetizer starter`, {
           limit: COURSE_LIMITS.appetizer,
-          minSimilarity: 0.4,
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} main dish entree`, {
           limit: COURSE_LIMITS.main,
-          minSimilarity: 0.4,
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} side dish`, {
           limit: COURSE_LIMITS.side,
-          minSimilarity: 0.4,
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} dessert sweet`, {
           limit: COURSE_LIMITS.dessert,
-          minSimilarity: 0.4,
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
       ]);

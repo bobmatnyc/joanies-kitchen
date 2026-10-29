@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { RECIPE_SIMILAR_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 
 // ============================================================================
 // REQUEST SCHEMAS
@@ -103,7 +104,8 @@ export const listRecipesQuerySchema = z.object({
  */
 export const similarRecipesQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).default(10),
-  minSimilarity: z.coerce.number().min(0).max(1).default(0.5),
+  // #96 D57: calibrated cutoff — this route compares recipe to recipe.
+  minSimilarity: z.coerce.number().min(0).max(1).default(RECIPE_SIMILAR_MIN_SIMILARITY),
 });
 
 // ============================================================================

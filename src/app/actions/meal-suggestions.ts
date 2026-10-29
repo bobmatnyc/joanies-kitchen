@@ -96,7 +96,7 @@ export async function getSmartMealSuggestions(
       preferSeasonal = false,
       currentSeason,
       limit = 3,
-      minSimilarity = 0.4,
+      minSimilarity, // #96 D57: calibrated cutoff — undefined means floor + delta.
     } = params;
 
     if (!description.trim()) {
