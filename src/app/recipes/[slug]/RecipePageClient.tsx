@@ -62,7 +62,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useUser } from '@/lib/auth-client';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
@@ -96,7 +95,6 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [requiresAuth, setRequiresAuth] = useState(false);
   const [viewCount, setViewCount] = useState<number>(0);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
@@ -135,12 +133,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       }
 
       if (!result.success || !result.data) {
-        // Check if it's an access denied error for private recipe
-        if (result.error === 'Access denied' && !isSignedIn) {
-          setRequiresAuth(true);
-          setLoading(false);
-          return;
-        }
+        // #134: a hidden recipe answers as a missing one, so there is no sign-in prompt branch.
         notFound();
         return;
       }
@@ -446,40 +439,6 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
             <div className="h-96 bg-muted rounded-lg" />
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Show auth required message for private recipes when not signed in
-  if (requiresAuth && !isSignedIn) {
-    return (
-      <div className="container mx-auto py-8 px-4 max-w-4xl">
-        {chefSlug ? (
-          <BackToChef chefSlug={chefSlug} />
-        ) : (
-          <Link
-            href="/recipes"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 min-h-[44px] min-w-[44px] -ml-2 pl-2 pr-4 py-2 rounded-md hover:bg-accent transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back to Recipes
-          </Link>
-        )}
-
-        <Card className="max-w-md mx-auto mt-8">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <Lock className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <CardTitle>Private Recipe</CardTitle>
-            <CardDescription>This recipe is private. Please sign in to view it.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Link href="/sign-in">
-              <Button>Sign In to View Recipe</Button>
-            </Link>
-          </CardContent>
-        </Card>
       </div>
     );
   }

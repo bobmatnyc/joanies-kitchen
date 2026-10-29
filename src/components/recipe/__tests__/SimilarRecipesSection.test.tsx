@@ -71,7 +71,8 @@ describe('#128 recipe page fetch trigger', () => {
   });
 
   it('renders no section when the recipe is not readable', async () => {
-    getRecipe.mockResolvedValue({ success: false, error: 'Access denied' });
+    // #134: getRecipe answers a hidden recipe as a missing one.
+    getRecipe.mockResolvedValue({ success: false, error: 'Recipe not found' });
     expect(await SimilarRecipesSection({ slugOrId: 'secret' })).toBeNull();
     expect(findSimilarToRecipe).not.toHaveBeenCalled();
   });
