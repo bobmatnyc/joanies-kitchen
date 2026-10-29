@@ -33,6 +33,11 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import {
+  type DuplicateCandidate,
+  duplicateSkipReason,
+  findDuplicateRecipe,
+} from '@/lib/recipes/dedup';
 import { describeDbError } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { type ChefDiscoveryService, getChefDiscoveryService } from './chef-discovery.service';
@@ -441,6 +446,9 @@ export class AutonomousRecipeIngestionService {
       this.recordItem(m, { runId, url, extractionTier: tier, outcome, error, recipeId });
 
     try {
+      // #135: a URL variant of a stored source is skipped before the paid extraction.
+      if (await this.skippedAsDuplicate(m, record, { sourceUrl: url })) return;
+
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
       const recipe = await this.extractionService.extractRecipe(url);
       // #6: the deadline abandoned this URL; its row is claimed, counters are final.
@@ -464,6 +472,12 @@ export class AutonomousRecipeIngestionService {
         console.log(`[AutonomousIngestion] Quality gate failed for: "${recipe.title}" (${detail})`);
         m.recipesSkipped++;
         await record('skipped_quality', detail);
+        return;
+      }
+
+      // #135: same canonical URL, or same title on the same host, is never inserted.
+      if (this.released(m, url)) return;
+      if (await this.skippedAsDuplicate(m, record, { sourceUrl: url, title: recipe.title })) {
         return;
       }
 
@@ -519,6 +533,35 @@ export class AutonomousRecipeIngestionService {
       m.errors.push(`${url}: ${msg}`);
       await record('failed', msg);
     }
+  }
+
+  /**
+   * #135: when `candidate` duplicates a stored recipe, counts it as skipped and
+   * writes its `skipped_duplicate` item row linked to that recipe; returns true.
+   * Also returns true, changing nothing, when the run released the URL during
+   * the lookup.
+   */
+  private async skippedAsDuplicate(
+    m: RunMetrics,
+    record: (
+      outcome: RunItemOutcome,
+      error?: string | null,
+      recipeId?: string | null
+    ) => Promise<void>,
+    candidate: DuplicateCandidate
+  ): Promise<boolean> {
+    const match = await findDuplicateRecipe(candidate, {
+      ownerId: SYSTEM_USER_ID,
+      titleRule: true,
+    });
+    if (!match) return false;
+    // #135: the deadline may have closed the run during the lookup; counters are then final.
+    if (candidate.sourceUrl && this.released(m, candidate.sourceUrl)) return true;
+    const reason = duplicateSkipReason(match);
+    console.log(`[AutonomousIngestion] ${reason} (${match.reason}): ${candidate.sourceUrl}`);
+    m.recipesSkipped++;
+    await record('skipped_duplicate', reason, match.id);
+    return true;
   }
 
   /** #6: true once the run closed or another row claimed `url`; late work then changes nothing. */

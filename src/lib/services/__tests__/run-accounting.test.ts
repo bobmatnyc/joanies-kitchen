@@ -98,6 +98,11 @@ vi.mock('@/lib/services/recipe-extraction.service', () => ({
   getRecipeExtractionService: vi.fn(),
 }));
 vi.mock('@/lib/services/chef-discovery.service', () => ({ getChefDiscoveryService: vi.fn() }));
+// #135: the duplicate query has its own PGlite test (autonomous-ingestion-dedup); nothing is a duplicate here.
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/recipes/dedup')>()),
+  findDuplicateRecipe: async () => null,
+}));
 
 import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';

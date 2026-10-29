@@ -17,7 +17,7 @@ const fake = vi.hoisted(() => ({
   updates: [] as { table: string; values: Record<string, unknown> }[],
   crawled: [] as string[],
   /** Per week: URL -> result status. */
-  weeks: {} as Record<number, Record<string, 'stored' | 'rejected' | 'failed'>>,
+  weeks: {} as Record<number, Record<string, 'stored' | 'rejected' | 'failed' | 'duplicate'>>,
   usdPerUrl: 0.4,
 }));
 
@@ -59,6 +59,7 @@ vi.mock('@/lib/recipe-crawl', async () => {
           url: string;
           status: string;
           reason?: string;
+          duplicateOf?: string;
         }[] = [];
         const stats = { searched: urls.length, converted: 0, approved: 0, stored: 0, failed: 0 };
         const stoppedUrls: string[] = [];
@@ -73,6 +74,19 @@ vi.mock('@/lib/recipe-crawl', async () => {
             operation: 'scrape',
             measuredUsd: fake.usdPerUrl,
           });
+          if (plan[url] === 'duplicate') {
+            // #135: what crawlWeeklyRecipes reports for a skipped duplicate.
+            const reason = 'skipped: duplicate of seed-1';
+            recipes.push({
+              url,
+              name: url,
+              status: 'rejected',
+              id: 'seed-1',
+              reason,
+              duplicateOf: 'seed-1',
+            });
+            continue;
+          }
           const status = plan[url];
           if (status !== 'failed') stats.converted++;
           if (status === 'stored') stats.stored++;
@@ -165,6 +179,21 @@ describe('runRecordedWeeklyCrawl — budget', () => {
 });
 
 describe('runRecordedWeeklyCrawl — items', () => {
+  it('records a skipped duplicate as skipped_duplicate, linked to the stored recipe (#135)', async () => {
+    fake.weeks[2] = { [u('d')]: 'duplicate' };
+    await runRecordedWeeklyCrawl({
+      weeks: [2],
+      maxResultsPerWeek: 5,
+      autoApprove: false,
+      budgetUsd: 5,
+      delayBetweenWeeksMs: 0,
+    });
+    expect(items().map((r) => [r.outcome, r.recipe_id, r.error])).toEqual([
+      ['skipped_duplicate', 'seed-1', 'skipped: duplicate of seed-1'],
+    ]);
+    expect(runUpdate()).toMatchObject({ recipes_skipped: 1, status: 'completed' });
+  });
+
   it('maps crawl results to item outcomes, tiers and recipe ids', async () => {
     fake.usdPerUrl = 0.01;
     fake.weeks[2] = { [u('s')]: 'stored', [u('r')]: 'rejected', [u('f')]: 'failed' };

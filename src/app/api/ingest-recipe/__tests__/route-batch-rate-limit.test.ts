@@ -40,6 +40,11 @@ vi.mock('@/lib/ai/recipe-ingestion-parser', () => ({ parseRecipeForIngestion: vi
 vi.mock('@/lib/ai/embeddings', () => ({ generateRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/utils/slug', () => ({ generateUniqueSlug: vi.fn() }));
+// #135: the duplicate query has its own PGlite test (route-dedup); nothing is a duplicate here.
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/recipes/dedup')>()),
+  findDuplicateRecipe: async () => null,
+}));
 vi.mock('@/lib/api-auth/require-auth', () => ({
   requireScopes:
     (_scopes: string[], handler: (...args: unknown[]) => unknown) =>

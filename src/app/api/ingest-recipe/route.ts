@@ -39,6 +39,12 @@ import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { paidCallRefusal, refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
+import {
+  type DuplicateMatch,
+  duplicateRefusal,
+  duplicateSkipReason,
+  findDuplicateRecipe,
+} from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -68,6 +74,10 @@ interface RecipeIngestionResult {
   error?: string;
   /** Cost-ceiling code when the daily cap refused a paid call. */
   errorCode?: string;
+  /** #135: true when this URL duplicates a stored recipe; nothing was inserted. */
+  duplicate?: boolean;
+  /** #135: id of that stored recipe, only when the caller may see it. */
+  duplicateOf?: string;
   url: string;
 }
 
@@ -100,6 +110,19 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
 }
 
 /**
+ * #135: the result for a candidate that duplicates a stored recipe. A recipe
+ * the caller may not see is not named.
+ */
+function duplicateResult(
+  url: string,
+  match: DuplicateMatch,
+  userId: string
+): RecipeIngestionResult {
+  console.log(`[Ingest API] ${duplicateSkipReason(match)} (${match.reason}): ${url}`);
+  return { success: false, url, duplicate: true, ...duplicateRefusal(match, userId) };
+}
+
+/**
  * Ingest a single recipe from a URL
  */
 async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIngestionResult> {
@@ -115,6 +138,15 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         error: urlValidation.error || 'Invalid URL',
       };
     }
+
+    // #135: a URL variant of a stored source is skipped before the paid scrape. A user
+    // import applies the canonical-URL rule only, never title+host. This replaces the
+    // old slug check, which ran after `generateUniqueSlug` and so never fired.
+    const duplicate = await findDuplicateRecipe(
+      { sourceUrl: url },
+      { ownerId: userId, titleRule: false }
+    );
+    if (duplicate) return duplicateResult(url, duplicate, userId);
 
     // Step 2: Fetch content with Firecrawl
     console.log(`[Ingest API] Fetching content from ${url}`);
@@ -137,19 +169,6 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     // Step 4: Generate unique slug
     const slug = await generateUniqueSlug(parsedRecipe.name);
     console.log(`[Ingest API] Generated slug: ${slug}`);
-
-    // Step 5: Check for duplicate by slug
-    const existingRecipe = await db.query.recipes.findFirst({
-      where: (recipes, { eq }) => eq(recipes.slug, slug),
-    });
-
-    if (existingRecipe) {
-      return {
-        success: false,
-        url,
-        error: `Recipe already exists with slug: ${slug}`,
-      };
-    }
 
     // Step 6: Prepare recipe data
     const ingredientsJson = JSON.stringify(
@@ -404,6 +423,13 @@ export const POST = requireScopes(
             },
             { status: 201 }
           );
+        } else if (result.duplicate) {
+          // #135: a duplicate is a conflict with a stored recipe, not a bad request.
+          // `duplicateOf` is undefined, so absent from the JSON, for a hidden recipe.
+          return NextResponse.json(
+            { success: false, error: result.error, duplicateOf: result.duplicateOf },
+            { status: 409 }
+          );
         } else {
           return NextResponse.json(
             {
@@ -481,6 +507,7 @@ export const POST = requireScopes(
               recipe: r.recipe,
               error: r.error,
               errorCode: r.errorCode,
+              duplicateOf: r.duplicateOf, // #135
             })),
           },
           { status: 200 }

@@ -28,6 +28,11 @@ vi.mock('@/lib/ai/embeddings', () => ({
   },
 }));
 vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
+// #135: the duplicate query has its own PGlite test (recipe-discovery-dedup); nothing is a duplicate here.
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/recipes/dedup')>()),
+  findDuplicateRecipe: async () => null,
+}));
 vi.mock('@/lib/db', () => ({
   db: {
     insert: () => ({

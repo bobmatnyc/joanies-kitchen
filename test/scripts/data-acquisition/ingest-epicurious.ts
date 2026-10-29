@@ -34,8 +34,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { sql } from 'drizzle-orm';
-import { db } from '../@/lib/db';
-import { recipeEmbeddings, recipes } from '../@/lib/db/schema';
+// #135: '../@/lib/...' resolved to nothing; tsx reads the tsconfig '@/' path alias.
+import { db } from '@/lib/db';
+import { recipeEmbeddings, recipes } from '@/lib/db/schema';
+import { normalizeRecipeTitle } from '@/lib/recipes/dedup';
 import { evaluateRecipeQuality } from '../lib/recipe-quality-evaluator-script';
 
 // Constants
@@ -312,7 +314,7 @@ function transformRecipe(epiRecipe: EpicuriousRecipe) {
   const publishedDate = validateAndParseDate(epiRecipe.date);
 
   return {
-    name: epiRecipe.title,
+    name: epiRecipe.title.trim(), // #135: dataset titles carry a trailing space
     description: epiRecipe.desc || epiRecipe.title || '', // Fallback to title or empty string
     ingredients,
     instructions,
@@ -327,18 +329,32 @@ function transformRecipe(epiRecipe: EpicuriousRecipe) {
   };
 }
 
+/** #135: normalised titles already stored per source, loaded once per source. */
+const knownTitles = new Map<string, Set<string>>();
+
 /**
- * Checks if a recipe already exists in the database
- * Checks by exact name match and source
+ * Checks if a recipe already exists in the database, by normalised title and source.
+ * #135: the exact `name = ${name}` comparison never matched, because dataset
+ * titles carry a trailing space and stored rows are trimmed; that re-imported
+ * 961 rows. Titles now go through `normalizeRecipeTitle`, and each title this
+ * run stores is remembered, so a title repeated in the dataset is skipped too.
  */
 async function checkDuplicate(name: string, source: string): Promise<boolean> {
-  const existing = await db
-    .select({ id: recipes.id })
-    .from(recipes)
-    .where(sql`${recipes.name} = ${name} AND ${recipes.source} = ${source}`)
-    .limit(1);
+  return (await titlesFor(source)).has(normalizeRecipeTitle(name));
+}
 
-  return existing.length > 0;
+async function titlesFor(source: string): Promise<Set<string>> {
+  const key = source.trim().toLowerCase();
+  let titles = knownTitles.get(key);
+  if (!titles) {
+    const rows = await db
+      .select({ name: recipes.name })
+      .from(recipes)
+      .where(sql`lower(btrim(${recipes.source})) = ${key}`);
+    titles = new Set(rows.map((r) => normalizeRecipeTitle(r.name)));
+    knownTitles.set(key, titles);
+  }
+  return titles;
 }
 
 /**
@@ -481,6 +497,7 @@ async function ingestRecipe(
       }
     }
 
+    (await titlesFor(recipe.source)).add(normalizeRecipeTitle(recipe.name)); // #135
     console.log(`${progress} ✓ Stored "${recipe.name}"`);
     return { success: true, recipeId: insertedRecipe.id };
   } catch (error: any) {
