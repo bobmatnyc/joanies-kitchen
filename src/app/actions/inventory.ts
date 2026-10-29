@@ -27,6 +27,7 @@ import {
 } from '@/lib/db/inventory-schema';
 import { recipeIngredients, recipes } from '@/lib/db/schema';
 import { publicRecipe } from '@/lib/recipe-public';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
@@ -645,15 +646,13 @@ export async function markItemAsUsed(
     const currentQuantity = parseFloat(inventoryItem.quantity);
     const usedQuantity = validatedData.quantity_used;
 
-    // Validate recipe exists if provided
+    // #143: validate the recipe exists AND the caller may view it. A private,
+    // rejected or soft-deleted recipe gets the same answer as a missing one, so
+    // the call neither confirms it exists nor logs a usage row pointing at it.
     if (validatedData.recipe_id) {
-      const recipe = await db
-        .select({ id: recipes.id })
-        .from(recipes)
-        .where(eq(recipes.id, validatedData.recipe_id))
-        .limit(1);
+      const recipe = await findViewableRecipe(validatedData.recipe_id, await getRecipeViewer());
 
-      if (recipe.length === 0) {
+      if (!recipe) {
         return { success: false, error: 'Recipe not found' };
       }
     }
