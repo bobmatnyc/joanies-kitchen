@@ -408,7 +408,7 @@ export class InventoryService {
       LEFT JOIN ingredients i ON ri.ingredient_id = i.id
       WHERE
         r.deleted_at IS NULL
-        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status <> 'rejected'))
+        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status IS DISTINCT FROM 'rejected'))
       GROUP BY
         r.id, r.name, r.slug, r.description, r.image_url, r.images,
         r.prep_time, r.cook_time, r.servings, r.difficulty, r.cuisine,

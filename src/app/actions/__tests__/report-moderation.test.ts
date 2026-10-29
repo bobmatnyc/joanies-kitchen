@@ -39,11 +39,11 @@ vi.mock('@/lib/db', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { actOnRecipeFlag, flagRecipe } from '@/app/actions/flag-recipe';
-import { getRecipeCommentCount, getRecipeComments, setCommentHidden } from '@/app/actions/social';
 import { getRecipesPaginated, searchRecipes } from '@/app/actions/recipes';
-import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getRecipeCommentCount, getRecipeComments, setCommentHidden } from '@/app/actions/social';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { createVisibilityDb } from './recipe-visibility-db';
 
 let client: PGlite;
