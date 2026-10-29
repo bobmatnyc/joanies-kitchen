@@ -1,13 +1,17 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getRecipesPaginated, type PaginationParams } from '@/app/actions/recipes';
+import { isPublicRecipe } from '@/lib/recipe-public';
 
 /**
  * #32: a response that carries a private recipe is for its owner or an admin
  * only, so a shared cache (CDN) must not store it. Public-only responses keep
  * the shared cache.
  */
-function cacheControlFor(recipes: Array<{ is_public: boolean | null }>): string {
-  return recipes.some((r) => r.is_public !== true)
+function cacheControlFor(
+  recipes: Array<{ is_public: boolean | null; moderation_status?: string | null }>
+): string {
+  // #102: a hidden (rejected) recipe is not public either.
+  return recipes.some((r) => !isPublicRecipe(r))
     ? 'private, no-store'
     : 'public, s-maxage=60, stale-while-revalidate=120';
 }

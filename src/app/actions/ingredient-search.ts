@@ -21,7 +21,7 @@ import {
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/consolidation-map';
 import { rankAndDedupeSuggestions } from '@/lib/ingredients/suggestion-ranking';
-import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
+import { isPublicRecipe, publicRecipe, systemRecipe } from '@/lib/recipe-public';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import type {
@@ -312,17 +312,13 @@ export async function searchRecipesByIngredients(
     // Access control filter
     if (!validatedOptions.includePrivate || !userId) {
       // Only public or system recipes
-      const visibilityCondition = or(publicRecipe, eq(recipes.is_system_recipe, true));
+      const visibilityCondition = or(publicRecipe, systemRecipe);
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
     } else {
       // Include user's private recipes + public/system recipes
-      const visibilityCondition = or(
-        publicRecipe,
-        eq(recipes.is_system_recipe, true),
-        eq(recipes.user_id, userId)
-      );
+      const visibilityCondition = or(publicRecipe, systemRecipe, eq(recipes.user_id, userId));
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
