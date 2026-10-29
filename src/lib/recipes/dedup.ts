@@ -9,8 +9,10 @@
  * title match a duplicate.
  * What: two pure normalisers plus `findDuplicateRecipe`, which applies the rule:
  * a candidate duplicates an existing recipe when (a) the canonical source URLs
- * are equal, or (b) the normalised titles are equal AND the source hosts are
- * equal. A title match across different hosts is NOT a duplicate.
+ * are equal, or (b) with `titleRule` on, the normalised titles are equal AND the
+ * source hosts are equal. A title match across different hosts is NOT a
+ * duplicate. User-initiated imports turn `titleRule` off: on user-submitted
+ * hosts (food.com, allrecipes) different recipes share common titles.
  * Test: `src/lib/recipes/__tests__/dedup.test.ts`,
  * `src/app/api/ingest-recipe/__tests__/route-dedup.test.ts`
  */
@@ -18,6 +20,7 @@
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { recipes } from '@/lib/db/schema';
+import { isPublicRecipe } from '@/lib/recipe-public';
 
 /** Query parameters that only track a visit; they never select a different page. */
 const TRACKING_PARAMS = new Set(['fbclid', 'gclid']);
@@ -102,19 +105,33 @@ export function sourceHost(input: string | null | undefined): string | null {
   return canonical ? new URL(canonical).hostname : null;
 }
 
-/** The fields of an existing recipe that the duplicate rule reads. */
+/**
+ * The fields of an existing recipe that the duplicate rule reads, plus the
+ * visibility fields `duplicateRefusal` reads. Absent visibility fields count
+ * as not public, so the match is never disclosed.
+ */
 export interface ExistingRecipeRef {
   id: string;
   name: string;
   source: string | null;
+  user_id?: string | null;
+  is_public?: boolean | null;
+  moderation_status?: string | null;
 }
 
-export interface DuplicateMatch {
-  id: string;
-  name: string;
-  source: string | null;
+export interface DuplicateMatch extends ExistingRecipeRef {
   /** Which half of the rule matched. */
   reason: 'source-url' | 'title-and-host';
+}
+
+/** #135: which halves of the duplicate rule a call site applies. */
+export interface DuplicateRuleOptions {
+  /**
+   * true: canonical URL OR (normalised title AND host). Background paths
+   * (crawls, autonomous cron, chef scraping).
+   * false: canonical URL only. User-initiated imports.
+   */
+  titleRule: boolean;
 }
 
 export interface DuplicateCandidate {
@@ -129,12 +146,13 @@ export interface DuplicateCandidate {
  */
 export function matchDuplicate(
   candidate: DuplicateCandidate,
-  rows: readonly ExistingRecipeRef[]
+  rows: readonly ExistingRecipeRef[],
+  { titleRule }: DuplicateRuleOptions
 ): DuplicateMatch | null {
   const url = canonicalizeSourceUrl(candidate.sourceUrl);
   if (!url) return null; // no usable source URL: neither half of the rule can apply
   const host = new URL(url).hostname;
-  const title = normalizeRecipeTitle(candidate.title);
+  const title = titleRule ? normalizeRecipeTitle(candidate.title) : '';
 
   let titleMatch: DuplicateMatch | null = null;
   for (const row of rows) {
@@ -153,7 +171,7 @@ export function matchDuplicate(
   return titleMatch;
 }
 
-const pick = ({ id, name, source }: ExistingRecipeRef) => ({ id, name, source });
+const pick = (row: ExistingRecipeRef): ExistingRecipeRef => ({ ...row });
 
 /** Any drizzle Postgres client: neon-http in production, PGlite in tests. */
 export type DedupDb = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
@@ -170,11 +188,12 @@ const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$
  * source URL.
  * There is no canonical-URL column, so SQL narrows by host with an anchored
  * regex on `lower(source)` (a sequential scan) and JS canonicalises the rest.
+ * `titleRule` is required so every call site states which rule it applies.
  * Test: `src/app/api/ingest-recipe/__tests__/route-dedup.test.ts`
  */
 export async function findDuplicateRecipe(
   candidate: DuplicateCandidate,
-  options: { ownerId?: string | null; database?: DedupDb } = {}
+  options: DuplicateRuleOptions & { ownerId?: string | null; database?: DedupDb }
 ): Promise<DuplicateMatch | null> {
   const host = sourceHost(candidate.sourceUrl);
   if (!host) return null;
@@ -185,14 +204,51 @@ export async function findDuplicateRecipe(
     ? or(eq(recipes.is_public, true), eq(recipes.user_id, options.ownerId))
     : eq(recipes.is_public, true);
   const rows = await database
-    .select({ id: recipes.id, name: recipes.name, source: recipes.source })
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      source: recipes.source,
+      user_id: recipes.user_id,
+      is_public: recipes.is_public,
+      moderation_status: recipes.moderation_status,
+    })
     .from(recipes)
     .where(and(isNull(recipes.deleted_at), visible, sql`lower(${recipes.source}) ~ ${hostPattern}`))
     .orderBy(asc(recipes.created_at), asc(recipes.id));
-  return matchDuplicate(candidate, rows);
+  return matchDuplicate(candidate, rows, { titleRule: options.titleRule });
 }
 
 /** The reason string every ingest path reports for a skipped duplicate. */
 export function duplicateSkipReason(match: DuplicateMatch): string {
   return `skipped: duplicate of ${match.id}`;
+}
+
+/** #135: the refusal for a duplicate the caller may not see; it names no recipe. */
+export const DUPLICATE_EXISTS_MESSAGE = 'Recipe already exists';
+
+/** #135: true when `callerId` may see the matched recipe: their own, or public and not hidden. */
+export function isDisclosableDuplicate(match: DuplicateMatch, callerId: string): boolean {
+  return (
+    match.user_id === callerId ||
+    isPublicRecipe({
+      is_public: match.is_public ?? null,
+      moderation_status: match.moderation_status,
+    })
+  );
+}
+
+/**
+ * Why: a moderation-rejected public recipe still blocks a re-import, so naming
+ * it in the refusal would reveal that a hidden recipe exists (#135).
+ * What: a disclosable match gets the skip reason and its id; any other match
+ * gets only `DUPLICATE_EXISTS_MESSAGE`, with no `duplicateOf` key at all.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-dedup.test.ts`
+ */
+export function duplicateRefusal(
+  match: DuplicateMatch,
+  callerId: string
+): { error: string; duplicateOf?: string } {
+  return isDisclosableDuplicate(match, callerId)
+    ? { error: duplicateSkipReason(match), duplicateOf: match.id }
+    : { error: DUPLICATE_EXISTS_MESSAGE };
 }

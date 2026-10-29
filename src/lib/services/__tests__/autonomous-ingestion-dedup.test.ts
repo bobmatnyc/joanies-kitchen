@@ -9,13 +9,28 @@
 import type { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ db: undefined as unknown }));
+const state = vi.hoisted(() => ({
+  db: undefined as unknown,
+  /** Runs inside every duplicate lookup, before it resolves; may throw. */
+  duringLookup: undefined as (() => void) | undefined,
+}));
 
 vi.mock('@/lib/db', () => ({
   get db() {
     return state.db;
   },
 }));
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/recipes/dedup')>();
+  return {
+    ...actual,
+    findDuplicateRecipe: async (...args: Parameters<typeof actual.findDuplicateRecipe>) => {
+      const match = await actual.findDuplicateRecipe(...args);
+      state.duringLookup?.();
+      return match;
+    },
+  };
+});
 vi.mock('@/lib/services/recipe-discovery.service', () => ({ getRecipeDiscoveryService: vi.fn() }));
 vi.mock('@/lib/services/recipe-extraction.service', () => ({
   getRecipeExtractionService: vi.fn(),
@@ -61,6 +76,7 @@ beforeEach(async () => {
   );
   await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source, is_public)
     VALUES ('seed-1', 'system', 'Chicken Soup', '[]', '[]', 'https://www.a.com/chicken-soup/', true)`);
+  state.duringLookup = undefined;
   for (const level of ['log', 'warn', 'error'] as const) {
     vi.spyOn(console, level).mockImplementation(() => undefined);
   }
@@ -126,5 +142,55 @@ describe('AutonomousRecipeIngestionService duplicate guard (#135)', () => {
       otherHost,
       'https://www.a.com/chicken-soup/',
     ]);
+  });
+
+  it('fails closed when the duplicate lookup rejects: nothing extracted or inserted', async () => {
+    state.duringLookup = () => {
+      throw new Error('db down');
+    };
+    const url = 'https://a.com/beef-stew';
+    const { service, extractRecipe } = buildService({ [url]: 'Beef Stew' });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 5 });
+
+    expect(extractRecipe).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ recipesStored: 0, recipesSkipped: 0 });
+    expect(result.errors).toEqual([`${url}: db down`]);
+    const n = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"');
+    expect(n.rows[0].n).toBe(1);
+  });
+
+  it('moves no counter when the run is released during the lookup', async () => {
+    const url = 'https://a.com/chicken-soup?utm_source=x';
+    const { service } = buildService({ [url]: 'Whatever' });
+    const m = {
+      urlsDiscovered: 1,
+      recipesExtracted: 0,
+      recipesStored: 0,
+      recipesSkipped: 0,
+      chefsCreated: 0,
+      errors: [] as string[],
+      itemWriteFailures: 0,
+      tracked: false,
+      closed: false,
+      itemUrls: new Set<string>(),
+    };
+    state.duringLookup = () => {
+      m.closed = true; // the deadline fires while the lookup is in flight
+    };
+    const { processUrl } = service as unknown as {
+      processUrl: (d: unknown, runId: string, dryRun: boolean, metrics: typeof m) => Promise<void>;
+    };
+
+    await processUrl.call(
+      service,
+      { url, title: url, searchQuery: 'q', score: 1 },
+      'run-x',
+      false,
+      m
+    );
+
+    expect(m.recipesSkipped).toBe(0);
+    expect(m.itemUrls.size).toBe(0);
   });
 });

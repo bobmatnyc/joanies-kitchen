@@ -19,7 +19,7 @@ import { linkRecipeToChef } from './chefs';
  * when it is new. Scraped recipes are system recipes, so the owner is 'system'.
  */
 async function skippedDuplicate(candidate: { sourceUrl: string | undefined; title?: string }) {
-  const match = await findDuplicateRecipe(candidate, { ownerId: 'system' });
+  const match = await findDuplicateRecipe(candidate, { ownerId: 'system', titleRule: true });
   if (match) {
     console.log(
       `[ChefScraping] ${duplicateSkipReason(match)} (${match.reason}): ${candidate.sourceUrl}`

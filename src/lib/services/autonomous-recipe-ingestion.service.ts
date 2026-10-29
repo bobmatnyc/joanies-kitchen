@@ -538,6 +538,8 @@ export class AutonomousRecipeIngestionService {
   /**
    * #135: when `candidate` duplicates a stored recipe, counts it as skipped and
    * writes its `skipped_duplicate` item row linked to that recipe; returns true.
+   * Also returns true, changing nothing, when the run released the URL during
+   * the lookup.
    */
   private async skippedAsDuplicate(
     m: RunMetrics,
@@ -548,8 +550,13 @@ export class AutonomousRecipeIngestionService {
     ) => Promise<void>,
     candidate: DuplicateCandidate
   ): Promise<boolean> {
-    const match = await findDuplicateRecipe(candidate, { ownerId: SYSTEM_USER_ID });
+    const match = await findDuplicateRecipe(candidate, {
+      ownerId: SYSTEM_USER_ID,
+      titleRule: true,
+    });
     if (!match) return false;
+    // #135: the deadline may have closed the run during the lookup; counters are then final.
+    if (candidate.sourceUrl && this.released(m, candidate.sourceUrl)) return true;
     const reason = duplicateSkipReason(match);
     console.log(`[AutonomousIngestion] ${reason} (${match.reason}): ${candidate.sourceUrl}`);
     m.recipesSkipped++;

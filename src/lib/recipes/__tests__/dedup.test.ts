@@ -91,6 +91,7 @@ describe('sourceHost', () => {
 });
 
 describe('matchDuplicate', () => {
+  const BG = { titleRule: true };
   const rows = [
     { id: 'r1', name: 'Chicken Soup', source: 'https://www.a.com/chicken-soup/' },
     { id: 'r2', name: 'Beef Stew', source: 'https://b.com/stew' },
@@ -98,18 +99,32 @@ describe('matchDuplicate', () => {
   ];
 
   it('matches a URL variant of a stored source', () => {
-    const m = matchDuplicate({ sourceUrl: 'http://a.com/chicken-soup/print/#top' }, rows);
+    const m = matchDuplicate({ sourceUrl: 'http://a.com/chicken-soup/print/#top' }, rows, BG);
     expect(m).toMatchObject({ id: 'r1', reason: 'source-url' });
   });
 
   it('matches the same normalised title on the same host', () => {
-    const m = matchDuplicate({ sourceUrl: 'https://a.com/other', title: 'chicken  soup!' }, rows);
+    const m = matchDuplicate(
+      { sourceUrl: 'https://a.com/other', title: 'chicken  soup!' },
+      rows,
+      BG
+    );
     expect(m).toMatchObject({ id: 'r1', reason: 'title-and-host' });
+  });
+
+  it('with titleRule off, matches only the canonical URL (user imports)', () => {
+    const user = { titleRule: false };
+    expect(
+      matchDuplicate({ sourceUrl: 'https://a.com/other', title: 'Chicken Soup' }, rows, user)
+    ).toBeNull();
+    expect(
+      matchDuplicate({ sourceUrl: 'https://a.com/chicken-soup', title: 'x' }, rows, user)
+    ).toMatchObject({ id: 'r1', reason: 'source-url' });
   });
 
   it('does NOT match the same title on another host', () => {
     expect(
-      matchDuplicate({ sourceUrl: 'https://c.com/x', title: 'Chicken Soup' }, rows)
+      matchDuplicate({ sourceUrl: 'https://c.com/x', title: 'Chicken Soup' }, rows, BG)
     ).toBeNull();
   });
 
@@ -118,12 +133,12 @@ describe('matchDuplicate', () => {
       { id: 'old', name: 'Stew', source: 'https://b.com/old-stew' },
       { id: 'url', name: 'Other', source: 'https://b.com/stew' },
     ];
-    const m = matchDuplicate({ sourceUrl: 'https://b.com/stew/', title: 'Stew' }, both);
+    const m = matchDuplicate({ sourceUrl: 'https://b.com/stew/', title: 'Stew' }, both, BG);
     expect(m).toMatchObject({ id: 'url', reason: 'source-url' });
   });
 
   it('never matches without a usable candidate URL or on an empty title', () => {
-    expect(matchDuplicate({ sourceUrl: null, title: 'Chicken Soup' }, rows)).toBeNull();
-    expect(matchDuplicate({ sourceUrl: 'https://a.com/x', title: '!!' }, rows)).toBeNull();
+    expect(matchDuplicate({ sourceUrl: null, title: 'Chicken Soup' }, rows, BG)).toBeNull();
+    expect(matchDuplicate({ sourceUrl: 'https://a.com/x', title: '!!' }, rows, BG)).toBeNull();
   });
 });

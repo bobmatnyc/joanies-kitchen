@@ -39,7 +39,12 @@ import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { paidCallRefusal, refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
-import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
+import {
+  type DuplicateMatch,
+  duplicateRefusal,
+  duplicateSkipReason,
+  findDuplicateRecipe,
+} from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -69,7 +74,9 @@ interface RecipeIngestionResult {
   error?: string;
   /** Cost-ceiling code when the daily cap refused a paid call. */
   errorCode?: string;
-  /** #135: id of the stored recipe this URL duplicates; nothing was inserted. */
+  /** #135: true when this URL duplicates a stored recipe; nothing was inserted. */
+  duplicate?: boolean;
+  /** #135: id of that stored recipe, only when the caller may see it. */
   duplicateOf?: string;
   url: string;
 }
@@ -102,10 +109,17 @@ function isValidRecipeUrl(url: string): { valid: boolean; error?: string } {
   }
 }
 
-/** #135: the result for a candidate that duplicates a stored recipe. */
-function duplicateResult(url: string, match: DuplicateMatch): RecipeIngestionResult {
+/**
+ * #135: the result for a candidate that duplicates a stored recipe. A recipe
+ * the caller may not see is not named.
+ */
+function duplicateResult(
+  url: string,
+  match: DuplicateMatch,
+  userId: string
+): RecipeIngestionResult {
   console.log(`[Ingest API] ${duplicateSkipReason(match)} (${match.reason}): ${url}`);
-  return { success: false, url, error: duplicateSkipReason(match), duplicateOf: match.id };
+  return { success: false, url, duplicate: true, ...duplicateRefusal(match, userId) };
 }
 
 /**
@@ -125,9 +139,14 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
       };
     }
 
-    // #135: a URL variant of a stored source is skipped before the paid scrape.
-    const urlDuplicate = await findDuplicateRecipe({ sourceUrl: url }, { ownerId: userId });
-    if (urlDuplicate) return duplicateResult(url, urlDuplicate);
+    // #135: a URL variant of a stored source is skipped before the paid scrape. A user
+    // import applies the canonical-URL rule only, never title+host. This replaces the
+    // old slug check, which ran after `generateUniqueSlug` and so never fired.
+    const duplicate = await findDuplicateRecipe(
+      { sourceUrl: url },
+      { ownerId: userId, titleRule: false }
+    );
+    if (duplicate) return duplicateResult(url, duplicate, userId);
 
     // Step 2: Fetch content with Firecrawl
     console.log(`[Ingest API] Fetching content from ${url}`);
@@ -147,15 +166,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 
     console.log(`[Ingest API] Successfully parsed recipe: ${parsedRecipe.name}`);
 
-    // Step 4: Skip a duplicate. #135: the old slug check could never fire (the slug was
-    // made unique first); the real rule is same canonical URL, or same title on the same host.
-    const duplicate = await findDuplicateRecipe(
-      { sourceUrl: url, title: parsedRecipe.name },
-      { ownerId: userId }
-    );
-    if (duplicate) return duplicateResult(url, duplicate);
-
-    // Step 5: Generate unique slug
+    // Step 4: Generate unique slug
     const slug = await generateUniqueSlug(parsedRecipe.name);
     console.log(`[Ingest API] Generated slug: ${slug}`);
 
@@ -412,8 +423,9 @@ export const POST = requireScopes(
             },
             { status: 201 }
           );
-        } else if (result.duplicateOf) {
+        } else if (result.duplicate) {
           // #135: a duplicate is a conflict with a stored recipe, not a bad request.
+          // `duplicateOf` is undefined, so absent from the JSON, for a hidden recipe.
           return NextResponse.json(
             { success: false, error: result.error, duplicateOf: result.duplicateOf },
             { status: 409 }

@@ -21,12 +21,11 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
-import { isPublicRecipe } from '@/lib/recipe-public';
 import {
-  type DuplicateCandidate,
-  type DuplicateMatch,
+  duplicateRefusal,
   duplicateSkipReason,
   findDuplicateRecipe,
+  isDisclosableDuplicate,
 } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -468,23 +467,30 @@ async function saveDiscoveredRecipe(
   return savedRecipe.id;
 }
 
+interface StoredDuplicate {
+  refusal: { error: string; duplicateOf?: string };
+  recipe?: Recipe;
+}
+
 /**
- * #135: the stored recipe a candidate duplicates, if any, plus that recipe
- * when the caller may see it (own, or public and not hidden), so the
- * duplicate can be linked instead of inserted.
+ * #135: the stored recipe `url` duplicates, if any. A user import applies the
+ * canonical-URL rule only, never title+host. `refusal` names the recipe only
+ * when the caller may see it; `recipe` is set for linking only on a
+ * `source-url` match the caller may see.
  */
-async function storedDuplicate(
-  candidate: DuplicateCandidate,
-  userId: string
-): Promise<{ match: DuplicateMatch; recipe?: Recipe } | null> {
-  const match = await findDuplicateRecipe(candidate, { ownerId: userId });
+async function storedDuplicate(url: string, userId: string): Promise<StoredDuplicate | null> {
+  const match = await findDuplicateRecipe(
+    { sourceUrl: url },
+    { ownerId: userId, titleRule: false }
+  );
   if (!match) return null;
-  console.log(`${duplicateSkipReason(match)} (${match.reason}): ${candidate.sourceUrl}`);
+  console.log(`${duplicateSkipReason(match)} (${match.reason}): ${url}`);
+  const refusal = duplicateRefusal(match, userId);
+  if (match.reason !== 'source-url' || !isDisclosableDuplicate(match, userId)) return { refusal };
   const recipe = await db.query.recipes.findFirst({
     where: (recipes, { eq }) => eq(recipes.id, match.id),
   });
-  const visible = recipe && (recipe.user_id === userId || isPublicRecipe(recipe));
-  return { match, recipe: visible ? recipe : undefined };
+  return { refusal, recipe };
 }
 
 // ============================================================================
@@ -532,9 +538,9 @@ export async function discoverRecipes(
 
     const discoveredRecipes: Recipe[] = [];
     // #135: a skipped duplicate is counted, reported, and linked when the caller may see it.
-    const skipAsDuplicate = (url: string, dup: { match: DuplicateMatch; recipe?: Recipe }) => {
+    const skipAsDuplicate = (url: string, dup: StoredDuplicate) => {
       skipped++;
-      errors.push({ url, step: 'dedup', error: duplicateSkipReason(dup.match) });
+      errors.push({ url, step: 'dedup', error: dup.refusal.error });
       if (dup.recipe) discoveredRecipes.push(dup.recipe);
     };
 
@@ -545,7 +551,7 @@ export async function discoverRecipes(
 
       try {
         // #135: a URL variant of a stored source is linked, not extracted again.
-        const urlDup = await storedDuplicate({ sourceUrl: result.url }, userId);
+        const urlDup = await storedDuplicate(result.url, userId);
         if (urlDup) {
           skipAsDuplicate(result.url, urlDup);
           continue;
@@ -576,16 +582,6 @@ export async function discoverRecipes(
             error: `Low confidence: ${extraction.confidenceScore.toFixed(2)} < ${minConfidence}`,
           });
           console.log(`Skipped: confidence ${extraction.confidenceScore.toFixed(2)} too low`);
-          continue;
-        }
-
-        // #135: same canonical URL, or same title on the same host, is never inserted.
-        const dup = await storedDuplicate(
-          { sourceUrl: result.url, title: extraction.recipe.name },
-          userId
-        );
-        if (dup) {
-          skipAsDuplicate(result.url, dup);
           continue;
         }
 
@@ -677,13 +673,13 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
   if (refusal) return refusal;
 
   try {
-    // #135: link to a stored duplicate (visible to the caller) instead of inserting one.
-    const linkDuplicate = (dup: { match: DuplicateMatch; recipe?: Recipe }) =>
-      dup.recipe
-        ? { success: true, recipe: dup.recipe, duplicateOf: dup.match.id }
-        : { success: false, error: duplicateSkipReason(dup.match), duplicateOf: dup.match.id };
-    const urlDup = await storedDuplicate({ sourceUrl: url }, userId);
-    if (urlDup) return linkDuplicate(urlDup);
+    // #135: link to a stored duplicate the caller may see instead of inserting one.
+    const dup = await storedDuplicate(url, userId);
+    if (dup) {
+      return dup.recipe
+        ? { success: true, recipe: dup.recipe, duplicateOf: dup.recipe.id }
+        : { success: false, ...dup.refusal };
+    }
 
     // Extract and validate
     const extraction = await extractAndValidateRecipe(url, 'Manual URL');
@@ -694,9 +690,6 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
         error: extraction.error || 'Failed to extract recipe',
       };
     }
-
-    const dup = await storedDuplicate({ sourceUrl: url, title: extraction.recipe.name }, userId);
-    if (dup) return linkDuplicate(dup);
 
     // Generate metadata
     const metadata = await generateRecipeMetadata(extraction.recipe);

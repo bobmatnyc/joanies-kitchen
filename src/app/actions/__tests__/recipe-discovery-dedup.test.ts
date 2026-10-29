@@ -2,7 +2,7 @@
 /**
  * #135: `discoverRecipeFromUrl` links a duplicate to the stored recipe instead
  * of inserting it, against a real `recipes` table (PGlite). Page fetch and LLM
- * are stubbed.
+ * are stubbed. A user import applies the canonical-URL rule only.
  */
 
 import type { PGlite } from '@electric-sql/pglite';
@@ -89,20 +89,18 @@ describe('discoverRecipeFromUrl duplicate guard (#135)', () => {
     expect(await count()).toBe(2);
   });
 
-  it('links a same-title page on the same host before the metadata LLM call', async () => {
+  it('inserts a same-title recipe from a different URL on the same host', async () => {
     const res = await discoverRecipeFromUrl('https://a.com/another-soup');
-    expect(res).toMatchObject({ success: true, duplicateOf: 'seed-1' });
-    expect(state.llmCreate).toHaveBeenCalledTimes(1); // extraction only
-    expect(await count()).toBe(2);
+    expect(res.success).toBe(true);
+    expect(res.duplicateOf).toBeUndefined();
+    expect(res.recipe?.id).not.toBe('seed-1');
+    expect(await count()).toBe(3);
   });
 
-  it('skips, without linking, a duplicate of a hidden recipe', async () => {
+  it('skips a duplicate of a hidden recipe with the generic message and no id', async () => {
     const res = await discoverRecipeFromUrl('https://c.com/pie/');
-    expect(res).toEqual({
-      success: false,
-      error: 'skipped: duplicate of hidden',
-      duplicateOf: 'hidden',
-    });
+    expect(res).toEqual({ success: false, error: 'Recipe already exists' });
+    expect(fetchSpy).not.toHaveBeenCalled();
     expect(await count()).toBe(2);
   });
 });

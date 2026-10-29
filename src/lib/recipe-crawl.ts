@@ -86,7 +86,7 @@ function duplicateCrawlResult(url: string, name: string, match: DuplicateMatch):
 }
 
 /** #135: checked before the paid scrape; the title half of the rule runs again at store time. */
-const urlDuplicate = (url: string) => findDuplicateRecipe({ sourceUrl: url });
+const urlDuplicate = (url: string) => findDuplicateRecipe({ sourceUrl: url }, { titleRule: true });
 
 // ============================================================================
 // STEP 1: SEARCH - Find recipes using SerpAPI
@@ -390,7 +390,7 @@ export async function storeRecipe(
     // #135: never insert a duplicate (same canonical URL, or same title on the same host).
     const duplicate = await findDuplicateRecipe(
       { sourceUrl: metadata.sourceUrl, title: recipe.name },
-      { ownerId: userId || 'system' }
+      { ownerId: userId || 'system', titleRule: true }
     );
     if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
@@ -683,7 +683,7 @@ async function storeRecipeWithWeek(
     // #135: never insert a duplicate (same canonical URL, or same title on the same host).
     const duplicate = await findDuplicateRecipe(
       { sourceUrl: metadata.sourceUrl, title: recipe.name },
-      { ownerId: userId || 'system' }
+      { ownerId: userId || 'system', titleRule: true }
     );
     if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
