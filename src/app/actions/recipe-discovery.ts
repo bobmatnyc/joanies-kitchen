@@ -16,9 +16,11 @@ import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { checkAuth, requireAuth } from '@/lib/auth-guard';
 import { searchRecipes as braveSearchRecipes } from '@/lib/brave-search';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
+import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
@@ -68,7 +70,14 @@ export interface DiscoveryResult {
     step: string;
     error: string;
   }>;
+  error?: string;
+  /** Rate-limit or cost-ceiling refusal code; see `@/lib/rate-limit/refusal`. */
+  errorCode?: string;
+  retryAfterSec?: number;
 }
+
+/** One discovery call pays per URL, so the caller's `maxResults` is capped. */
+const MAX_DISCOVERY_RESULTS = 10;
 
 // ============================================================================
 // Step 1: Brave Search Integration
@@ -112,6 +121,7 @@ async function discoverRecipeUrls(
       description: result.description,
     }));
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error('Brave Search error:', error);
     throw new Error('Failed to search for recipes');
   }
@@ -269,6 +279,7 @@ Set confidenceScore (0.0-1.0) based on:
       confidenceScore: extracted.confidenceScore || 0.7,
     };
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57
     console.error(`Extraction error for ${url}:`, error);
     return {
       success: false,
@@ -342,6 +353,7 @@ Only include dietaryInfo categories that clearly apply based on ingredients.`,
       dietaryInfo: Array.isArray(metadata.dietaryInfo) ? metadata.dietaryInfo : [],
     };
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57
     console.error('Metadata generation error:', error);
     // Return safe defaults on error
     return {
@@ -461,9 +473,14 @@ export async function discoverRecipes(
   options: RecipeDiscoveryOptions = {}
 ): Promise<DiscoveryResult> {
   // Require authentication for recipe discovery pipeline
-  await requireAuth('recipe discovery');
+  const { userId } = await requireAuth('recipe discovery');
 
-  const { minConfidence = 0.6, maxResults = 5 } = options;
+  const { minConfidence = 0.6 } = options;
+  const maxResults = Math.min(options.maxResults ?? 5, MAX_DISCOVERY_RESULTS);
+  const emptyStats = { searched: 0, validated: 0, saved: 0, failed: 0, skipped: 0 };
+  // Per-user limit before Brave and the LLM calls; fails closed when the limiter is down.
+  const refusal = await rateLimitRefusal('recipe-discovery', userId, 'recipe discovery');
+  if (refusal) return { ...refusal, recipes: [], stats: emptyStats };
 
   const errors: Array<{ url: string; step: string; error: string }> = [];
   let searched = 0;
@@ -553,6 +570,7 @@ export async function discoverRecipes(
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       } catch (error) {
+        if (isPaidCallBlocked(error)) throw error; // #57: stop the loop; the outer catch maps it
         failed++;
         errors.push({
           url: result.url,
@@ -566,27 +584,17 @@ export async function discoverRecipes(
     return {
       success: true,
       recipes: discoveredRecipes,
-      stats: {
-        searched,
-        validated,
-        saved,
-        failed,
-        skipped,
-      },
+      stats: { searched, validated, saved, failed, skipped },
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error) {
     console.error('Discovery pipeline error:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
     return {
+      ...blocked,
       success: false,
       recipes: [],
-      stats: {
-        searched,
-        validated,
-        saved,
-        failed,
-        skipped,
-      },
+      stats: { searched, validated, saved, failed, skipped },
       errors: [
         {
           url: 'pipeline',
@@ -609,9 +617,12 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
   success: boolean;
   recipe?: Recipe;
   error?: string;
+  errorCode?: string;
 }> {
   // Require authentication for URL-based recipe discovery
-  await requireAuth('recipe import from URL');
+  const { userId } = await requireAuth('recipe import from URL');
+  const refusal = await rateLimitRefusal('recipe-url-import', userId, 'recipe import');
+  if (refusal) return refusal;
 
   try {
     // Extract and validate
@@ -646,6 +657,8 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
     };
   } catch (error) {
     console.error('Single URL discovery error:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),

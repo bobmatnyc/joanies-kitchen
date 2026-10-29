@@ -6,6 +6,7 @@ import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser'
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
@@ -24,6 +25,9 @@ export async function uploadRecipeWithAI(params: {
   if (!userId) {
     return { success: false, error: 'Authentication required' };
   }
+  // Per-user limit before the paid scrape/LLM call; fails closed when the limiter is down.
+  const refusal = await rateLimitRefusal('recipe-parse', userId, 'recipe upload');
+  if (refusal) return refusal;
 
   try {
     let parsed;
@@ -75,6 +79,8 @@ export async function uploadRecipeWithAI(params: {
     return { success: true, recipe: recipe[0] };
   } catch (error) {
     console.error('Error uploading recipe with AI:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),
@@ -92,6 +98,9 @@ export async function uploadRecipeFromUrl(url: string) {
   if (!userId) {
     return { success: false, error: 'Authentication required' };
   }
+  // Per-user limit before the paid scrape/LLM call; fails closed when the limiter is down.
+  const refusal = await rateLimitRefusal('recipe-url-import', userId, 'recipe import');
+  if (refusal) return refusal;
 
   try {
     // Import firecrawl here to avoid circular dependencies
@@ -146,6 +155,8 @@ export async function uploadRecipeFromUrl(url: string) {
     return { success: true, recipe: recipe[0] };
   } catch (error) {
     console.error('Error uploading recipe from URL:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),
@@ -168,6 +179,9 @@ export async function previewRecipeParse(params: {
   if (!userId) {
     return { success: false, error: 'Authentication required' };
   }
+  // Per-user limit before the paid scrape/LLM call; fails closed when the limiter is down.
+  const refusal = await rateLimitRefusal('recipe-parse', userId, 'recipe preview');
+  if (refusal) return refusal;
 
   try {
     let parsed;
@@ -185,6 +199,8 @@ export async function previewRecipeParse(params: {
     return { success: true, recipe: parsed };
   } catch (error) {
     console.error('Error previewing recipe parse:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),

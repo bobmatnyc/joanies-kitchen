@@ -1,4 +1,5 @@
 import 'server-only';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { sanitizeIngredients, validateParsedRecipe } from '@/lib/validations/recipe-validation';
 import { validateSerialization } from '@/lib/validations/serialization-validation';
 import { MODELS } from './openrouter';
@@ -222,6 +223,7 @@ Be thorough and accurate. This data will be used directly in a production databa
 
     return parsed;
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error('Error parsing recipe for ingestion:', error);
     throw new Error(
       `Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`

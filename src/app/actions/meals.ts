@@ -28,6 +28,7 @@ import {
   updateShoppingListSchema,
   validateInput,
 } from '@/lib/meals/validation';
+import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import {
   canViewRecipe,
   findViewableRecipe,
@@ -877,6 +878,10 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
       return { success: false, error: 'Main recipe not found' };
     }
 
+    // Per-user limit before the paid LLM call; fails closed when the limiter is down.
+    const refusal = await rateLimitRefusal('meal-recommendations', viewer.userId, 'recommendation');
+    if (refusal) return refusal;
+
     // Import AI recommendation logic
     const { generateMealRecommendations } = await import('@/lib/ai/meal-recommendations');
 
@@ -886,6 +891,8 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
     return { success: true, data: recommendations };
   } catch (error) {
     console.error('Failed to generate recommendations:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     const errorMessage = toErrorMessage(error);
     return { success: false, error: errorMessage };
   }

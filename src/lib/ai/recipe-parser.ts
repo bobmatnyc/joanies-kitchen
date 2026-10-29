@@ -1,4 +1,5 @@
 import 'server-only';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { MODELS } from './openrouter';
 import { getOpenRouterClient } from './openrouter-server';
 
@@ -110,6 +111,7 @@ IMPORTANT:
 
     return parsed;
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error('Error parsing recipe with AI:', error);
     throw new Error(
       `Failed to parse recipe: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -172,6 +174,7 @@ Be thorough and extract all visible information.`;
 
     return parsed;
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error('Error parsing recipe from image:', error);
     throw new Error(
       `Failed to parse recipe from image: ${error instanceof Error ? error.message : 'Unknown error'}`

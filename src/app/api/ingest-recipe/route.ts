@@ -37,6 +37,8 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { paidCallRefusal, refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -64,6 +66,8 @@ interface RecipeIngestionResult {
     url: string;
   };
   error?: string;
+  /** Cost-ceiling code when the daily cap refused a paid call. */
+  errorCode?: string;
   url: string;
 }
 
@@ -324,10 +328,12 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     };
   } catch (error: unknown) {
     console.error(`[Ingest API] Error ingesting recipe from ${url}:`, error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
     return {
       success: false,
       url,
-      error: toErrorMessage(error),
+      error: blocked?.error ?? toErrorMessage(error),
+      errorCode: blocked?.errorCode,
     };
   }
 }
@@ -344,6 +350,11 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 export const POST = requireScopes(
   [SCOPES.WRITE_RECIPES],
   async (request: NextRequest, auth, _context) => {
+    // Each URL is a Firecrawl scrape + LLM parse, so every URL counts once against the
+    // caller's bucket: keyed by API key (one key cannot spend the whole cap), else by user.
+    const limiterKey = auth.apiKeyId ? `apikey:${auth.apiKeyId}` : `user:${auth.userId}`;
+    const urlRefusal = async () =>
+      refusalFor(await checkRateLimit('recipe-ingest-api', limiterKey), 'recipe ingest');
     try {
       // Parse request body
       const body: IngestRequest = await request.json();
@@ -373,7 +384,16 @@ export const POST = requireScopes(
           );
         }
 
+        const refusal = await urlRefusal();
+        if (refusal) return refusalResponse(refusal);
+
         const result = await ingestSingleRecipe(body.url, auth.userId!);
+        if (result.errorCode) {
+          return NextResponse.json(
+            { success: false, error: result.error, errorCode: result.errorCode },
+            { status: 503 }
+          );
+        }
 
         if (result.success) {
           return NextResponse.json(
@@ -420,8 +440,22 @@ export const POST = requireScopes(
             continue;
           }
 
+          const refusal = await urlRefusal();
+          if (refusal) {
+            // Nothing ran yet: answer 429/503 like a single request; else stop and report.
+            if (results.length === 0) return refusalResponse(refusal);
+            results.push({
+              success: false,
+              url,
+              error: refusal.error,
+              errorCode: refusal.errorCode,
+            });
+            break;
+          }
+
           const result = await ingestSingleRecipe(url, auth.userId!);
           results.push(result);
+          if (result.errorCode) break; // #57: the cost ceiling refuses every later URL too
 
           // Rate limiting: 1 second between requests
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -445,6 +479,7 @@ export const POST = requireScopes(
               success: r.success,
               recipe: r.recipe,
               error: r.error,
+              errorCode: r.errorCode,
             })),
           },
           { status: 200 }

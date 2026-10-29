@@ -11,6 +11,7 @@ import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
  */
 
 import { desc, sql } from 'drizzle-orm';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { getOpenRouterClient } from './openrouter-server';
@@ -101,6 +102,7 @@ Only return valid JSON, no additional text.`;
       mainIngredient: parsed.mainIngredient || 'mixed',
     };
   } catch (error) {
+    if (isPaidCallBlocked(error)) throw error; // #57: no silent fallback past the cost ceiling
     console.error('Failed to analyze main dish:', error);
 
     // Fallback to basic analysis

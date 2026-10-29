@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { assertWithinDailyCap, isPaidCallBlocked, trackCost } from '@/lib/costs';
+import { rateLimitRefusal, refusalResponse } from '@/lib/rate-limit/refusal';
 
 // Type definitions for request/response
 interface BraveSearchRequest {
@@ -97,6 +98,10 @@ export async function POST(request: NextRequest) {
       `Brave Search API request: userId=${userId}, query="${query.substring(0, 50)}...", count=${count}`
     );
 
+    // Per-user limit before the paid Brave call: 429 over the limit, 503 when the limiter is down.
+    const refusal = await rateLimitRefusal('brave-search', userId, 'search');
+    if (refusal) return refusalResponse(refusal);
+
     // #57: daily cost ceiling hard stop before the paid call.
     await assertWithinDailyCap();
     const response = await fetch(searchUrl.toString(), {
@@ -176,8 +181,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // #57: the daily cost ceiling answers 503, not a generic 500.
     if (isPaidCallBlocked(error)) {
-      return NextResponse.json<BraveSearchError>(
-        { error: 'Search unavailable', details: error.message },
+      return NextResponse.json(
+        { error: 'Search unavailable', details: error.message, errorCode: error.code },
         { status: 503 }
       );
     }
