@@ -276,12 +276,15 @@ export class RecipeExtractionService {
       results?: Array<{ raw_content?: string }>;
       failed_results?: Array<{ error: string }>;
     };
-    // #77: a paid call with nothing extracted books one URL, never $0.
-    await trackCost({
-      provider: 'tavily',
-      operation: 'extract.advanced',
-      units: unitsOrFloor(data.results?.length, TAVILY_EXTRACT_FLOOR_URLS),
-    });
+    // #77: Tavily bills only extracted URLs; all-failed books nothing, an unknown empty shape books the floor.
+    const allFailed = !data.results?.length && (data.failed_results?.length ?? 0) > 0;
+    if (!allFailed) {
+      await trackCost({
+        provider: 'tavily',
+        operation: 'extract.advanced',
+        units: unitsOrFloor(data.results?.length, TAVILY_EXTRACT_FLOOR_URLS),
+      });
+    }
 
     if (data.results?.[0]?.raw_content) {
       return data.results[0].raw_content;

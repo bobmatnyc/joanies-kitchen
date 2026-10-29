@@ -130,4 +130,16 @@ describe('#77 floor cost for missing or zero usage', () => {
       TAVILY_EXTRACT_FLOOR_URLS * (COST_RATES['tavily:extract.advanced']?.usdPerUnit ?? 0);
     expect(bookedUsd()).toBeCloseTo(floor, 6);
   });
+
+  it('Tavily extract where every URL failed books nothing', async () => {
+    const { RecipeExtractionService } = await import('@/lib/services/recipe-extraction.service');
+    const service = new RecipeExtractionService() as unknown as {
+      fetchWithTavilyExtract(url: string): Promise<string | null>;
+    };
+    mockFetchJson({ results: [], failed_results: [{ error: 'blocked' }] });
+    await expect(service.fetchWithTavilyExtract('https://example.com/r')).rejects.toThrow(
+      'blocked'
+    );
+    expect(insertedRows).toHaveLength(0);
+  });
 });
