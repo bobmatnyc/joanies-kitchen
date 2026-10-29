@@ -11,7 +11,6 @@ import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   getBatchSubstitutions,
-  getSubstitutions,
   needsAiSubstitution,
 } from '@/lib/substitutions/substitution-service';
 import type { SubstitutionContext, SubstitutionResult } from '@/lib/substitutions/types';
@@ -27,68 +26,6 @@ interface ActionResult<T> {
   /** #17: typed refusal before any paid AI call. */
   errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE' | PaidCallBlockedCode; // #57: cost codes
   retryAfterSec?: number;
-}
-
-/**
- * Get ingredient substitutions
- *
- * @param ingredient - Ingredient to find substitutions for
- * @param context - Optional context (recipe name, cooking method, user ingredients)
- * @returns SubstitutionResult with 0-5 substitution options
- *
- * @example
- * ```ts
- * const result = await getIngredientSubstitutions('butter', {
- *   recipeName: 'Chocolate Chip Cookies',
- *   cookingMethod: 'baking',
- *   userIngredients: ['coconut oil', 'olive oil'],
- * });
- *
- * if (result.success) {
- *   console.log(result.data.substitutions);
- * }
- * ```
- */
-export async function getIngredientSubstitutions(
-  ingredient: string,
-  context?: {
-    recipeName?: string;
-    cookingMethod?: string;
-    userIngredients?: string[];
-    dietaryRestrictions?: string[];
-  }
-): Promise<ActionResult<SubstitutionResult>> {
-  try {
-    // Validate input
-    if (!ingredient || ingredient.trim() === '') {
-      return {
-        success: false,
-        error: 'Ingredient name is required',
-      };
-    }
-
-    // Build context
-    const substitutionContext: SubstitutionContext = {
-      recipeName: context?.recipeName,
-      cookingMethod: context?.cookingMethod,
-      userIngredients: context?.userIngredients,
-      dietaryRestrictions: context?.dietaryRestrictions,
-    };
-
-    // Get substitutions
-    const result = await getSubstitutions(ingredient, substitutionContext);
-
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    console.error('Error getting ingredient substitutions:', error);
-    return {
-      success: false,
-      error: toErrorMessage(error),
-    };
-  }
 }
 
 /**
