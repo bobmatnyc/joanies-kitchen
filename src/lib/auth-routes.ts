@@ -1,16 +1,17 @@
 /**
  * Route protection rules for the edge middleware — #22. Edge-safe (no imports).
  *
- * Why: the Clerk `createRouteMatcher` rules are kept, but as a pure function
- * so they can be tested without a running edge runtime.
+ * Why: route rules as a pure function, so they can be tested without a
+ * running edge runtime.
  * What: `decideRoute` maps a path plus the session's user id and JWT admin
- * flag to `allow`, `sign-in` (redirect), `unauthorized` (401 for APIs) or
- * `home` (signed-in non-admin on /admin). Server components and actions
- * still re-check admin against the database.
+ * flag to `allow`, `sign-in` (redirect) or `home` (signed-in non-admin on
+ * /admin). Server components, actions and API routes re-check auth
+ * themselves. Clerk-era rules for routes that no longer exist were removed.
+ * `/recipes/<slug>/edit` is guarded by its page, not here.
  * Test: `src/lib/__tests__/auth-routes.test.ts`
  */
 
-export type RouteDecision = 'allow' | 'sign-in' | 'unauthorized' | 'home';
+export type RouteDecision = 'allow' | 'sign-in' | 'home';
 
 const PUBLIC = [
   /^\/$/,
@@ -26,16 +27,8 @@ const PUBLIC = [
 ];
 const PROTECTED = [
   /^\/recipes\/new/,
-  /^\/recipes\/edit/,
   // /recipes is public: the page lists only public recipes (47b8c93).
   /^\/meals\/new/,
-  /^\/meal-plans/,
-];
-const PROTECTED_API = [
-  /^\/api\/recipes\/create$/,
-  /^\/api\/recipes\/update$/,
-  /^\/api\/recipes\/delete$/,
-  /^\/api\/meal-plans/,
 ];
 
 export function decideRoute(
@@ -55,10 +48,7 @@ export function decideRoute(
     return session.isAdmin ? 'allow' : 'home';
   }
 
-  if (!session.userId) {
-    if (PROTECTED_API.some((re) => re.test(path))) return 'unauthorized';
-    if (PROTECTED.some((re) => re.test(path))) return 'sign-in';
-  }
+  if (!session.userId && PROTECTED.some((re) => re.test(path))) return 'sign-in';
   return 'allow';
 }
 

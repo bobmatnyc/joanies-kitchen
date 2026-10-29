@@ -29,14 +29,6 @@ class ConsoleMonitor {
     return this.messages.filter((m) => m.type === 'error');
   }
 
-  getClerkWarnings() {
-    return this.messages.filter(
-      (m) =>
-        m.type === 'warning' &&
-        (m.text.includes('Clerk') || m.text.includes('@clerk'))
-    );
-  }
-
   clear() {
     this.messages = [];
   }
@@ -158,44 +150,6 @@ test.describe('Final Comprehensive QA Verification', () => {
 
     const avgLoadTime = loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length;
     console.log(`✅ Test 2 PASSED: Average load time=${avgLoadTime.toFixed(0)}ms`);
-  });
-
-  test('Test 3: Zero Clerk Deprecation Warnings', async ({ page }) => {
-    console.log('\n=== TEST 3: CLERK WARNINGS ===');
-
-    consoleMonitor.clear();
-
-    const pages = [
-      '/',
-      '/fridge',
-      '/inventory',
-      '/recipes/kale-white-bean-stew-2',
-    ];
-
-    for (const path of pages) {
-      await page.goto(`${BASE_URL}${path}`);
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000); // Wait for any async warnings
-      console.log(`Checked: ${path}`);
-    }
-
-    const clerkWarnings = consoleMonitor.getClerkWarnings();
-
-    console.log(`Total console messages: ${consoleMonitor.getMessages().length}`);
-    console.log(`Total warnings: ${consoleMonitor.getWarnings().length}`);
-    console.log(`Clerk warnings: ${clerkWarnings.length}`);
-
-    if (clerkWarnings.length > 0) {
-      console.log('Clerk warnings found:');
-      clerkWarnings.forEach((w) => console.log(`  - ${w.text}`));
-    }
-
-    // Take screenshot of console (will need manual review)
-    await page.screenshot({ path: 'test-screenshots/test3-console.png', fullPage: true });
-
-    expect(clerkWarnings.length, 'Should have zero Clerk deprecation warnings').toBe(0);
-
-    console.log('✅ Test 3 PASSED: Zero Clerk warnings');
   });
 
   test('Test 4: Report Button Position (Last in Action Buttons)', async ({ page }) => {

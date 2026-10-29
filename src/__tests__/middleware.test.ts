@@ -37,15 +37,16 @@ describe('middleware with Auth.js not configured', () => {
       expect(admin.status).toBe(307);
       expect(new URL(admin.headers.get('location') ?? '').pathname).toBe('/sign-in');
 
-      const api = call('/api/meal-plans/x');
-      expect(api.status).toBe(401);
+      const create = call('/recipes/new');
+      expect(create.status).toBe(307);
+      expect(new URL(create.headers.get('location') ?? '').pathname).toBe('/sign-in');
     }
   );
 
-  it('lets a signed-out visitor reach /recipes but not /recipes/new or /recipes/edit', () => {
+  it('lets a signed-out visitor reach /recipes but not /recipes/new or /meals/new', () => {
     vi.stubEnv('AUTH_SECRET', '');
     expect(call('/recipes').status).toBe(200);
-    for (const path of ['/recipes/new', '/recipes/edit/abc']) {
+    for (const path of ['/recipes/new', '/meals/new']) {
       const res = call(path);
       expect(res.status).toBe(307);
       expect(new URL(res.headers.get('location') ?? '').pathname).toBe('/sign-in');
