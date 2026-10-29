@@ -3,6 +3,7 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import {
   assertWithinDailyCap,
   FIRECRAWL_CRAWL_FLOOR_CREDITS,
+  isPaidCallBlocked,
   trackCost,
   unitsOrFloor,
 } from '@/lib/costs';
@@ -83,6 +84,7 @@ export async function scrapeRecipePage(url: string): Promise<ScrapeResponse> {
       metadata: result.metadata,
     };
   } catch (error: any) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error(`[Firecrawl] ERROR scraping ${url}:`);
     console.error(`[Firecrawl] Error message:`, error?.message);
     console.error(`[Firecrawl] Error name:`, error?.name);

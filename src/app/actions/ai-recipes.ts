@@ -3,6 +3,7 @@
 import type { ModelName } from '@/lib/ai/openrouter';
 import { generateRecipe } from '@/lib/ai/recipe-generator';
 import { requireAuth } from '@/lib/auth-guard';
+import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { createRecipe } from './recipes';
 
 interface DiscoverRecipeOptions {
@@ -20,7 +21,10 @@ interface DiscoverRecipeOptions {
 export async function discoverRecipe(options: DiscoverRecipeOptions) {
   try {
     // Require authentication for AI recipe generation
-    await requireAuth('AI recipe generation');
+    const { userId } = await requireAuth('AI recipe generation');
+    // Per-user limit before the paid LLM call; fails closed when the limiter is down.
+    const refusal = await rateLimitRefusal('recipe-generation', userId, 'recipe generation');
+    if (refusal) return refusal;
 
     if (!process.env.OPENROUTER_API_KEY) {
       return {
@@ -50,6 +54,8 @@ export async function discoverRecipe(options: DiscoverRecipeOptions) {
     };
   } catch (error) {
     console.error('Failed to discover recipe:', error);
+    const blocked = paidCallRefusal(error); // #57: the cost ceiling keeps its typed code
+    if (blocked) return blocked;
     return {
       success: false,
       error: 'Failed to generate recipe. Please try again with different parameters.',

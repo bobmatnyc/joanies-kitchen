@@ -12,6 +12,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { requireAuth } from '@/lib/auth-guard';
 import { discoverRecipeFromUrl, discoverRecipes } from '../recipe-discovery';
 
+// The limiter has its own PGlite tests (paid-paths-rate-limit); allow every call here.
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
+}));
 // #54: authentication is covered by its own test below; elsewhere treat the caller as signed in.
 vi.mock('@/lib/auth-guard', () => ({
   requireAuth: vi.fn(async () => ({ userId: 'test-user' })),

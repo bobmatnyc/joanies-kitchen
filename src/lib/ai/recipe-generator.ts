@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { getOpenRouterClient, MODELS, type ModelName } from './openrouter-server';
 
 // Schema for generated recipe
@@ -157,6 +158,7 @@ Do NOT just list ingredient names without amounts or qualifiers.`;
     parsedRecipe.modelUsed = model;
     return GeneratedRecipeSchema.parse(parsedRecipe);
   } catch (error: any) {
+    if (isPaidCallBlocked(error)) throw error; // #57: keep the cost-ceiling code typed
     console.error('Error generating recipe:', error);
     console.error('Error details:', error.error);
     console.error('Error message:', error.message);

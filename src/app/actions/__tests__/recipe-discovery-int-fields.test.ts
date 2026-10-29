@@ -12,6 +12,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: 'user_1' }) }));
+// The limiter has its own PGlite tests (paid-paths-rate-limit); allow every call here.
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
+}));
 vi.mock('@/lib/brave-search', () => ({ searchRecipes: vi.fn() }));
 vi.mock('@/lib/ai/openrouter-server', () => ({
   getOpenRouterClient: () => ({ chat: { completions: { create: mocks.llmCreate } } }),

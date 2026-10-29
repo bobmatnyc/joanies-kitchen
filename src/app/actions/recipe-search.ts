@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { requireAuth } from '@/lib/auth-guard';
+import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { createRecipe } from './recipes';
 
@@ -36,16 +37,20 @@ export type WebRecipe = z.infer<typeof WebRecipeSchema>;
 
 /**
  * #13: the Perplexity web-search actions are a signed-in feature (the only UI,
- * `/discover`'s WebSearchPanel, sits behind RequireAuthAI). Returns the error
- * message for a caller with no session, or null when signed in.
+ * `/discover`'s WebSearchPanel, sits behind RequireAuthAI). Then a per-user
+ * rate limit (fails closed). Returns the refusal, or null when the call may run.
  */
-async function signInError(featureName: string): Promise<string | null> {
+async function paidCallGate(
+  featureName: string,
+  bucket: 'web-recipe-search' | 'recipe-url-import'
+): Promise<{ success: false; error: string; errorCode?: string; retryAfterSec?: number } | null> {
+  let userId: string;
   try {
-    await requireAuth(featureName);
-    return null;
+    ({ userId } = await requireAuth(featureName));
   } catch (error: unknown) {
-    return toErrorMessage(error);
+    return { success: false, error: toErrorMessage(error) };
   }
+  return rateLimitRefusal(bucket, userId, featureName);
 }
 
 interface WebSearchOptions {
@@ -59,9 +64,9 @@ interface WebSearchOptions {
 // Search for recipes on the web using Perplexity's web search models
 export async function searchWebRecipes(
   options: WebSearchOptions
-): Promise<{ success: boolean; data?: WebRecipe[]; error?: string }> {
-  const authError = await signInError('web recipe search'); // #13: sign-in before any paid call
-  if (authError) return { success: false, error: authError };
+): Promise<{ success: boolean; data?: WebRecipe[]; error?: string; errorCode?: string }> {
+  const refusal = await paidCallGate('web recipe search', 'web-recipe-search'); // #13
+  if (refusal) return refusal;
 
   const { query, cuisine, ingredients = [], dietaryRestrictions = [], maxResults = 5 } = options;
 
@@ -160,6 +165,8 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
     };
   } catch (error: unknown) {
     console.error('Web search error:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),
@@ -170,9 +177,9 @@ Search for recipes from popular cooking sites, food blogs, and chef websites. In
 // Parse a recipe from a specific URL
 export async function parseRecipeFromUrl(
   url: string
-): Promise<{ success: boolean; data?: WebRecipe; error?: string }> {
-  const authError = await signInError('recipe import from URL'); // #13: sign-in before any paid call
-  if (authError) return { success: false, error: authError };
+): Promise<{ success: boolean; data?: WebRecipe; error?: string; errorCode?: string }> {
+  const refusal = await paidCallGate('recipe import from URL', 'recipe-url-import'); // #13
+  if (refusal) return refusal;
 
   if (!process.env.OPENROUTER_API_KEY) {
     return {
@@ -237,6 +244,8 @@ Return the recipe in this exact JSON format:
     };
   } catch (error: unknown) {
     console.error('URL parsing error:', error);
+    const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
+    if (blocked) return blocked;
     return {
       success: false,
       error: toErrorMessage(error),
