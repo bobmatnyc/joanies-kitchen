@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **db**: a `DATABASE_URL` whose host is exactly `127.0.0.1`, `::1` or `localhost` now sends neon-http queries to a local Neon HTTP proxy at `http://<host>:<NEON_LOCAL_PROXY_PORT>/sql` (default 4444) instead of failing with `Invalid URL https://api.0.0.1/sql`. Every other host, Neon included, keeps the driver's default endpoint (#60)
 - **ops**: admin DB tools (`drizzle.config.ts`, `scripts/sync-migration-tracking.ts`, the data-fix and Epicurious label scripts) go through `src/lib/db/admin-db-url.ts`, which strips or refuses a Neon `-pooler` host and anchor-matches the prod host. Runbooks use `DATABASE_URL_UNPOOLED` for `pg_dump` and `psql`. A pooled `pg_dump` had leaked `search_path=''` onto shared backends and broken prod reads (D3a)
 
 ### Added

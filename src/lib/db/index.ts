@@ -1,10 +1,11 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as apiKeysSchema from './api-keys-schema';
 import * as authSchema from './auth-schema';
 import * as autonomousScraperSchema from './autonomous-scraper-schema';
 import * as chefSchema from './chef-schema';
 import * as ingredientsSchema from './ingredients-schema';
+import { configureLocalNeonProxy } from './local-neon';
 import * as schema from './schema';
 import * as usageCountersSchema from './usage-counters-schema'; // #17: rate-limit counters
 import * as userDiscoverySchema from './user-discovery-schema';
@@ -22,6 +23,8 @@ const allSchemas = {
 };
 
 function createDb(databaseUrl: string) {
+  // #60: loopback DATABASE_URL (EVO staging) goes through the local Neon HTTP proxy.
+  configureLocalNeonProxy(neonConfig, databaseUrl);
   return drizzle(neon(databaseUrl), { schema: allSchemas });
 }
 

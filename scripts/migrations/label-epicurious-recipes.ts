@@ -1,11 +1,14 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { config } from 'dotenv';
 import { adminDbUrl } from '../../src/lib/db/admin-db-url';
+import { configureLocalNeonProxy } from '../../src/lib/db/local-neon';
 
 config({ path: '.env.local' });
 
 // D3a: pooled pg_dump broke prod reads; unpooled host only
-const sql = neon(adminDbUrl(process.env.DATABASE_URL, 'seed'));
+const seedUrl = adminDbUrl(process.env.DATABASE_URL, 'seed');
+configureLocalNeonProxy(neonConfig, seedUrl); // #60: loopback URL goes through the local proxy
+const sql = neon(seedUrl);
 
 async function labelEpicuriousRecipes() {
   console.log('Starting Epicurious recipe labeling...');

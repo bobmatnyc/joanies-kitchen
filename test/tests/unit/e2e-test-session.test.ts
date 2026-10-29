@@ -110,6 +110,7 @@ describe('neonTestUserStore', () => {
   it('fails loudly with a migration hint when the users table is missing', async () => {
     vi.doMock('@neondatabase/serverless', () => ({
       neon: () => () => Promise.reject(Object.assign(new Error('no table'), { code: '42P01' })),
+      neonConfig: {}, // #60: read by the local-proxy guard
     }));
     const store = await neonTestUserStore({ DATABASE_URL: 'postgresql://x' });
     await expect(store.upsert(TEST_USER)).rejects.toThrow(/pnpm db:migrate/);
