@@ -2,9 +2,9 @@
 
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { useReportBoundaryError } from '@/lib/observability/report-client-error';
 
 export default function MealDetailError({
   error,
@@ -13,9 +13,8 @@ export default function MealDetailError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error('Meal detail page error:', error);
-  }, [error]);
+  // #55 S2: report once to /api/client-error (was console-only).
+  useReportBoundaryError(error, 'meals-detail');
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

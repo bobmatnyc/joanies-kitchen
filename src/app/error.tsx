@@ -1,23 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useReportBoundaryError } from '@/lib/observability/report-client-error';
 
-export default function Error({
+// #55: renamed from `Error`, which shadowed the global (biome error in a changed file).
+export default function RootError({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error);
-  }, [error]);
+  // #55 S2: report once to /api/client-error (was console-only).
+  useReportBoundaryError(error, 'root');
 
   return (
     <div className="container mx-auto py-16 px-4 text-center">
       <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
       <button
+        type="button"
         onClick={() => reset()}
         className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
       >

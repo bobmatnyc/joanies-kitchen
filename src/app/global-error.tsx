@@ -1,5 +1,7 @@
 'use client';
 
+import { useReportBoundaryError } from '@/lib/observability/report-client-error';
+
 /**
  * Global Error Handler
  *
@@ -15,6 +17,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // #55 S2: global-error logged nothing; report once to /api/client-error.
+  useReportBoundaryError(error, 'global');
   return (
     // Next.js 15 requires <html> and <body> in global-error.tsx (lowercase, no imports)
     <html lang="en">
