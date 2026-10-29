@@ -428,7 +428,7 @@ find . -type f -size +1000k -not -path "./.git/*" -not -path "./node_modules/*"
 **NEVER commit files containing**:
 - Hardcoded passwords: `password = "actual_password"`
 - API keys: `api_key = "sk-..."`
-- Private keys: `-----BEGIN PRIVATE KEY-----`
+- Private keys: `-----BEGIN PRIVATE KEY-----` <!-- secret-check: ignore -->
 - Database URLs with credentials: `postgresql://user:pass@host`
 - AWS/Cloud credentials: `AKIA...` patterns
 - JWT tokens: `eyJ...` patterns

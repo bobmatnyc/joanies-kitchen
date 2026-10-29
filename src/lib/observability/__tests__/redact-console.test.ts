@@ -72,6 +72,7 @@ describe('installConsoleRedaction', () => {
     const before = console.error;
     console.error = target.error;
     try {
+      // secret-check: ignore-next-line (dummy URL under test)
       reportError(new Error(`a "quoted" \\ postgres://u:p@h/db ${EMAIL}`), {
         source: 'action',
         path: '/sign-in',
