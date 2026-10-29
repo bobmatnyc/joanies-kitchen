@@ -20,6 +20,8 @@
 /test-results/
 /playwright-report/
 test/tests/artifacts/
+# #26: Playwright reports and audit output
+test/artifacts/
 tests/e2e/.auth/
 test/tests/e2e/.auth/
 playwright/.auth/
