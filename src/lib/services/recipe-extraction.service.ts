@@ -15,7 +15,13 @@
 import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
-import { assertWithinDailyCap, trackCost, withChatCostTracking } from '@/lib/costs';
+import {
+  assertWithinDailyCap,
+  TAVILY_EXTRACT_FLOOR_URLS,
+  trackCost,
+  unitsOrFloor,
+  withChatCostTracking,
+} from '@/lib/costs';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 export interface ScrapedRecipe {
@@ -270,11 +276,12 @@ export class RecipeExtractionService {
       results?: Array<{ raw_content?: string }>;
       failed_results?: Array<{ error: string }>;
     };
-    // Tavily bills only successfully extracted URLs.
-    const extractedCount = data.results?.length ?? 0;
-    if (extractedCount > 0) {
-      await trackCost({ provider: 'tavily', operation: 'extract.advanced', units: extractedCount });
-    }
+    // #77: a paid call with nothing extracted books one URL, never $0.
+    await trackCost({
+      provider: 'tavily',
+      operation: 'extract.advanced',
+      units: unitsOrFloor(data.results?.length, TAVILY_EXTRACT_FLOOR_URLS),
+    });
 
     if (data.results?.[0]?.raw_content) {
       return data.results[0].raw_content;

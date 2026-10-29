@@ -48,6 +48,45 @@ export const LEDGER_USD_RESOLUTION = 0.000001;
 /** #75: ~4 chars/token, used only when Jina omits `usage.total_tokens`. */
 const JINA_CHARS_PER_TOKEN_ESTIMATE = 4;
 
+// #77: floors for a paid call whose usage is missing or zero, each the price of a typical call.
+/** #77: typical chat call is ~1,000 prompt + ~500 completion tokens, priced at the model's own rate. */
+export const LLM_FLOOR_PROMPT_TOKENS = 1000;
+export const LLM_FLOOR_COMPLETION_TOKENS = 500;
+/** #77: typical recipe page is ~8,000 chars of markdown / 4 chars per token = 2,000 tokens (x JINA_USD_PER_TOKEN = $0.00004). */
+export const JINA_READER_FLOOR_TOKENS = 2000;
+/** #77: one crawled page is 1 credit (x FIRECRAWL_USD_PER_CREDIT = ~$0.0053). */
+export const FIRECRAWL_CRAWL_FLOOR_CREDITS = 1;
+/** #77: one URL per extract call (x the extract.advanced per-URL rate = $0.0032). */
+export const TAVILY_EXTRACT_FLOOR_URLS = 1;
+
+/** #77: returns `units` when it is a positive finite number, else `floorUnits`. */
+export function unitsOrFloor(units: unknown, floorUnits: number): number {
+  const n = Number(units);
+  return Number.isFinite(n) && n > 0 ? n : floorUnits;
+}
+
+/** #75/#77: rounds a USD cost UP to `LEDGER_USD_RESOLUTION` (minimum one unit) so it is never stored as 0. */
+export function roundUpToLedgerUsd(usd: number): number {
+  // #77: the 1e-9 slack keeps float noise (40.0000001 steps) from adding a step.
+  return Math.max(1, Math.ceil(usd / LEDGER_USD_RESOLUTION - 1e-9)) * LEDGER_USD_RESOLUTION;
+}
+
+/**
+ * Why: a short or empty Jina reader response was booked as ~0 tokens, which the
+ * ledger rounded to $0 (#77).
+ * What: Uses the reported tokens, else ~4 chars/token of the content, else
+ * `JINA_READER_FLOOR_TOKENS`; USD is rounded up to `LEDGER_USD_RESOLUTION`.
+ * Test: `Jina reader with empty content books the floor cost`
+ */
+export function jinaReaderCost(
+  reportedTokens: unknown,
+  content: string | null | undefined
+): { tokens: number; usd: number } {
+  const estimate = Math.ceil((content?.length ?? 0) / JINA_CHARS_PER_TOKEN_ESTIMATE);
+  const tokens = unitsOrFloor(reportedTokens, unitsOrFloor(estimate, JINA_READER_FLOOR_TOKENS));
+  return { tokens, usd: roundUpToLedgerUsd(tokens * JINA_USD_PER_TOKEN) };
+}
+
 /**
  * Flat rates keyed `provider:operation`. LLM chat operations are priced per
  * model through `LLM_TOKEN_PRICES` instead and do not appear here.
@@ -133,8 +172,7 @@ export function jinaEmbeddingCost(
           Math.ceil(inputs.reduce((n, text) => n + text.length, 0) / JINA_CHARS_PER_TOKEN_ESTIMATE)
         );
   // #75: round up to the ledger's resolution so a tiny call is never stored as 0.
-  const steps = Math.max(1, Math.ceil((tokens * JINA_USD_PER_TOKEN) / LEDGER_USD_RESOLUTION));
-  return { tokens, usd: steps * LEDGER_USD_RESOLUTION };
+  return { tokens, usd: roundUpToLedgerUsd(tokens * JINA_USD_PER_TOKEN) };
 }
 
 /** Returns the flat rate for `provider:operation`, or undefined when unknown. */

@@ -16,9 +16,17 @@ export {
   type CostProvider,
   type CostRate,
   computeLlmCost,
+  FIRECRAWL_CRAWL_FLOOR_CREDITS,
+  JINA_READER_FLOOR_TOKENS,
+  jinaReaderCost,
+  LEDGER_USD_RESOLUTION,
+  LLM_FLOOR_COMPLETION_TOKENS,
+  LLM_FLOOR_PROMPT_TOKENS,
   LLM_TOKEN_PRICES,
   lookupRate,
+  TAVILY_EXTRACT_FLOOR_URLS,
   UNKNOWN_LLM_REQUEST_FLOOR_USD,
+  unitsOrFloor,
 } from './rates';
 export {
   DEFAULT_RUN_BUDGET_USD,
