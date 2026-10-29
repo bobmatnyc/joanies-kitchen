@@ -3,22 +3,18 @@
 import { ChefHat } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useRecipeImageFallback } from '@/hooks/useRecipeImageFallback';
 import type { Recipe } from '@/lib/db/schema';
-import { getRecipeImageUrls, parseRecipeTags, resolveRecipeImage } from '@/lib/utils/recipe-image';
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 
 interface SharedRecipeCarouselProps {
   recipes: Recipe[];
 }
 
-// #94: a load error swaps in the themed placeholder instead of hiding the image.
+// #94: a load error advances to the next candidate, then the themed placeholder.
 function RecipeHeroImage({ recipe }: { recipe: Recipe }) {
-  const [failed, setFailed] = useState(false);
-  const src = failed
-    ? getPlaceholderImage(parseRecipeTags(recipe.tags))
-    : resolveRecipeImage(recipe);
+  const { src, onError } = useRecipeImageFallback(recipe);
   return (
     <Image
       src={src}
@@ -26,7 +22,7 @@ function RecipeHeroImage({ recipe }: { recipe: Recipe }) {
       fill
       className="object-cover"
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={onError}
     />
   );
 }

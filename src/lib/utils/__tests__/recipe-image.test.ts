@@ -37,6 +37,18 @@ describe('resolveRecipeImage', () => {
     expect(resolveRecipeImage({ images, image_url: FALLBACK })).toBe('https://a.example.com/x.jpg');
   });
 
+  it('ranks a valid https image_url above a root-relative images entry', () => {
+    expect(
+      resolveRecipeImage({ images: '["/x.jpg"]', image_url: 'https://cdn.example.com/u.jpg' })
+    ).toBe('https://cdn.example.com/u.jpg');
+  });
+
+  it('ranks an https images entry above an earlier root-relative entry', () => {
+    expect(resolveRecipeImage({ images: '["/local.jpg","https://cdn.example.com/a.jpg"]' })).toBe(
+      'https://cdn.example.com/a.jpg'
+    );
+  });
+
   it('accepts root-relative paths', () => {
     expect(resolveRecipeImage({ images: '["/images/r.jpg"]' })).toBe('/images/r.jpg');
   });

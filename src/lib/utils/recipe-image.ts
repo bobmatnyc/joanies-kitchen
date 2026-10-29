@@ -64,16 +64,28 @@ export function parseRecipeTags(tags: unknown): string[] {
 }
 
 /**
+ * Why: a root-relative `images` entry may point at a missing local file, so it
+ * must not outrank a remote `image_url` (#94, same ranking as the old RecipeCard).
+ * What: usable URLs in display order, deduplicated: http(s) entries from
+ * `images`, then `image_url`, then root-relative entries from `images`.
+ * Test: `recipe-image.test.ts` "getRecipeImageCandidates".
+ */
+export function getRecipeImageCandidates(recipe: RecipeImageSource): string[] {
+  const urls = getRecipeImageUrls(recipe.images);
+  const remote = urls.filter((u) => !u.startsWith('/'));
+  const local = urls.filter((u) => u.startsWith('/'));
+  const fallback = toUsableImageUrl(recipe.image_url);
+  const ordered = [...remote, ...(fallback ? [fallback] : []), ...local];
+  return [...new Set(ordered)];
+}
+
+/**
  * Why: the home carousel, recipe of the day and RecipeCard must agree on which
  * image a recipe shows (#94).
- * What: first usable URL from `images`, else a usable `image_url`, else the
- * tag-themed placeholder. Never throws.
+ * What: first entry of `getRecipeImageCandidates`, else the tag-themed
+ * placeholder. Never throws.
  * Test: `recipe-image.test.ts` "resolveRecipeImage".
  */
 export function resolveRecipeImage(recipe: RecipeImageSource): string {
-  return (
-    getRecipeImageUrls(recipe.images)[0] ??
-    toUsableImageUrl(recipe.image_url) ??
-    getPlaceholderImage(parseRecipeTags(recipe.tags))
-  );
+  return getRecipeImageCandidates(recipe)[0] ?? getPlaceholderImage(parseRecipeTags(recipe.tags));
 }

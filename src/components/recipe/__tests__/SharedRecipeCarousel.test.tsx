@@ -78,6 +78,26 @@ describe('SharedRecipeCarousel', () => {
     expect(srcOf('Recipe data')).toBe('/placeholder.jpg');
   });
 
+  it('moves to the next candidate when the first image fails to load', () => {
+    render(
+      <SharedRecipeCarousel
+        recipes={[
+          recipe(
+            'next',
+            '["https://dead.example.com/a.jpg","/local.jpg"]',
+            'https://cdn.example.com/u.jpg'
+          ),
+        ]}
+      />
+    );
+    fireEvent.error(screen.getByAltText('Recipe next'));
+    expect(srcOf('Recipe next')).toBe('https://cdn.example.com/u.jpg');
+    fireEvent.error(screen.getByAltText('Recipe next'));
+    expect(srcOf('Recipe next')).toBe('/local.jpg');
+    fireEvent.error(screen.getByAltText('Recipe next'));
+    expect(srcOf('Recipe next')).toBe('/placeholder.jpg');
+  });
+
   it('swaps in the placeholder when the image fails to load', () => {
     render(
       <SharedRecipeCarousel recipes={[recipe('broken', '["https://dead.example.com/a.jpg"]')]} />

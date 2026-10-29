@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '@/lib/db/schema';
 import { RecipeCard } from '../RecipeCard';
@@ -247,6 +247,44 @@ describe('RecipeCard', () => {
     render(<RecipeCard recipe={mockRecipe} />);
     // Tags are collapsed by default, showing expandable button
     expect(screen.getByText(/\+ \d+ more/)).toBeInTheDocument();
+  });
+
+  // #94: image fallback
+  it('image fallback: first-candidate error shows the next candidate, not the placeholder', () => {
+    const recipe: Recipe = {
+      ...mockRecipe,
+      images: JSON.stringify(['https://dead.example.com/a.jpg']),
+      image_url: 'https://cdn.example.com/u.jpg',
+    };
+    render(<RecipeCard recipe={recipe} />);
+    fireEvent.error(screen.getByAltText('Chocolate Chip Cookies'));
+    expect(screen.getByAltText('Chocolate Chip Cookies')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/u.jpg'
+    );
+  });
+
+  it('image fallback: a new recipe after a failure shows its own image', () => {
+    const first: Recipe = {
+      ...mockRecipe,
+      images: JSON.stringify(['https://dead.example.com/a.jpg']),
+    };
+    const { rerender } = render(<RecipeCard recipe={first} />);
+    fireEvent.error(screen.getByAltText('Chocolate Chip Cookies'));
+    expect(screen.getByAltText('Chocolate Chip Cookies')).toHaveAttribute(
+      'src',
+      '/placeholder.jpg'
+    );
+    const second: Recipe = {
+      ...mockRecipe,
+      id: 'test-recipe-2',
+      images: JSON.stringify(['https://cdn.example.com/second.jpg']),
+    };
+    rerender(<RecipeCard recipe={second} />);
+    expect(screen.getByAltText('Chocolate Chip Cookies')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/second.jpg'
+    );
   });
 
   it('handles null images array', () => {
