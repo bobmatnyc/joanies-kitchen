@@ -90,6 +90,7 @@ import { findSimilarToRecipe } from '@/app/actions/semantic-search';
 import * as social from '@/app/actions/social';
 import { getToolBySlug } from '@/app/actions/tools';
 import { GET as paginatedGET } from '@/app/api/recipes/paginated/route';
+import { SimilarRecipesSection } from '@/components/recipe/SimilarRecipesSection';
 import { searchCaches } from '@/lib/cache';
 import { findSimilarRecipes } from '@/lib/db/embeddings';
 import { recipeIngredients } from '@/lib/db/ingredients-schema';
@@ -237,6 +238,22 @@ const PATHS: ReadPath[] = [
     name: 'findSimilarToRecipe — P as the source recipe',
     run: () => findSimilarToRecipe(P, 10),
     sees: (r) => r.success === true,
+  },
+  // #128: the recipe page renders similar recipes on the server; same rules as the action.
+  {
+    name: 'SimilarRecipesSection — P as a candidate',
+    run: () => SimilarRecipesSection({ slugOrId: Q, limit: 10 }),
+    sees: (r) => hasP(r?.props.initialResult.recipes),
+    normalize: (r) => r?.props.initialResult ?? null,
+  },
+  {
+    name: 'SimilarRecipesSection — P as the source recipe',
+    run: () => SimilarRecipesSection({ slugOrId: P, limit: 10 }),
+    sees: (r) => r?.props.initialResult.success === true,
+    // #128: getRecipe denies an admin another user's private recipe, so the page
+    // shows no section there; the section is never looser than the action.
+    admitted: (r, role) => (role === 'admin' ? r === null : r?.props.initialResult.success),
+    normalize: (r) => r?.props.initialResult ?? null,
   },
   {
     name: 'getRecipesPaginated — filters.userId = owner',
@@ -442,6 +459,42 @@ describe('#17 findSimilarToRecipe rerank and rate limit', () => {
     const result = await findSimilarToRecipe(Q, 10);
     expect(result).toMatchObject({ success: false, errorCode: 'LIMITER_UNAVAILABLE' });
     expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+  });
+});
+
+describe('#128 SimilarRecipesSection — rate limit and empty result', () => {
+  it('anonymous viewer of a private recipe gets no section and no vector search', async () => {
+    vi.mocked(findSimilarRecipes).mockClear();
+    signInAs('anonymous');
+    expect(await SimilarRecipesSection({ slugOrId: P })).toBeNull();
+    expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+  });
+
+  it('uses the similar-recipes bucket for the viewer and passes the refusal through', async () => {
+    vi.mocked(enforceRateLimit).mockClear();
+    vi.mocked(enforceRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      reason: 'limited',
+      retryAfterSec: 42,
+      limit: 60,
+    });
+    vi.mocked(findSimilarRecipes).mockClear();
+    signInAs('anonymous');
+    const element = await SimilarRecipesSection({ slugOrId: Q });
+    expect(vi.mocked(enforceRateLimit)).toHaveBeenCalledWith('similar-recipes', null);
+    expect(element?.props.initialResult).toMatchObject({
+      success: false,
+      errorCode: 'RATE_LIMITED',
+      retryAfterSec: 42,
+    });
+    expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+  });
+
+  it('passes an empty result to the widget unchanged', async () => {
+    vi.mocked(findSimilarRecipes).mockResolvedValue([{ recipe_id: P, similarity: 0.9 }] as never);
+    signInAs('anonymous');
+    const element = await SimilarRecipesSection({ slugOrId: Q });
+    expect(element?.props.initialResult).toEqual({ success: true, recipes: [] });
   });
 });
 
