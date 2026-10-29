@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { withRetryAfter } from '@/lib/rate-limit/retry-message';
 import { toast } from '@/lib/toast';
 import type { MealPairingMode, MealPlan } from '@/types';
 import { MealPlanDisplay } from './MealPlanDisplay';
@@ -148,7 +149,9 @@ export function MealPairingWizard({ onComplete, onCancel }: MealPairingWizardPro
         setCurrentStep('results');
         toast.success('Meal plan generated successfully!');
       } else {
-        toast.error(result.error || 'Failed to generate meal plan');
+        toast.error(
+          withRetryAfter(result.error || 'Failed to generate meal plan', result.retryAfterSec)
+        );
         setCurrentStep('constraints');
       }
     } catch (error) {

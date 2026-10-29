@@ -101,3 +101,20 @@ describe('#17 client IP', () => {
     expect(over.allowed).toBe(false);
   });
 });
+
+describe('daily window boundary', () => {
+  const daily = RATE_LIMITS['recipe-ingest-api'];
+
+  it('refuses with retryAfterSec 1 half a second before midnight UTC, then starts fresh', async () => {
+    const lastSecond = new Date('2026-10-28T23:59:59.500Z');
+    for (let i = 0; i < daily.limit; i++) {
+      await checkRateLimit('recipe-ingest-api', 'user:daily', { db, now: lastSecond });
+    }
+    const over = await checkRateLimit('recipe-ingest-api', 'user:daily', { db, now: lastSecond });
+    expect(over).toMatchObject({ allowed: false, reason: 'limited', retryAfterSec: 1 });
+
+    const midnight = new Date('2026-10-29T00:00:00.000Z');
+    const fresh = await checkRateLimit('recipe-ingest-api', 'user:daily', { db, now: midnight });
+    expect(fresh).toMatchObject({ allowed: true, count: 1 });
+  });
+});

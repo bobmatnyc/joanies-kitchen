@@ -58,6 +58,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Recipe } from '@/lib/db/schema';
+import { withRetryAfter } from '@/lib/rate-limit/retry-message';
 import { toast } from '@/lib/toast';
 
 interface PipelineProgress {
@@ -137,6 +138,13 @@ export function RecipeDiscoveryPanel() {
         maxResults,
         minConfidence,
       });
+
+      // #82: a refusal ran nothing; show its message instead of "Discovery complete!".
+      if (result.errorCode) {
+        setProgress(null);
+        toast.error(withRetryAfter(result.error ?? 'Discovery was refused', result.retryAfterSec));
+        return;
+      }
 
       setDiscoveryResults(result);
       setDiscoveredRecipes(result.recipes);
