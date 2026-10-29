@@ -2,6 +2,7 @@ import { and, eq, isNull, or, type SQL } from 'drizzle-orm';
 import { checkAdminAccess } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 
 /**
  * Private-recipe read rule — #32.
@@ -32,10 +33,11 @@ export async function getRecipeViewer(): Promise<RecipeViewer> {
 
 /** True when the viewer may read this recipe row. */
 export function canViewRecipe(
-  recipe: { is_public: boolean | null; user_id: string },
+  recipe: { is_public: boolean | null; user_id: string; moderation_status?: string | null },
   viewer: RecipeViewer
 ): boolean {
-  if (recipe.is_public === true || viewer.isAdmin) return true;
+  // #102: a rejected (hidden) recipe is public to no one; its owner and admins still see it.
+  if (isPublicRecipe(recipe) || viewer.isAdmin) return true;
   return viewer.userId !== null && recipe.user_id === viewer.userId;
 }
 
@@ -45,8 +47,8 @@ export function canViewRecipe(
  */
 export function recipeVisibilityCondition(viewer: RecipeViewer): SQL | undefined {
   if (viewer.isAdmin) return undefined;
-  if (viewer.userId) return or(eq(recipes.is_public, true), eq(recipes.user_id, viewer.userId));
-  return eq(recipes.is_public, true);
+  if (viewer.userId) return or(publicRecipe, eq(recipes.user_id, viewer.userId));
+  return publicRecipe;
 }
 
 /**

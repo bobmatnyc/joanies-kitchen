@@ -1,9 +1,9 @@
 'use server';
 
-import { requireAdmin } from '@/lib/admin';
-import { auth } from '@/lib/auth';
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/admin';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
@@ -333,7 +333,11 @@ export async function getOriginalRecipe(
     // #32: both the fork and its original must be readable by the caller.
     const viewer = await getRecipeViewer();
     const [forked] = await db
-      .select({ is_public: recipes.is_public, user_id: recipes.user_id })
+      .select({
+        is_public: recipes.is_public,
+        moderation_status: recipes.moderation_status,
+        user_id: recipes.user_id,
+      })
       .from(recipes)
       .where(eq(recipes.id, forkedRecipeId))
       .limit(1);

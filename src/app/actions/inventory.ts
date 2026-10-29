@@ -26,6 +26,7 @@ import {
   wasteTracking,
 } from '@/lib/db/inventory-schema';
 import { recipeIngredients, recipes } from '@/lib/db/schema';
+import { publicRecipe } from '@/lib/recipe-public';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
@@ -545,7 +546,7 @@ export async function matchRecipesToInventory(options?: {
       LEFT JOIN ingredients i ON ri.ingredient_id = i.id
       WHERE
         r.deleted_at IS NULL
-        AND (r.user_id = ${userId} OR r.is_public = true)
+        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status <> 'rejected'))
       GROUP BY
         r.id, r.name, r.slug, r.description, r.image_url, r.images,
         r.prep_time, r.cook_time, r.servings, r.difficulty, r.cuisine,
@@ -821,9 +822,7 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
     const recipe = await db
       .select()
       .from(recipes)
-      .where(
-        and(eq(recipes.id, recipeId), or(eq(recipes.user_id, userId), eq(recipes.is_public, true)))
-      )
+      .where(and(eq(recipes.id, recipeId), or(eq(recipes.user_id, userId), publicRecipe)))
       .limit(1);
 
     if (recipe.length === 0) {

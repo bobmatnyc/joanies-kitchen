@@ -6,6 +6,7 @@ import JSZip from 'jszip';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { publicRecipe } from '@/lib/recipe-public';
 import { generateRecipeFilename, recipeToMarkdown } from '@/lib/utils/markdown-formatter';
 
 /**
@@ -19,9 +20,9 @@ export async function exportRecipeAsMarkdown(recipeId: string) {
     where: userId
       ? or(
           and(eq(recipes.id, recipeId), eq(recipes.user_id, userId)),
-          and(eq(recipes.id, recipeId), eq(recipes.is_public, true))
+          and(eq(recipes.id, recipeId), publicRecipe)
         )
-      : and(eq(recipes.id, recipeId), eq(recipes.is_public, true)),
+      : and(eq(recipes.id, recipeId), publicRecipe),
   });
 
   if (!recipe) {
@@ -131,9 +132,9 @@ export async function exportRecipeAsPDF(recipeId: string) {
     where: userId
       ? or(
           and(eq(recipes.id, recipeId), eq(recipes.user_id, userId)),
-          and(eq(recipes.id, recipeId), eq(recipes.is_public, true))
+          and(eq(recipes.id, recipeId), publicRecipe)
         )
-      : and(eq(recipes.id, recipeId), eq(recipes.is_public, true)),
+      : and(eq(recipes.id, recipeId), publicRecipe),
   });
 
   if (!recipe) {

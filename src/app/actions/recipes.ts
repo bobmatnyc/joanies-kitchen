@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
+import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -21,9 +22,7 @@ export async function getAllTags() {
     // Get recipes based on user authentication
     // For authenticated users: their recipes + all public recipes
     // For non-authenticated users: only public recipes
-    const accessCondition = userId
-      ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
-      : eq(recipes.is_public, true);
+    const accessCondition = userId ? or(eq(recipes.user_id, userId), publicRecipe) : publicRecipe;
 
     const allRecipes = await db
       .select({ tags: recipes.tags })
@@ -90,7 +89,7 @@ export async function getRecipes(selectedTags?: string[]) {
 
     // Add user/public condition
     if (!userId) {
-      conditions.push(eq(recipes.is_public, true));
+      conditions.push(publicRecipe);
     } else {
       conditions.push(eq(recipes.user_id, userId));
     }
@@ -168,7 +167,7 @@ export async function getRecipe(idOrSlug: string) {
 
     // Check if user has access to this recipe
     const recipeData = recipe[0];
-    if (!recipeData.is_public && recipeData.user_id !== userId) {
+    if (!isPublicRecipe(recipeData) && recipeData.user_id !== userId) {
       return { success: false, error: 'Access denied' };
     }
 
@@ -195,7 +194,7 @@ export async function getRecipeBySlug(slug: string) {
 
     // Check if user has access to this recipe
     const recipeData = recipe[0];
-    if (!recipeData.is_public && recipeData.user_id !== userId) {
+    if (!isPublicRecipe(recipeData) && recipeData.user_id !== userId) {
       return { success: false, error: 'Access denied' };
     }
 
@@ -222,9 +221,7 @@ export async function searchRecipes(query: string) {
 
     // For authenticated users, search their recipes and public recipes
     // For non-authenticated users, search only public recipes
-    const accessCondition = userId
-      ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
-      : eq(recipes.is_public, true);
+    const accessCondition = userId ? or(eq(recipes.user_id, userId), publicRecipe) : publicRecipe;
 
     const searchResults = await db
       .select()
@@ -437,7 +434,7 @@ export async function getPublicRecipes() {
     const publicRecipes = await db
       .select()
       .from(recipes)
-      .where(eq(recipes.is_public, true))
+      .where(publicRecipe)
       .orderBy(desc(recipes.created_at));
 
     return { success: true, data: publicRecipes };
@@ -505,7 +502,7 @@ export async function toggleRecipeVisibility(id: string) {
 export async function getSharedRecipes(selectedTags?: string[]) {
   try {
     // Build conditions array
-    const conditions = [eq(recipes.is_public, true)];
+    const conditions = [publicRecipe];
 
     // Add tag filtering conditions if tags are selected
     if (selectedTags && selectedTags.length > 0) {
@@ -559,7 +556,7 @@ export async function getSystemRecipes() {
     const systemRecipes = await db
       .select()
       .from(recipes)
-      .where(and(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true)))
+      .where(and(publicRecipe, eq(recipes.is_system_recipe, true)))
       .orderBy(desc(recipes.created_at));
 
     return { success: true, data: systemRecipes };
@@ -582,7 +579,7 @@ export async function copyRecipeToCollection(recipeId: string) {
     const recipeToCopy = await db
       .select()
       .from(recipes)
-      .where(and(eq(recipes.id, recipeId), eq(recipes.is_public, true)))
+      .where(and(eq(recipes.id, recipeId), publicRecipe))
       .limit(1);
 
     if (recipeToCopy.length === 0) {
@@ -794,7 +791,7 @@ export async function getTopRatedRecipes({
       .from(recipes)
       .where(
         and(
-          eq(recipes.is_public, true),
+          publicRecipe,
           or(sql`${recipes.system_rating} IS NOT NULL`, sql`${recipes.avg_user_rating} IS NOT NULL`)
         )
       )
@@ -852,7 +849,7 @@ export async function getResourcefulRecipes({
     const resourcefulRecipes = await db
       .select()
       .from(recipes)
-      .where(and(eq(recipes.is_public, true), sql`${recipes.resourcefulness_score} >= ${minScore}`))
+      .where(and(publicRecipe, sql`${recipes.resourcefulness_score} >= ${minScore}`))
       .orderBy(
         desc(recipes.resourcefulness_score),
         desc(
@@ -900,7 +897,7 @@ export async function getRecipesOfTheDay() {
       .from(recipes)
       .where(
         and(
-          eq(recipes.is_public, true),
+          publicRecipe,
           isNull(recipes.deleted_at),
           sql`(${recipes.image_url} IS NOT NULL OR ${recipes.images} IS NOT NULL)`,
           or(...mainCourseConditions)
@@ -1032,7 +1029,7 @@ export async function getRecipesOfTheDay() {
             .from(recipes)
             .where(
               and(
-                eq(recipes.is_public, true),
+                publicRecipe,
                 isNull(recipes.deleted_at),
                 sql`(${recipes.image_url} IS NOT NULL OR ${recipes.images} IS NOT NULL)`,
                 or(...tagConditions)
@@ -1103,7 +1100,7 @@ export async function getRecipesPaginated({
 
       // If requesting public recipes and user is authenticated, include their recipes too
       if (filters.isPublic && userId) {
-        const accessCondition = or(eq(recipes.is_public, true), eq(recipes.user_id, userId));
+        const accessCondition = or(publicRecipe, eq(recipes.user_id, userId));
         if (accessCondition) {
           // Replace last condition with combined access condition
           conditions.pop();
@@ -1112,13 +1109,13 @@ export async function getRecipesPaginated({
       }
     } else if (userId) {
       // Default: authenticated user sees their recipes + public recipes
-      const accessCondition = or(eq(recipes.user_id, userId), eq(recipes.is_public, true));
+      const accessCondition = or(eq(recipes.user_id, userId), publicRecipe);
       if (accessCondition) {
         conditions.push(accessCondition);
       }
     } else {
       // Not authenticated: only public recipes
-      conditions.push(eq(recipes.is_public, true));
+      conditions.push(publicRecipe);
     }
 
     // Apply additional filters

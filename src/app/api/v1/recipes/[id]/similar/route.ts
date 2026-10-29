@@ -24,6 +24,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
+import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { similarRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -107,8 +108,8 @@ export const GET = requireScopes(
 
       // Build access condition
       const _accessCondition = userId
-        ? or(eq(recipes.user_id, userId), eq(recipes.is_public, true))
-        : eq(recipes.is_public, true);
+        ? or(eq(recipes.user_id, userId), publicRecipe)
+        : publicRecipe;
 
       // Fetch similar recipes with proper access control
       const _similarRecipesData = await db
@@ -132,7 +133,7 @@ export const GET = requireScopes(
           const recipe = recipeResult[0];
 
           // Check access
-          if (!recipe.is_public && recipe.user_id !== userId) {
+          if (!isPublicRecipe(recipe) && recipe.user_id !== userId) {
             return null; // User doesn't have access
           }
 

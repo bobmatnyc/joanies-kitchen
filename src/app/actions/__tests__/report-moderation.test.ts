@@ -40,6 +40,8 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 
 import { actOnRecipeFlag, flagRecipe } from '@/app/actions/flag-recipe';
 import { getRecipeCommentCount, getRecipeComments, setCommentHidden } from '@/app/actions/social';
+import { getRecipesPaginated, searchRecipes } from '@/app/actions/recipes';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -208,5 +210,56 @@ describe('actOnRecipeFlag', () => {
     expect(result).toEqual({ success: false, error: 'Recipe not found' });
     const flags = await rows(`SELECT status FROM recipe_flags WHERE id = '${F1}'`);
     expect(flags[0].status).toBe('pending');
+  });
+});
+
+describe('a hidden recipe (#102)', () => {
+  async function hideR1() {
+    state.userId = ADMIN;
+    expect((await actOnRecipeFlag(F1, 'hide')).success).toBe(true);
+  }
+  async function anonymousSees() {
+    state.userId = null;
+    const viewer = await getRecipeViewer();
+    const direct = (await findViewableRecipe(R1, viewer)) !== null;
+    const list = await getRecipesPaginated({ limit: 50 });
+    const inList = (list.data?.recipes ?? []).some((r) => r.id === R1);
+    const found = await searchRecipes('recipe');
+    const inSearch = ((found.data as { id: string }[] | undefined) ?? []).some((r) => r.id === R1);
+    return { direct, inList, inSearch };
+  }
+
+  it('is visible before the hide', async () => {
+    expect(await anonymousSees()).toEqual({ direct: true, inList: true, inSearch: true });
+  });
+
+  it('is withheld from anonymous viewers by the helper, a list and a search', async () => {
+    await hideR1();
+    expect(await anonymousSees()).toEqual({ direct: false, inList: false, inSearch: false });
+    state.userId = USER;
+    expect(await findViewableRecipe(R1, await getRecipeViewer())).toBeNull();
+  });
+
+  it('stays visible to its owner and to an admin', async () => {
+    await hideR1();
+    state.userId = 'owner';
+    expect(await findViewableRecipe(R1, await getRecipeViewer())).not.toBeNull();
+    state.userId = ADMIN;
+    expect(await findViewableRecipe(R1, await getRecipeViewer())).not.toBeNull();
+  });
+
+  it('is restored exactly by unhide, and unhide is admin-only', async () => {
+    await hideR1();
+    state.userId = USER;
+    expect((await actOnRecipeFlag(F1, 'unhide')).success).toBe(false);
+    expect((await anonymousSees()).direct).toBe(false);
+
+    state.userId = ADMIN;
+    expect((await actOnRecipeFlag(F1, 'unhide')).success).toBe(true);
+    expect(await anonymousSees()).toEqual({ direct: true, inList: true, inSearch: true });
+    const row = await rows(`SELECT is_public FROM recipes WHERE id = '${R1}'`);
+    expect(row[0].is_public).toBe(true);
+    // Unhiding a recipe that is not hidden is an error, not a silent success.
+    expect((await actOnRecipeFlag(F1, 'unhide')).success).toBe(false);
   });
 });

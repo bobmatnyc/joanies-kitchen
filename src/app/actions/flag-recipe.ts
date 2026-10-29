@@ -9,13 +9,13 @@
 
 'use server';
 
-import { checkAdminAccess, requireAdmin } from '@/lib/admin';
-import { auth } from '@/lib/auth';
-import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { checkAdminAccess, requireAdmin } from '@/lib/admin';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeFlags, recipes } from '@/lib/db/schema';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export type FlagReason =
@@ -382,12 +382,13 @@ export async function getRecipeFlags(recipeId: string): Promise<
   }
 }
 
-export type FlagQueueAction = 'dismiss' | 'hide' | 'remove';
+export type FlagQueueAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
 
 /**
  * Why: #59 gives admins three outcomes for a recipe report, each recorded on
  * the flag with the reviewer and the time.
- * What: admin-only. `dismiss` marks the flag dismissed and leaves the recipe
+ * What: admin-only. `unhide` undoes `hide` (sets `approved`; the flag is unchanged).
+ * `dismiss` marks the flag dismissed and leaves the recipe
  * alone. `hide` sets `recipes.moderation_status` to `rejected` (not publicly
  * visible) and resolves the flag. `remove` soft-deletes the recipe
  * (`deleted_at`, `deleted_by`) and resolves the flag. A recipe write that
@@ -403,7 +404,7 @@ export async function actOnRecipeFlag(
   try {
     const { userId } = await requireAdmin();
 
-    if (action !== 'dismiss' && action !== 'hide' && action !== 'remove') {
+    if (!['dismiss', 'hide', 'remove', 'unhide'].includes(action)) {
       return { success: false, error: 'Invalid action' };
     }
 
@@ -418,6 +419,27 @@ export async function actOnRecipeFlag(
     }
 
     const now = new Date();
+
+    if (action === 'unhide') {
+      // #102: undo of hide. Only `rejected` hides a recipe and hide never touches
+      // `is_public`, so `approved` restores exactly the prior visibility.
+      const restored = await db
+        .update(recipes)
+        .set({
+          moderation_status: 'approved',
+          moderated_by: userId,
+          moderated_at: now,
+          updated_at: now,
+        })
+        .where(and(eq(recipes.id, flag.recipe_id), eq(recipes.moderation_status, 'rejected')))
+        .returning({ id: recipes.id });
+      if (restored.length === 0) {
+        return { success: false, error: 'Recipe is not hidden' };
+      }
+      revalidatePath('/admin/flags');
+      revalidatePath(`/recipes/${flag.recipe_id}`);
+      return { success: true };
+    }
 
     if (action === 'hide' || action === 'remove') {
       const changes =

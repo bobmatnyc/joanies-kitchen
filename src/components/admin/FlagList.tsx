@@ -154,6 +154,18 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 </Link>
               </Button>
 
+              {flag.status === 'resolved' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openReviewDialog('unhide')}
+                  className="text-green-600 hover:text-green-700"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Unhide recipe
+                </Button>
+              )}
+
               {isPending && (
                 <>
                   <Button
@@ -209,6 +221,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
               {selectedAction === 'dismiss' && 'Dismiss Report'}
               {selectedAction === 'hide' && 'Hide Recipe'}
               {selectedAction === 'remove' && 'Remove Recipe'}
+              {selectedAction === 'unhide' && 'Unhide Recipe'}
             </DialogTitle>
             <DialogDescription>
               {selectedAction === 'dismiss' &&
