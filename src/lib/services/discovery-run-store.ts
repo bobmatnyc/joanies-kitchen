@@ -5,9 +5,13 @@
  * into the same tables.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { recipeDiscoveryRunItems, recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
+import {
+  crawlCostEvents,
+  recipeDiscoveryRunItems,
+  recipeDiscoveryRuns,
+} from '@/lib/db/autonomous-scraper-schema';
 import { withTimeout } from '@/lib/utils/timeout';
 
 /** 'daily' = Vercel cron, 'manual' = admin/API trigger, 'local' = tsx/pm2 script. */
@@ -111,6 +115,34 @@ export async function finalizeDiscoveryRun(runId: string, result: RunFinalFields
       cost_write_failures: result.costWriteFailures,
     })
     .where(eq(recipeDiscoveryRuns.id, runId));
+}
+
+/** Upper bound on the finalize-time ledger SUM; it runs inside the safety margin. */
+export const LEDGER_SUM_TIMEOUT_MS = 3000;
+
+/**
+ * #6: SUM(usd) of `crawl_cost_events` booked to `runId`, or null when the
+ * query fails or times out (logged). Finalize takes the larger of this and the
+ * in-memory spend, so a failed ledger write never lowers the recorded cost.
+ */
+export async function sumRunLedgerUsd(runId: string): Promise<number | null> {
+  try {
+    const rows = await withTimeout(
+      Promise.resolve(
+        db
+          .select({ total: sql<string>`coalesce(sum(${crawlCostEvents.usd}), 0)` })
+          .from(crawlCostEvents)
+          .where(eq(crawlCostEvents.run_id, runId))
+      ),
+      LEDGER_SUM_TIMEOUT_MS,
+      `ledger sum timed out after ${LEDGER_SUM_TIMEOUT_MS}ms`
+    );
+    const total = Number(rows[0]?.total ?? 0);
+    return Number.isFinite(total) ? total : null;
+  } catch (error) {
+    console.error(`[RunStore] Ledger sum failed for run ${runId}; using in-memory spend:`, error);
+    return null;
+  }
 }
 
 /**

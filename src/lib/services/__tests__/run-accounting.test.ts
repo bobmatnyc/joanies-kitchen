@@ -17,6 +17,7 @@ const fake = vi.hoisted(() => {
     failLedger: false,
     failItems: false,
     failRunCreate: false,
+    failRunUpdate: false,
     dupUrls: [] as string[],
     storeFailUrls: [] as string[],
     inserts: [] as { table: string; values: Record<string, unknown> }[],
@@ -60,6 +61,9 @@ vi.mock('@/lib/db', () => {
         set: (values: Record<string, unknown>) => ({
           where: () =>
             thenable(async () => {
+              if (getTableName(table) === 'recipe_discovery_runs' && fake.state.failRunUpdate) {
+                throw new Error('run update failed: connection terminated');
+              }
               fake.state.updates.push({ table: getTableName(table), values });
               return [];
             }),
@@ -67,10 +71,16 @@ vi.mock('@/lib/db', () => {
       }),
       select: () => ({
         from: (table: Table) => ({
-          where: async () =>
-            getTableName(table) === 'recipes'
-              ? fake.state.dupUrls.map((source) => ({ source }))
-              : [],
+          where: async () => {
+            const name = getTableName(table);
+            if (name === 'crawl_cost_events') {
+              const total = fake.state.inserts
+                .filter((i) => i.table === name && i.values.run_id === fake.RUN_ID)
+                .reduce((sum, i) => sum + Number(i.values.usd), 0);
+              return [{ total: total.toFixed(6) }];
+            }
+            return name === 'recipes' ? fake.state.dupUrls.map((source) => ({ source })) : [];
+          },
         }),
       }),
     },
@@ -89,7 +99,7 @@ import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import type { ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
-type Plan = 'stored' | 'no-recipe' | 'low-quality' | 'store-fails';
+type Plan = 'stored' | 'no-recipe' | 'low-quality' | 'store-fails' | 'hang';
 
 const url = (slug: string) => `https://www.example-kitchen.com/recipes/${slug}`;
 
@@ -122,6 +132,8 @@ function buildService(opts: {
       measuredUsd: opts.extractUsd ?? 0.01,
     });
     const plan = opts.plans[u] ?? 'stored';
+    // An extraction that outlives the function limit (the 2026-10-29 run).
+    if (plan === 'hang') return new Promise<never>(() => undefined);
     return plan === 'no-recipe' ? null : recipeFor(u, plan);
   });
   const internals = service as unknown as Record<string, unknown>;
@@ -164,6 +176,7 @@ beforeEach(() => {
     failLedger: false,
     failItems: false,
     failRunCreate: false,
+    failRunUpdate: false,
     dupUrls: [],
     storeFailUrls: [],
     inserts: [],
@@ -311,5 +324,52 @@ describe('Fail-Open (b): item writes failing', () => {
     expect(runUpdate().errors).toEqual(['item writes failed: 3']);
     expect(result.errors).toEqual(['item writes failed: 3']);
     expect(result.status).toBe('completed');
+  });
+});
+
+describe('#6: deadline finalize', () => {
+  it('a run that hits the deadline mid-crawl is finalized partial with item counters and ledger cost', async () => {
+    const urls = ['a', 'b', 'hang', 'c'].map(url);
+    const { service, extractRecipe } = buildService({ urls, plans: { [url('hang')]: 'hang' } });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 100,
+    });
+
+    // The hung URL was abandoned at the deadline; `c` was never started.
+    expect(extractRecipe).toHaveBeenCalledTimes(3);
+    expect(result.status).toBe('partial');
+    const run = runUpdate();
+    const rows = items();
+    expect(rows.map((r) => r.outcome)).toEqual(['stored', 'stored']);
+    expect(run).toMatchObject({
+      status: 'partial',
+      urls_discovered: 4,
+      recipes_stored: rows.length,
+      recipes_extracted: 2,
+      recipes_skipped: 0,
+    });
+    expect(run.completed_at).toBeInstanceOf(Date);
+    expect(typeof run.duration_ms).toBe('number');
+    // Ledger SUM for the run: 1 search + 3 extractions (the hung one was billed).
+    expect(run.cost_usd).toBe('0.040000');
+    expect(run.errors).toEqual([expect.stringMatching(/^deadline: stopped after \d+s/)]);
+  }, 2000);
+});
+
+describe('#6: Fail-Open check on finalize', () => {
+  it('a failed finalize write rejects the run instead of reporting success', async () => {
+    fake.state.failRunUpdate = true;
+    const { service } = buildService({ urls: [url('a')], plans: {} });
+
+    await expect(service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 })).rejects.toThrow(
+      /failed to finalize run 11111111-2222-4333-8444-555555555555: run update failed/
+    );
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining('CRITICAL: failed to finalize run'),
+      expect.any(Error)
+    );
   });
 });

@@ -10,7 +10,10 @@
  *   5. Quality gate: title + ingredients + instructions required
  *   6. Find/create chef profile
  *   7. Store recipe + link to chef
- *   8. Update run record with final metrics and in-memory cost
+ *   8. Update run record with final metrics and cost
+ *
+ * A run given `deadlineAt` stops starting work at that time, abandons any
+ * in-flight call, and finalizes `partial` before the platform kills it (#6).
  *
  * Every URL attempted gets one `recipe_discovery_run_items` row (#6 S2).
  *
@@ -33,6 +36,7 @@ import { recipes } from '@/lib/db/schema';
 import { describeDbError } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { type ChefDiscoveryService, getChefDiscoveryService } from './chef-discovery.service';
+import { DEADLINE_HIT, raceDeadline } from './crawl-run-deadline';
 import {
   createDiscoveryRun,
   type DiscoveryRunStatus,
@@ -43,6 +47,7 @@ import {
   type RunItemOutcome,
   recordRunItem,
   sourceDomainOf,
+  sumRunLedgerUsd,
 } from './discovery-run-store';
 import {
   type DiscoveredRecipeUrl,
@@ -75,6 +80,11 @@ export interface IngestionRunOptions {
   runType?: DiscoveryRunType;
   /** USD budget; falls back to CRON_RUN_BUDGET_USD, then DEFAULT_RUN_BUDGET_USD. */
   budgetUsd?: number;
+  /**
+   * #6: epoch ms after which the run starts no new work and finalizes. Set by
+   * the cron route from its `maxDuration` minus a safety margin.
+   */
+  deadlineAt?: number;
 }
 
 interface RunMetrics {
@@ -88,6 +98,11 @@ interface RunMetrics {
   itemWriteFailures: number;
   /** False when the run row could not be created (dry run or create failure). */
   tracked: boolean;
+  /**
+   * #6: true once the deadline hit. Abandoned in-flight work then writes no
+   * item rows and moves no counters, so the finalized counters match the items.
+   */
+  closed: boolean;
 }
 
 export interface IngestionRunResult {
@@ -182,7 +197,18 @@ export class AutonomousRecipeIngestionService {
       errors: [],
       itemWriteFailures: 0,
       tracked: false,
+      closed: false,
     };
+    const deadlineAt = options.deadlineAt;
+    // #6: records the deadline stop once and closes the metrics to late writes.
+    const stopAtDeadline = (): void => {
+      if (m.closed) return;
+      m.closed = true;
+      const msg = `deadline: stopped after ${Math.round((Date.now() - startTime) / 1000)}s to finalize before the function limit`;
+      m.errors.push(msg);
+      console.warn(`[AutonomousIngestion] ${msg}`);
+    };
+    const pastDeadline = (): boolean => deadlineAt !== undefined && Date.now() >= deadlineAt;
     let runId = '';
     let runCreated = false;
     let status: DiscoveryRunStatus = 'failed'; // Pessimistic default
@@ -221,121 +247,167 @@ export class AutonomousRecipeIngestionService {
       console.log('[AutonomousIngestion] Dry run — no DB record created');
     }
 
-    try {
-      // Step 2: Discover recipe URLs
-      if (!this.discoveryService.isConfigured()) {
-        throw new Error('TAVILY_API_KEY not configured — cannot discover recipes');
-      }
-      if (budgetExhausted()) {
-        status = 'partial';
-        return this.buildResult(runId, status, m, startTime);
-      }
-
-      const discoveredUrls = await this.discoveryService.discoverRecipeUrls({
-        maxResults: maxRecipes * 4, // Fetch extra to account for deduplication and failures
-        searchQuery,
-      });
-
-      m.urlsDiscovered = discoveredUrls.length;
-      console.log(`[AutonomousIngestion] Discovered ${m.urlsDiscovered} URLs`);
-
-      if (m.urlsDiscovered === 0) {
-        status = 'completed';
-        return this.buildResult(runId, status, m, startTime);
-      }
-
-      // Step 3: Deduplicate against existing recipes.source + chefRecipes.original_url
-      const existingUrls = await this.checkUrlDuplicates(discoveredUrls.map((d) => d.url));
-      const newUrls = discoveredUrls.filter((d) => !existingUrls.has(d.url));
-
-      for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
-        m.recipesSkipped++;
-        await this.recordItem(m, {
-          runId,
-          url: dup.url,
-          extractionTier: 'none',
-          outcome: 'skipped_duplicate',
-        });
-      }
-      if (newUrls.length < m.urlsDiscovered) {
-        console.log(
-          `[AutonomousIngestion] Skipped ${m.urlsDiscovered - newUrls.length} duplicate URLs`
-        );
-      }
-
-      if (newUrls.length === 0) {
-        console.log('[AutonomousIngestion] All URLs already ingested');
-        status = 'completed';
-        return this.buildResult(runId, status, m, startTime);
-      }
-
-      // Step 4: Extract recipes (up to maxRecipes)
-      const urlsToProcess = newUrls.slice(0, maxRecipes * 2); // Process extra in case some fail quality gate
-
-      for (let i = 0; i < urlsToProcess.length; i++) {
-        if (m.recipesStored >= maxRecipes) break;
+    const pipeline = async (): Promise<IngestionRunResult> => {
+      try {
+        // Step 2: Discover recipe URLs
+        if (!this.discoveryService.isConfigured()) {
+          throw new Error('TAVILY_API_KEY not configured — cannot discover recipes');
+        }
         if (budgetExhausted()) {
-          // #6 S2: record every queued URL the budget cut, then stop paid calls.
-          for (const cut of urlsToProcess.slice(i)) {
-            await this.recordItem(m, {
-              runId,
-              url: cut.url,
-              extractionTier: 'none',
-              outcome: 'budget_stopped',
-              error: m.errors.find((e) => e.startsWith('budget exceeded')) ?? null,
-            });
-          }
-          break;
+          status = 'partial';
+          return this.buildResult(runId, status, m, startTime);
         }
 
-        await this.processUrl(urlsToProcess[i], runId, isDryRun, m);
-
-        // Rate limit between extractions
-        if (i < urlsToProcess.length - 1) {
-          await this.sleep(EXTRACTION_DELAY_MS);
+        const discovered = await raceDeadline(
+          this.discoveryService.discoverRecipeUrls({
+            maxResults: maxRecipes * 4, // Fetch extra to account for deduplication and failures
+            searchQuery,
+          }),
+          deadlineAt
+        );
+        if (discovered === DEADLINE_HIT) {
+          stopAtDeadline();
+          status = 'partial';
+          return this.buildResult(runId, status, m, startTime);
         }
-      }
+        const discoveredUrls = discovered;
 
-      status = budgetStopped ? 'partial' : this.determineStatus(m.recipesStored, m.errors);
+        m.urlsDiscovered = discoveredUrls.length;
+        console.log(`[AutonomousIngestion] Discovered ${m.urlsDiscovered} URLs`);
 
-      console.log(
-        `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
-          `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${status}`
-      );
+        if (m.urlsDiscovered === 0) {
+          status = 'completed';
+          return this.buildResult(runId, status, m, startTime);
+        }
 
-      return this.buildResult(runId, status, m, startTime);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[AutonomousIngestion] Pipeline error: ${msg}`);
-      m.errors.push(`Pipeline error: ${msg}`);
-      status = 'failed';
+        // Step 3: Deduplicate against existing recipes.source + chefRecipes.original_url
+        const existingUrls = await this.checkUrlDuplicates(discoveredUrls.map((d) => d.url));
+        const newUrls = discoveredUrls.filter((d) => !existingUrls.has(d.url));
 
-      return this.buildResult(runId, status, m, startTime);
-    } finally {
-      // ALWAYS update the run record with terminal status — eliminates "stuck in running" ghost state.
-      // This fires on: normal completion, early return (0 URLs), exception, or timeout.
-      if (!isDryRun && runCreated && isTrackedRunId(runId)) {
-        const finalResult = this.buildResult(runId, status, m, startTime);
-        const spend = currentRunSpend() ?? { spentUsd: 0, writeFailures: 0 };
-        try {
-          await finalizeDiscoveryRun(runId, {
-            ...finalResult,
-            costUsd: spend.spentUsd,
-            costWriteFailures: spend.writeFailures,
+        for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
+          m.recipesSkipped++;
+          await this.recordItem(m, {
+            runId,
+            url: dup.url,
+            extractionTier: 'none',
+            outcome: 'skipped_duplicate',
           });
+        }
+        if (newUrls.length < m.urlsDiscovered) {
           console.log(
-            `[AutonomousIngestion] Run ${runId} finalized: status=${status}, ` +
-              `cost=$${spend.spentUsd.toFixed(6)}, duration=${finalResult.durationMs}ms`
-          );
-        } catch (updateErr) {
-          // Last-resort: log but do not re-throw (we're in finally)
-          console.error(
-            `[AutonomousIngestion] CRITICAL: failed to finalize run ${runId}:`,
-            updateErr
+            `[AutonomousIngestion] Skipped ${m.urlsDiscovered - newUrls.length} duplicate URLs`
           );
         }
+
+        if (newUrls.length === 0) {
+          console.log('[AutonomousIngestion] All URLs already ingested');
+          status = 'completed';
+          return this.buildResult(runId, status, m, startTime);
+        }
+
+        // Step 4: Extract recipes (up to maxRecipes)
+        const urlsToProcess = newUrls.slice(0, maxRecipes * 2); // Process extra in case some fail quality gate
+
+        for (let i = 0; i < urlsToProcess.length; i++) {
+          if (m.recipesStored >= maxRecipes) break;
+          // #6: start no new URL past the deadline; abandon one still in flight.
+          if (pastDeadline()) {
+            stopAtDeadline();
+            break;
+          }
+          if (budgetExhausted()) {
+            // #6 S2: record every queued URL the budget cut, then stop paid calls.
+            for (const cut of urlsToProcess.slice(i)) {
+              await this.recordItem(m, {
+                runId,
+                url: cut.url,
+                extractionTier: 'none',
+                outcome: 'budget_stopped',
+                error: m.errors.find((e) => e.startsWith('budget exceeded')) ?? null,
+              });
+            }
+            break;
+          }
+
+          const processed = await raceDeadline(
+            this.processUrl(urlsToProcess[i], runId, isDryRun, m),
+            deadlineAt
+          );
+          if (processed === DEADLINE_HIT) {
+            stopAtDeadline();
+            break;
+          }
+
+          // Rate limit between extractions
+          if (i < urlsToProcess.length - 1) {
+            await this.sleep(EXTRACTION_DELAY_MS);
+          }
+        }
+
+        status =
+          budgetStopped || m.closed ? 'partial' : this.determineStatus(m.recipesStored, m.errors);
+
+        console.log(
+          `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
+            `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${status}`
+        );
+
+        return this.buildResult(runId, status, m, startTime);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`[AutonomousIngestion] Pipeline error: ${msg}`);
+        m.errors.push(`Pipeline error: ${msg}`);
+        status = 'failed';
+
+        return this.buildResult(runId, status, m, startTime);
       }
+    };
+
+    const result = await pipeline();
+    // #6: close the metrics so abandoned in-flight work cannot move counters or
+    // write items after the counters are read below.
+    m.closed = true;
+    // Every return path above (completion, early return, exception, deadline)
+    // reaches this finalize, so the run row never stays `running`.
+    if (!isDryRun && runCreated && isTrackedRunId(runId)) {
+      await this.finalizeRun(runId, result);
     }
+    return result;
+  }
+
+  /**
+   * Why: a run row left `running` with null cost hides what a crawl did and
+   * spent (#6, run 596f33c2).
+   * What: Writes the terminal status, counters, duration and cost. Cost is the
+   * larger of the in-memory spend and the run's `crawl_cost_events` SUM. A
+   * failed finalize write is logged as CRITICAL and rethrown, never reported
+   * as success; the reaper then closes the row on the next cron.
+   * Test: `a run that hits the deadline mid-crawl is finalized partial with item counters and ledger cost`,
+   * `a failed finalize write rejects the run instead of reporting success`
+   */
+  private async finalizeRun(runId: string, result: IngestionRunResult): Promise<void> {
+    const spend = currentRunSpend() ?? { spentUsd: 0, writeFailures: 0 };
+    const ledgerUsd = await sumRunLedgerUsd(runId);
+    const costUsd = Math.max(spend.spentUsd, ledgerUsd ?? 0);
+    try {
+      await finalizeDiscoveryRun(runId, {
+        ...result,
+        costUsd,
+        costWriteFailures: spend.writeFailures,
+      });
+    } catch (updateErr) {
+      console.error(
+        `[AutonomousIngestion] CRITICAL: failed to finalize run ${runId}; it stays running until reaped:`,
+        updateErr
+      );
+      throw new Error(`failed to finalize run ${runId}: ${describeDbError(updateErr)}`, {
+        cause: updateErr,
+      });
+    }
+    console.log(
+      `[AutonomousIngestion] Run ${runId} finalized: status=${result.status}, ` +
+        `cost=$${costUsd.toFixed(6)}, duration=${result.durationMs}ms`
+    );
   }
 
   /**
@@ -356,6 +428,8 @@ export class AutonomousRecipeIngestionService {
     try {
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
       const recipe = await this.extractionService.extractRecipe(url);
+      // #6: the deadline abandoned this URL; finalize already read the counters.
+      if (m.closed) return;
 
       if (!recipe) {
         const err = `Extraction failed (all tiers): ${url}`;
@@ -390,7 +464,8 @@ export class AutonomousRecipeIngestionService {
         return;
       }
 
-      // Step 7: Store recipe
+      // Step 7: Store recipe (never after the deadline closed the run)
+      if (m.closed) return;
       let recipeId: string | null = null;
       try {
         recipeId = await this.storeRecipe(recipe, chefId, url, discovered.searchQuery);
@@ -431,6 +506,7 @@ export class AutonomousRecipeIngestionService {
 
   /** Writes one item row; a failed write on a tracked run is counted, never thrown. */
   private async recordItem(m: RunMetrics, item: RunItemInput): Promise<void> {
+    if (m.closed) return;
     const written = await recordRunItem(item);
     if (!written && isTrackedRunId(item.runId)) m.itemWriteFailures++;
   }
