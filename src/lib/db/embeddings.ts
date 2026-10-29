@@ -5,7 +5,7 @@
  * in the PostgreSQL database with pgvector extension.
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type RecipeEmbedding, recipeEmbeddings, recipes } from '@/lib/db/schema';
 
@@ -196,6 +196,9 @@ export async function updateRecipeEmbedding(
  * @param queryEmbedding - Query embedding vector to find similar recipes for
  * @param limit - Maximum number of results to return (default: 10)
  * @param minSimilarity - Minimum similarity threshold (default: 0.3)
+ * @param options - #96: optional SQL filters applied before LIMIT. `visibility`
+ *   is a predicate on `recipes` (e.g. `recipeVisibilityCondition(viewer)`);
+ *   `excludeRecipeId` drops one recipe (the source) from the candidates.
  * @returns Array of recipe embeddings sorted by similarity (most similar first)
  *
  * @example
@@ -207,7 +210,8 @@ export async function updateRecipeEmbedding(
 export async function findSimilarRecipes(
   queryEmbedding: number[],
   limit: number = 10,
-  minSimilarity: number = 0.3
+  minSimilarity: number = 0.3,
+  options: { visibility?: SQL; excludeRecipeId?: string } = {}
 ): Promise<Array<RecipeEmbedding & { similarity: number; recipe?: any }>> {
   try {
     // Validate query embedding
@@ -221,6 +225,16 @@ export async function findSimilarRecipes(
 
     // Convert to pgvector format
     const vectorString = `[${queryEmbedding.join(',')}]`;
+
+    // #96: filter before LIMIT, so hidden recipes and the source cannot fill
+    // every slot. The subquery reads unaliased `recipes`, which is how drizzle
+    // renders the visibility predicate's columns.
+    const visibilityFilter = options.visibility
+      ? sql`AND e.recipe_id IN (SELECT ${recipes.id} FROM ${recipes} WHERE ${options.visibility})`
+      : sql``;
+    const excludeFilter = options.excludeRecipeId
+      ? sql`AND e.recipe_id <> ${options.excludeRecipeId}`
+      : sql``;
 
     // Query using cosine distance
     // Note: Smaller distance = more similar
@@ -236,6 +250,8 @@ export async function findSimilarRecipes(
       FROM recipe_embeddings e
       JOIN recipes r ON e.recipe_id = r.id
       WHERE (1 - (e.embedding <=> ${vectorString}::vector)) >= ${minSimilarity}
+        ${visibilityFilter}
+        ${excludeFilter}
       ORDER BY e.embedding <=> ${vectorString}::vector
       LIMIT ${limit}
     `);
