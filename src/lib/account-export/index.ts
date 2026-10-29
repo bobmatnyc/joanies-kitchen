@@ -41,13 +41,15 @@ import {
 export const EXPORT_SCHEMA_VERSION = 1;
 
 /**
- * Deny-list, keyed by SQL table name, of columns never exported. These are
- * credentials: OAuth tokens and the API key hash. Every other column of an
- * exported table is the user's own data and is included.
+ * Deny-list, keyed by SQL table name, of columns never exported: credentials
+ * (OAuth tokens, the API key hash) and admin-side fields that name a
+ * moderator or hold internal notes (#101). Every other column of an exported
+ * table is the user's own data and is included.
  */
 export const EXCLUDED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
   accounts: ['refresh_token', 'access_token', 'id_token', 'session_state'],
-  api_keys: ['key_hash'],
+  api_keys: ['key_hash', 'created_by', 'revoked_by'],
+  recipe_flags: ['reviewed_by', 'review_notes'],
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: accepts neon-http and pglite clients alike.

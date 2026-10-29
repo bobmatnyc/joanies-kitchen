@@ -62,6 +62,15 @@ describe('GET /api/account/export', () => {
     expect(res.headers.get('retry-after')).toBe('1200');
   });
 
+  it('returns 503 with no export data when the limiter is unavailable', async () => {
+    state.verdict = { allowed: false, reason: 'unavailable', retryAfterSec: 60, limit: 3 };
+    const res = await GET();
+    const text = await res.text();
+    expect(res.status).toBe(503);
+    expect(JSON.parse(text)).toEqual({ error: 'Export is temporarily unavailable' });
+    expect(text).not.toContain(fx.userA);
+  });
+
   it('returns 500 and no export data when a table query fails', async () => {
     const broken = await seedExportDb();
     await broken.client.exec('DROP TABLE "recipe_flags";');

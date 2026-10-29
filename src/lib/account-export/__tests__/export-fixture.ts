@@ -65,6 +65,8 @@ export const SECRETS = {
   refresh: 'SECRET-REFRESH-TOKEN',
   idToken: 'SECRET-ID-TOKEN',
   keyHash: 'f'.repeat(64),
+  adminId: 'admin-user-id-SECRET',
+  reviewNotes: 'INTERNAL-MODERATION-NOTE',
 };
 
 async function insert(client: PGlite, table: string, row: Record<string, unknown>) {
@@ -118,15 +120,16 @@ async function seedUser(client: PGlite, userId: string, tag: string): Promise<st
   for (const table of ['recipe_ingredients', 'recipe_tasks', 'recipe_tools']) {
     await insert(client, table, { id: id(), recipe_id: recipeId });
   }
-  for (const table of [
-    'recipe_comments',
-    'recipe_ratings',
-    'recipe_likes',
-    'recipe_forks',
-    'recipe_flags',
-  ]) {
+  for (const table of ['recipe_comments', 'recipe_ratings', 'recipe_likes', 'recipe_forks']) {
     await insert(client, table, { id: id(), recipe_id: recipeId, user_id: userId });
   }
+  await insert(client, 'recipe_flags', {
+    id: id(),
+    recipe_id: recipeId,
+    user_id: userId,
+    reviewed_by: SECRETS.adminId,
+    review_notes: SECRETS.reviewNotes,
+  });
   await insert(client, 'meals', { id: mealId, user_id: userId, name: `Dinner ${tag}` });
   await insert(client, 'meal_recipes', { id: id(), meal_id: mealId, recipe_id: recipeId });
   await insert(client, 'shopping_lists', { id: id(), user_id: userId, meal_id: mealId });
@@ -140,6 +143,8 @@ async function seedUser(client: PGlite, userId: string, tag: string): Promise<st
     name: `Key ${tag}`,
     key_hash: SECRETS.keyHash,
     key_prefix: 'jk_live_abcd',
+    created_by: SECRETS.adminId,
+    revoked_by: SECRETS.adminId,
   });
   return ids;
 }

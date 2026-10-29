@@ -74,6 +74,19 @@ describe('buildUserExport', () => {
     expect(EXCLUDED_COLUMNS.api_keys).toContain('key_hash');
   });
 
+  it('omits admin fields on recipe_flags and api_keys (#101)', async () => {
+    const out = await buildUserExport(fx.db, fx.userA);
+    const text = JSON.stringify(out);
+    expect(text).not.toContain(SECRETS.adminId);
+    expect(text).not.toContain(SECRETS.reviewNotes);
+    const flag = out.data.recipe_flags[0] as Record<string, unknown>;
+    expect(flag).not.toHaveProperty('reviewed_by');
+    expect(flag).not.toHaveProperty('review_notes');
+    const key = out.data.api_keys[0] as Record<string, unknown>;
+    expect(key).not.toHaveProperty('created_by');
+    expect(key).not.toHaveProperty('revoked_by');
+  });
+
   it('rejects, with no partial result, when one table query fails', async () => {
     const broken = await seedExportDb();
     await broken.client.exec('DROP TABLE "waste_tracking";');
