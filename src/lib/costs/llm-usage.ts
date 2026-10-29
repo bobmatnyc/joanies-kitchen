@@ -7,6 +7,8 @@ import { assertWithinDailyCap } from './daily-cap';
 import {
   type CostProvider,
   computeLlmCost,
+  LLM_FLOOR_COMPLETION_TOKENS,
+  LLM_FLOOR_PROMPT_TOKENS,
   LLM_TOKEN_PRICES,
   UNKNOWN_LLM_REQUEST_FLOOR_USD,
 } from './rates';
@@ -87,12 +89,16 @@ export async function trackLlmResponse(
 ): Promise<void> {
   const usage = parseLlmUsage(response, options.model);
   const operation = `${options.kind ?? 'chat'}:${usage.model}`;
-  if (!usage.hasUsage) {
+  // #77: missing or zero usage is priced at a typical call, never at 0 tokens.
+  const noUsage = usage.costUsd === undefined && usage.promptTokens + usage.completionTokens <= 0;
+  const promptTokens = noUsage ? LLM_FLOOR_PROMPT_TOKENS : usage.promptTokens;
+  const completionTokens = noUsage ? LLM_FLOOR_COMPLETION_TOKENS : usage.completionTokens;
+  if (noUsage) {
     console.warn(
-      `[CostLedger] ${provider}:${operation} response had no usage; booking tokens as 0`
+      `[CostLedger] ${provider}:${operation} response had no usage; booking a typical-call floor`
     );
   }
-  let estimateUsd = computeLlmCost(usage.model, usage.promptTokens, usage.completionTokens);
+  let estimateUsd = computeLlmCost(usage.model, promptTokens, completionTokens);
   if (usage.costUsd === undefined && estimateUsd === undefined) {
     reportUnknownCost(`No price for model "${usage.model}" (${provider}) and no measured cost`);
     estimateUsd = unknownModelEstimate(provider, usage.promptTokens, usage.completionTokens);

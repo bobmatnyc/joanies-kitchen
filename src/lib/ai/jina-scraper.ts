@@ -1,5 +1,5 @@
 import 'server-only';
-import { assertWithinDailyCap, trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, jinaReaderCost, trackCost } from '@/lib/costs';
 
 /**
  * Jina.ai Reader API - Web scraping utility
@@ -72,7 +72,7 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${getJinaApiKey()}`,
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Return-Format': 'markdown',
       },
       // Add timeout to prevent hanging
@@ -90,10 +90,14 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
     }
 
     const data = await response.json();
-    // Jina bills reader calls by token; estimate ~4 chars/token if usage is absent.
-    const readerTokens =
-      Number(data?.data?.usage?.tokens) || Math.ceil((data?.data?.content?.length ?? 0) / 4);
-    await trackCost({ provider: 'jina', operation: 'reader', units: readerTokens });
+    // #77: empty/short content books a floor and the cost rounds up, so it is never $0.
+    const reader = jinaReaderCost(data?.data?.usage?.tokens, data?.data?.content);
+    await trackCost({
+      provider: 'jina',
+      operation: 'reader',
+      units: reader.tokens,
+      estimateUsd: reader.usd,
+    });
 
     // Jina.ai returns data in this format:
     // { code: 200, status: 20000, data: { content: "...", title: "...", description: "...", url: "..." } }

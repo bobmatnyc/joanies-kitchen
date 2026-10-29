@@ -1,6 +1,11 @@
 import 'server-only';
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { assertWithinDailyCap, trackCost } from '@/lib/costs';
+import {
+  assertWithinDailyCap,
+  FIRECRAWL_CRAWL_FLOOR_CREDITS,
+  trackCost,
+  unitsOrFloor,
+} from '@/lib/costs';
 
 // Type definitions for Firecrawl responses
 export interface ScrapeResponse {
@@ -140,9 +145,11 @@ export async function crawlChefRecipes(params: {
       provider: 'firecrawl',
       operation: 'crawl',
       // 1 credit per crawled page when creditsUsed is absent.
-      units:
-        Number((crawlStatus as { creditsUsed?: number }).creditsUsed) ||
-        (crawlStatus.data?.length ?? 0),
+      // #77: no credits and no pages books one credit, never 0.
+      units: unitsOrFloor(
+        (crawlStatus as { creditsUsed?: number }).creditsUsed,
+        unitsOrFloor(crawlStatus.data?.length, FIRECRAWL_CRAWL_FLOOR_CREDITS)
+      ),
     });
 
     if (crawlStatus.status === 'failed') {
