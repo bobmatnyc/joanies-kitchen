@@ -1,17 +1,8 @@
-import { redirect } from 'next/navigation';
-import { getRecipe } from '@/app/actions/recipes';
+import { loadVisibleRecipeOrNotFound } from './recipe-access';
 
 interface RecipeLayoutProps {
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
-}
-
-/**
- * Check if a string is a UUID format
- */
-function isUUID(str: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str);
 }
 
 /**
@@ -25,20 +16,9 @@ function isUUID(str: string): boolean {
  */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const result = await getRecipe(slug);
-
-  // If accessed via UUID but recipe has a slug, redirect to slug URL (301)
-  if (result.success && result.data && isUUID(slug) && result.data.slug) {
-    redirect(`/recipes/${result.data.slug}`);
-  }
-
-  if (!result.success || !result.data) {
-    return {
-      title: 'Recipe Not Found',
-    };
-  }
-
-  const recipe = result.data;
+  // #134: a missing or hidden recipe is a 404 here too, so no title or description
+  // from a recipe the viewer cannot see reaches the metadata.
+  const recipe = await loadVisibleRecipeOrNotFound(slug);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
 
   // Prefer slug over ID for canonical URL (SEO best practice)
@@ -93,12 +73,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RecipeLayout({ children, params }: RecipeLayoutProps) {
   const { slug } = await params;
-  const result = await getRecipe(slug);
-
-  // Server-side 301 redirect from UUID to slug (SEO best practice)
-  if (result.success && result.data && isUUID(slug) && result.data.slug) {
-    redirect(`/recipes/${result.data.slug}`);
-  }
+  // #134: notFound() before the shell commits, so a missing or hidden recipe is a
+  // real 404. Also redirects a visible recipe's UUID URL to its slug.
+  await loadVisibleRecipeOrNotFound(slug);
 
   return <>{children}</>;
 }
