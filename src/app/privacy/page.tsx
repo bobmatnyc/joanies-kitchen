@@ -142,9 +142,11 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection title="Retention">
+        {/* #104: describes the purge cron (src/app/api/cron/purge-deleted-accounts). */}
         <p>
-          We keep your account information and content while your account exists. There is no
-          automatic deletion schedule.
+          We keep your account information and content while your account exists. After you ask us
+          to delete your account, an automated job that runs once a day permanently deletes it once
+          its 30-day grace period has ended.
         </p>
       </LegalSection>
 
