@@ -9,9 +9,24 @@ import { db } from '@/lib/db';
 import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
+import { duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { linkRecipeToChef } from './chefs';
+
+/**
+ * #135: the stored recipe this candidate duplicates, logged as skipped; null
+ * when it is new. Scraped recipes are system recipes, so the owner is 'system'.
+ */
+async function skippedDuplicate(candidate: { sourceUrl: string | undefined; title?: string }) {
+  const match = await findDuplicateRecipe(candidate, { ownerId: 'system' });
+  if (match) {
+    console.log(
+      `[ChefScraping] ${duplicateSkipReason(match)} (${match.reason}): ${candidate.sourceUrl}`
+    );
+  }
+  return match;
+}
 
 /**
  * Start a scraping job for a chef's recipes
@@ -119,12 +134,20 @@ async function scrapeAndParseRecipes(
           .set({ current_page: i + 1, updated_at: new Date() })
           .where(eq(scrapingJobs.id, jobId));
 
+        // #135: a page without its own URL is not checked (its source falls back to
+        // the crawl's base URL, which every such page shares).
+        if (page.url && (await skippedDuplicate({ sourceUrl: page.url }))) continue;
+
         // Parse recipe with AI
         const parsed = await parseRecipeWithAI({
           markdown: page.markdown,
           html: page.html,
           images: page.metadata?.ogImage ? [page.metadata.ogImage] : undefined,
         });
+
+        if (page.url && (await skippedDuplicate({ sourceUrl: page.url, title: parsed.name }))) {
+          continue; // #135
+        }
 
         // Create recipe in database
         const recipe = await db
@@ -231,6 +254,10 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
   await requireAdmin();
 
   try {
+    // #135: a URL variant of a stored source is skipped before the paid scrape.
+    const urlDuplicate = await skippedDuplicate({ sourceUrl: params.url });
+    if (urlDuplicate) return duplicateFailure(urlDuplicate.id);
+
     // Scrape the page
     const scraped = await scrapeRecipePage(params.url);
 
@@ -248,6 +275,9 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
           : [scraped.metadata.ogImage]
         : undefined,
     });
+
+    const duplicate = await skippedDuplicate({ sourceUrl: params.url, title: parsed.name });
+    if (duplicate) return duplicateFailure(duplicate.id); // #135
 
     // Create recipe
     const recipe = await db
@@ -292,6 +322,11 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
       error: toErrorMessage(error),
     };
   }
+}
+
+/** #135: `scrapeSingleRecipe`'s answer for a duplicate; nothing was inserted. */
+function duplicateFailure(id: string) {
+  return { success: false as const, error: `skipped: duplicate of ${id}`, duplicateOf: id };
 }
 
 /**
