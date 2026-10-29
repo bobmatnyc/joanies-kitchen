@@ -67,6 +67,23 @@ describe('GET /api/cron/purge-deleted-accounts', () => {
       failed: 1,
       failures: failed,
     });
+    // #55: one app-error line, source cron, without the account id.
+    const appErrors = vi
+      .mocked(console.error)
+      .mock.calls.map((c) => String(c[0]))
+      .filter((l) => l.includes('"tag":"app-error"'));
+    expect(appErrors).toHaveLength(1);
+    expect(JSON.parse(appErrors[0] ?? '')).toMatchObject({ source: 'cron' });
+    expect(appErrors[0]).not.toContain('u2');
+  });
+
+  it('reports a thrown run as a cron app-error and keeps the 500 body', async () => {
+    mocks.purgeDueAccounts.mockRejectedValue(new Error('db down'));
+    const res = await GET(request(`Bearer ${SECRET}`));
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ success: false, error: 'Purge run failed' });
+    const calls = vi.mocked(console.error).mock.calls.map((c) => String(c[0]));
+    expect(calls.some((l) => l.includes('"tag":"app-error"') && l.includes('db down'))).toBe(true);
   });
 
   it('is scheduled in vercel.json', () => {

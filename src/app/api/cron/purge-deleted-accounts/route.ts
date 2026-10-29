@@ -11,10 +11,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { purgeDueAccounts } from '@/lib/account-purge';
 import { isCronAuthorized } from '@/lib/cron-auth';
+import { reportError } from '@/lib/observability/report-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+
+const PURGE_PATH = '/api/cron/purge-deleted-accounts';
 
 export async function GET(request: NextRequest) {
   if (!isCronAuthorized(request, '[PurgeDeletedAccountsCron]')) {
@@ -22,6 +25,13 @@ export async function GET(request: NextRequest) {
   }
   try {
     const result = await purgeDueAccounts();
+    if (result.failed.length > 0) {
+      // #55: partial failure is a failure path; log counts only, no account ids.
+      reportError(new Error(`${result.failed.length} account purge(s) failed`), {
+        source: 'cron',
+        path: PURGE_PATH,
+      });
+    }
     const body = {
       success: result.failed.length === 0,
       purged: result.purged.length,
@@ -32,6 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(body, { status: result.failed.length === 0 ? 200 : 500 });
   } catch (error) {
     console.error('[PurgeDeletedAccountsCron] run failed:', error);
+    reportError(error, { source: 'cron', path: PURGE_PATH }); // #55
     return NextResponse.json({ success: false, error: 'Purge run failed' }, { status: 500 });
   }
 }
