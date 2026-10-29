@@ -31,6 +31,23 @@ describe('PrivacyPage', () => {
     );
   });
 
+  it('commits to 30 days and makes no self-serve claim', () => {
+    render(<PrivacyPage />);
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Your choices: access, export and deletion',
+    });
+    const text = heading.parentElement?.textContent ?? '';
+    expect(text).toContain('within 30 days');
+    expect(text).toContain('30-day grace period');
+    expect(text).toContain('coming soon');
+    expect(text).toContain('deleted user');
+    expect(text).not.toMatch(/(download|delete)[^.]*(from|in) your (account )?settings/i);
+    expect(text).not.toMatch(
+      /(delete|export) (it |your data |your account )?(yourself|instantly)/i
+    );
+  });
+
   it('links a mailto contact when NEXT_PUBLIC_SUPPORT_EMAIL is set', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPPORT_EMAIL', 'help@example.test');
     render(<PrivacyPage />);
@@ -61,5 +78,15 @@ describe('TermsPage', () => {
       'href',
       '/privacy'
     );
+  });
+
+  it('commits to 7-day report review and lists the moderation actions', () => {
+    render(<TermsPage />);
+    const heading = screen.getByRole('heading', { level: 2, name: 'Reports and moderation' });
+    const text = heading.parentElement?.textContent ?? '';
+    expect(text).toContain('within 7 days');
+    expect(text).toMatch(/hide/);
+    expect(text).toMatch(/remove/);
+    expect(text).toMatch(/suspend the account/);
   });
 });

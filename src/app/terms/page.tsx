@@ -73,6 +73,19 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Reports and moderation">
+        <p>
+          You can report content you believe breaks these terms. We review reports within 7 days.
+          After review we may:
+        </p>
+        <ul className="list-disc pl-6 space-y-1">
+          <li>hide the content from public view;</li>
+          <li>remove the content; or</li>
+          <li>suspend the account that posted it.</li>
+        </ul>
+        <p>We may also take no action if the content does not break these terms.</p>
+      </LegalSection>
+
       <LegalSection title="Limitation of liability">
         <p>
           To the fullest extent permitted by law, we are not liable for any indirect, incidental or
