@@ -97,18 +97,22 @@ export async function getAllPhotosAdmin(): Promise<SlideshowPhoto[]> {
 }
 
 /**
- * Reorder photos by updating display_order
+ * Reorder photos by updating display_order (admin only).
+ * Writes all positions in one atomic db.batch; rejects if the batch fails.
+ * Test: `reorder-photos-neon-http.test.ts`
  */
 export async function reorderPhotos(photoIds: string[]): Promise<void> {
   await requireAdmin(); // See #13: site-wide slideshow, admin only
 
-  // Update each photo's display_order based on its position in the array
-  await db.transaction(async (tx) => {
-    for (let i = 0; i < photoIds.length; i++) {
-      await tx
-        .update(slideshowPhotos)
-        .set({ display_order: i + 1, updated_at: new Date() })
-        .where(eq(slideshowPhotos.id, photoIds[i]));
-    }
-  });
+  if (photoIds.length === 0) return;
+
+  // #34: neon-http has no db.transaction; db.batch runs as one HTTP transaction.
+  const now = new Date();
+  const [first, ...rest] = photoIds.map((id, i) =>
+    db
+      .update(slideshowPhotos)
+      .set({ display_order: i + 1, updated_at: now })
+      .where(eq(slideshowPhotos.id, id))
+  );
+  await db.batch([first, ...rest]);
 }
