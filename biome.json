@@ -17,7 +17,8 @@
       "!**/.vercel",
       "!**/*.config.js",
       "!**/*.config.ts",
-      "!**/drizzle"
+      "!**/drizzle",
+      "!src/generated"
     ]
   },
   "formatter": {

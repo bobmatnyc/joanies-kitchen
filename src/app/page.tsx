@@ -55,6 +55,9 @@ export default function Home() {
       }
       if (backgroundImagesResult.status === 'rejected') {
         console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
+      } else if (!backgroundImagesResult.value.success) {
+        // #38: surface a failed load instead of silently showing no slideshow.
+        console.error('[Homepage] Background images unavailable:', backgroundImagesResult.value.error);
       }
 
       setRecipesOfTheDay(recipesOfTheDayData);
