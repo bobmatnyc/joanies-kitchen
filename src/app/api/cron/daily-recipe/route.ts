@@ -21,6 +21,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { isCronAuthorized } from '@/lib/cron-auth';
+import { reportError } from '@/lib/observability/report-error';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import { crawlRunDeadline } from '@/lib/services/crawl-run-deadline';
 import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
@@ -142,6 +143,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[DailyRecipeCron] Pipeline failed: ${msg}`);
+    // #55: structured app-error line for Vercel Observability.
+    reportError(error, { source: 'cron', path: '/api/cron/daily-recipe' });
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
@@ -204,6 +207,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[DailyRecipeCron] Pipeline failed: ${msg}`);
+    // #55: structured app-error line for Vercel Observability.
+    reportError(error, { source: 'cron', path: '/api/cron/daily-recipe' });
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
