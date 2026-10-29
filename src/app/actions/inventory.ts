@@ -1,6 +1,6 @@
 'use server';
 
-import { and, asc, desc, eq, gte, isNotNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -818,10 +818,20 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
     }
 
     // Verify recipe exists and user has access
+    // #143: a soft-deleted recipe is refused here, before any write, with the same
+    // answer as a missing one. This rule is no wider than the one `markItemAsUsed`
+    // applies, so an inner recipe-level refusal can only come from a race (the recipe
+    // is hidden between this check and a later inner call).
     const recipe = await db
       .select()
       .from(recipes)
-      .where(and(eq(recipes.id, recipeId), or(eq(recipes.user_id, userId), publicRecipe)))
+      .where(
+        and(
+          eq(recipes.id, recipeId),
+          isNull(recipes.deleted_at),
+          or(eq(recipes.user_id, userId), publicRecipe)
+        )
+      )
       .limit(1);
 
     if (recipe.length === 0) {
@@ -851,7 +861,8 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
       .where(
         and(
           eq(inventoryItems.user_id, userId),
-          sql`${inventoryItems.ingredient_id} = ANY(${ingredientIds})`,
+          // #143: `= ANY(${array})` expands to a row, not an array, so this query always failed
+          inArray(inventoryItems.ingredient_id, ingredientIds),
           or(
             eq(inventoryItems.status, 'fresh'),
             eq(inventoryItems.status, 'use_soon'),
@@ -862,6 +873,9 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
 
     const markedItems: Array<{ ingredient_id: string; quantity_used: number }> = [];
     const missingIngredients: string[] = [];
+    // #143: ingredients whose inner `markItemAsUsed` failed for an item-level reason.
+    // They are reported here, never in `markedItems`, so no unwritten item is reported as marked.
+    const failedItems: Array<{ ingredient_id: string; error: string }> = [];
 
     // Mark each ingredient as used (first available inventory item)
     for (const recipeIngredient of recipeIngredientsData) {
@@ -876,13 +890,29 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
           : 1;
 
         // Mark as used
-        await markItemAsUsed(
+        const result = await markItemAsUsed(
           inventoryItem.id,
           quantityToUse,
           'cooked',
           recipeId,
           `Used in recipe: ${recipe[0].name}`
         );
+
+        // #143: a recipe-level refusal means the whole call is refused, exactly like a
+        // missing recipe. Writes from earlier iterations are possible only if the recipe
+        // became hidden mid-loop (the up-front check above rules out every other case).
+        if (!result.success && result.error === 'Recipe not found') {
+          return { success: false, error: 'Recipe not found or access denied' };
+        }
+
+        // #143: any other failure is item-level; skip this ingredient and report it.
+        if (!result.success) {
+          failedItems.push({
+            ingredient_id: recipeIngredient.ingredient_id,
+            error: result.error ?? 'Failed to mark item as used',
+          });
+          continue;
+        }
 
         markedItems.push({
           ingredient_id: recipeIngredient.ingredient_id,
@@ -893,6 +923,11 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
       }
     }
 
+    // #143: every attempted ingredient failed, so nothing was written; do not report success.
+    if (markedItems.length === 0 && failedItems.length > 0) {
+      return { success: false, error: 'Failed to mark recipe ingredients as used' };
+    }
+
     revalidatePath('/inventory');
     return {
       success: true,
@@ -901,8 +936,10 @@ export async function markRecipeIngredientsAsUsed(recipeId: string) {
         total_ingredients: recipeIngredientsData.length,
         marked_count: markedItems.length,
         missing_count: missingIngredients.length,
+        failed_count: failedItems.length, // #143
         marked_items: markedItems,
         missing_ingredients: missingIngredients,
+        failed_items: failedItems, // #143
       },
     };
   } catch (error) {

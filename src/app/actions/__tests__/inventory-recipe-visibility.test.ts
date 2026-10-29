@@ -38,7 +38,7 @@ vi.mock('@/lib/db', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
-import { markItemAsUsed } from '@/app/actions/inventory';
+import { markItemAsUsed, markRecipeIngredientsAsUsed } from '@/app/actions/inventory';
 import { inventoryItems, inventoryUsageLog } from '@/lib/db/inventory-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
@@ -76,7 +76,7 @@ async function snapshot() {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, inventoryItems, inventoryUsageLog, userProfiles],
+    [schema.recipes, schema.recipeIngredients, inventoryItems, inventoryUsageLog, userProfiles],
     { ...schema, inventoryItems, inventoryUsageLog, userProfiles },
     { constraints: true }
   );
@@ -89,7 +89,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   await client.exec(
-    'DELETE FROM "inventory_usage_log"; DELETE FROM "inventory_items"; DELETE FROM "recipes";'
+    'DELETE FROM "inventory_usage_log"; DELETE FROM "inventory_items"; DELETE FROM "recipe_ingredients"; DELETE FROM "recipes";'
   );
   await db
     .insert(schema.recipes)
@@ -99,6 +99,14 @@ beforeEach(async () => {
       recipeRow(REJECTED_ID, { moderation_status: 'rejected' }),
       recipeRow(DELETED_ID, { deleted_at: new Date('2026-02-01T00:00:00Z') }),
     ]);
+  await db.insert(schema.recipeIngredients).values(
+    [PUBLIC_ID, PRIVATE_ID, DELETED_ID].map((recipe_id) => ({
+      recipe_id,
+      ingredient_id: INGREDIENT_ID,
+      amount: '2',
+      unit: 'cups',
+    }))
+  );
   // The caller (OTHER) owns this inventory item; the recipes belong to OWNER.
   await db.insert(inventoryItems).values({
     id: ITEM_ID,
@@ -158,5 +166,52 @@ describe('#143 markItemAsUsed: a hidden recipe answers as a missing one and writ
     });
     const { log } = await snapshot();
     expect(log.map((l) => l.recipe_id)).toEqual([null]);
+  });
+});
+
+describe('#143 markRecipeIngredientsAsUsed: a hidden recipe is refused as a missing one', () => {
+  it("the owner's own soft-deleted recipe answers as a missing id and writes nothing", async () => {
+    state.userId = OWNER;
+    await db.update(inventoryItems).set({ user_id: OWNER });
+    const before = await snapshot();
+
+    const deleted = await markRecipeIngredientsAsUsed(DELETED_ID);
+    const missing = await markRecipeIngredientsAsUsed(MISSING_ID);
+
+    expect(deleted).toEqual(missing);
+    expect(deleted).toEqual({ success: false, error: 'Recipe not found or access denied' });
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it("the owner's live private recipe still marks its ingredients", async () => {
+    state.userId = OWNER;
+    await db.update(inventoryItems).set({ user_id: OWNER });
+    const result = await markRecipeIngredientsAsUsed(PRIVATE_ID);
+    expect(result).toMatchObject({
+      success: true,
+      data: { marked_count: 1, missing_count: 0, failed_count: 0 },
+    });
+    const { items, log } = await snapshot();
+    expect(log.map((l) => l.recipe_id)).toEqual([PRIVATE_ID]);
+    expect(items.map((i) => Number(i.quantity))).toEqual([3]);
+  });
+
+  it('a public recipe still marks the caller inventory', async () => {
+    state.userId = OTHER;
+    const result = await markRecipeIngredientsAsUsed(PUBLIC_ID);
+    expect(result).toMatchObject({ success: true, data: { marked_count: 1, failed_count: 0 } });
+    const { log } = await snapshot();
+    expect(log.map((l) => l.recipe_id)).toEqual([PUBLIC_ID]);
+  });
+
+  it('an item-level failure is reported as failed, never as marked', async () => {
+    state.userId = OTHER;
+    // A negative amount fails markItemAsUsed validation, an item-level failure.
+    await db.update(schema.recipeIngredients).set({ amount: '-3' });
+    const result = await markRecipeIngredientsAsUsed(PUBLIC_ID);
+    expect(result).toEqual({ success: false, error: 'Failed to mark recipe ingredients as used' });
+    const { items, log } = await snapshot();
+    expect(log).toEqual([]);
+    expect(items.map((i) => Number(i.quantity))).toEqual([5]);
   });
 });
