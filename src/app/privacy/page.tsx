@@ -160,9 +160,11 @@ export default function PrivacyPage() {
           and its data, by emailing us at <SupportContactLink />. We complete access, export and
           deletion requests within 30 days.
         </p>
+        {/* #58: D46 self-serve wording */}
         <p>
-          Today these requests are handled by email only. Self-serve export and deletion from your
-          account are coming soon; they are not available yet.
+          If you are signed in, you can export your data and delete your account yourself from your
+          account settings (Edit Profile). If you cannot sign in, email us and we will handle the
+          request.
         </p>
         <p>When we delete an account:</p>
         <ul className="list-disc pl-6 space-y-1">
