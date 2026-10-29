@@ -6,10 +6,14 @@
 
 import { and, eq, lt, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
+import { crawlCostEvents, recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
+import { CRON_FUNCTION_LIMIT_MS } from './crawl-run-deadline';
 
-/** Default cutoff: 15 minutes, 3x the cron route's `maxDuration` of 300s. */
-export const STALE_RUN_CUTOFF_MS = 15 * 60 * 1000;
+/**
+ * Default cutoff: the cron function limit plus 60s (#6). A `daily`/`manual`
+ * run older than that cannot still be executing, so the next cron reaps it.
+ */
+export const STALE_RUN_CUTOFF_MS = CRON_FUNCTION_LIMIT_MS + 60 * 1000;
 
 /**
  * Cutoff for `local` runs: 6 hours. tsx/pm2 scripts have no `maxDuration` and
@@ -27,7 +31,9 @@ export function reapedRunError(olderThanMs: number): string {
  * hides the failure (the 2026-10-25 production run).
  * What: In one conditional UPDATE, sets every `running` row whose `started_at`
  * is before its run type's cutoff to `failed`, stamps `completed_at`, and
- * appends `reaped: exceeded <n>s without completing` to `errors`. `daily` and
+ * appends `reaped: exceeded <n>s without completing` to `errors`. A null
+ * `cost_usd` is filled with the run's `crawl_cost_events` SUM and a null
+ * `duration_ms` with `completed_at - started_at` (#6). `daily` and
  * `manual` rows use `now - olderThanMs`; `local` rows use the larger of
  * `olderThanMs` and `LOCAL_STALE_RUN_CUTOFF_MS`. Rows inside their cutoff are
  * not matched. Returns the number of rows reaped.
@@ -54,6 +60,8 @@ export async function reapStaleDiscoveryRuns(
     .set({
       status: 'failed',
       completed_at: now,
+      duration_ms: sql`coalesce(${recipeDiscoveryRuns.duration_ms}, (extract(epoch from (${now.toISOString()}::timestamp - ${recipeDiscoveryRuns.started_at})) * 1000)::integer)`,
+      cost_usd: sql`coalesce(${recipeDiscoveryRuns.cost_usd}, (select coalesce(sum(${crawlCostEvents.usd}), 0) from ${crawlCostEvents} where ${crawlCostEvents.run_id} = ${recipeDiscoveryRuns.id}))`,
       errors: sql`coalesce(${recipeDiscoveryRuns.errors}, '[]'::jsonb) || (case when ${runType} = 'local' then ${localMessage} else ${message} end)::jsonb`,
     })
     .where(

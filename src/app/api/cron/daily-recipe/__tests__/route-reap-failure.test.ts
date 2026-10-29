@@ -25,7 +25,11 @@ vi.mock('@/lib/services/autonomous-recipe-ingestion.service', () => ({
   getAutonomousRecipeIngestionService: () => ({ runDailyDiscovery: mocks.runDailyDiscovery }),
 }));
 
-import { GET, POST } from '@/app/api/cron/daily-recipe/route';
+import { GET, maxDuration, POST } from '@/app/api/cron/daily-recipe/route';
+import {
+  CRON_FUNCTION_LIMIT_MS,
+  FINALIZE_SAFETY_MARGIN_MS,
+} from '@/lib/services/crawl-run-deadline';
 
 const SECRET = 'test-secret';
 
@@ -77,5 +81,17 @@ describe('daily-recipe cron when the stale-run reaper throws', () => {
     expect(res.status).toBe(200);
     expect(mocks.runDailyDiscovery).toHaveBeenCalledOnce();
     expect(mocks.runDailyDiscovery).toHaveBeenCalledWith(expect.objectContaining({ runType }));
+  });
+});
+
+describe('#6: daily-recipe cron run deadline', () => {
+  it('passes a deadline of maxDuration minus the finalize margin', async () => {
+    expect(maxDuration * 1000).toBe(CRON_FUNCTION_LIMIT_MS);
+    const before = Date.now();
+    await GET(request('GET'));
+    const { deadlineAt } = mocks.runDailyDiscovery.mock.calls[0][0];
+    const budget = maxDuration * 1000 - FINALIZE_SAFETY_MARGIN_MS;
+    expect(deadlineAt).toBeGreaterThanOrEqual(before + budget);
+    expect(deadlineAt).toBeLessThanOrEqual(Date.now() + budget);
   });
 });

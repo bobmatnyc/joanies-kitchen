@@ -15,7 +15,10 @@
  * time, so an awaited 5-minute run would block the monitor's polling.
  * The running-row check and the run's insert are not atomic; two admins
  * clicking within the same second can still start two runs.
- * Test: `src/app/actions/__tests__/crawl-trigger-auth.test.ts`
+ * The run gets a deadline computed at action entry from the page's 300s
+ * `maxDuration`, so it finalizes before the function limit (#6).
+ * Test: `src/app/actions/__tests__/crawl-trigger-auth.test.ts`,
+ * `passes a deadline computed at action entry`
  */
 
 import { eq } from 'drizzle-orm';
@@ -24,12 +27,15 @@ import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { recipeDiscoveryRuns } from '@/lib/db/autonomous-scraper-schema';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import { crawlRunDeadline } from '@/lib/services/crawl-run-deadline';
 import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
 
 export type TriggerCrawlResult = { started: true } | { started: false; reason: string };
 
 /** Admin-only: start one budgeted `manual` discovery run in the background. */
 export async function triggerManualCrawl(): Promise<TriggerCrawlResult> {
+  // #6: the background run shares this invocation's maxDuration, so time it from entry.
+  const deadlineAt = crawlRunDeadline(Date.now());
   await requireAdmin(); // #6: admin before any query or paid work
 
   await reapStaleDiscoveryRunsFailOpen('[CrawlMonitor]');
@@ -44,6 +50,7 @@ export async function triggerManualCrawl(): Promise<TriggerCrawlResult> {
     try {
       const result = await getAutonomousRecipeIngestionService().runDailyDiscovery({
         runType: 'manual',
+        deadlineAt,
       });
       console.log(`[CrawlMonitor] Manual run ${result.runId} finished: ${result.status}`);
     } catch (error) {

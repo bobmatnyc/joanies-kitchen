@@ -15,16 +15,25 @@
  * POST body params (all optional, override env vars):
  *   { dryRun?: boolean, maxRecipes?: number, searchQuery?: string, budgetUsd?: number }
  *
- * Each run first reaps stale `running` rows (#6 S2).
+ * Each run first reaps stale `running` rows (#6 S2), then crawls until a
+ * deadline of `maxDuration` minus `FINALIZE_SAFETY_MARGIN_MS` and finalizes (#6).
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import { crawlRunDeadline } from '@/lib/services/crawl-run-deadline';
 import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes — fits Vercel Pro limit
+// 5 minutes — fits Vercel Pro limit. Must be a literal for Next's static
+// analysis; keep it equal to CRON_FUNCTION_LIMIT_MS (asserted in a test).
+export const maxDuration = 300;
+
+/** #6: the run's stop-and-finalize time, measured from handler entry. */
+function runDeadline(handlerStart: number): number {
+  return crawlRunDeadline(handlerStart, maxDuration * 1000);
+}
 
 // ---------------------------------------------------------------------------
 // Env-var config parsing
@@ -102,6 +111,7 @@ function buildSuccessResponse(result: {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  const deadlineAt = runDeadline(Date.now());
   console.log(`[DailyRecipeCron] GET triggered at ${new Date().toISOString()}`);
 
   if (!isAuthorized(request)) {
@@ -126,6 +136,7 @@ export async function GET(request: NextRequest) {
       dryRun: false,
       searchQuery,
       runType: 'daily',
+      deadlineAt,
     });
 
     console.log(
@@ -146,6 +157,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  const deadlineAt = runDeadline(Date.now());
   console.log(`[DailyRecipeCron] POST triggered at ${new Date().toISOString()}`);
 
   if (!isAuthorized(request)) {
@@ -186,6 +198,7 @@ export async function POST(request: NextRequest) {
       searchQuery,
       budgetUsd,
       runType: 'manual',
+      deadlineAt,
     });
 
     console.log(

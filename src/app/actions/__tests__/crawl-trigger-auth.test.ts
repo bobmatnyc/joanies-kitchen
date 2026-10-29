@@ -90,7 +90,11 @@ describe('triggerManualCrawl', () => {
 
     await mocks.after.mock.calls[0][0]();
     // No budgetUsd: the run falls back to the S2 default budget.
-    expect(mocks.runDailyDiscovery).toHaveBeenCalledWith({ runType: 'manual' });
+    // #6: plus the deadline computed at action entry.
+    expect(mocks.runDailyDiscovery).toHaveBeenCalledWith({
+      runType: 'manual',
+      deadlineAt: expect.any(Number),
+    });
   });
 
   it('refuses while a discovery run is running', async () => {

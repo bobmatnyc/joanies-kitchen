@@ -45,9 +45,19 @@ afterEach(() => {
 });
 
 describe('reapStaleDiscoveryRuns', () => {
-  it('defaults to a 15-minute cutoff, 3x the cron maxDuration', () => {
-    expect(STALE_RUN_CUTOFF_MS).toBe(3 * 300 * 1000);
-    expect(reapedRunError(STALE_RUN_CUTOFF_MS)).toBe('reaped: exceeded 900s without completing');
+  it('defaults to the cron function limit plus 60s', () => {
+    expect(STALE_RUN_CUTOFF_MS).toBe(300 * 1000 + 60 * 1000);
+    expect(reapedRunError(STALE_RUN_CUTOFF_MS)).toBe('reaped: exceeded 360s without completing');
+  });
+
+  it('fills a null cost_usd from the run ledger and a null duration_ms', async () => {
+    await reapStaleDiscoveryRuns(STALE_RUN_CUTOFF_MS, NOW);
+
+    const { sql } = captured.queries[0];
+    expect(sql).toContain(
+      `"cost_usd" = coalesce("recipe_discovery_runs"."cost_usd", (select coalesce(sum("crawl_cost_events"."usd"), 0) from "crawl_cost_events" where "crawl_cost_events"."run_id" = "recipe_discovery_runs"."id"))`
+    );
+    expect(sql).toContain(`"duration_ms" = coalesce("recipe_discovery_runs"."duration_ms",`);
   });
 
   it('reapStaleDiscoveryRuns only matches running rows older than the cutoff', async () => {
@@ -69,7 +79,7 @@ describe('reapStaleDiscoveryRuns', () => {
     expect(params).toContain('failed');
     // The reaped error is appended to errors[], not replacing it.
     expect(sql).toContain(`coalesce("recipe_discovery_runs"."errors", '[]'::jsonb) ||`);
-    expect(params).toContain(JSON.stringify(['reaped: exceeded 900s without completing']));
+    expect(params).toContain(JSON.stringify(['reaped: exceeded 360s without completing']));
   });
 
   it('a local run that started 20 minutes ago is not reaped', async () => {
