@@ -26,7 +26,6 @@ src/app/actions/recipe-import.ts:assist/source/organizeImports 1
 src/app/actions/recipe-import.ts:lint/correctness/noUnusedVariables 1
 src/app/actions/recipe-views.ts:assist/source/organizeImports 1
 src/app/actions/recipes.ts:lint/suspicious/noImplicitAnyLet 1
-src/app/actions/semantic-search.ts:format 1
 src/app/actions/social.ts:assist/source/organizeImports 1
 src/app/actions/system-recipe-ingestion.ts:assist/source/organizeImports 1
 src/app/actions/tools.ts:lint/suspicious/noImplicitAnyLet 1
@@ -235,7 +234,6 @@ src/components/search/VectorSearchBar.tsx:lint/suspicious/noArrayIndexKey 1
 src/components/tool/ToolsContent.tsx:assist/source/organizeImports 1
 src/config/navigation.ts:assist/source/organizeImports 1
 src/lib/ai/instruction-classifier.ts:lint/suspicious/useIterableCallbackReturn 1
-src/lib/ai/jina-scraper.ts:format 1
 src/lib/ai/meal-pairing-engine.ts:lint/suspicious/noImplicitAnyLet 1
 src/lib/ai/recipe-text-parser.ts:assist/source/organizeImports 1
 src/lib/ai/recipe-text-parser.ts:format 1
@@ -244,7 +242,6 @@ src/lib/db/__tests__/transformers.test.ts:assist/source/organizeImports 1
 src/lib/db/autonomous-scraper-schema.ts:assist/source/organizeImports 1
 src/lib/db/embeddings.ts:lint/suspicious/noImplicitAnyLet 1
 src/lib/db/index.ts:assist/source/organizeImports 1
-src/lib/db/meal-chef-embeddings.ts:lint/suspicious/noImplicitAnyLet 2
 src/lib/db/transformed-types.ts:assist/source/organizeImports 1
 src/lib/db/transformed-types.ts:format 1
 src/lib/db/transformers.ts:assist/source/organizeImports 1
