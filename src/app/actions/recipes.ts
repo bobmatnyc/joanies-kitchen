@@ -167,8 +167,9 @@ export async function getRecipe(idOrSlug: string) {
 
     // Check if user has access to this recipe
     const recipeData = recipe[0];
+    // #134: a hidden recipe answers exactly like a missing one; a distinct error is an existence oracle.
     if (!isPublicRecipe(recipeData) && recipeData.user_id !== userId) {
-      return { success: false, error: 'Access denied' };
+      return { success: false, error: 'Recipe not found' };
     }
 
     return { success: true, data: recipeData };
@@ -194,8 +195,9 @@ export async function getRecipeBySlug(slug: string) {
 
     // Check if user has access to this recipe
     const recipeData = recipe[0];
+    // #134: a hidden recipe answers exactly like a missing one; a distinct error is an existence oracle.
     if (!isPublicRecipe(recipeData) && recipeData.user_id !== userId) {
-      return { success: false, error: 'Access denied' };
+      return { success: false, error: 'Recipe not found' };
     }
 
     return { success: true, data: recipeData };
@@ -318,6 +320,8 @@ export async function updateRecipe(
 
     // Check ownership
     if (recipe.user_id !== userId) {
+      // #134: name the permission problem only for a recipe the caller can already see.
+      if (!isPublicRecipe(recipe)) return { success: false, error: 'Recipe not found' };
       return { success: false, error: 'You do not have permission to edit this recipe' };
     }
 
@@ -397,6 +401,8 @@ export async function deleteRecipe(id: string) {
 
     // Check ownership
     if (recipe.user_id !== userId) {
+      // #134: name the permission problem only for a recipe the caller can already see.
+      if (!isPublicRecipe(recipe)) return { success: false, error: 'Recipe not found' };
       return { success: false, error: 'You do not have permission to delete this recipe' };
     }
 
@@ -465,6 +471,8 @@ export async function toggleRecipeVisibility(id: string) {
 
     // Check ownership
     if (recipe[0].user_id !== userId) {
+      // #134: name the permission problem only for a recipe the caller can already see.
+      if (!isPublicRecipe(recipe[0])) return { success: false, error: 'Recipe not found' };
       return { success: false, error: 'You do not have permission to modify this recipe' };
     }
 

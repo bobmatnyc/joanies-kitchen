@@ -2,9 +2,9 @@ import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { getRecipe } from '@/app/actions/recipes';
 
-// #134: getRecipe's answers for "no such recipe" and "not visible to this viewer".
-// Both become the same 404, so the response never shows that a private recipe exists.
-const HIDDEN_RECIPE_ERRORS = new Set(['Recipe not found', 'Access denied']);
+// #134: getRecipe answers "no such recipe" and "not visible to this viewer" with this one
+// string, so both become the same 404 and the response never shows a private recipe exists.
+const HIDDEN_RECIPE_ERRORS = new Set(['Recipe not found']);
 
 function isUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);

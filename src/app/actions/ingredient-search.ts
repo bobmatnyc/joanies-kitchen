@@ -785,12 +785,12 @@ export async function getRecipeIngredients(recipeId: string): Promise<RecipeIngr
       };
     }
 
-    // Check access permissions
+    // #134: a hidden recipe answers exactly like a missing one; a distinct error is an existence oracle.
     if (!isPublicRecipe(recipe[0]) && recipe[0].user_id !== userId) {
       return {
         success: false,
         ingredients: [],
-        error: 'Access denied',
+        error: 'Recipe not found',
       };
     }
 
