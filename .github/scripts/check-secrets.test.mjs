@@ -19,6 +19,12 @@ describe('scanText', () => {
     const text = `t = "npg_${'A1b2C3d4E5'}"\n-----BEGIN RSA ${'PRIVATE'} KEY-----`;
     expect(scanText(text).map((f) => f.kind)).toEqual(['Neon npg_ token', 'private key block']);
   });
+  it.each([['tvly', 'dev', 'abcdefghijklmnopqrstuvwxyzabcdef'], ['tvly', 'AbC123dEf456GhI789jKl0']])('flags a Tavily key %#', (...p) => {
+    expect(scanText(`k=${p.join('-')}`)).toEqual([{ line: 1, kind: 'Tavily tvly- key' }]);
+  });
+  it('allows the Tavily placeholder', () => {
+    expect(scanText('TAVILY_API_KEY=tvly-your-key-here')).toEqual([]);
+  });
   it.each(['password', 'pass', '***', '<password>', '${PGPASSWORD}', '$PGPASSWORD', 'ci'])('allows placeholder %s', (pw) => {
     expect(isPlaceholder(pw)).toBe(true);
     expect(scanText(url('postgresql', pw))).toEqual([]);

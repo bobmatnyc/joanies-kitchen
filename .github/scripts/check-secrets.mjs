@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Secret check: fails on credentialed DB URLs, Neon `npg_` tokens and private-key blocks.
+// Secret check: fails on credentialed DB URLs, Neon `npg_` and Tavily `tvly-` tokens and private-key blocks.
 // Why: four committed scripts once carried a live prod Postgres URL; nothing caught it.
 // What: scans the given files (default: every git-tracked file) and prints `file:line: <kind>`
 //   per finding. It never prints the matched value. Exit 1 on any finding, 0 when clean.
@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 
 const URL_RE = /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?):\/\/([^\s:/@"'`]+):([^\s@"'`]+)@/gi;
 const NPG_RE = /\bnpg_[A-Za-z0-9]{8,}/;
+const TVLY_RE = /\btvly-(?:[a-z]+-)?[A-Za-z0-9]{20,}/;
 const KEY_RE = /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/;
 const IGNORE = 'secret-check: ignore';
 const IGNORE_NEXT = 'secret-check: ignore-next-line';
@@ -38,6 +39,7 @@ export function scanText(text) {
       if (!isPlaceholder(m[2])) findings.push({ line: i + 1, kind: 'credentialed database URL' });
     }
     if (NPG_RE.test(line)) findings.push({ line: i + 1, kind: 'Neon npg_ token' });
+    if (TVLY_RE.test(line)) findings.push({ line: i + 1, kind: 'Tavily tvly- key' });
     if (KEY_RE.test(line)) findings.push({ line: i + 1, kind: 'private key block' });
   });
   return findings;
