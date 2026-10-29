@@ -4,16 +4,16 @@
  * Displays a list of recipe flags with actions:
  * - Shows flag details (reason, description, reporter)
  * - Links to flagged recipe
- * - Actions to review, resolve, or dismiss
+ * - Actions to dismiss, hide or remove the reported recipe (#59)
  */
 
 'use client';
 
-import { CheckCircle, ExternalLink, Eye, Flag, XCircle } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Flag, Trash2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { reviewFlag } from '@/app/actions/flag-recipe';
+import { actOnRecipeFlag, type FlagQueueAction } from '@/app/actions/flag-recipe';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -52,6 +52,7 @@ const REASON_LABELS: Record<string, string> = {
   spam: 'Spam',
   copyright: 'Copyright Violation',
   quality: 'Quality Issues',
+  harassment: 'Harassment or Abuse',
   other: 'Other',
 };
 
@@ -65,9 +66,7 @@ const STATUS_COLORS: Record<string, string> = {
 function FlagCard({ flag }: { flag: FlagData }) {
   const router = useRouter();
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<'reviewed' | 'resolved' | 'dismissed'>(
-    'reviewed'
-  );
+  const [selectedAction, setSelectedAction] = useState<FlagQueueAction>('dismiss');
   const [reviewNotes, setReviewNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +76,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
     setError(null);
 
     try {
-      const result = await reviewFlag(flag.id, selectedAction, reviewNotes);
+      const result = await actOnRecipeFlag(flag.id, selectedAction, reviewNotes);
 
       if (result.success) {
         setReviewDialogOpen(false);
@@ -92,7 +91,7 @@ function FlagCard({ flag }: { flag: FlagData }) {
     }
   };
 
-  const openReviewDialog = (action: 'reviewed' | 'resolved' | 'dismissed') => {
+  const openReviewDialog = (action: FlagQueueAction) => {
     setSelectedAction(action);
     setReviewNotes('');
     setError(null);
@@ -160,29 +159,29 @@ function FlagCard({ flag }: { flag: FlagData }) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => openReviewDialog('reviewed')}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    <Flag className="w-4 h-4 mr-2" />
-                    Under Review
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openReviewDialog('resolved')}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Resolve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openReviewDialog('dismissed')}
+                    onClick={() => openReviewDialog('dismiss')}
                     className="text-gray-600 hover:text-gray-700"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Dismiss
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openReviewDialog('hide')}
+                    className="text-orange-600 hover:text-orange-700"
+                  >
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Hide recipe
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openReviewDialog('remove')}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove recipe
                   </Button>
                 </>
               )}
@@ -207,16 +206,17 @@ function FlagCard({ flag }: { flag: FlagData }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {selectedAction === 'reviewed' && 'Mark as Under Review'}
-              {selectedAction === 'resolved' && 'Resolve Flag'}
-              {selectedAction === 'dismissed' && 'Dismiss Flag'}
+              {selectedAction === 'dismiss' && 'Dismiss Report'}
+              {selectedAction === 'hide' && 'Hide Recipe'}
+              {selectedAction === 'remove' && 'Remove Recipe'}
             </DialogTitle>
             <DialogDescription>
-              {selectedAction === 'reviewed' &&
-                'Mark this flag as under review while you investigate further.'}
-              {selectedAction === 'resolved' &&
-                'Confirm that appropriate action has been taken to resolve this flag.'}
-              {selectedAction === 'dismissed' && 'Dismiss this flag if it does not require action.'}
+              {selectedAction === 'dismiss' &&
+                'Mark this report reviewed. The recipe is unchanged.'}
+              {selectedAction === 'hide' &&
+                'Hide this recipe from public view and resolve the report.'}
+              {selectedAction === 'remove' &&
+                'Remove this recipe (soft delete) and resolve the report.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -248,11 +248,11 @@ function FlagCard({ flag }: { flag: FlagData }) {
               onClick={handleReview}
               disabled={loading}
               className={
-                selectedAction === 'resolved'
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : selectedAction === 'dismissed'
-                    ? 'bg-gray-600 hover:bg-gray-700'
-                    : ''
+                selectedAction === 'remove'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : selectedAction === 'hide'
+                    ? 'bg-orange-600 hover:bg-orange-700'
+                    : 'bg-gray-600 hover:bg-gray-700'
               }
             >
               {loading ? 'Saving...' : 'Confirm'}

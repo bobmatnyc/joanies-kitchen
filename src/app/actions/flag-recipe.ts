@@ -9,7 +9,7 @@
 
 'use server';
 
-import { checkAdminAccess } from '@/lib/admin';
+import { checkAdminAccess, requireAdmin } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { and, count, desc, eq } from 'drizzle-orm';
@@ -18,7 +18,13 @@ import { db } from '@/lib/db';
 import { recipeFlags, recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
-export type FlagReason = 'inappropriate' | 'spam' | 'copyright' | 'quality' | 'other';
+export type FlagReason =
+  | 'inappropriate'
+  | 'spam'
+  | 'copyright'
+  | 'quality'
+  | 'harassment'
+  | 'other';
 export type FlagStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 
 export interface FlagRecipeResult {
@@ -51,7 +57,14 @@ export async function flagRecipe(
     }
 
     // Validate reason
-    const validReasons: FlagReason[] = ['inappropriate', 'spam', 'copyright', 'quality', 'other'];
+    const validReasons: FlagReason[] = [
+      'inappropriate',
+      'spam',
+      'copyright',
+      'quality',
+      'harassment',
+      'other',
+    ];
     if (!validReasons.includes(reason)) {
       return {
         success: false,
@@ -66,6 +79,20 @@ export async function flagRecipe(
       return {
         success: false,
         error: 'Recipe not found',
+      };
+    }
+
+    // #59: one report per user per recipe, whatever its status.
+    const existing = await db
+      .select({ id: recipeFlags.id })
+      .from(recipeFlags)
+      .where(and(eq(recipeFlags.recipe_id, recipeId), eq(recipeFlags.user_id, userId)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return {
+        success: false,
+        error: 'You have already reported this recipe',
       };
     }
 
@@ -352,5 +379,88 @@ export async function getRecipeFlags(recipeId: string): Promise<
   } catch (error: unknown) {
     console.error('[Get Recipe Flags] Error:', error);
     throw error;
+  }
+}
+
+export type FlagQueueAction = 'dismiss' | 'hide' | 'remove';
+
+/**
+ * Why: #59 gives admins three outcomes for a recipe report, each recorded on
+ * the flag with the reviewer and the time.
+ * What: admin-only. `dismiss` marks the flag dismissed and leaves the recipe
+ * alone. `hide` sets `recipes.moderation_status` to `rejected` (not publicly
+ * visible) and resolves the flag. `remove` soft-deletes the recipe
+ * (`deleted_at`, `deleted_by`) and resolves the flag. A recipe write that
+ * touches no row, or any thrown error, returns `success: false`; the flag is
+ * only updated after the recipe write succeeds.
+ * Test: `src/app/actions/__tests__/report-moderation.test.ts`
+ */
+export async function actOnRecipeFlag(
+  flagId: string,
+  action: FlagQueueAction,
+  reviewNotes?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await requireAdmin();
+
+    if (action !== 'dismiss' && action !== 'hide' && action !== 'remove') {
+      return { success: false, error: 'Invalid action' };
+    }
+
+    const [flag] = await db
+      .select({ id: recipeFlags.id, recipe_id: recipeFlags.recipe_id })
+      .from(recipeFlags)
+      .where(eq(recipeFlags.id, flagId))
+      .limit(1);
+
+    if (!flag) {
+      return { success: false, error: 'Flag not found' };
+    }
+
+    const now = new Date();
+
+    if (action === 'hide' || action === 'remove') {
+      const changes =
+        action === 'hide'
+          ? {
+              moderation_status: 'rejected' as const,
+              moderated_by: userId,
+              moderated_at: now,
+              updated_at: now,
+            }
+          : { deleted_at: now, deleted_by: userId, updated_at: now };
+      const updated = await db
+        .update(recipes)
+        .set(changes)
+        .where(eq(recipes.id, flag.recipe_id))
+        .returning({ id: recipes.id });
+      if (updated.length === 0) {
+        return { success: false, error: 'Recipe not found' };
+      }
+    }
+
+    const flagged = await db
+      .update(recipeFlags)
+      .set({
+        status: action === 'dismiss' ? 'dismissed' : 'resolved',
+        reviewed_by: userId,
+        reviewed_at: now,
+        review_notes: reviewNotes || null,
+        updated_at: now,
+      })
+      .where(eq(recipeFlags.id, flagId))
+      .returning({ id: recipeFlags.id });
+    if (flagged.length === 0) {
+      return { success: false, error: 'Failed to update flag' };
+    }
+
+    console.log(`[Flag Queue] Admin ${userId} applied ${action} to flag ${flagId}`);
+    revalidatePath('/admin/flags');
+    revalidatePath(`/recipes/${flag.recipe_id}`);
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('[Flag Queue] Error:', error);
+    return { success: false, error: toErrorMessage(error) || 'Failed to apply action' };
   }
 }

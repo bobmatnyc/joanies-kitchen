@@ -51,6 +51,11 @@ const FLAG_OPTIONS: FlagOption[] = [
     description: 'Inaccurate or low-quality recipe',
   },
   {
+    value: 'harassment',
+    label: 'Harassment or Abuse',
+    description: 'Content that targets or abuses a person or group',
+  },
+  {
     value: 'other',
     label: 'Other',
     description: 'Another issue not listed above',
@@ -78,7 +83,7 @@ export function FlagDialog({ recipeId, recipeName, open, onOpenChange }: FlagDia
         );
 
         if (result.success) {
-          toast.success("Thank you for your report. We'll review it shortly.");
+          toast.success('Thanks — we review reports within 7 days');
           // Reset form and close dialog
           setReason('');
           setDescription('');

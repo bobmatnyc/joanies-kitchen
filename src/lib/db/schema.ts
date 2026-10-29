@@ -351,7 +351,7 @@ export const recipeFlags = pgTable(
       .references(() => recipes.id, { onDelete: 'cascade' }),
     user_id: text('user_id').notNull(), // users.id of reporter
     reason: text('reason', {
-      enum: ['inappropriate', 'spam', 'copyright', 'quality', 'other'],
+      enum: ['inappropriate', 'spam', 'copyright', 'quality', 'harassment', 'other'],
     }).notNull(),
     description: text('description'), // Optional detailed explanation
     status: text('status', {

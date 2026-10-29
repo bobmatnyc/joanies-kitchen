@@ -1,5 +1,6 @@
 'use server';
 
+import { requireAdmin } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -596,5 +597,34 @@ export async function getRecipeCommentCount(recipeId: string): Promise<DataResul
       error: toErrorMessage(error),
       data: 0,
     };
+  }
+}
+
+/**
+ * Why: #59 lets an admin hide an abusive comment without deleting it.
+ * What: admin-only. Sets (`hidden: true`) or clears `recipe_comments.is_flagged`;
+ * `getRecipeComments` and `getRecipeCommentCount` already exclude flagged rows.
+ * A comment id that matches no row, or any thrown error, returns `success: false`.
+ * Test: `src/app/actions/__tests__/report-moderation.test.ts`
+ */
+export async function setCommentHidden(commentId: string, hidden: boolean): Promise<SuccessResult> {
+  try {
+    await requireAdmin();
+
+    const updated = await db
+      .update(recipeComments)
+      .set({ is_flagged: hidden, updated_at: new Date() })
+      .where(eq(recipeComments.id, commentId))
+      .returning({ recipeId: recipeComments.recipe_id });
+
+    if (updated.length === 0) {
+      return { success: false, error: 'Comment not found' };
+    }
+
+    revalidatePath(`/recipes/${updated[0].recipeId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[setCommentHidden] Error:', error);
+    return { success: false, error: toErrorMessage(error) };
   }
 }

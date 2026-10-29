@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+<<<<<<< HEAD
 - **account**: signed-in users can download their own data as JSON from `GET /api/account/export` ("Download my data" on `/profile/edit`); the export covers every user-owned table, omits OAuth tokens and API key hashes, is never cached, is limited to 3 per hour, and fails with 500 rather than return a partial file (#58)
+=======
+- **moderation**: recipe reports accept a `harassment` reason, confirm receipt ("we review reports within 7 days") and reject a second report from the same user; admins can hide and unhide a comment (`setCommentHidden`), and each report in `/admin/flags` has dismiss, hide-recipe (`moderation_status` `rejected`) and remove-recipe (`deleted_at`/`deleted_by`) actions that record reviewer and time (#59)
+>>>>>>> 9603dbf (feat: recipe report polish and admin comment hiding)
 - **auth**: the header user icon shows the signed-in user's Google profile picture, with name initials (else email) when there is none or it fails to load
 - **legal**: public `/privacy` and `/terms` pages, linked from the footer, the sitemap and `/sign-in` ("By continuing you agree to the Terms and Privacy Policy"); the support contact is `NEXT_PUBLIC_SUPPORT_EMAIL`, defaulting to `support@1mc.io` (#35)
 - **auth**: sign-in uses Auth.js (NextAuth v5) with Google as the only provider and 7-day JWT sessions; `/sign-in` shows one "Continue with Google" button and `/sign-up` redirects to it (#22)
