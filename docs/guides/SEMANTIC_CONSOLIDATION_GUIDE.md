@@ -296,7 +296,8 @@ Before executing consolidation:
 npx tsx scripts/export-ingredients.ts
 
 # Create database backup
-pg_dump $DATABASE_URL > backup.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" > backup.sql
 ```
 
 ### 4. Incremental Execution

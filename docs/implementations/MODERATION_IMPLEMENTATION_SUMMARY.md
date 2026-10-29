@@ -315,7 +315,8 @@ await db
 
 ### Backup First (Recommended)
 ```bash
-pg_dump $DATABASE_URL > backup_before_moderation_migration.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" > backup_before_moderation_migration.sql
 ```
 
 ### Rollback Command
@@ -338,10 +339,12 @@ pnpm tsx scripts/migrations/add-moderation-fields.ts --rollback
 pnpm tsx scripts/migrations/add-moderation-fields.ts
 
 # 2. Verify schema
-psql $DATABASE_URL -c "\d recipes"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\d recipes"
 
 # 3. Check existing recipes
-psql $DATABASE_URL -c "SELECT moderation_status, COUNT(*) FROM recipes GROUP BY moderation_status;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT moderation_status, COUNT(*) FROM recipes GROUP BY moderation_status;"
 
 # Expected: All recipes show 'approved'
 ```

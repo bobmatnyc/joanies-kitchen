@@ -7,7 +7,8 @@
 - [ ] Read documentation: `/docs/migrations/RECIPE-MODERATION-FIELDS.md`
 - [ ] Backup database (production only)
   ```bash
-  pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+  # D3a: pooled pg_dump broke prod reads; unpooled host only
+  pg_dump "$DATABASE_URL_UNPOOLED" > backup_$(date +%Y%m%d_%H%M%S).sql
   ```
 
 ### Test Migration (Development)
@@ -21,11 +22,13 @@
   ```
 - [ ] Verify schema changes:
   ```bash
-  psql $DATABASE_URL -c "\d recipes"
+  # D3a: pooled pg_dump broke prod reads; unpooled host only
+  psql "$DATABASE_URL_UNPOOLED" -c "\d recipes"
   ```
 - [ ] Verify existing recipes are approved:
   ```bash
-  psql $DATABASE_URL -c "SELECT moderation_status, COUNT(*) FROM recipes GROUP BY moderation_status;"
+  # D3a: pooled pg_dump broke prod reads; unpooled host only
+  psql "$DATABASE_URL_UNPOOLED" -c "SELECT moderation_status, COUNT(*) FROM recipes GROUP BY moderation_status;"
   ```
 
 ### Production Migration
@@ -219,7 +222,8 @@
 pnpm tsx scripts/migrations/add-moderation-fields.ts --rollback
 
 # Or restore from backup
-psql $DATABASE_URL < backup_file.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" < backup_file.sql
 ```
 
 ### Rollback Code

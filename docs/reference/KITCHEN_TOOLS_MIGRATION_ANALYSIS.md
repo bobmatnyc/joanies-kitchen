@@ -410,7 +410,8 @@ CREATE TABLE IF NOT EXISTS tool_id_migration_map (
 
 **Task 1.3**: Back up affected tables
 ```bash
-pg_dump $DATABASE_URL \
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" \
   --table=ingredients \
   --table=recipe_ingredients \
   > backup_before_tool_migration_$(date +%Y%m%d).sql
@@ -753,7 +754,8 @@ git push origin main
 
 2. **Restore from backup**
    ```bash
-   psql $DATABASE_URL < backup_before_tool_migration_YYYYMMDD.sql
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   psql "$DATABASE_URL_UNPOOLED" < backup_before_tool_migration_YYYYMMDD.sql
    ```
 
 3. **Revert code changes**

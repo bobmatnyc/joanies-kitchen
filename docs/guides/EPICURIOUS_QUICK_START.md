@@ -103,7 +103,8 @@ Rate: 1.46 recipes/second
 
 ```bash
 # Check recipe count
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE source = 'epicurious.com';"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE source = 'epicurious.com';"
 ```
 
 **Expected**: ~970 recipes (some skipped due to duplicates/missing data)

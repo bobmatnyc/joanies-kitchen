@@ -176,7 +176,8 @@ cat tmp/top50-image-generation-progress.json | jq '.processedCount, .totalCost'
 cat tmp/cleanup-progress.json | jq '.processedCount, .approvedCount'
 
 # Check database stats
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
 ```
 
 ---

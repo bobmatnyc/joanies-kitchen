@@ -216,7 +216,8 @@ pnpm db:generate
 pnpm db:push
 
 # Or manually run the migration
-psql $DATABASE_URL -f drizzle/0008_common_oracle.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -f drizzle/0008_common_oracle.sql
 ```
 
 ### Enable Trigram Extension

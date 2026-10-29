@@ -34,7 +34,8 @@ export DATABASE_URL="postgresql://user:password@localhost:5432/joanies_kitchen_t
 
 ```bash
 # Test connection using psql
-psql "$DATABASE_URL" -c "SELECT 1"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT 1"
 
 # Should output:
 # ?column?
@@ -207,7 +208,8 @@ Tests automatically clean up after themselves, but if manual cleanup is needed:
 
 ```bash
 # Connect to database
-psql "$DATABASE_URL"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED"
 
 # View test data
 SELECT * FROM api_keys WHERE user_id LIKE 'test-user-%';

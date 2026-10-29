@@ -500,7 +500,8 @@ tsx scripts/generate-recipe-slugs.ts
 tsx scripts/test-recipe-slugs.ts
 
 # Check database
-psql $DATABASE_URL -c "SELECT COUNT(*), COUNT(slug) FROM recipes;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*), COUNT(slug) FROM recipes;"
 ```
 
 ---

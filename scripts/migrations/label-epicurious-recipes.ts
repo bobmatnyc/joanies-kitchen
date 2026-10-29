@@ -1,9 +1,11 @@
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
+import { adminDbUrl } from '../lib/admin-db-url';
 
 config({ path: '.env.local' });
 
-const sql = neon(process.env.DATABASE_URL!);
+// D3a: pooled pg_dump broke prod reads; unpooled host only
+const sql = neon(adminDbUrl(process.env.DATABASE_URL, 'seed'));
 
 async function labelEpicuriousRecipes() {
   console.log('Starting Epicurious recipe labeling...');

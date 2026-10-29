@@ -20,16 +20,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as dotenv from 'dotenv';
 import postgres from 'postgres';
+import { adminDbUrl, toUnpooledUrl } from './lib/admin-db-url';
 
 // Load .env.local (same as drizzle.config.ts)
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
-  throw new Error(
-    `DATABASE_URL must be a valid PostgreSQL connection string. Got: ${databaseUrl ?? 'undefined'}`
-  );
-}
+// D3a: pooled pg_dump broke prod reads; unpooled host only
+// (the old check echoed the URL, credentials included, on failure)
+const rawUrl = process.env.DATABASE_URL;
+if (!rawUrl) throw new Error('DATABASE_URL is not set');
+const databaseUrl = adminDbUrl(toUnpooledUrl(rawUrl), 'ddl');
 
 const MIGRATIONS_FOLDER = path.resolve(process.cwd(), 'drizzle');
 const JOURNAL_PATH = path.join(MIGRATIONS_FOLDER, 'meta', '_journal.json');

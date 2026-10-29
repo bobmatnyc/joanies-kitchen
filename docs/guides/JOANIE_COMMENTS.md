@@ -78,10 +78,12 @@ This will:
 
 ```bash
 # Check table exists
-psql $DATABASE_URL -c "\d joanie_comments"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\d joanie_comments"
 
 # Check constraints
-psql $DATABASE_URL -c "\d+ joanie_comments"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\d+ joanie_comments"
 ```
 
 ---

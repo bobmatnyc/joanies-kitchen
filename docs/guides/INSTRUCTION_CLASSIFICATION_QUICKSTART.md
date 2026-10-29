@@ -31,7 +31,8 @@ Tests the system on a hardcoded spaghetti carbonara recipe.
 
 ```bash
 # First, find a recipe ID
-psql $DATABASE_URL -c "SELECT id, name FROM recipes LIMIT 10;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT id, name FROM recipes LIMIT 10;"
 
 # Then classify it
 pnpm tsx scripts/test-single-recipe-from-db.ts <recipe-id>
@@ -154,7 +155,8 @@ Error: Recipe not found: abc123
 **Solution**: Verify the recipe ID exists:
 
 ```bash
-psql $DATABASE_URL -c "SELECT id, name FROM recipes WHERE id='abc123';"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT id, name FROM recipes WHERE id='abc123';"
 ```
 
 ### Missing Environment Variable
@@ -180,7 +182,8 @@ echo "OPENROUTER_API_KEY=sk-or-v1-..." >> .env.local
 pnpm tsx scripts/test-instruction-classification.ts
 
 # Test on 1 real recipe
-psql $DATABASE_URL -c "SELECT id FROM recipes LIMIT 1;" | tail -1
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT id FROM recipes LIMIT 1;" | tail -1
 pnpm tsx scripts/test-single-recipe-from-db.ts <recipe-id>
 ```
 

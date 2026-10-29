@@ -872,7 +872,7 @@ npx tsx scripts/qa/4-generate-review-queue.ts
 
 **Database Tools**:
 - Drizzle Studio: `pnpm db:studio`
-- Direct SQL: `psql $DATABASE_URL`
+- Direct SQL: `psql "$DATABASE_URL_UNPOOLED"`
 
 **Monitoring**:
 - Progress: `tail -f tmp/qa-reports/progress.log`
