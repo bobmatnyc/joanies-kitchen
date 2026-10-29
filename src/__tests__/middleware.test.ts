@@ -42,6 +42,16 @@ describe('middleware with Auth.js not configured', () => {
     }
   );
 
+  it('lets a signed-out visitor reach /recipes but not /recipes/new or /recipes/edit', () => {
+    vi.stubEnv('AUTH_SECRET', '');
+    expect(call('/recipes').status).toBe(200);
+    for (const path of ['/recipes/new', '/recipes/edit/abc']) {
+      const res = call(path);
+      expect(res.status).toBe(307);
+      expect(new URL(res.headers.get('location') ?? '').pathname).toBe('/sign-in');
+    }
+  });
+
   it('uses the session when Auth.js is configured (control)', () => {
     vi.stubEnv('AUTH_SECRET', 's');
     vi.stubEnv('AUTH_GOOGLE_ID', 'id');
