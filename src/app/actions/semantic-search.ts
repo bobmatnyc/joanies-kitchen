@@ -350,7 +350,12 @@ export async function findSimilarToRecipe(
       embeddingVector = embeddingResult.embedding;
     }
 
-    const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5);
+    // #96: visibility and source exclusion run in SQL before LIMIT; post-filtering
+    // a top-(limit+1) list left public recipes with no visible neighbours.
+    const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5, {
+      visibility: recipeVisibilityCondition(viewer),
+      excludeRecipeId: recipeId,
+    });
 
     // Get recipe details and exclude the original recipe
     const recipeIds = similar.map((e) => e.recipe_id).filter((id) => id !== recipeId);
@@ -394,8 +399,8 @@ export async function findSimilarToRecipe(
       recipes: finalRecipes,
     };
 
-    // Store in cache
-    searchCaches.similar.set(cacheKey, result);
+    // #96: never cache an empty list; a later embedding or publish must show up.
+    if (finalRecipes.length > 0) searchCaches.similar.set(cacheKey, result);
     if (ENABLE_CACHE_STATS) {
       console.log(`[Cache MISS] Similar recipes: ${recipeId}`);
     }

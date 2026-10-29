@@ -10,6 +10,8 @@
  */
 
 import type { PGlite } from '@electric-sql/pglite';
+import { and, inArray, type SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { NextRequest } from 'next/server';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,6 +95,7 @@ import { findSimilarRecipes } from '@/lib/db/embeddings';
 import { recipeIngredients } from '@/lib/db/ingredients-schema';
 import * as schema from '@/lib/db/schema';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { ANONYMOUS_VIEWER, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { ingredientService } from '@/lib/services/ingredient-service';
 import { createVisibilityDb } from './recipe-visibility-db';
 
@@ -439,5 +442,115 @@ describe('#17 findSimilarToRecipe rerank and rate limit', () => {
     const result = await findSimilarToRecipe(Q, 10);
     expect(result).toMatchObject({ success: false, errorCode: 'LIMITER_UNAVAILABLE' });
     expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+  });
+});
+
+describe('#96 findSimilarToRecipe — hidden neighbours outrank public', () => {
+  // Twelve hidden neighbours (private, rejected, deleted) rank above PUB.
+  const hiddenIds = Array.from(
+    { length: 12 },
+    (_, i) => `9${String(i).padStart(7, '0')}-0000-4000-8000-000000000000`
+  );
+  const PUB = '99999999-0000-4000-8000-000000000099';
+  const ranked = [...hiddenIds, PUB];
+
+  beforeEach(async () => {
+    const db = state.db as any;
+    await db.insert(schema.recipes).values([
+      ...hiddenIds.map((id, i) => ({
+        ...recipeRow(id, OWNER, i % 3 !== 0, `Hidden ${i}`),
+        moderation_status: i % 3 === 1 ? 'rejected' : 'approved',
+        deleted_at: i % 3 === 2 ? new Date('2026-02-01T00:00:00Z') : null,
+      })),
+      recipeRow(PUB, OTHER, true, 'Open Neighbour'),
+    ]);
+    // Emulates the pgvector query: ranked candidates (source first), the
+    // optional SQL filters evaluated by real Postgres, then LIMIT.
+    vi.mocked(findSimilarRecipes).mockImplementation((async (
+      _embedding: number[],
+      limit = 10,
+      _min = 0.3,
+      options: { visibility?: SQL; excludeRecipeId?: string } = {}
+    ) => {
+      const candidates = [Q, ...ranked];
+      const rows: Array<{ id: string }> = await db
+        .select({ id: schema.recipes.id })
+        .from(schema.recipes)
+        .where(and(inArray(schema.recipes.id, candidates), options.visibility));
+      const allowed = new Set(rows.map((r) => r.id));
+      return candidates
+        .filter((id) => allowed.has(id) && id !== options.excludeRecipeId)
+        .slice(0, limit)
+        .map((id) => ({ recipe_id: id, similarity: 0.9 }));
+    }) as never);
+  });
+
+  it('anonymous viewer gets the public neighbour and nothing hidden', async () => {
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 6);
+    expect(result.recipes.map((r) => r.id)).toEqual([PUB]);
+  });
+
+  it('the owner still sees their private and rejected neighbours, never the source', async () => {
+    signInAs('owner');
+    const ids = (await findSimilarToRecipe(Q, 6)).recipes.map((r) => r.id);
+    expect(ids).not.toContain(Q);
+    expect(ids).toContain(hiddenIds[0]);
+  });
+});
+
+describe('#96 findSimilarToRecipe — empty results and failures are not cached', () => {
+  it('does not cache an empty result', async () => {
+    // Only P comes back; the anonymous post-filter drops it, leaving an empty list.
+    vi.mocked(findSimilarRecipes).mockResolvedValue([{ recipe_id: P, similarity: 0.9 }] as never);
+    signInAs('anonymous');
+    expect((await findSimilarToRecipe(Q, 6)).recipes).toEqual([]);
+    expect(searchCaches.similar.size()).toBe(0);
+
+    vi.mocked(findSimilarRecipes).mockResolvedValue([{ recipe_id: R, similarity: 0.9 }] as never);
+    const second = await findSimilarToRecipe(Q, 6);
+    expect(second.recipes.map((r) => r.id)).toEqual([R]);
+  });
+
+  it('a vector-search failure returns success:false and caches nothing', async () => {
+    vi.mocked(findSimilarRecipes).mockRejectedValueOnce(new Error('db down'));
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 6);
+    expect(result.success).toBe(false);
+    expect(searchCaches.similar.size()).toBe(0);
+  });
+});
+
+describe('#96 findSimilarRecipes SQL', () => {
+  it('filters visibility and the source before LIMIT; no options means no filter', async () => {
+    const actual =
+      await vi.importActual<typeof import('@/lib/db/embeddings')>('@/lib/db/embeddings');
+    const captured: string[] = [];
+    const realDb = state.db;
+    state.db = {
+      execute: async (query: SQL) => {
+        captured.push(new PgDialect().sqlToQuery(query).sql);
+        return { rows: [] };
+      },
+    };
+    try {
+      const vector = new Array(384).fill(0);
+      await actual.findSimilarRecipes(vector, 5, 0.5, {
+        visibility: recipeVisibilityCondition(ANONYMOUS_VIEWER),
+        excludeRecipeId: Q,
+      });
+      await actual.findSimilarRecipes(vector, 5, 0.5);
+    } finally {
+      state.db = realDb;
+    }
+    const [filtered, plain] = captured;
+    expect(filtered).toMatch(
+      /AND e\.recipe_id IN \(SELECT "recipes"\."id" FROM "recipes" WHERE [\s\S]*"recipes"\."is_public"/
+    );
+    expect(filtered).toMatch(/"recipes"\."deleted_at" is null/);
+    expect(filtered).toMatch(/AND e\.recipe_id <> \$\d+/);
+    expect(filtered.indexOf('e.recipe_id IN')).toBeLessThan(filtered.indexOf('LIMIT'));
+    expect(plain).not.toContain('e.recipe_id IN');
+    expect(plain).not.toContain('e.recipe_id <>');
   });
 });
