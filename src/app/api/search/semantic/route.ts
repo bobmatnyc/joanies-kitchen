@@ -5,6 +5,7 @@ import {
   type SemanticSearchResult,
   semanticSearchRecipes,
 } from '@/app/actions/semantic-search';
+import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /** #17/#57: 429 (with Retry-After) over the rate limit; 503 for a limiter outage or the cost ceiling. */
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/search/semantic?q=query&mode=semantic&limit=20&minSimilarity=0.5
+ * GET /api/search/semantic?q=query&mode=semantic&limit=20&minSimilarity=0.65
  *
  * Alternative GET endpoint for simple searches
  */
@@ -86,7 +87,11 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
     const mode = searchParams.get('mode') || 'semantic';
     const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const minSimilarity = parseFloat(searchParams.get('minSimilarity') || '0.5');
+    // #96 D57: calibrated cutoff when the caller sends none (or a non-number).
+    const rawMinSimilarity = Number.parseFloat(searchParams.get('minSimilarity') ?? '');
+    const minSimilarity = Number.isFinite(rawMinSimilarity)
+      ? rawMinSimilarity
+      : SEARCH_MIN_SIMILARITY;
     const cuisine = searchParams.get('cuisine') || undefined;
     const difficulty = searchParams.get('difficulty') || undefined;
 

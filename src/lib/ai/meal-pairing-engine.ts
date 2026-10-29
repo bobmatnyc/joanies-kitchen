@@ -12,6 +12,7 @@
 import 'server-only';
 import { type RecipeWithSimilarity, semanticSearchRecipes } from '@/app/actions/semantic-search';
 import { isPaidCallBlocked } from '@/lib/costs';
+import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 import { getOpenRouterClient } from './openrouter-server';
 import { renderPrompt } from './prompts';
 import {
@@ -146,7 +147,7 @@ async function searchRecipesByCourse(
     // Use Recipe Manager's semantic search
     const result = await semanticSearchRecipes(enhancedQuery, {
       limit: options.limit || 5,
-      minSimilarity: 0.5,
+      minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
       includePrivate: false, // Only search public/system recipes
     });
 

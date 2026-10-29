@@ -13,6 +13,7 @@ import { type SearchMode, SearchModeComparison } from '@/components/search/Searc
 import { SearchResults } from '@/components/search/SearchResults';
 import { SemanticSearchBar } from '@/components/search/SemanticSearchBar';
 import { Badge } from '@/components/ui/badge';
+import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 
 /**
  * Main search page with semantic, text, and hybrid search capabilities
@@ -53,7 +54,7 @@ function SearchPageContent() {
       try {
         const searchOptions = {
           limit: 50,
-          minSimilarity: 0.3,
+          minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
           cuisine,
           difficulty,
           includePrivate: true,

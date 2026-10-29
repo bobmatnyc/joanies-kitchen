@@ -16,6 +16,10 @@ import {
 } from '@/lib/db/embeddings';
 import type { Recipe } from '@/lib/db/schema';
 import {
+  RECIPE_SIMILAR_MIN_SIMILARITY,
+  SEARCH_MIN_SIMILARITY,
+} from '@/lib/search/similarity-cutoffs';
+import {
   buildRecipeEmbeddingText,
   cosineSimilarity,
   generateQueryEmbedding,
@@ -92,7 +96,7 @@ export async function searchSimilarRecipes(searchQuery: string, limit = 10) {
     const similar = await findSimilarRecipes(
       queryEmbedding,
       limit,
-      0.3 // Minimum 30% similarity
+      SEARCH_MIN_SIMILARITY // #96 D57: calibrated cutoff
     );
 
     // Format results
@@ -312,7 +316,7 @@ export async function getRecommendationsForRecipe(recipeId: string, limit = 5) {
     const similar = await findSimilarRecipes(
       embedding.embedding,
       limit + 1, // Get one extra in case the recipe itself is included
-      0.5 // Higher threshold for recommendations
+      RECIPE_SIMILAR_MIN_SIMILARITY // #96 D57: calibrated cutoff
     );
 
     // Filter out the original recipe and format results

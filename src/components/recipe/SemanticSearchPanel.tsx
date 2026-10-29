@@ -21,8 +21,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { RecipeCard } from './RecipeCard';
+
+// #96 D57: bge-small scores most pairs >= 0.5, so lower values filter nothing.
+const SIMILARITY_SLIDER_MIN = 0.5;
+const SIMILARITY_SLIDER_MAX = 0.9;
 
 export interface SemanticSearchPanelProps {
   initialQuery?: string;
@@ -40,7 +45,8 @@ export function SemanticSearchPanel({
   const [showFilters, setShowFilters] = useState(false);
 
   // Search options
-  const [minSimilarity, setMinSimilarity] = useState(0.5);
+  // #96 D57: calibrated cutoff; the slider starts at the search floor.
+  const [minSimilarity, setMinSimilarity] = useState(SEARCH_MIN_SIMILARITY);
   const [searchMode, setSearchMode] = useState<'semantic' | 'hybrid'>('semantic');
   const [cuisine, setCuisine] = useState<string | undefined>(undefined);
   const [difficulty, setDifficulty] = useState<string | undefined>(undefined);
@@ -200,8 +206,8 @@ export function SemanticSearchPanel({
               id="similarity-slider"
               value={[minSimilarity]}
               onValueChange={([value]) => setMinSimilarity(value)}
-              min={0.1}
-              max={0.9}
+              min={SIMILARITY_SLIDER_MIN}
+              max={SIMILARITY_SLIDER_MAX}
               step={0.05}
               disabled={loading}
             />

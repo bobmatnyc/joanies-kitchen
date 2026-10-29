@@ -37,7 +37,7 @@ import { similarRecipesQuerySchema } from '@/lib/validations/recipe-api';
  *
  * Query Parameters:
  * - limit: Maximum number of results (default: 10, max: 50)
- * - minSimilarity: Minimum similarity threshold 0-1 (default: 0.5)
+ * - minSimilarity: Minimum similarity threshold 0-1 (default: RECIPE_SIMILAR_MIN_SIMILARITY, 0.72)
  *
  * Response:
  * {

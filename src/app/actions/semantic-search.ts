@@ -23,6 +23,11 @@ import {
 } from '@/lib/recipe-visibility';
 import { type RankingMode, rankRecipes } from '@/lib/search';
 import { rerankWithJina } from '@/lib/search/jina-rerank'; // #17: moved out for the 500-line cap
+import {
+  applySearchCutoff,
+  RECIPE_SIMILAR_MIN_SIMILARITY,
+  SEARCH_MIN_SIMILARITY,
+} from '@/lib/search/similarity-cutoffs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -30,6 +35,7 @@ import { toErrorMessage } from '@/lib/utils/error-handling';
  */
 export interface SearchOptions {
   limit?: number;
+  /** #96 D57: SQL floor; defaults to SEARCH_MIN_SIMILARITY. The relative delta still applies. */
   minSimilarity?: number;
   cuisine?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
@@ -117,7 +123,6 @@ function searchFailure(error: unknown): SemanticSearchResult {
  * @example
  * const result = await semanticSearchRecipes("quick easy pasta", {
  *   limit: 10,
- *   minSimilarity: 0.5,
  *   cuisine: "Italian"
  * });
  */
@@ -148,7 +153,8 @@ async function semanticSearchInternal(
 
     // Default options
     const limit = options.limit || 20;
-    const minSimilarity = options.minSimilarity || 0.3;
+    // #96 D57: calibrated cutoff; `??` keeps an explicit 0.
+    const minSimilarity = options.minSimilarity ?? SEARCH_MIN_SIMILARITY;
 
     // Generate cache key
     const cacheKey = generateSemanticSearchKey(query, {
@@ -255,8 +261,12 @@ async function semanticSearchInternal(
       };
     });
 
+    // #96 D57: calibrated cutoff — drop results below max(floor, top1 - delta),
+    // measured on the recipes that survived the filters above.
+    const withinCutoff = applySearchCutoff(recipesWithSimilarity, minSimilarity);
+
     // Apply weighted ranking algorithm
-    const rankedRecipes = rankRecipes(recipesWithSimilarity, {
+    const rankedRecipes = rankRecipes(withinCutoff, {
       mode: options.rankingMode || 'balanced',
       includeScoreBreakdown: options.includeScoreBreakdown || false,
     });
@@ -352,10 +362,16 @@ export async function findSimilarToRecipe(
 
     // #96: visibility and source exclusion run in SQL before LIMIT; post-filtering
     // a top-(limit+1) list left public recipes with no visible neighbours.
-    const similar = await findSimilarRecipes(embeddingVector, limit + 1, 0.5, {
-      visibility: recipeVisibilityCondition(viewer),
-      excludeRecipeId: recipeId,
-    });
+    // #96 D57: calibrated cutoff for recipe-to-recipe neighbours.
+    const similar = await findSimilarRecipes(
+      embeddingVector,
+      limit + 1,
+      RECIPE_SIMILAR_MIN_SIMILARITY,
+      {
+        visibility: recipeVisibilityCondition(viewer),
+        excludeRecipeId: recipeId,
+      }
+    );
 
     // Get recipe details and exclude the original recipe
     const recipeIds = similar.map((e) => e.recipe_id).filter((id) => id !== recipeId);
@@ -462,6 +478,7 @@ export async function hybridSearchRecipes(
     if (refusal) return refusal;
 
     // 1. Get semantic search results
+    // #96 D57: calibrated cutoff — semanticSearchInternal applies max(floor, top1 - delta).
     const semanticResults = await semanticSearchInternal(
       query,
       { ...options, limit: limit * 2 }, // Get more for merging

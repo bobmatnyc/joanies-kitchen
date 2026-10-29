@@ -8,6 +8,7 @@
 import { eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type RecipeEmbedding, recipeEmbeddings, recipes } from '@/lib/db/schema';
+import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 
 /**
  * Error class for embedding database operations
@@ -195,14 +196,14 @@ export async function updateRecipeEmbedding(
  *
  * @param queryEmbedding - Query embedding vector to find similar recipes for
  * @param limit - Maximum number of results to return (default: 10)
- * @param minSimilarity - Minimum similarity threshold (default: 0.3)
+ * @param minSimilarity - Minimum similarity threshold (default: SEARCH_MIN_SIMILARITY)
  * @param options - #96: optional SQL filters applied before LIMIT. `visibility`
  *   is a predicate on `recipes` (e.g. `recipeVisibilityCondition(viewer)`);
  *   `excludeRecipeId` drops one recipe (the source) from the candidates.
  * @returns Array of recipe embeddings sorted by similarity (most similar first)
  *
  * @example
- * const similar = await findSimilarRecipes(queryEmbedding, 5, 0.5);
+ * const similar = await findSimilarRecipes(queryEmbedding, 5, SEARCH_MIN_SIMILARITY);
  * similar.forEach(result => {
  *   console.log(`Recipe: ${result.recipe?.name}, Similarity: ${result.similarity}`);
  * });
@@ -210,7 +211,7 @@ export async function updateRecipeEmbedding(
 export async function findSimilarRecipes(
   queryEmbedding: number[],
   limit: number = 10,
-  minSimilarity: number = 0.3,
+  minSimilarity: number = SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
   options: { visibility?: SQL; excludeRecipeId?: string } = {}
 ): Promise<Array<RecipeEmbedding & { similarity: number; recipe?: any }>> {
   try {
