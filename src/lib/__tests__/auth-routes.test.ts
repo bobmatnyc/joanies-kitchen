@@ -13,6 +13,8 @@ describe('decideRoute', () => {
     ['/admin/crawl-monitor', ADMIN, 'allow'],
     ['/recipes/new', ANON, 'sign-in'],
     ['/recipes', ANON, 'allow'],
+    // #56: health probe is public.
+    ['/api/health', ANON, 'allow'],
     ['/recipes', USER, 'allow'],
     // Clerk-era rules for routes that do not exist were removed; the real edit
     // page /recipes/<slug>/edit guards itself (redirect + ownership check).

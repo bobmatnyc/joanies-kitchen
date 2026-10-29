@@ -234,6 +234,10 @@ pnpm auth:seed-user   # Pre-seed a Google sign-in user (see docs/guides/authenti
 3. Add environment variables
 4. Deploy
 
+### Health check
+
+`GET /api/health` is public. It returns 200 with `{"status":"ok"}` when the database answers `SELECT 1` within 2.5s, and 503 otherwise. Point a Vercel uptime/health check at it (#56).
+
 See [Deployment Guide](./docs/getting-started/deployment.md) for detailed instructions.
 
 ### Other Platforms
