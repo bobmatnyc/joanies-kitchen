@@ -9,19 +9,6 @@ import * as schema from './schema';
 import * as usageCountersSchema from './usage-counters-schema'; // #17: rate-limit counters
 import * as userDiscoverySchema from './user-discovery-schema';
 
-// Ensure we have a valid DATABASE_URL
-const databaseUrl = process.env.DATABASE_URL || '';
-
-// Log the issue for debugging
-if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
-  console.error('Invalid DATABASE_URL:', databaseUrl);
-  throw new Error(
-    'DATABASE_URL must be a valid PostgreSQL connection string starting with postgresql://. ' +
-      'Current value: ' +
-      (databaseUrl || 'undefined')
-  );
-}
-
 // Combine all schemas
 const allSchemas = {
   ...schema,
@@ -34,8 +21,45 @@ const allSchemas = {
   ...usageCountersSchema, // #17/#57: rate-limit and alert counters
 };
 
-const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema: allSchemas });
+function createDb(databaseUrl: string) {
+  return drizzle(neon(databaseUrl), { schema: allSchemas });
+}
+
+type Db = ReturnType<typeof createDb>;
+
+let cached: Db | undefined;
+
+/**
+ * Why: Vercel Preview builds run without DATABASE_URL (owner change A37), and a
+ * client built at import made `next build` fail while collecting page data.
+ * What: returns the process-wide client, creating it on first call. Throws when
+ * DATABASE_URL is missing or not a postgres URL; the value is never echoed.
+ * Test: `src/lib/db/__tests__/lazy-db.test.ts`
+ */
+export function getDb(): Db {
+  if (cached) return cached;
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl || !/^postgres(ql)?:\/\//.test(databaseUrl)) {
+    throw new Error(
+      databaseUrl
+        ? 'DATABASE_URL is set but is not a postgresql:// connection string.'
+        : 'DATABASE_URL is not set; the database client cannot be created.'
+    );
+  }
+  cached = createDb(databaseUrl);
+  return cached;
+}
+
+/** Lazy handle: any property access resolves (and validates) the client via `getDb()`. */
+export const db: Db = new Proxy({} as Db, {
+  get(_target, prop) {
+    const real = getDb();
+    const value = Reflect.get(real, prop, real);
+    return typeof value === 'function' ? value.bind(real) : value;
+  },
+  has: (_target, prop) => Reflect.has(getDb(), prop),
+  getPrototypeOf: () => Reflect.getPrototypeOf(getDb()),
+});
 
 // Export all schemas for external use
 export {
@@ -48,6 +72,6 @@ export {
   authSchema,
 };
 
+export * from './transformed-types';
 // Export type transformers and parsed types
 export * from './transformers';
-export * from './transformed-types';
