@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { AUTH_FILE } from '../setup/test-session';
 import { cleanupTestMeals, fillMealBasicInfo, generateUniqueMealName } from './fixtures/test-data';
 
 /**
@@ -16,7 +17,7 @@ test.describe('Meal Creation', () => {
     // Cleanup test meals
     if (createdMealNames.length > 0) {
       const context = await browser.newContext({
-        storageState: 'tests/e2e/.auth/user.json',
+        storageState: AUTH_FILE,
       });
       const page = await context.newPage();
       await cleanupTestMeals(page, createdMealNames);

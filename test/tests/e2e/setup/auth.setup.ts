@@ -1,6 +1,5 @@
-import path from 'node:path';
 import { expect, test as setup } from '@playwright/test';
-import { mintTestSessionCookie, TEST_USER } from './test-session';
+import { AUTH_FILE, mintTestSessionCookie, TEST_USER } from './test-session';
 
 /**
  * E2E authentication setup (NextAuth).
@@ -14,8 +13,6 @@ import { mintTestSessionCookie, TEST_USER } from './test-session';
  * Test: `test/tests/unit/e2e-test-session.test.ts`
  */
 
-const authFile = path.join(__dirname, '../.auth/user.json');
-
 setup('authenticate', async ({ context, page, baseURL }) => {
   if (!baseURL) throw new Error('Playwright baseURL must be set for the auth setup.');
 
@@ -26,5 +23,5 @@ setup('authenticate', async ({ context, page, baseURL }) => {
   const session = await response.json();
   expect(session?.user?.id, 'dev server rejected the minted session').toBe(TEST_USER.id);
 
-  await context.storageState({ path: authFile });
+  await context.storageState({ path: AUTH_FILE });
 });

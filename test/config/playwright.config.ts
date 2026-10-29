@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 
@@ -75,7 +76,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },
-        storageState: '../tests/e2e/.auth/user.json',
+        // storageState resolves against the cwd, not this file; anchor it to the
+        // path auth.setup.ts writes.
+        storageState: path.join(__dirname, '../tests/e2e/.auth/user.json'),
       },
       dependencies: ['setup'],
     },

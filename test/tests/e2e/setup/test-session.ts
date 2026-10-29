@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { encode } from 'next-auth/jwt';
 
 /**
@@ -13,6 +14,9 @@ import { encode } from 'next-auth/jwt';
  * accept, under the cookie name Auth.js uses for that URL's scheme.
  * Test: `test/tests/unit/e2e-test-session.test.ts`
  */
+
+/** storageState file written by auth.setup.ts and read by the dependent specs. */
+export const AUTH_FILE = path.join(__dirname, '../.auth/user.json');
 
 export const TEST_USER = {
   id: 'e2e-test-user',
