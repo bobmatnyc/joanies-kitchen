@@ -1,7 +1,7 @@
 /** #55 S1: report-error emits one redacted app-error line and never throws. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { onRequestError } from '@/instrumentation';
-import { MAX_MESSAGE_LENGTH, reportError } from '../report-error';
+import { MAX_MESSAGE_LENGTH, reportError, sanitizeMessage } from '../report-error';
 
 function captureLines(): { lines: string[]; restore: () => void } {
   const lines: string[] = [];
@@ -67,6 +67,25 @@ describe('reportError', () => {
     expect(lines).toHaveLength(3);
     for (const l of lines) expect(JSON.parse(l).tag).toBe('app-error');
     expect(JSON.parse(lines[2] ?? '').name).toBe('ReportErrorFailure');
+  });
+});
+
+describe('sanitizeMessage input bound', () => {
+  // #55: redaction regexes are superlinear on long input, so input is capped first.
+  it.each([
+    ['no @', 'a'.repeat(200_000)],
+    ['near-email fragments', 'a.b-c_d%e+f.'.repeat(17_000)],
+  ])('sanitizes a 200k-char message with %s in under 100 ms', (_label, msg) => {
+    const start = performance.now();
+    const out = sanitizeMessage(msg);
+    expect(performance.now() - start).toBeLessThan(100);
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE_LENGTH + 1);
+  });
+
+  it('still redacts an email near the start of a long message', () => {
+    const out = sanitizeMessage(`user bob@example.com failed ${'x '.repeat(100_000)}`);
+    expect(out).toContain('[email]');
+    expect(out).not.toContain('bob@example.com');
   });
 });
 

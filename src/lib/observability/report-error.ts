@@ -41,9 +41,16 @@ const REDACTIONS: Array<[RegExp, string]> = [
   [/\b[A-Za-z0-9_-]{32,}\b/g, '[redacted]'],
 ];
 
-/** Redacts emails, bearer tokens, URLs, key-shaped strings and ids, then truncates. */
+/** #55: hard cap on input fed to the redaction regexes (they are superlinear on long input). */
+export const MAX_REDACTION_INPUT = 2000;
+
+/**
+ * Redacts emails, bearer tokens, URLs, key-shaped strings and ids, then truncates.
+ * Redaction is heuristic: short ids, names, phone numbers and short Basic/token= creds are not covered.
+ */
 export function sanitizeMessage(raw: unknown): string {
-  let msg = typeof raw === 'string' ? raw : '';
+  // #55: bound the input before any regex runs.
+  let msg = typeof raw === 'string' ? raw.slice(0, MAX_REDACTION_INPUT) : '';
   for (const [pattern, replacement] of REDACTIONS) msg = msg.replace(pattern, replacement);
   msg = msg.replace(/\s+/g, ' ').trim();
   return msg.length > MAX_MESSAGE_LENGTH ? `${msg.slice(0, MAX_MESSAGE_LENGTH)}…` : msg;
