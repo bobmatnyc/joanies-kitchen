@@ -265,7 +265,7 @@ export async function getProfileStats(username: string) {
     const [recipeCounts] = await db
       .select({
         total: sql<number>`count(*)::int`,
-        public: sql<number>`count(*) FILTER (WHERE ${recipes.is_public} = true)::int`,
+        public: sql<number>`count(*) FILTER (WHERE ${recipes.is_public} = true AND ${recipes.deleted_at} IS NULL)::int`,
       })
       .from(recipes)
       .where(eq(recipes.user_id, profile.user_id));

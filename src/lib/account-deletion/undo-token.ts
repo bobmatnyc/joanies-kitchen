@@ -12,7 +12,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * while the user's `deletion_requested_at` still equals `requestedAtMs`, so
  * a completed undo kills every outstanding token. No AUTH_SECRET → issuing
  * throws and verifying returns null (fail closed).
- * Test: `src/lib/account-deletion/__tests__/undo-token.test.ts`
+ * Test: `src/lib/account-deletion/__tests__/account-deletion.test.ts` (tampered, garbage,
+ * expired and used tokens)
  */
 
 /** How long an undo token stays valid after the blocked sign-in. */
