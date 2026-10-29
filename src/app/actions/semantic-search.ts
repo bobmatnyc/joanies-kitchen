@@ -9,9 +9,11 @@ import {
   generateSimilarRecipesKey,
   searchCaches,
 } from '@/lib/cache';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
+import { enforceRateLimit, type RateLimitBucket } from '@/lib/rate-limit';
 import {
   canViewRecipe,
   getRecipeViewer,
@@ -19,68 +21,8 @@ import {
   recipeVisibilityCondition,
 } from '@/lib/recipe-visibility';
 import { type RankingMode, rankRecipes } from '@/lib/search';
+import { rerankWithJina } from '@/lib/search/jina-rerank'; // #17: moved out for the 500-line cap
 import { toErrorMessage } from '@/lib/utils/error-handling';
-
-/**
- * Rerank a list of candidate recipes against a query using Jina Reranker v2.
- * Returns an array of indices (into `candidates`) ordered by relevance.
- * If the API fails or is not configured, returns null so callers fall through
- * to the original ordering (graceful degradation).
- */
-async function rerankWithJina(
-  query: string,
-  candidates: Array<{ id: string; name: string; description?: string | null }>
-): Promise<number[] | null> {
-  const apiKey = process.env.JINA_API_KEY;
-  if (!apiKey) return null;
-  if (candidates.length < 3) return null;
-
-  const documents = candidates.map(
-    (c) => `${c.name}. ${c.description ?? ''}`.trim()
-  );
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch('https://api.jina.ai/v1/rerank', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'jina-reranker-v2-base-multilingual',
-        query,
-        documents,
-        top_n: candidates.length,
-        return_documents: false,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      console.warn(`[Jina Reranker] HTTP ${response.status}, falling back to original order`);
-      return null;
-    }
-
-    const json = (await response.json()) as {
-      results?: Array<{ index: number; relevance_score: number }>;
-    };
-
-    if (!json.results?.length) return null;
-
-    return json.results
-      .sort((a, b) => b.relevance_score - a.relevance_score)
-      .map((r) => r.index);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.warn(`[Jina Reranker] Request failed, falling back to original order: ${msg}`);
-    return null;
-  }
-}
 
 /**
  * Search options for semantic and hybrid search
@@ -112,6 +54,50 @@ export interface SemanticSearchResult {
   success: boolean;
   recipes: RecipeWithSimilarity[];
   error?: string;
+  /** #17/#57: set when the call was refused before any paid work. */
+  errorCode?: SearchErrorCode;
+  /** #17: seconds until the caller's rate-limit window resets. */
+  retryAfterSec?: number;
+}
+
+/** #17/#57: typed refusal codes; the API route maps them to 429 and 503. */
+export type SearchErrorCode =
+  | 'RATE_LIMITED'
+  | 'LIMITER_UNAVAILABLE'
+  | 'COST_CAP_REACHED'
+  | 'COST_GUARD_UNAVAILABLE';
+
+/** #17: refusal result, or null when the caller is within its limit. */
+async function rateLimitRefusal(
+  bucket: RateLimitBucket,
+  userId: string | null
+): Promise<SemanticSearchResult | null> {
+  const verdict = await enforceRateLimit(bucket, userId);
+  if (verdict.allowed) return null;
+  // #17: a limiter outage is not the caller's fault; report it apart from a 429.
+  if (verdict.reason === 'unavailable') {
+    return {
+      success: false,
+      recipes: [],
+      error: 'Search is temporarily unavailable',
+      errorCode: 'LIMITER_UNAVAILABLE',
+    };
+  }
+  return {
+    success: false,
+    recipes: [],
+    error: 'Too many searches; try again shortly',
+    errorCode: 'RATE_LIMITED',
+    retryAfterSec: verdict.retryAfterSec,
+  };
+}
+
+/** #57: maps a thrown error to a result, keeping the cost-ceiling code typed. */
+function searchFailure(error: unknown): SemanticSearchResult {
+  if (isPaidCallBlocked(error)) {
+    return { success: false, recipes: [], error: error.message, errorCode: error.code };
+  }
+  return { success: false, recipes: [], error: toErrorMessage(error) };
 }
 
 /**
@@ -137,6 +123,15 @@ export interface SemanticSearchResult {
 export async function semanticSearchRecipes(
   query: string,
   options: SearchOptions = {}
+): Promise<SemanticSearchResult> {
+  return semanticSearchInternal(query, options, true);
+}
+
+/** #17: `rateLimited=false` lets hybrid search count one call, not two. */
+async function semanticSearchInternal(
+  query: string,
+  options: SearchOptions,
+  rateLimited: boolean
 ): Promise<SemanticSearchResult> {
   try {
     // Validate query
@@ -167,6 +162,12 @@ export async function semanticSearchRecipes(
         console.log(`[Cache HIT] Semantic search: ${query.substring(0, 50)}`);
       }
       return cached;
+    }
+
+    // #17: limit only cache misses; they are the calls that pay for an embedding.
+    if (rateLimited) {
+      const refusal = await rateLimitRefusal('semantic-search', userId ?? null);
+      if (refusal) return refusal;
     }
 
     // Generate embedding for query
@@ -283,11 +284,7 @@ export async function semanticSearchRecipes(
     return result;
   } catch (error: unknown) {
     console.error('Semantic search failed:', error);
-    return {
-      success: false,
-      recipes: [],
-      error: toErrorMessage(error),
-    };
+    return searchFailure(error); // #57
   }
 }
 
@@ -335,6 +332,10 @@ export async function findSimilarToRecipe(
       return cached;
     }
 
+    // #17: limit cache misses per caller.
+    const refusal = await rateLimitRefusal('similar-recipes', viewer.userId);
+    if (refusal) return refusal;
+
     // Get the recipe's embedding, generating and saving it when missing
     const embedding = await getRecipeEmbedding(recipeId);
     let embeddingVector: number[];
@@ -379,8 +380,10 @@ export async function findSimilarToRecipe(
     });
 
     // Semantic rerank with Jina Reranker v2 (graceful fallback on failure)
+    // #17: anonymous callers never trigger a paid Jina rerank.
     const rerankQuery = `${recipe.name}. ${recipe.description ?? ''}`.trim();
-    const rerankedIndices = await rerankWithJina(rerankQuery, recipesWithSimilarity);
+    const rerankedIndices =
+      viewer.userId === null ? null : await rerankWithJina(rerankQuery, recipesWithSimilarity);
     if (rerankedIndices) {
       recipesWithSimilarity = rerankedIndices.map((i) => recipesWithSimilarity[i]);
     }
@@ -406,11 +409,7 @@ export async function findSimilarToRecipe(
     return result;
   } catch (error: unknown) {
     console.error('Find similar failed:', error);
-    return {
-      success: false,
-      recipes: [],
-      error: toErrorMessage(error),
-    };
+    return searchFailure(error); // #57
   }
 }
 
@@ -459,11 +458,16 @@ export async function hybridSearchRecipes(
       return cached;
     }
 
+    // #17: one limit check for the hybrid call; the inner semantic call skips it.
+    const refusal = await rateLimitRefusal('semantic-search', userId ?? null);
+    if (refusal) return refusal;
+
     // 1. Get semantic search results
-    const semanticResults = await semanticSearchRecipes(query, {
-      ...options,
-      limit: limit * 2, // Get more for merging
-    });
+    const semanticResults = await semanticSearchInternal(
+      query,
+      { ...options, limit: limit * 2 }, // Get more for merging
+      false
+    );
 
     if (!semanticResults.success) {
       return semanticResults;
@@ -563,11 +567,7 @@ export async function hybridSearchRecipes(
     return result;
   } catch (error: unknown) {
     console.error('Hybrid search failed:', error);
-    return {
-      success: false,
-      recipes: [],
-      error: toErrorMessage(error),
-    };
+    return searchFailure(error); // #57
   }
 }
 

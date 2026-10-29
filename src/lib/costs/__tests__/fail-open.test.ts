@@ -5,6 +5,11 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+// #57: these tests cover other behaviour; the daily-cap guard has its own PGlite tests.
+vi.mock('@/lib/costs/daily-cap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/costs/daily-cap')>()),
+  assertWithinDailyCap: vi.fn(async () => 0),
+}));
 vi.mock('@/lib/db', () => ({
   db: {
     insert: () => ({

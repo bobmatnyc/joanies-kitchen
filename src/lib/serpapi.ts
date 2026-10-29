@@ -12,7 +12,7 @@
  */
 
 import 'server-only';
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 
 // Types
 export interface SerpAPISearchParams {
@@ -99,6 +99,8 @@ export async function searchRecipesWithSerpAPI(
 
     console.log(`[SerpAPI] Searching for: "${searchQuery}"`);
 
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {

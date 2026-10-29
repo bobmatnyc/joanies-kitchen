@@ -2,9 +2,22 @@ import { type NextRequest, NextResponse } from 'next/server';
 import {
   hybridSearchRecipes,
   type SearchOptions,
+  type SemanticSearchResult,
   semanticSearchRecipes,
 } from '@/app/actions/semantic-search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+
+/** #17/#57: 429 (with Retry-After) over the rate limit; 503 for a limiter outage or the cost ceiling. */
+function searchResponse(result: SemanticSearchResult) {
+  if (result.errorCode === 'RATE_LIMITED') {
+    return NextResponse.json(result, {
+      status: 429,
+      headers: { 'Retry-After': String(result.retryAfterSec ?? 60) },
+    });
+  }
+  if (result.errorCode) return NextResponse.json(result, { status: 503 });
+  return NextResponse.json(result, { status: result.success ? 200 : 500 });
+}
 
 /**
  * POST /api/search/semantic
@@ -48,7 +61,7 @@ export async function POST(request: NextRequest) {
         ? await hybridSearchRecipes(query, options as SearchOptions)
         : await semanticSearchRecipes(query, options as SearchOptions);
 
-    return NextResponse.json(result, { status: result.success ? 200 : 500 });
+    return searchResponse(result); // #17
   } catch (error: unknown) {
     console.error('API semantic search error:', error);
     return NextResponse.json(
@@ -101,7 +114,7 @@ export async function GET(request: NextRequest) {
         ? await hybridSearchRecipes(query, options)
         : await semanticSearchRecipes(query, options);
 
-    return NextResponse.json(result, { status: result.success ? 200 : 500 });
+    return searchResponse(result); // #17
   } catch (error: unknown) {
     console.error('API semantic search error:', error);
     return NextResponse.json(

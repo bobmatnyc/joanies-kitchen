@@ -6,7 +6,14 @@
  * Provides server-side substitution lookup with error handling
  */
 
-import { getBatchSubstitutions, getSubstitutions } from '@/lib/substitutions/substitution-service';
+import { auth } from '@/lib/auth';
+import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
+import { enforceRateLimit } from '@/lib/rate-limit';
+import {
+  getBatchSubstitutions,
+  getSubstitutions,
+  needsAiSubstitution,
+} from '@/lib/substitutions/substitution-service';
 import type { SubstitutionContext, SubstitutionResult } from '@/lib/substitutions/types';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -17,6 +24,9 @@ interface ActionResult<T> {
   success: boolean;
   data?: T;
   error?: string;
+  /** #17: typed refusal before any paid AI call. */
+  errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE' | PaidCallBlockedCode; // #57: cost codes
+  retryAfterSec?: number;
 }
 
 /**
@@ -137,6 +147,28 @@ export async function getMultipleIngredientSubstitutions(
       dietaryRestrictions: context?.dietaryRestrictions,
     };
 
+    // #17: no auth check here and signed-out pages call it, so a call that
+    // reaches the paid AI path counts against the caller's rate limit.
+    // Static-table and cache hits stay free.
+    if (validIngredients.some(needsAiSubstitution)) {
+      const { userId } = await auth();
+      const verdict = await enforceRateLimit('substitutions', userId ?? null);
+      if (!verdict.allowed) {
+        return verdict.reason === 'unavailable'
+          ? {
+              success: false,
+              error: 'Substitutions are temporarily unavailable',
+              errorCode: 'LIMITER_UNAVAILABLE',
+            }
+          : {
+              success: false,
+              error: 'Too many substitution requests; try again shortly',
+              errorCode: 'RATE_LIMITED',
+              retryAfterSec: verdict.retryAfterSec,
+            };
+      }
+    }
+
     // Get substitutions
     const results = await getBatchSubstitutions(validIngredients, substitutionContext);
 
@@ -146,6 +178,10 @@ export async function getMultipleIngredientSubstitutions(
     };
   } catch (error) {
     console.error('Error getting multiple ingredient substitutions:', error);
+    // #57: the daily cost ceiling returns its typed code.
+    if (isPaidCallBlocked(error)) {
+      return { success: false, error: error.message, errorCode: error.code };
+    }
     return {
       success: false,
       error: toErrorMessage(error),

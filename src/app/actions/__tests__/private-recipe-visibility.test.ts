@@ -31,6 +31,16 @@ const state = vi.hoisted(() => ({
   embeddingStored: true,
 }));
 
+// #57: these tests cover other behaviour; the daily-cap guard has its own PGlite tests.
+vi.mock('@/lib/costs/daily-cap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/costs/daily-cap')>()),
+  assertWithinDailyCap: vi.fn(async () => 0),
+}));
+// #17: the limiter has its own PGlite tests; allow every call here.
+vi.mock('@/lib/rate-limit', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
+}));
 vi.mock('@/lib/auth', () => {
   state.auth = vi.fn();
   return { auth: (...args: unknown[]) => state.auth(...args) };
@@ -79,8 +89,10 @@ import * as social from '@/app/actions/social';
 import { getToolBySlug } from '@/app/actions/tools';
 import { GET as paginatedGET } from '@/app/api/recipes/paginated/route';
 import { searchCaches } from '@/lib/cache';
+import { findSimilarRecipes } from '@/lib/db/embeddings';
 import { recipeIngredients } from '@/lib/db/ingredients-schema';
 import * as schema from '@/lib/db/schema';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { ingredientService } from '@/lib/services/ingredient-service';
 import { createVisibilityDb } from './recipe-visibility-db';
 
@@ -354,5 +366,78 @@ describe('#32 findSimilarToRecipe cache', () => {
     signInAs('anonymous');
     const anonymousResult = await findSimilarToRecipe(Q, 10);
     expect(hasP(anonymousResult.recipes)).toBe(false);
+  });
+});
+
+describe('#17 findSimilarToRecipe rerank and rate limit', () => {
+  const S1 = 'eeeeeeee-0000-4000-8000-00000000000e';
+  const S2 = 'ffffffff-0000-4000-8000-00000000000f';
+  const rerankCalls = () =>
+    vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes('/v1/rerank')).length;
+
+  beforeEach(async () => {
+    await (state.db as any)
+      .insert(schema.recipes)
+      .values([recipeRow(S1, OTHER, true, 'Open Stew'), recipeRow(S2, OTHER, true, 'Open Pie')]);
+    // Five candidates: an anonymous caller still sees four, enough to reach the rerank.
+    vi.mocked(findSimilarRecipes).mockResolvedValue(
+      [P, R, FORK, S1, S2].map((id) => ({
+        recipe_id: id,
+        similarity: 0.9,
+      })) as never
+    );
+    vi.stubEnv('JINA_API_KEY', 'test-key');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }))
+    );
+  });
+
+  afterAll(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('anonymous callers never trigger a Jina rerank', async () => {
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 10);
+    expect(result.success).toBe(true);
+    expect(result.recipes.length).toBeGreaterThanOrEqual(3);
+    expect(rerankCalls()).toBe(0);
+  });
+
+  it('signed-in users keep the Jina rerank', async () => {
+    signInAs('otherUser');
+    await findSimilarToRecipe(Q, 10);
+    expect(rerankCalls()).toBe(1);
+  });
+
+  it('over the limit returns RATE_LIMITED and makes no paid call', async () => {
+    vi.mocked(enforceRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      reason: 'limited',
+      retryAfterSec: 42,
+      limit: 60,
+    });
+    vi.mocked(findSimilarRecipes).mockClear();
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 10);
+    expect(result).toMatchObject({ success: false, errorCode: 'RATE_LIMITED', retryAfterSec: 42 });
+    expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
+    expect(rerankCalls()).toBe(0);
+  });
+
+  it('a limiter outage returns LIMITER_UNAVAILABLE, not RATE_LIMITED', async () => {
+    vi.mocked(enforceRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      reason: 'unavailable',
+      retryAfterSec: 42,
+      limit: 60,
+    });
+    vi.mocked(findSimilarRecipes).mockClear();
+    signInAs('anonymous');
+    const result = await findSimilarToRecipe(Q, 10);
+    expect(result).toMatchObject({ success: false, errorCode: 'LIMITER_UNAVAILABLE' });
+    expect(vi.mocked(findSimilarRecipes)).not.toHaveBeenCalled();
   });
 });

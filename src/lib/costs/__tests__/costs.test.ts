@@ -17,6 +17,11 @@ const { insertedRows, insertMock } = vi.hoisted(() => {
   return { insertedRows, insertMock };
 });
 
+// #57: these tests cover other behaviour; the daily-cap guard has its own PGlite tests.
+vi.mock('@/lib/costs/daily-cap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/costs/daily-cap')>()),
+  assertWithinDailyCap: vi.fn(async () => 0),
+}));
 vi.mock('@/lib/db', () => ({ db: { insert: insertMock } }));
 vi.mock('@/lib/db/autonomous-scraper-schema', () => ({ crawlCostEvents: {} }));
 
@@ -232,5 +237,20 @@ describe('LLM usage parsing', () => {
       usd: '0.000100',
       estimated: false,
     });
+  });
+
+  it('withChatCostTracking makes no paid call when the daily cap blocks', async () => {
+    // #57: the guard runs before the provider call.
+    const { assertWithinDailyCap, PaidCallBlockedError } = await import('../daily-cap');
+    vi.mocked(assertWithinDailyCap).mockRejectedValueOnce(
+      new PaidCallBlockedError('COST_CAP_REACHED', 'blocked')
+    );
+    const create = vi.fn();
+    const client = { chat: { completions: { create } } } as unknown as OpenAI;
+    const tracked = withChatCostTracking(client, 'openrouter');
+    await expect(
+      tracked.chat.completions.create({ model: 'openai/gpt-4o-mini', messages: [] })
+    ).rejects.toMatchObject({ code: 'COST_CAP_REACHED' });
+    expect(create).not.toHaveBeenCalled();
   });
 });

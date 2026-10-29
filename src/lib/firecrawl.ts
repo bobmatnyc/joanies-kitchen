@@ -1,6 +1,6 @@
 import 'server-only';
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { trackCost } from '@/lib/costs';
+import { assertWithinDailyCap, trackCost } from '@/lib/costs';
 
 // Type definitions for Firecrawl responses
 export interface ScrapeResponse {
@@ -48,6 +48,8 @@ export async function scrapeRecipePage(url: string): Promise<ScrapeResponse> {
 
     // Firecrawl SDK v4.4.1 uses the new v1 API which returns Document directly
     // It throws errors on failure instead of returning {success: false}
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const result = (await client.scrape(url, {
       formats: ['markdown', 'html'],
       onlyMainContent: true,
@@ -111,6 +113,8 @@ export async function crawlChefRecipes(params: {
 
   try {
     // Start async crawl using v4 API
+    // #57: daily cost ceiling hard stop before the paid call.
+    await assertWithinDailyCap();
     const crawlJob = (await client.crawl(baseUrl, {
       limit,
       maxDiscoveryDepth: maxDepth,
