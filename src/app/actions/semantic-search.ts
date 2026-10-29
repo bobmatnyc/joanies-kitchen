@@ -27,6 +27,7 @@ import {
   applySearchCutoff,
   RECIPE_SIMILAR_MIN_SIMILARITY,
   SEARCH_MIN_SIMILARITY,
+  SEARCH_RELATIVE_DELTA,
 } from '@/lib/search/similarity-cutoffs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -35,7 +36,10 @@ import { toErrorMessage } from '@/lib/utils/error-handling';
  */
 export interface SearchOptions {
   limit?: number;
-  /** #96 D57: SQL floor; defaults to SEARCH_MIN_SIMILARITY. The relative delta still applies. */
+  /**
+   * #96 D57: omitted → SEARCH_MIN_SIMILARITY plus the top1 - SEARCH_RELATIVE_DELTA trim.
+   * Set (including 0) → this value is the only cutoff; no relative trim.
+   */
   minSimilarity?: number;
   cuisine?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
@@ -261,9 +265,14 @@ async function semanticSearchInternal(
       };
     });
 
-    // #96 D57: calibrated cutoff — drop results below max(floor, top1 - delta),
-    // measured on the recipes that survived the filters above.
-    const withinCutoff = applySearchCutoff(recipesWithSimilarity, minSimilarity);
+    // #96 D57: calibrated cutoff — with minSimilarity omitted, drop results below
+    // max(floor, top1 - delta) over the recipes that survived the filters above.
+    // An explicit minSimilarity is the only cutoff (an infinite delta disables the trim).
+    const withinCutoff = applySearchCutoff(
+      recipesWithSimilarity,
+      minSimilarity,
+      options.minSimilarity === undefined ? SEARCH_RELATIVE_DELTA : Number.POSITIVE_INFINITY
+    );
 
     // Apply weighted ranking algorithm
     const rankedRecipes = rankRecipes(withinCutoff, {

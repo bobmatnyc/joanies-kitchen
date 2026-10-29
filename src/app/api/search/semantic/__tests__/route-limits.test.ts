@@ -44,3 +44,13 @@ describe('#17 /api/search/semantic limits', () => {
     expect((await POST(request)).status).toBe(503);
   });
 });
+
+describe('#96 D57 GET minSimilarity', () => {
+  it('omits minSimilarity when absent and passes an explicit value through', async () => {
+    search.mockResolvedValue({ success: true, recipes: [] });
+    await GET(new NextRequest('http://localhost/api/search/semantic?q=soup'));
+    expect(search.mock.lastCall?.[1].minSimilarity).toBeUndefined();
+    await GET(new NextRequest('http://localhost/api/search/semantic?q=soup&minSimilarity=0'));
+    expect(search.mock.lastCall?.[1].minSimilarity).toBe(0);
+  });
+});

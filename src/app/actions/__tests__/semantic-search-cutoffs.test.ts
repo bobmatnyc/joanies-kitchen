@@ -101,7 +101,7 @@ describe('#96 D57 semantic search cutoffs', () => {
     expect(similarities(result.recipes)).toEqual({ [A]: 0.84, [B]: 0.78 });
   });
 
-  it('honours an explicit minSimilarity of 0', async () => {
+  it('an explicit minSimilarity of 0 is the only cutoff: all three scores kept', async () => {
     vectorScores([
       [A, 0.4],
       [B, 0.35],
@@ -109,7 +109,20 @@ describe('#96 D57 semantic search cutoffs', () => {
     ]);
     const result = await semanticSearchRecipes('anything', { minSimilarity: 0 });
     expect(vi.mocked(findSimilarRecipes).mock.calls[0][2]).toBe(0);
-    expect(similarities(result.recipes)).toEqual({ [A]: 0.4, [B]: 0.35 });
+    expect(similarities(result.recipes)).toEqual({ [A]: 0.4, [B]: 0.35, [C]: 0.2 });
+  });
+
+  it('an explicit minSimilarity of 0.5 keeps every score >= 0.5 with no delta trim', async () => {
+    // pgvector would drop D (0.45) in SQL; the mock returns it to show the floor still applies.
+    vectorScores([
+      [A, 0.88],
+      [B, 0.7],
+      [C, 0.5],
+      [D, 0.45],
+    ]);
+    const result = await semanticSearchRecipes('braised short ribs', { minSimilarity: 0.5 });
+    expect(vi.mocked(findSimilarRecipes).mock.calls[0][2]).toBe(0.5);
+    expect(similarities(result.recipes)).toEqual({ [A]: 0.88, [B]: 0.7, [C]: 0.5 });
   });
 });
 
