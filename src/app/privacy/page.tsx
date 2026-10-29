@@ -148,12 +148,39 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      {/* D7c: confirm with counsel. The 30-day window is chosen to sit inside the GDPR
+          one-month response window and the CCPA 45-day window. Counsel has not confirmed either
+          figure or whether those laws apply to this site, so the public text states only our own
+          commitment and cites neither law. */}
       <LegalSection title="Your choices: access, export and deletion">
         <p>
-          You can request a copy of your data, or deletion of your account and its data, by
-          contacting us at <SupportContactLink />. There is no self-serve deletion or export yet; we
-          handle these requests manually. You can also remove the site&apos;s access to your Google
-          account at any time from your Google Account permissions page.
+          You can ask for a copy of your data (access and export), or for deletion of your account
+          and its data, by emailing us at <SupportContactLink />. We complete access, export and
+          deletion requests within 30 days.
+        </p>
+        <p>
+          Today these requests are handled by email only. Self-serve export and deletion from your
+          account are coming soon; they are not available yet.
+        </p>
+        <p>When we delete an account:</p>
+        <ul className="list-disc pl-6 space-y-1">
+          <li>
+            the account is hidden and held for a 30-day grace period, during which you can ask us to
+            restore it;
+          </li>
+          <li>after the grace period, the account and its data are permanently deleted;</li>
+          <li>
+            you choose what happens to your public recipes: they are deleted (the default), or kept
+            and shown as written by &quot;deleted user&quot;;
+          </li>
+          <li>
+            your private recipes, uploaded images, and your comments and ratings on other
+            people&apos;s recipes are always deleted.
+          </li>
+        </ul>
+        <p>
+          You can also remove the site&apos;s access to your Google account at any time from your
+          Google Account permissions page.
         </p>
       </LegalSection>
 
