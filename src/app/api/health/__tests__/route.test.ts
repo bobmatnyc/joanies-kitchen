@@ -12,6 +12,7 @@ describe('GET /api/health', () => {
     vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'abcdef1234567890');
     vi.stubEnv('AUTH_SECRET', 'secret-value-123');
     vi.stubEnv('AUTH_GOOGLE_ID', 'google-id-value');
+    vi.stubEnv('AUTH_GOOGLE_SECRET', 'google-secret-value');
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -62,20 +63,26 @@ describe('GET /api/health', () => {
       status: 'ok',
       AUTH_SECRET: true,
       AUTH_GOOGLE_ID: true,
+      AUTH_GOOGLE_SECRET: true,
     });
     expect(text).not.toContain('secret-value-123');
     expect(text).not.toContain('google-id-value');
+    expect(text).not.toContain('google-secret-value');
   });
 
-  it.each(['AUTH_SECRET', 'AUTH_GOOGLE_ID'])('returns 503 when %s is missing', async (name) => {
-    execute.mockResolvedValue({ rows: [] });
-    vi.stubEnv(name, '');
-    const res = await GET();
-    const body = await res.json();
-    expect(res.status).toBe(503);
-    expect(body.status).toBe('error');
-    expect(body.checks.db).toEqual({ status: 'ok' });
-    expect(body.checks.auth.status).toBe('error');
-    expect(body.checks.auth[name]).toBe(false);
-  });
+  // #55: AUTH_GOOGLE_SECRET alone missing must also fail, as sign-in does.
+  it.each(['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'])(
+    'returns 503 when %s is missing',
+    async (name) => {
+      execute.mockResolvedValue({ rows: [] });
+      vi.stubEnv(name, '');
+      const res = await GET();
+      const body = await res.json();
+      expect(res.status).toBe(503);
+      expect(body.status).toBe('error');
+      expect(body.checks.db).toEqual({ status: 'ok' });
+      expect(body.checks.auth.status).toBe('error');
+      expect(body.checks.auth[name]).toBe(false);
+    }
+  );
 });

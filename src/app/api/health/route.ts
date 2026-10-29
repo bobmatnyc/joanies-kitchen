@@ -10,6 +10,7 @@
  */
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { isAuthConfigured } from '@/lib/auth-env';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -43,10 +44,13 @@ async function checkDb(): Promise<CheckResult> {
 function checkAuthConfig() {
   const secret = Boolean(process.env.AUTH_SECRET);
   const googleId = Boolean(process.env.AUTH_GOOGLE_ID);
+  const googleSecret = Boolean(process.env.AUTH_GOOGLE_SECRET);
   return {
-    status: secret && googleId ? ('ok' as const) : ('error' as const),
+    // #55: same requirement as sign-in itself (isAuthConfigured), all three vars.
+    status: isAuthConfigured() ? ('ok' as const) : ('error' as const),
     AUTH_SECRET: secret,
     AUTH_GOOGLE_ID: googleId,
+    AUTH_GOOGLE_SECRET: googleSecret,
   };
 }
 
