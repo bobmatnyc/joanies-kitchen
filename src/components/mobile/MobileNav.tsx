@@ -83,7 +83,7 @@ export function MobileNav() {
 
           {/* Meal Plans */}
           <NavLink
-            href="/meal-plans"
+            href="/meals"
             icon={CalendarDays}
             label="Meals"
             variant="mobile"

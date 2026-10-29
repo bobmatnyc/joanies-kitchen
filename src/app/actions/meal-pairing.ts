@@ -267,7 +267,7 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
 
     // 7. Revalidate relevant pages
     revalidatePath('/meals');
-    revalidatePath('/meal-plans');
+    revalidatePath('/my-meals');
 
     // 8. Return success with meal ID
     return {
@@ -420,7 +420,7 @@ export async function deleteMealPlan(mealId: string) {
 
     // 5. Revalidate pages
     revalidatePath('/meals');
-    revalidatePath('/meal-plans');
+    revalidatePath('/my-meals');
 
     return {
       success: true,

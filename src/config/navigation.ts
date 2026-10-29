@@ -23,7 +23,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/learn', label: 'Learn', icon: GraduationCap },
   { href: '/recipes', label: 'Recipes', icon: BookOpen },
   { href: '/collections', label: 'Collections', icon: Bookmark },
-  { href: '/meal-plans', label: 'Meals', icon: CalendarDays },
+  { href: '/meals', label: 'Meals', icon: CalendarDays },
   { href: '/ingredients', label: 'Ingredients', icon: Package },
   { href: '/discover/chefs', label: 'No-Waste Chefs', icon: Leaf },
 ];
