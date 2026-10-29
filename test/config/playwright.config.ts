@@ -68,6 +68,12 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      // Deletes the seeded test user once every dependent project finishes.
+      teardown: 'auth-teardown',
+    },
+    {
+      name: 'auth-teardown',
+      testMatch: /.*\.teardown\.ts/,
     },
 
     // Desktop browsers

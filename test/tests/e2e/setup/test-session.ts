@@ -98,3 +98,72 @@ export async function mintTestSessionCookie(
     sameSite: 'Lax',
   };
 }
+
+/** Writes and removes the TEST_USER `users` row. A seam so unit tests need no database. */
+export interface TestUserStore {
+  upsert(user: typeof TEST_USER): Promise<void>;
+  remove(id: string): Promise<void>;
+}
+
+/** Postgres "undefined_table": the auth migration has not been applied. */
+const UNDEFINED_TABLE = '42P01';
+
+function migrationHint(error: unknown): never {
+  if ((error as { code?: string })?.code === UNDEFINED_TABLE) {
+    throw new Error(
+      'E2E auth: the `users` table does not exist in DATABASE_URL. ' +
+        'Run the auth migrations (`pnpm db:migrate`) against the dev database first.'
+    );
+  }
+  throw error;
+}
+
+/** Store backed by DATABASE_URL through the Neon HTTP driver the app uses. */
+export async function neonTestUserStore(env: Env): Promise<TestUserStore> {
+  if (!env.DATABASE_URL) {
+    throw new Error('E2E auth: DATABASE_URL must be set to seed the test user.');
+  }
+  const { neon } = await import('@neondatabase/serverless');
+  const sql = neon(env.DATABASE_URL);
+  return {
+    async upsert(user) {
+      await sql`INSERT INTO users (id, email, name, is_admin)
+        VALUES (${user.id}, ${user.email}, ${user.name}, false)
+        ON CONFLICT (id) DO UPDATE
+        SET email = EXCLUDED.email, name = EXCLUDED.name, is_admin = false`.catch(migrationHint);
+    },
+    async remove(id) {
+      await sql`DELETE FROM users WHERE id = ${id}`.catch(migrationHint);
+    },
+  };
+}
+
+/**
+ * Why: the jwt callback re-reads `users.is_admin` after ADMIN_CLAIM_TTL_MS and
+ * ends the session when the row is missing, so a cookie with no row expires
+ * after 5 minutes.
+ * What: runs every gate first, then upserts the TEST_USER row, then mints.
+ * Nothing touches the database when a gate fails.
+ * Test: `test/tests/unit/e2e-test-session.test.ts`
+ */
+export async function prepareTestSession(
+  env: Env,
+  baseURL: string,
+  getStore: () => Promise<TestUserStore>,
+  now = Date.now()
+): Promise<MintedCookie> {
+  assertTestAuthAllowed(env, baseURL);
+  const store = await getStore();
+  await store.upsert(TEST_USER);
+  return mintTestSessionCookie(env, baseURL, now);
+}
+
+/** Gated removal of the TEST_USER row, for the teardown project. */
+export async function removeTestUser(
+  env: Env,
+  baseURL: string,
+  getStore: () => Promise<TestUserStore>
+): Promise<void> {
+  assertTestAuthAllowed(env, baseURL);
+  await (await getStore()).remove(TEST_USER.id);
+}
