@@ -1,8 +1,8 @@
 # Joanie's Kitchen Roadmap
 
-**Public beta: Friday 2027-01-01 (goal G16).**
+**Public beta: Monday 2027-02-01 (goal G16).**
 **Last updated:** 2026-10-29 (r5)
-**Revision r5:** Dates restored to the GitHub milestones (owner ruling D45). The go-no-go checklist is in [GO_LIVE_PLAN.md](GO_LIVE_PLAN.md).
+**Revision r5:** milestones M0-M3 restored to the GitHub milestone dates (owner rulings D45, D4f); the 2027-02-01 public beta stands. The go-no-go checklist is in [GO_LIVE_PLAN.md](GO_LIVE_PLAN.md).
 
 This is the roadmap of record. Older roadmaps are in [docs/archive/roadmap-2025](docs/archive/roadmap-2025/).
 
@@ -39,8 +39,8 @@ There is no schedule buffer except the freeze. All of V1.1 ships at launch, and 
 | M1 | Fri 2026-11-20 | A and B | Core loop, and the safety gate for open sign-up |
 | M2 | Fri 2026-12-04 | B (plus two items on A) | V1.1 zero-waste features |
 | M3 | Fri 2026-12-18 | A, with B fixing bugs | Launch readiness |
-| Freeze | 2026-12-19 to 2026-12-31 | Both | Fixes for launch blockers only |
-| Launch | Fri 2027-01-01 | | Public beta |
+| Freeze | 2026-12-19 to 2027-01-31 | Both | Fixes for launch blockers only |
+| Launch | Mon 2027-02-01 | | Public beta |
 
 First, ahead of everything else: the `/privacy` and `/terms` pages, and a check of the admin POST requests that pile up.
 
@@ -110,13 +110,13 @@ Required, on Track A:
 - Load: a smoke test of the core flows at expected launch traffic.
 - Staging rehearsal: deploy the launch build to staging, run the checklist, then promote to production.
 
-### Freeze (2026-12-19 to 2026-12-31)
+### Freeze (2026-12-19 to 2027-01-31)
 
-The freeze is the only buffer: 13 days.
+The freeze is the only buffer: 44 days.
 - Only fixes for launch blockers go in, each verified on staging before production.
 - A launch checklist ([GO_LIVE_PLAN.md](GO_LIVE_PLAN.md)) with a rollback plan and named people on call.
 
-### Launch (Fri 2027-01-01, public beta)
+### Launch (Mon 2027-02-01, public beta)
 
 - Remove the AlphaStamp, or change it to "Launched".
 - Announcement.
