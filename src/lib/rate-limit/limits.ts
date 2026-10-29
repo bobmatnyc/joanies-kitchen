@@ -13,6 +13,11 @@ export const RATE_LIMITS = {
   'similar-recipes': { limit: 60, windowSec: 60 },
   /** `getMultipleIngredientSubstitutions`, counted only when a call reaches the AI path. */
   substitutions: { limit: 20, windowSec: 60 },
+  /**
+   * `generateBalancedMeal`: one call is an LLM completion plus four embedding
+   * searches, so the budget is a quarter of `substitutions`; planning a meal needs few calls.
+   */
+  'meal-pairing': { limit: 5, windowSec: 60 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS;

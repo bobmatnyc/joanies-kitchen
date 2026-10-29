@@ -5,8 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/meal-pairing-engine';
 import { auth } from '@/lib/auth';
+import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -107,9 +109,23 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
       };
     }
 
-    // 4. Rate limiting check (simple time-based check)
-    // TODO: Implement proper rate limiting with Redis or similar
-    // For now, we'll rely on OpenRouter's rate limiting
+    // 4. Rate limit before the paid LLM call: a signed-in user could otherwise
+    // loop this action. Fails closed when the counter is unavailable.
+    const verdict = await enforceRateLimit('meal-pairing', userId);
+    if (!verdict.allowed) {
+      return verdict.reason === 'unavailable'
+        ? {
+            success: false,
+            error: 'Meal generation is temporarily unavailable',
+            errorCode: 'LIMITER_UNAVAILABLE' as const,
+          }
+        : {
+            success: false,
+            error: 'Too many meal generation requests; try again shortly',
+            errorCode: 'RATE_LIMITED' as const,
+            retryAfterSec: verdict.retryAfterSec,
+          };
+    }
 
     // 5. Call meal pairing engine
     const result = await generateMeal(validationResult.data);
@@ -128,6 +144,11 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
     };
   } catch (error: unknown) {
     console.error('Error in generateBalancedMeal:', error);
+    // #57: the daily cost ceiling returns its typed code.
+    if (isPaidCallBlocked(error)) {
+      const errorCode: PaidCallBlockedCode = error.code;
+      return { success: false, error: error.message, errorCode };
+    }
     return {
       success: false,
       error: toErrorMessage(error),
