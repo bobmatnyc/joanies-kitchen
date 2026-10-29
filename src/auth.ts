@@ -27,6 +27,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     signIn: (params) => authorizeSignIn(params),
-    jwt: (params) => refreshAdminClaim(params),
+    jwt: (params) => {
+      // The adapter returns the stored users row, whose `image` can be null for a
+      // pre-seeded user; take the picture Google just sent (default scopes) instead.
+      if (params.profile?.picture) params.token.picture = params.profile.picture;
+      return refreshAdminClaim(params);
+    },
   },
 });
