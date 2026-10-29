@@ -28,7 +28,6 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import type { Recipe } from '@/lib/db/schema';
-import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 
 interface EnhancedAiSuggestionsProps {
   description: string;
@@ -105,7 +104,7 @@ export const EnhancedAiSuggestions = memo(function EnhancedAiSuggestions({
         preferSeasonal,
         currentSeason: getCurrentSeason(),
         limit: 3,
-        minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+        // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       };
 
       const result = await getSmartMealSuggestions(params);

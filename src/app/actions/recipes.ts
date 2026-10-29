@@ -9,7 +9,6 @@ import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
-import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { hasAdminRecipeFields, pickRecipeWriteFields } from '@/lib/utils/recipe-write-fields'; // #33
@@ -930,7 +929,7 @@ export async function getRecipesOfTheDay() {
     const appetizerQuery = `light appetizer starter ${mainCuisine} acidic fresh`;
     const appetizerResult = await semanticSearchRecipes(appetizerQuery, {
       limit: 20,
-      minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+      // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       includePrivate: false,
     });
 
@@ -945,7 +944,7 @@ export async function getRecipesOfTheDay() {
     const sideQuery = `side dish vegetables ${mainCuisine} crisp light`;
     const sideResult = await semanticSearchRecipes(sideQuery, {
       limit: 20,
-      minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+      // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       includePrivate: false,
     });
 
@@ -962,7 +961,7 @@ export async function getRecipesOfTheDay() {
     const dessertQuery = `dessert sweet ${mainCuisine} light pastry`;
     const dessertResult = await semanticSearchRecipes(dessertQuery, {
       limit: 20,
-      minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+      // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
       includePrivate: false,
     });
 

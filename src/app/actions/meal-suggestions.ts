@@ -1,7 +1,6 @@
 'use server';
 
 import { deduplicateAcrossCourses } from '@/lib/meals/recipe-classification';
-import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 import { type RecipeWithSimilarity, semanticSearchRecipes } from './semantic-search';
 
 /**
@@ -97,7 +96,7 @@ export async function getSmartMealSuggestions(
       preferSeasonal = false,
       currentSeason,
       limit = 3,
-      minSimilarity = SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+      minSimilarity, // #96 D57: calibrated cutoff — undefined means floor + delta.
     } = params;
 
     if (!description.trim()) {

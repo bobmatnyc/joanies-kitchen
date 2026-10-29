@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { deduplicateAcrossCourses } from '@/lib/meals/recipe-classification';
-import { SEARCH_MIN_SIMILARITY } from '@/lib/search/similarity-cutoffs';
 
 interface CourseSuggestions {
   appetizer: RecipeWithSimilarity[];
@@ -75,22 +74,22 @@ export const AiRecipeSuggestions = memo(function AiRecipeSuggestions({
       const [appetizerResult, mainResult, sideResult, dessertResult] = await Promise.all([
         semanticSearchRecipes(`${baseQuery} appetizer starter`, {
           limit: COURSE_LIMITS.appetizer,
-          minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} main dish entree`, {
           limit: COURSE_LIMITS.main,
-          minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} side dish`, {
           limit: COURSE_LIMITS.side,
-          minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
         semanticSearchRecipes(`${baseQuery} dessert sweet`, {
           limit: COURSE_LIMITS.dessert,
-          minSimilarity: SEARCH_MIN_SIMILARITY, // #96 D57: calibrated cutoff
+          // #96 D57: calibrated cutoff — minSimilarity omitted, so search applies floor + delta.
           includePrivate: true,
         }),
       ]);

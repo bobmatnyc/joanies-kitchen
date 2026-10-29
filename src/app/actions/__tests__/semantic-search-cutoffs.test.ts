@@ -30,6 +30,7 @@ vi.mock('@/lib/db/embeddings', () => ({
   getRecipeEmbedding: async () => ({ embedding: [0.1, 0.2] }),
 }));
 
+import { getSmartMealSuggestions } from '@/app/actions/meal-suggestions';
 import { findSimilarToRecipe, semanticSearchRecipes } from '@/app/actions/semantic-search';
 import { searchCaches } from '@/lib/cache';
 import { findSimilarRecipes } from '@/lib/db/embeddings';
@@ -47,6 +48,7 @@ function row(id: string) {
     name: `Recipe ${id.slice(0, 1)}`,
     ingredients: '[]',
     instructions: '[]',
+    tags: '["main"]', // getSmartMealSuggestions drops recipes it cannot assign a course
     is_public: true,
     is_system_recipe: false,
     moderation_status: 'approved' as const,
@@ -123,6 +125,25 @@ describe('#96 D57 semantic search cutoffs', () => {
     const result = await semanticSearchRecipes('braised short ribs', { minSimilarity: 0.5 });
     expect(vi.mocked(findSimilarRecipes).mock.calls[0][2]).toBe(0.5);
     expect(similarities(result.recipes)).toEqual({ [A]: 0.88, [B]: 0.7, [C]: 0.5 });
+  });
+});
+
+describe('#96 D57 default callers get floor + delta', () => {
+  it('getSmartMealSuggestions omits minSimilarity, so the top1 - 0.10 trim applies', async () => {
+    vectorScores([
+      [A, 0.84],
+      [B, 0.78],
+      [C, 0.73],
+      [D, 0.7],
+    ]);
+    const result = await getSmartMealSuggestions({ description: 'cozy winter dinner', limit: 4 });
+    expect(result.success).toBe(true);
+    for (const call of vi.mocked(findSimilarRecipes).mock.calls) {
+      expect(call[2]).toBe(SEARCH_MIN_SIMILARITY);
+    }
+    const courses = Object.values(result.suggestions ?? {}) as Array<Array<{ id: string }>>;
+    const ids = new Set(courses.flatMap((course) => course.map((r) => r.id)));
+    expect([...ids].sort()).toEqual([A, B]);
   });
 });
 
