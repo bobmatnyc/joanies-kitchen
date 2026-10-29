@@ -1,14 +1,15 @@
--- #9 / #7: record 0000_baseline_from_prod as applied on prod WITHOUT running it.
--- Prod already has this schema (it was built with `drizzle-kit push`), and
--- drizzle.__drizzle_migrations is empty there. After this row exists,
--- `drizzle-kit migrate` skips the baseline and applies only later migrations.
+-- #9 / #7: record 0000_baseline_from_prod as applied WITHOUT running it.
+-- Prod already has this row (and 0001/0002), so do NOT run this on prod.
+-- Use it only for a new environment whose schema was built with
+-- `drizzle-kit push`. After this row exists, `drizzle-kit migrate` skips the
+-- baseline and applies only later migrations.
 --
 -- hash       = sha256 of drizzle/0000_baseline_from_prod.sql, byte for byte
 --              (the value drizzle's migrator computes and stores).
 -- created_at = `when` of tag 0000_baseline_from_prod in drizzle/meta/_journal.json.
 -- If either file changes, recompute both values before running this.
 --
--- Run by hand with psql, once, after a dry run on a Neon branch. Not run by CI.
+-- Run by hand with psql, once per such environment. Not run by CI.
 BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS drizzle;
