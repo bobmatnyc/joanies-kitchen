@@ -16,6 +16,8 @@ const OWNER = 'user_owner';
 const OTHER = 'user_other';
 const ITEM_ID = '11111111-0000-4000-8000-000000000001';
 const INGREDIENT_ID = '22222222-0000-4000-8000-000000000002';
+const ITEM_ID_2 = '11111111-0000-4000-8000-000000000003';
+const INGREDIENT_ID_2 = '22222222-0000-4000-8000-000000000004';
 const PUBLIC_ID = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const PRIVATE_ID = 'bbbbbbbb-0000-4000-8000-00000000000b';
 const REJECTED_ID = 'cccccccc-0000-4000-8000-00000000000c';
@@ -213,5 +215,59 @@ describe('#143 markRecipeIngredientsAsUsed: a hidden recipe is refused as a miss
     const { items, log } = await snapshot();
     expect(log).toEqual([]);
     expect(items.map((i) => Number(i.quantity))).toEqual([5]);
+  });
+
+  it('a recipe hidden mid-loop is refused as a missing one and later items are not written', async () => {
+    state.userId = OTHER;
+    // Second ingredient and a second inventory item, so the loop makes two inner calls.
+    await db.insert(schema.recipeIngredients).values({
+      recipe_id: PUBLIC_ID,
+      ingredient_id: INGREDIENT_ID_2,
+      amount: '2',
+      unit: 'cups',
+    });
+    await db.insert(inventoryItems).values({
+      id: ITEM_ID_2,
+      user_id: OTHER,
+      ingredient_id: INGREDIENT_ID_2,
+      storage_location: 'fridge',
+      quantity: '5',
+      unit: 'cups',
+    });
+    // The module calls `markItemAsUsed` through its own scope, so it cannot be spied on.
+    // A Postgres trigger soft-deletes the recipe right after the first usage-log insert,
+    // so the second inner call's visibility lookup sees a hidden recipe.
+    await client.exec(`
+      CREATE FUNCTION hide_recipe_after_first_log() RETURNS trigger AS $$
+      BEGIN
+        UPDATE "recipes" SET "deleted_at" = now() WHERE "id" = NEW."recipe_id";
+        RETURN NEW;
+      END; $$ LANGUAGE plpgsql;
+      CREATE TRIGGER hide_recipe_after_first_log AFTER INSERT ON "inventory_usage_log"
+        FOR EACH ROW EXECUTE FUNCTION hide_recipe_after_first_log();
+    `);
+    try {
+      const hidden = await markRecipeIngredientsAsUsed(PUBLIC_ID);
+      // The trigger is gone from the reference call: the missing id never reaches a write.
+      const missing = await markRecipeIngredientsAsUsed(MISSING_ID);
+
+      expect(hidden).toEqual(missing);
+      expect(hidden).toEqual({ success: false, error: 'Recipe not found or access denied' });
+
+      // Exactly one write stands (the first item, written before the recipe was hidden).
+      // The second item has no usage-log row and its quantity is unchanged.
+      const { items, log } = await snapshot();
+      expect(log).toHaveLength(1);
+      expect(log[0].recipe_id).toBe(PUBLIC_ID);
+      const written = log[0].inventory_item_id;
+      const other = written === ITEM_ID ? ITEM_ID_2 : ITEM_ID;
+      expect(Number(items.find((i) => i.id === written)?.quantity)).toBe(3);
+      expect(Number(items.find((i) => i.id === other)?.quantity)).toBe(5);
+      expect(log.some((l) => l.inventory_item_id === other)).toBe(false);
+    } finally {
+      await client.exec(
+        'DROP TRIGGER hide_recipe_after_first_log ON "inventory_usage_log"; DROP FUNCTION hide_recipe_after_first_log();'
+      );
+    }
   });
 });
