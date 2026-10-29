@@ -409,69 +409,6 @@ Get the most popular ingredients based on usage statistics.
 
 **File**: `src/app/actions/substitutions.ts`
 
-#### `getIngredientSubstitutions(ingredient: string, context?)`
-
-Get substitution suggestions for a missing ingredient.
-
-**Parameters**:
-```typescript
-ingredient: string; // e.g., "butter"
-
-context?: {
-  recipeName?: string; // e.g., "Chocolate Chip Cookies"
-  cookingMethod?: string; // e.g., "baking", "sautéing"
-  userIngredients?: string[]; // What you have available
-  dietaryRestrictions?: string[]; // e.g., ['vegan', 'dairy-free']
-}
-```
-
-**Returns**:
-```typescript
-{
-  success: boolean;
-  data?: SubstitutionResult;
-  error?: string;
-}
-
-interface SubstitutionResult {
-  ingredient: string;
-  substitutions: Substitution[]; // 0-5 options
-  source: 'rule-based' | 'ai' | 'hybrid';
-}
-
-interface Substitution {
-  name: string; // e.g., "Coconut oil"
-  ratio: string; // e.g., "1:1"
-  notes?: string; // e.g., "Adds coconut flavor"
-  impact?: string; // e.g., "Slightly different texture"
-  dietaryTags?: string[]; // e.g., ['vegan', 'dairy-free']
-  confidence?: number; // 0-100 (AI-generated only)
-}
-```
-
-**Substitution Engine**:
-- **Rule-based**: 200+ pre-programmed substitutions (instant)
-- **AI-powered**: GPT-4o-mini for unusual ingredients (2-3 seconds)
-- **Context-aware**: Considers recipe, cooking method, available ingredients
-- **Quality-filtered**: Only viable substitutions returned
-
-**Example**:
-```typescript
-const result = await getIngredientSubstitutions('butter', {
-  recipeName: 'Chocolate Chip Cookies',
-  cookingMethod: 'baking',
-  userIngredients: ['coconut oil', 'olive oil'],
-  dietaryRestrictions: ['vegan']
-});
-
-if (result.success && result.data) {
-  console.log(`Substitutions for ${result.data.ingredient}:`);
-  result.data.substitutions.forEach(sub => {
-    console.log(`- ${sub.name} (${sub.ratio}): ${sub.notes}`);
-  });
-}
-```
-
 #### `getMultipleIngredientSubstitutions(ingredients: string[], context?)`
 
 Get substitutions for multiple ingredients at once (batch operation).
@@ -1020,7 +957,7 @@ const suggestions = await getIngredientSuggestions('tom');
 
 **Get substitutions**:
 ```typescript
-const subs = await getIngredientSubstitutions('butter', {
+const subs = await getMultipleIngredientSubstitutions(['butter'], {
   recipeName: 'Cookies',
   cookingMethod: 'baking'
 });
