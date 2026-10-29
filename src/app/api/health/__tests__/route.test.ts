@@ -10,6 +10,9 @@ describe('GET /api/health', () => {
   beforeEach(() => {
     execute.mockReset();
     vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'abcdef1234567890');
+    vi.stubEnv('AUTH_SECRET', 'secret-value-123');
+    vi.stubEnv('AUTH_GOOGLE_ID', 'google-id-value');
+    vi.stubEnv('AUTH_GOOGLE_SECRET', 'google-secret-value');
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -49,4 +52,37 @@ describe('GET /api/health', () => {
     expect(res.status).toBe(503);
     expect((await res.json()).checks.db).toEqual({ status: 'error', reason: 'timeout' });
   });
+
+  // #55 S3: auth config presence is reported as booleans and gates the status.
+  it('reports auth config presence as booleans, never values', async () => {
+    execute.mockResolvedValue({ rows: [] });
+    const res = await GET();
+    const text = await res.text();
+    expect(res.status).toBe(200);
+    expect(JSON.parse(text).checks.auth).toEqual({
+      status: 'ok',
+      AUTH_SECRET: true,
+      AUTH_GOOGLE_ID: true,
+      AUTH_GOOGLE_SECRET: true,
+    });
+    expect(text).not.toContain('secret-value-123');
+    expect(text).not.toContain('google-id-value');
+    expect(text).not.toContain('google-secret-value');
+  });
+
+  // #55: AUTH_GOOGLE_SECRET alone missing must also fail, as sign-in does.
+  it.each(['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'])(
+    'returns 503 when %s is missing',
+    async (name) => {
+      execute.mockResolvedValue({ rows: [] });
+      vi.stubEnv(name, '');
+      const res = await GET();
+      const body = await res.json();
+      expect(res.status).toBe(503);
+      expect(body.status).toBe('error');
+      expect(body.checks.db).toEqual({ status: 'ok' });
+      expect(body.checks.auth.status).toBe('error');
+      expect(body.checks.auth[name]).toBe(false);
+    }
+  );
 });

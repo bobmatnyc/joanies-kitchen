@@ -36,9 +36,10 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals, error pages, and all static files
-    '/((?!_next|_error|404|500|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/api(.*)',
+    // Skip Next.js internals, error pages, and all static files.
+    // #55: also skip /api/client-error so its responses set no Auth.js cookies.
+    '/((?!_next|_error|404|500|api/client-error|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes, except /api/client-error (#55).
+    '/api((?!/client-error).*)',
   ],
 };

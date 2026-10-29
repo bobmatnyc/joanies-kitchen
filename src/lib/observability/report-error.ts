@@ -58,11 +58,48 @@ export function sanitizeMessage(raw: unknown): string {
   return msg.length > MAX_MESSAGE_LENGTH ? `${msg.slice(0, MAX_MESSAGE_LENGTH)}…` : msg;
 }
 
-/** Keeps only the pathname: drops query string and fragment, caps the length. */
+/** Keeps only the pathname: drops query string and fragment, redacts, caps the length. */
 export function sanitizePath(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;
   const pathOnly = raw.split(/[?#]/, 1)[0] ?? '';
-  return pathOnly.slice(0, 200);
+  // #55: paths can carry emails or tokens (e.g. /u/a@b.com). Email/token
+  // redaction only, so long recipe slugs stay readable.
+  return redactLogText(pathOnly.slice(0, 200)).slice(0, 200);
+}
+
+/**
+ * #55 S3: the subset of `REDACTIONS` applied to arbitrary console output.
+ * Emails, bearer tokens, key-shaped strings, JWTs and credentialed URLs only;
+ * plain URLs, ids and hashes stay readable for debugging.
+ */
+const CONSOLE_REDACTIONS: Array<[RegExp, string]> = [
+  [/\b[a-z][a-z0-9+.-]*:\/\/[^\s/@'"\\]+@[^\s'"\\]+/gi, '[url]'],
+  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email]'],
+  [/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]'],
+  [/\b(?:sk|pk|rk|key|token|secret)[-_][A-Za-z0-9_-]{8,}/gi, '[secret]'],
+  [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[jwt]'],
+];
+
+/** #55 S3: total characters `redactLogText` keeps; the rest is dropped with a marker. */
+export const MAX_LOG_TEXT = 8000;
+
+/**
+ * Redacts secrets from free-form log text without collapsing whitespace.
+ * Cost is bounded: at most `MAX_LOG_TEXT` chars, and each line at most
+ * `MAX_REDACTION_INPUT` chars before any regex runs (the S1 pre-bound).
+ * Replacements contain no quotes or backslashes, so JSON input stays valid.
+ */
+export function redactLogText(raw: string): string {
+  const total = raw.length > MAX_LOG_TEXT ? raw.slice(0, MAX_LOG_TEXT) : raw;
+  const lines = total.split('\n').map((line) => {
+    let out = line.length > MAX_REDACTION_INPUT ? `${line.slice(0, MAX_REDACTION_INPUT)}…` : line;
+    for (const [pattern, replacement] of CONSOLE_REDACTIONS) {
+      out = out.replace(pattern, replacement);
+    }
+    return out;
+  });
+  const dropped = raw.length - total.length;
+  return dropped > 0 ? `${lines.join('\n')}…[${dropped} chars truncated]` : lines.join('\n');
 }
 
 function field(error: unknown, key: string): unknown {
@@ -88,7 +125,8 @@ export function buildErrorRecord(error: unknown, ctx: ReportErrorContext): Recor
     route: sanitizePath(ctx.route),
     detail: typeof ctx.detail === 'string' ? ctx.detail.slice(0, 100) : undefined,
     digest: typeof digest === 'string' ? digest.slice(0, 100) : undefined,
-    name: typeof name === 'string' ? name.slice(0, 100) : typeof error,
+    // #55: names come from clients too; email/token redaction like the path.
+    name: typeof name === 'string' ? redactLogText(name.slice(0, 100)).slice(0, 100) : typeof error,
     message: sanitizeMessage(message),
     ts: new Date().toISOString(),
   };

@@ -10,6 +10,7 @@
  */
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { isAuthConfigured } from '@/lib/auth-env';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -36,13 +37,31 @@ async function checkDb(): Promise<CheckResult> {
   }
 }
 
+/**
+ * #55 S3: whether the sign-in config is present. Booleans only, never values;
+ * a missing var means sign-in is broken, so health reports 503.
+ */
+function checkAuthConfig() {
+  const secret = Boolean(process.env.AUTH_SECRET);
+  const googleId = Boolean(process.env.AUTH_GOOGLE_ID);
+  const googleSecret = Boolean(process.env.AUTH_GOOGLE_SECRET);
+  return {
+    // #55: same requirement as sign-in itself (isAuthConfigured), all three vars.
+    status: isAuthConfigured() ? ('ok' as const) : ('error' as const),
+    AUTH_SECRET: secret,
+    AUTH_GOOGLE_ID: googleId,
+    AUTH_GOOGLE_SECRET: googleSecret,
+  };
+}
+
 export async function GET() {
   const dbCheck = await checkDb();
-  const healthy = dbCheck.status === 'ok';
+  const authCheck = checkAuthConfig();
+  const healthy = dbCheck.status === 'ok' && authCheck.status === 'ok';
   return NextResponse.json(
     {
       status: healthy ? 'ok' : 'error',
-      checks: { db: dbCheck },
+      checks: { db: dbCheck, auth: authCheck }, // #55: auth added; db unchanged
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       timestamp: new Date().toISOString(),
     },

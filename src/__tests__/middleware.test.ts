@@ -16,7 +16,8 @@ vi.mock('next-auth', () => ({
   }),
 }));
 
-import middleware from '@/middleware';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
+import middleware, { config } from '@/middleware';
 
 function call(path: string) {
   return middleware(new NextRequest(`http://localhost${path}`), {} as never) as Response;
@@ -58,5 +59,26 @@ describe('middleware with Auth.js not configured', () => {
     vi.stubEnv('AUTH_GOOGLE_ID', 'id');
     vi.stubEnv('AUTH_GOOGLE_SECRET', 'secret');
     expect(call('/admin').status).toBe(200);
+  });
+});
+
+// #55 S3: /api/client-error must not run Auth.js middleware (no session cookies).
+describe('middleware matcher', () => {
+  const matches = (url: string) => unstable_doesMiddlewareMatch({ config, url });
+
+  it('skips /api/client-error', () => {
+    expect(matches('/api/client-error')).toBe(false);
+  });
+
+  it.each(['/', '/sign-in', '/admin', '/recipes/x', '/api/health', '/api/auth/session', '/api'])(
+    'still runs for %s',
+    (url) => {
+      expect(matches(url)).toBe(true);
+    }
+  );
+
+  it('still skips static files and Next internals', () => {
+    expect(matches('/_next/static/chunk.js')).toBe(false);
+    expect(matches('/logo.png')).toBe(false);
   });
 });

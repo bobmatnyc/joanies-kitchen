@@ -8,6 +8,8 @@ import GlobalError from '@/app/global-error';
 import MealDetailError from '@/app/meals/[slug]/error';
 import MealsError from '@/app/meals/error';
 import NewMealError from '@/app/meals/new/error';
+import { handleClientError } from '../client-error-handler';
+import { MAX_CLIENT_ERROR_BODY_BYTES } from '../client-error-payload';
 import { sendClientError } from '../report-client-error';
 
 type Boundary = ComponentType<{ error: Error & { digest?: string }; reset: () => void }>;
@@ -87,5 +89,51 @@ describe('sendClientError', () => {
       throw new Error('beacon broken');
     });
     expect(() => sendClientError(new Error('y'), 'root')).not.toThrow();
+  });
+});
+
+// #55 S3: byte cap, not just char cap; dedupe only after a send attempt.
+describe('sendClientError hardening', () => {
+  it('fits a long multibyte message under the server byte cap and is accepted', async () => {
+    const message = '\u{1F35D}'.repeat(900);
+    sendClientError(Object.assign(new Error(message), { name: '\u00e9'.repeat(100) }), 'root');
+    const body = JSON.stringify(await sentBody());
+    expect(new TextEncoder().encode(body).length).toBeLessThanOrEqual(MAX_CLIENT_ERROR_BODY_BYTES);
+    const res = await handleClientError(
+      new Request('https://joanies.kitchen/api/client-error', { method: 'POST', body }),
+      { limit: async () => ({ allowed: true, count: 1, limit: 10 }) }
+    );
+    expect(res.status).toBe(204);
+  });
+
+  it('caps the message at 300 chars', async () => {
+    sendClientError(new Error('a'.repeat(1000)), 'root');
+    expect(String((await sentBody()).message)).toHaveLength(300);
+  });
+
+  it('falls back to fetch when sendBeacon throws', () => {
+    beacon.mockImplementation(() => {
+      throw new Error('beacon broken');
+    });
+    const fetchSpy = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal('fetch', fetchSpy);
+    expect(sendClientError(new Error('z'), 'root')).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('does not mark an error as reported when no send attempt went out', () => {
+    beacon.mockImplementation(() => {
+      throw new Error('beacon broken');
+    });
+    vi.stubGlobal('fetch', () => {
+      throw new Error('fetch broken');
+    });
+    const error = new Error('retry me');
+    expect(sendClientError(error, 'root')).toBe(false);
+    vi.unstubAllGlobals();
+    beacon.mockImplementation(() => true);
+    expect(sendClientError(error, 'root')).toBe(true);
+    expect(beacon).toHaveBeenCalledTimes(2);
   });
 });
