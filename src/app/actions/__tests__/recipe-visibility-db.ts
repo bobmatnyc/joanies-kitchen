@@ -11,7 +11,7 @@
 
 import { PGlite } from '@electric-sql/pglite';
 import { is, SQL } from 'drizzle-orm';
-import { getTableConfig, PgDialect, type PgColumn, type PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, type PgColumn, PgDialect, type PgTable } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/pglite';
 
 /** #43: DEFAULT clause for a static or SQL-expression column default; '' when none. */
@@ -62,5 +62,27 @@ export async function createVisibilityDb(
     const columns = defs.join(', ');
     await client.exec(`CREATE TABLE "${config.name}" (${columns});`);
   }
-  return { client, db: drizzle(client, { schema }) };
+  const pgliteDb = drizzle(client, { schema });
+  return { client, db: Object.assign(pgliteDb, { batch: pgBatch(client) }) };
+}
+
+/**
+ * #137: the drizzle pglite driver has no `db.batch`, which neon-http (production)
+ * has. This stands in with a real Postgres transaction: BEGIN, run each query
+ * builder in order, COMMIT; ROLLBACK and rethrow on the first failure.
+ * Callers must not run other queries concurrently on this client.
+ */
+function pgBatch(client: PGlite) {
+  return async (queries: PromiseLike<unknown>[]): Promise<unknown[]> => {
+    await client.exec('BEGIN');
+    try {
+      const results: unknown[] = [];
+      for (const query of queries) results.push(await query);
+      await client.exec('COMMIT');
+      return results;
+    } catch (error) {
+      await client.exec('ROLLBACK');
+      throw error;
+    }
+  };
 }

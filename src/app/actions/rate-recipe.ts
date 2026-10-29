@@ -11,7 +11,7 @@
 
 'use server';
 
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -19,6 +19,33 @@ import { recipeRatings, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+
+/**
+ * #137: one statement derives the recipe's aggregates from `recipe_ratings`, so
+ * they cannot drift from the rows. It always rides in the same `db.batch` as the
+ * rating write (neon-http has no `db.transaction`; a batch is one HTTP
+ * transaction), so the write and the recompute succeed or fail together.
+ * An average over zero ratings is NULL; an average of 0 stays 0.
+ * Test: `rate-recipe-aggregates.test.ts`
+ */
+function recomputeRatingAggregates(recipeId: string) {
+  return db
+    .update(recipes)
+    .set({
+      avg_user_rating: sql`(SELECT CAST(AVG(${recipeRatings.rating}) AS DECIMAL(2,1)) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
+      total_user_ratings: sql`(SELECT COUNT(*) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
+    })
+    .where(eq(recipes.id, recipeId))
+    .returning({
+      avgUserRating: recipes.avg_user_rating,
+      totalUserRatings: recipes.total_user_ratings,
+    });
+}
+
+/** Postgres returns DECIMAL as a string; NULL (no ratings) stays null, "0.0" becomes 0. */
+function toNullableNumber(value: string | number | null | undefined): number | null {
+  return value === null || value === undefined ? null : Number(value);
+}
 
 export interface RateRecipeResult {
   success: boolean;
@@ -68,49 +95,34 @@ export async function rateRecipe(
       };
     }
 
-    // Upsert rating (insert or update if exists)
-    await db
-      .insert(recipeRatings)
-      .values({
-        recipe_id: recipeId,
-        user_id: userId,
-        rating,
-        review: review || null,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [recipeRatings.recipe_id, recipeRatings.user_id],
-        set: {
+    // #137: upsert and aggregate recompute in one atomic batch.
+    const now = new Date();
+    const [, recomputed] = await db.batch([
+      db
+        .insert(recipeRatings)
+        .values({
+          recipe_id: recipeId,
+          user_id: userId,
           rating,
           review: review || null,
-          updated_at: new Date(),
-        },
-      });
+          created_at: now,
+          updated_at: now,
+        })
+        .onConflictDoUpdate({
+          target: [recipeRatings.recipe_id, recipeRatings.user_id],
+          set: { rating, review: review || null, updated_at: now },
+        }),
+      recomputeRatingAggregates(recipeId),
+    ]);
 
     console.log(`[Rate Recipe] User ${userId} rated recipe ${recipeId}: ${rating}/5`);
 
-    // Recalculate average rating and count
-    const stats = await db
-      .select({
-        avgRating: sql<number>`CAST(AVG(${recipeRatings.rating}) AS DECIMAL(2,1))`,
-        totalRatings: count(recipeRatings.id),
-      })
-      .from(recipeRatings)
-      .where(eq(recipeRatings.recipe_id, recipeId));
-
-    // #137: Postgres returns a DECIMAL as a string; toFixed on it threw after the upsert.
-    const avgRating = Number(stats[0]?.avgRating ?? 0);
-    const totalRatings = stats[0]?.totalRatings || 0;
-
-    // Update recipe with new averages
-    await db
-      .update(recipes)
-      .set({
-        avg_user_rating: avgRating.toFixed(1),
-        total_user_ratings: totalRatings,
-      })
-      .where(eq(recipes.id, recipeId));
+    const stats = recomputed[0];
+    if (!stats) {
+      return { success: false, error: 'Recipe not found' };
+    }
+    const avgRating = toNullableNumber(stats.avgUserRating) ?? 0;
+    const totalRatings = Number(stats.totalUserRatings ?? 0);
 
     console.log(
       `[Rate Recipe] Updated recipe stats - Avg: ${avgRating.toFixed(1)}, Total: ${totalRatings}`
@@ -123,7 +135,7 @@ export async function rateRecipe(
     return {
       success: true,
       rating,
-      avgUserRating: parseFloat(avgRating.toFixed(1)),
+      avgUserRating: avgRating,
       totalRatings,
     };
   } catch (error: unknown) {
@@ -278,32 +290,23 @@ export async function deleteRating(
       };
     }
 
-    // Delete the rating
-    await db
-      .delete(recipeRatings)
-      .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete)));
-
-    // Recalculate average
-    const stats = await db
-      .select({
-        avgRating: sql<number>`CAST(AVG(${recipeRatings.rating}) AS DECIMAL(2,1))`,
-        totalRatings: count(recipeRatings.id),
-      })
+    // #137: nothing to delete (missing or hidden recipe, no rating): no write, no recompute.
+    const [existing] = await db
+      .select({ id: recipeRatings.id })
       .from(recipeRatings)
-      .where(eq(recipeRatings.recipe_id, recipeId));
+      .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete)))
+      .limit(1);
+    if (!existing) {
+      return { success: true };
+    }
 
-    // #137: Postgres returns a DECIMAL as a string; toFixed on it threw.
-    const avgRating = stats[0]?.avgRating ? Number(stats[0].avgRating) : null;
-    const totalRatings = stats[0]?.totalRatings || 0;
-
-    // Update recipe
-    await db
-      .update(recipes)
-      .set({
-        avg_user_rating: avgRating ? avgRating.toFixed(1) : null,
-        total_user_ratings: totalRatings,
-      })
-      .where(eq(recipes.id, recipeId));
+    // Delete and recompute in one atomic batch (a concurrent delete only makes the delete a no-op).
+    await db.batch([
+      db
+        .delete(recipeRatings)
+        .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete))),
+      recomputeRatingAggregates(recipeId),
+    ]);
 
     console.log(`[Delete Rating] Deleted rating for recipe ${recipeId}`);
 
