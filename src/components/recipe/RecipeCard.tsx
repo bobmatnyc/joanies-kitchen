@@ -16,6 +16,7 @@ import {
   type TagCategory,
 } from '@/lib/tag-ontology';
 import { getTagLabel, normalizeTagToId } from '@/lib/tags';
+import { getRecipeImageUrls, parseRecipeTags, resolveRecipeImage } from '@/lib/utils/recipe-image';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface RecipeCardProps {
@@ -47,31 +48,15 @@ const RecipeCardComponent = ({
   fromChefSlug,
 }: RecipeCardProps) => {
   // Safe JSON parsing with error handling
-  let tags: string[] = [];
-  let images: string[] = [];
-
-  try {
-    tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
-  } catch (e) {
-    console.warn('Failed to parse recipe tags:', recipe.id, e);
-    tags = [];
-  }
-
-  try {
-    images = recipe.images ? JSON.parse(recipe.images as string) : [];
-  } catch (e) {
-    console.warn('Failed to parse recipe images:', recipe.id, e);
-    images = [];
-  }
+  // #94: shared, non-throwing parsers; JSON.parse of tags could also return a non-array.
+  const tags = parseRecipeTags(recipe.tags);
+  const images = getRecipeImageUrls(recipe.images);
 
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
-  // Prioritize working external URLs (http/https) over local paths
-  const workingImages = images.filter(
-    (img) => img.startsWith('http://') || img.startsWith('https://')
-  );
-  const displayImage =
-    workingImages[0] || recipe.image_url || images[0] || getPlaceholderImage(tags);
+  // #94: shared resolver; a load error falls back to the placeholder.
+  const [imageFailed, setImageFailed] = useState(false);
+  const displayImage = imageFailed ? getPlaceholderImage(tags) : resolveRecipeImage(recipe);
 
   // Check if image is external (not from our domain or known CDNs)
   const isExternalImage = Boolean(
@@ -140,6 +125,7 @@ const RecipeCardComponent = ({
               loading="lazy"
               quality={75}
               unoptimized={isExternalImage}
+              onError={() => setImageFailed(true)}
             />
             {/* Favorite Button - Top Left */}
             <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
