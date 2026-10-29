@@ -81,10 +81,12 @@ function SubstitutionCard({
   result,
   isExpanded,
   onToggle,
+  onRetry,
 }: {
   result: SubstitutionResult;
   isExpanded: boolean;
   onToggle: () => void;
+  onRetry?: () => void;
 }) {
   const hasSubstitutions = result.substitutions.length > 0;
   const userAvailableCount = result.substitutions.filter((s) => s.is_user_available).length;
@@ -114,7 +116,11 @@ function SubstitutionCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {hasSubstitutions ? (
+          {result.failed ? (
+            <Badge variant="secondary" className="bg-red-100 text-red-700">
+              Failed
+            </Badge>
+          ) : hasSubstitutions ? (
             <Badge variant="secondary" className="bg-jk-sage/10 text-jk-sage">
               {result.substitutions.length}
             </Badge>
@@ -251,7 +257,21 @@ function SubstitutionCard({
       )}
 
       {/* No substitutions found */}
-      {isExpanded && !hasSubstitutions && (
+      {/* #95: AI failure for this ingredient, with a retry */}
+      {isExpanded && result.failed && (
+        <div className="border-t bg-gray-50 p-4 text-center">
+          <p className="text-sm text-red-600">
+            Couldn&apos;t load substitutions for this ingredient.
+          </p>
+          {onRetry && (
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={onRetry}>
+              Try again
+            </Button>
+          )}
+        </div>
+      )}
+
+      {isExpanded && !hasSubstitutions && !result.failed && (
         <div className="border-t bg-gray-50 p-4 text-center">
           <p className="text-sm text-gray-600">
             {result.notes || 'No substitutions available for this ingredient.'}
@@ -495,6 +515,7 @@ export function SubstitutionSuggestions({
                 result={result}
                 isExpanded={expandedItems.has(idx)}
                 onToggle={() => toggleExpanded(idx)}
+                onRetry={handleRetry}
               />
             ))}
 

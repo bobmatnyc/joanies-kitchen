@@ -240,8 +240,9 @@ async function generateAISubstitutions(
       message: error instanceof Error ? error.message : String(error),
     });
 
-    // Return empty result on error
+    // #95: flag the failure so callers surface it instead of an empty success.
     return {
+      failed: true,
       ingredient,
       has_substitutions: false,
       substitutions: [],

@@ -86,6 +86,47 @@ describe('SubstitutionSuggestionsWrapper', () => {
     expect(subAction).toHaveBeenCalledTimes(1);
   });
 
+  it('#95: AI_FAILED shows the error card with Try again, not an empty card', async () => {
+    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    subAction.mockResolvedValue({
+      success: false,
+      error: 'Could not generate',
+      errorCode: 'AI_FAILED',
+    });
+    renderWrapper();
+    expect(await screen.findByText('Could not generate')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy();
+  });
+
+  it('#95: a failed ingredient in a mixed batch renders failed with retry; successes stay', async () => {
+    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    subAction.mockResolvedValue({
+      success: true,
+      data: [
+        { ...RESULTS[0], notes: undefined, failed: true, has_substitutions: false },
+        {
+          ...RESULTS[1],
+          has_substitutions: true,
+          substitutions: [
+            {
+              original_ingredient: 'flour',
+              substitute_ingredient: 'oat flour',
+              confidence: 'high',
+              confidence_score: 0.9,
+              reason: 'r',
+              source: 'ai',
+            },
+          ],
+        },
+      ],
+    });
+    renderWrapper();
+    expect(await screen.findByText('Failed')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy();
+    expect(screen.getByText('butter')).toBeTruthy();
+    expect(screen.getByText('flour')).toBeTruthy();
+  });
+
   it('error after click: retry control fetches once more', async () => {
     auth.value = { isLoaded: true, isSignedIn: false, userId: null };
     subAction.mockResolvedValueOnce({ success: false, error: 'boom' });
