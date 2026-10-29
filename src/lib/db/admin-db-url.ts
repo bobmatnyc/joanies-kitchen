@@ -7,7 +7,7 @@
  * What: explicit `-pooler` stripping, a separate pooled-host refusal for
  * dump/DDL, and an anchored prod-host regex. No error message carries the
  * connection string or any part of its credentials.
- * Test: `scripts/lib/__tests__/admin-db-url.test.ts`
+ * Test: `src/lib/db/__tests__/admin-db-url.test.ts`
  *
  * The app's runtime DATABASE_URL handling (src/lib/db) does not use this.
  */

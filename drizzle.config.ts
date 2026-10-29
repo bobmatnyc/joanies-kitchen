@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit';
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { adminDbUrl, toUnpooledUrl } from './scripts/lib/admin-db-url';
+import { adminDbUrl, toUnpooledUrl } from './src/lib/db/admin-db-url';
 
 // Load .env.local file
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });

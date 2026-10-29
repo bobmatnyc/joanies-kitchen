@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **ops**: admin DB tools (`drizzle.config.ts`, `scripts/sync-migration-tracking.ts`, the data-fix and Epicurious label scripts) go through `scripts/lib/admin-db-url.ts`, which strips or refuses a Neon `-pooler` host and anchor-matches the prod host. Runbooks use `DATABASE_URL_UNPOOLED` for `pg_dump` and `psql`. A pooled `pg_dump` had leaked `search_path=''` onto shared backends and broken prod reads (D3a)
+- **ops**: admin DB tools (`drizzle.config.ts`, `scripts/sync-migration-tracking.ts`, the data-fix and Epicurious label scripts) go through `src/lib/db/admin-db-url.ts`, which strips or refuses a Neon `-pooler` host and anchor-matches the prod host. Runbooks use `DATABASE_URL_UNPOOLED` for `pg_dump` and `psql`. A pooled `pg_dump` had leaked `search_path=''` onto shared backends and broken prod reads (D3a)
 
 ### Added
 

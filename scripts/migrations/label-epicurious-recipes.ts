@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
-import { adminDbUrl } from '../lib/admin-db-url';
+import { adminDbUrl } from '../../src/lib/db/admin-db-url';
 
 config({ path: '.env.local' });
 

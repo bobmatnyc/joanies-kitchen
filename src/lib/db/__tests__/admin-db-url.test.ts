@@ -13,7 +13,7 @@ import {
   toUnpooledUrl,
 } from '../admin-db-url';
 
-const SECRET = 'npg_S3cr3tPassw0rd';
+const SECRET = 'dummyTestPw42';
 const USER = 'neondb_owner';
 const PROD = `ep-jolly-snow-addxski4.c-2.us-east-1.aws.neon.tech`;
 const POOLED = `ep-jolly-snow-addxski4-pooler.c-2.us-east-1.aws.neon.tech`;

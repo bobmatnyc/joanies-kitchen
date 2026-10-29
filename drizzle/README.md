@@ -33,7 +33,7 @@ host=$(node -e 'console.log(new URL(process.env.DATABASE_URL_UNPOOLED).hostname)
 pg_dump "$DATABASE_URL_UNPOOLED" > backup.sql
 ```
 
-TypeScript admin scripts use `scripts/lib/admin-db-url.ts`: `adminDbUrl(url, purpose, { prod: true })` refuses a pooled host and checks the anchored regex; `toUnpooledUrl` strips `-pooler` explicitly.
+TypeScript admin scripts use `src/lib/db/admin-db-url.ts`: `adminDbUrl(url, purpose, { prod: true })` refuses a pooled host and checks the anchored regex; `toUnpooledUrl` strips `-pooler` explicitly.
 
 `0004` (#103) is `ADD COLUMN` (nullable, no default, so no table rewrite) plus one `CREATE UNIQUE INDEX` on `recipe_flags`. It does not use `CONCURRENTLY`: `recipe_flags` had 0 rows on production on 2026-10-29, and `drizzle-kit migrate` runs each migration in a transaction, where `CONCURRENTLY` is not allowed.
 

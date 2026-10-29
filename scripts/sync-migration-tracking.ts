@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as dotenv from 'dotenv';
 import postgres from 'postgres';
-import { adminDbUrl, toUnpooledUrl } from './lib/admin-db-url';
+import { adminDbUrl, toUnpooledUrl } from '../src/lib/db/admin-db-url';
 
 // Load .env.local (same as drizzle.config.ts)
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });

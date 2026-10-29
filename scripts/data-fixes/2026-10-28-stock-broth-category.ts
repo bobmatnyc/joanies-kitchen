@@ -20,7 +20,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Client } from 'pg';
-import { adminDbUrl } from '../lib/admin-db-url';
+import { adminDbUrl } from '../../src/lib/db/admin-db-url';
 
 const PATTERN = String.raw`\m(stocks?|broths?|bouillon|consomm[eé])\M`;
 
