@@ -23,6 +23,7 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { discoverWeeklyRecipes } from '@/lib/perplexity-discovery';
+import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -73,7 +74,19 @@ export interface CrawlRecipeResult {
   url: string;
   status: 'stored' | 'rejected' | 'failed';
   reason?: string;
+  /** #135: set with status 'rejected' when the URL duplicates stored recipe `id`. */
+  duplicateOf?: string;
 }
+
+/** #135: a skipped duplicate, reported as 'rejected' and linked to the stored recipe. */
+function duplicateCrawlResult(url: string, name: string, match: DuplicateMatch): CrawlRecipeResult {
+  const reason = duplicateSkipReason(match);
+  console.log(`[Crawl] ${reason} (${match.reason}): ${url}`);
+  return { id: match.id, url, name, status: 'rejected', reason, duplicateOf: match.id };
+}
+
+/** #135: checked before the paid scrape; the title half of the rule runs again at store time. */
+const urlDuplicate = (url: string) => findDuplicateRecipe({ sourceUrl: url });
 
 // ============================================================================
 // STEP 1: SEARCH - Find recipes using SerpAPI
@@ -367,11 +380,19 @@ export async function storeRecipe(
   success: boolean;
   recipeId?: string;
   error?: string;
+  duplicate?: DuplicateMatch; // #135
 }> {
   try {
     console.log(`[Store] Storing recipe: ${recipe.name}`);
 
     const { userId } = await auth();
+
+    // #135: never insert a duplicate (same canonical URL, or same title on the same host).
+    const duplicate = await findDuplicateRecipe(
+      { sourceUrl: metadata.sourceUrl, title: recipe.name },
+      { ownerId: userId || 'system' }
+    );
+    if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
     // Download and store images
     const storedImages = await downloadAndStoreImages(recipe.images || []);
@@ -652,11 +673,19 @@ async function storeRecipeWithWeek(
   success: boolean;
   recipeId?: string;
   error?: string;
+  duplicate?: DuplicateMatch; // #135
 }> {
   try {
     console.log(`[Store] Storing recipe with week tracking: ${recipe.name}`);
 
     const { userId } = await auth();
+
+    // #135: never insert a duplicate (same canonical URL, or same title on the same host).
+    const duplicate = await findDuplicateRecipe(
+      { sourceUrl: metadata.sourceUrl, title: recipe.name },
+      { ownerId: userId || 'system' }
+    );
+    if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
     // Download and store images
     const storedImages = await downloadAndStoreImages(recipe.images || []);
@@ -950,6 +979,12 @@ export async function crawlWeeklyRecipes(
       try {
         console.log(`[Weekly Pipeline] Processing: ${result.url}`);
 
+        const known = await urlDuplicate(result.url); // #135
+        if (known) {
+          recipeResults.push(duplicateCrawlResult(result.url, result.title, known));
+          continue;
+        }
+
         // STEP 2: Convert (Extract recipe from URL)
         const conversion = await convertUrlToRecipe(result.url);
 
@@ -991,7 +1026,11 @@ export async function crawlWeeklyRecipes(
           publishedDate: result.publishedDate,
         });
 
-        if (storage.success) {
+        if (storage.duplicate) {
+          recipeResults.push(
+            duplicateCrawlResult(result.url, conversion.recipe.name, storage.duplicate)
+          );
+        } else if (storage.success) {
           recipeResults.push({
             id: storage.recipeId!,
             url: result.url,
@@ -1102,6 +1141,12 @@ export async function crawlAndStoreRecipes(
       try {
         console.log(`[Pipeline] Processing: ${result.url}`);
 
+        const known = await urlDuplicate(result.url); // #135
+        if (known) {
+          recipeResults.push(duplicateCrawlResult(result.url, result.title, known));
+          continue;
+        }
+
         // STEP 2: Convert
         const conversion = await convertUrlToRecipe(result.url);
 
@@ -1142,7 +1187,11 @@ export async function crawlAndStoreRecipes(
           searchQuery: query,
         });
 
-        if (storage.success) {
+        if (storage.duplicate) {
+          recipeResults.push(
+            duplicateCrawlResult(result.url, conversion.recipe.name, storage.duplicate)
+          );
+        } else if (storage.success) {
           recipeResults.push({
             id: storage.recipeId!,
             url: result.url,

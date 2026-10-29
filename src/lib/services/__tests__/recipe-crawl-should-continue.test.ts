@@ -19,6 +19,11 @@ vi.mock('@/lib/perplexity-discovery', () => ({
   }),
 }));
 vi.mock('@/lib/db', () => ({ db: {} }));
+// #135: the duplicate query has its own PGlite test (recipe-crawl-dedup); nothing is a duplicate here.
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/recipes/dedup')>()),
+  findDuplicateRecipe: async () => null,
+}));
 vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/ai/embeddings', () => ({ generateRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/ai/openrouter-server', () => ({ getOpenRouterClient: vi.fn() }));

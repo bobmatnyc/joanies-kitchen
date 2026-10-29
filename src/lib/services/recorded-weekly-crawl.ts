@@ -144,7 +144,7 @@ async function executeWeeklyRun(o: RecordedWeeklyCrawlOptions): Promise<Recorded
           url: r.url,
           // Weekly crawl extracts with Firecrawl; a failure does not say which step failed.
           extractionTier: r.status === 'failed' ? 'unknown' : 'firecrawl',
-          outcome: ITEM_OUTCOME[r.status],
+          outcome: r.duplicateOf ? 'skipped_duplicate' : ITEM_OUTCOME[r.status], // #135
           error: r.status === 'stored' ? null : (r.reason ?? null),
           recipeId: r.id ?? null,
         });
