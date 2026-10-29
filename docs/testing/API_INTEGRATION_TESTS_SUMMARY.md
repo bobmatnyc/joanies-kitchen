@@ -251,10 +251,12 @@ cp .env.local.example .env.test.local
 ### 3. Database Verification ⏳ Required
 ```bash
 # Test connection
-psql "$DATABASE_URL" -c "SELECT 1"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT 1"
 
 # Verify api_keys table exists
-psql "$DATABASE_URL" -c "\d api_keys"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\d api_keys"
 ```
 
 ### 4. Run Tests ⏳ Ready

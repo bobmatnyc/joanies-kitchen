@@ -78,10 +78,12 @@ Try these interactions:
 **Solution:**
 ```bash
 # Check database connection
-psql $DATABASE_URL -c "SELECT version();"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT version();"
 
 # Run SQL manually
-psql $DATABASE_URL -f drizzle/add-performance-indexes.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -f drizzle/add-performance-indexes.sql
 ```
 
 ### API Returns Empty
@@ -91,7 +93,8 @@ psql $DATABASE_URL -f drizzle/add-performance-indexes.sql
 **Solution:**
 ```bash
 # Check if you have recipes in database
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes;"
 
 # Check authentication
 curl "http://localhost:3004/api/recipes/paginated?isPublic=true"

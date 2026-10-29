@@ -1,6 +1,7 @@
 import { defineConfig } from 'drizzle-kit';
 import * as dotenv from 'dotenv';
 import path from 'path';
+import { adminDbUrl, toUnpooledUrl } from './src/lib/db/admin-db-url';
 
 // Load .env.local file
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -11,6 +12,8 @@ if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
   // D14: never print the value; it carries credentials.
   throw new Error('DATABASE_URL is missing or does not start with postgresql://');
 }
+// D3a: pooled pg_dump broke prod reads; unpooled host only
+const adminUrl = adminDbUrl(toUnpooledUrl(databaseUrl), 'ddl');
 
 export default defineConfig({
   schema: [
@@ -26,6 +29,6 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: databaseUrl,
+    url: adminUrl,
   },
 });

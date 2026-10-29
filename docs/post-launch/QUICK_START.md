@@ -79,7 +79,8 @@ nohup python scripts/generate_embeddings_local.py --execute > tmp/embedding-run.
 tail -f tmp/embedding-generation-progress.log
 
 # Verify completion
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
 ```
 
 **Success Criteria**:
@@ -236,13 +237,16 @@ vercel --version
 vercel ls
 
 # Database connection
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes;"
 
 # Check embedding coverage
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE embedding IS NOT NULL;"
 
 # Check image coverage
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE images IS NOT NULL AND images != '[]';"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE images IS NOT NULL AND images != '[]';"
 ```
 
 ---

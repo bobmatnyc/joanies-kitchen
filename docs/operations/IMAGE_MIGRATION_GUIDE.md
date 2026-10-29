@@ -351,7 +351,8 @@ pm2 restart recipe-dev
 
 ```bash
 # Before full migration, backup affected recipes
-psql $DATABASE_URL -c "COPY (
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "COPY (
   SELECT id, name, image_url
   FROM recipes
   WHERE image_url LIKE 'http%'

@@ -82,13 +82,15 @@ psql "$BRANCH_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
 Apply to production, with the owner's confirmation:
 
 ```bash
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -1 -f drizzle/archive/0023_authjs_users.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -X -v ON_ERROR_STOP=1 -1 -f drizzle/archive/0023_authjs_users.sql
 ```
 
 Rollback (drops only the three new tables; existing data is untouched):
 
 ```bash
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f drizzle/archive/rollback/0023_authjs_users.down.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -X -v ON_ERROR_STOP=1 -f drizzle/archive/rollback/0023_authjs_users.down.sql
 ```
 
 The new tables are inert if the deployment is rolled back, so the rollback SQL is only needed to abandon Auth.js entirely.

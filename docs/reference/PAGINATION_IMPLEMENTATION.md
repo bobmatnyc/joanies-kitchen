@@ -275,7 +275,8 @@ time curl "http://localhost:3004/api/recipes/paginated?page=1&limit=24"
 ab -n 100 -c 10 http://localhost:3004/api/recipes/paginated?page=1&limit=24
 
 # Database query plan
-psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM recipes ORDER BY system_rating DESC LIMIT 24;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "EXPLAIN ANALYZE SELECT * FROM recipes ORDER BY system_rating DESC LIMIT 24;"
 ```
 
 ## Next Steps & Enhancements

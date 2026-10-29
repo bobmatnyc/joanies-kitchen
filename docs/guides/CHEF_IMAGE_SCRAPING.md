@@ -360,7 +360,8 @@ cat tmp/chef-image-scraping-progress.json
 ls -1 public/images/chefs/ | wc -l
 
 # Check database
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM chefs WHERE profile_image_url IS NOT NULL;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM chefs WHERE profile_image_url IS NOT NULL;"
 ```
 
 ### Success Metrics

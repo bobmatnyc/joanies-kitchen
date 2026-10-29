@@ -32,7 +32,8 @@ This document outlines potential risks in the automated recipe QA process and pr
 1. **Full Database Backup** (BEFORE any fixes):
    ```bash
    # Create backup with timestamp
-   pg_dump $DATABASE_URL > /tmp/joanies-kitchen-backup-$(date +%Y%m%d-%H%M%S).sql
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   pg_dump "$DATABASE_URL_UNPOOLED" > /tmp/joanies-kitchen-backup-$(date +%Y%m%d-%H%M%S).sql
 
    # Verify backup integrity
    pg_restore --list /tmp/joanies-kitchen-backup-*.sql
@@ -85,7 +86,8 @@ This document outlines potential risks in the automated recipe QA process and pr
 6. **Rollback Script** (Emergency recovery):
    ```bash
    # If issues detected, immediate rollback
-   psql $DATABASE_URL < /tmp/joanies-kitchen-backup-*.sql
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   psql "$DATABASE_URL_UNPOOLED" < /tmp/joanies-kitchen-backup-*.sql
    ```
 
 **Rollback Time**: 5-10 minutes
@@ -381,7 +383,8 @@ This document outlines potential risks in the automated recipe QA process and pr
 5. **Monitor Performance**:
    ```bash
    # Watch database load during processing
-   psql $DATABASE_URL -c "
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   psql "$DATABASE_URL_UNPOOLED" -c "
      SELECT * FROM pg_stat_activity
      WHERE datname = 'joanies_kitchen';
    "
@@ -515,7 +518,8 @@ This document outlines potential risks in the automated recipe QA process and pr
 3. **ROLLBACK IF NEEDED**:
    ```bash
    # Restore from backup
-   psql $DATABASE_URL < /tmp/joanies-kitchen-backup-*.sql
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   psql "$DATABASE_URL_UNPOOLED" < /tmp/joanies-kitchen-backup-*.sql
    ```
 
 4. **DIAGNOSE ROOT CAUSE**:

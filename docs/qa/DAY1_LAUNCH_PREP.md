@@ -282,7 +282,8 @@ WHERE qa_status IN ('needs_review', 'flagged');
 ### Verify Rollback
 ```bash
 # Count recipes by QA status
-psql $DATABASE_URL -c "SELECT qa_status, COUNT(*) FROM recipes GROUP BY qa_status;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT qa_status, COUNT(*) FROM recipes GROUP BY qa_status;"
 ```
 
 ### Re-run Day 1
@@ -376,7 +377,8 @@ Issues:
 1. Check database state:
 ```bash
 # Query for incomplete searchable recipes
-psql $DATABASE_URL -c "
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "
   SELECT id, name, qa_status
   FROM recipes
   WHERE (ingredients = '[]' OR instructions = '[]')

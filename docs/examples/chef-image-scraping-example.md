@@ -295,7 +295,8 @@ Manually add image:
 curl -o public/images/chefs/chef-slug.jpg "https://example.com/chef-image.jpg"
 
 # Update database
-psql $DATABASE_URL -c "
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "
   UPDATE chefs
   SET profile_image_url = '/images/chefs/chef-slug.jpg'
   WHERE slug = 'chef-slug'

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **ops**: admin DB tools (`drizzle.config.ts`, `scripts/sync-migration-tracking.ts`, the data-fix and Epicurious label scripts) go through `src/lib/db/admin-db-url.ts`, which strips or refuses a Neon `-pooler` host and anchor-matches the prod host. Runbooks use `DATABASE_URL_UNPOOLED` for `pg_dump` and `psql`. A pooled `pg_dump` had leaked `search_path=''` onto shared backends and broken prod reads (D3a)
+
 ### Added
 
 - **observability**: client errors caught by `error.tsx`, `global-error.tsx` and the three `/meals` error boundaries are sent once per error to `POST /api/client-error` (sendBeacon, fetch-keepalive fallback), which validates and size-caps the payload, limits each IP to 10 per minute, and logs one redacted `app-error` line with source `client` and the pathname only. A limiter outage returns 503 (#55)

@@ -344,7 +344,8 @@ test('getRecipes excludes soft-deleted', async () => {
 
 1. **Backup Database**
 ```bash
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" > backup_$(date +%Y%m%d).sql
 ```
 
 2. **Run Dry-Run Migration**
@@ -401,7 +402,8 @@ If issues occur:
 
 1. **Restore Database from Backup**
 ```bash
-psql $DATABASE_URL < backup_YYYYMMDD.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" < backup_YYYYMMDD.sql
 ```
 
 2. **Revert Code Deployment**

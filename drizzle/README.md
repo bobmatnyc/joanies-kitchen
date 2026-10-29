@@ -23,7 +23,17 @@ Before any read or write against production, assert the connection host matches
 ^ep-jolly-snow-addxski4\.[a-z0-9.-]+\.aws\.neon\.tech$
 ```
 
-Use the unpooled URL (`DATABASE_URL_UNPOOLED`): the regex rejects a `-pooler` host. Do read-only checks inside `BEGIN READ ONLY`. Never print the URL.
+<!-- D3a: pooled pg_dump broke prod reads; unpooled host only -->
+Use the unpooled URL (`DATABASE_URL_UNPOOLED`) for `pg_dump`, `psql`, `drizzle-kit` and every admin script: the regex rejects a `-pooler` host. Match the whole host against the anchored regex, never a substring such as `*ep-jolly-snow-addxski4*`, which also accepts `ep-jolly-snow-addxski4-pooler...`. pg_dump sets `search_path` to `''` for its session, and PgBouncer transaction pooling leaks that onto shared backends: two pooled dumps each broke prod reads of `recipe_comments`. Do read-only checks inside `BEGIN READ ONLY`. Never print the URL.
+
+```bash
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+host=$(node -e 'console.log(new URL(process.env.DATABASE_URL_UNPOOLED).hostname)')
+[[ "$host" =~ ^ep-jolly-snow-addxski4\.[a-z0-9.-]+\.aws\.neon\.tech$ ]] || { echo "refusing: host is not the unpooled prod host"; exit 1; }
+pg_dump "$DATABASE_URL_UNPOOLED" > backup.sql
+```
+
+TypeScript admin scripts use `src/lib/db/admin-db-url.ts`: `adminDbUrl(url, purpose, { prod: true })` refuses a pooled host and checks the anchored regex; `toUnpooledUrl` strips `-pooler` explicitly.
 
 `0004` (#103) is `ADD COLUMN` (nullable, no default, so no table rewrite) plus one `CREATE UNIQUE INDEX` on `recipe_flags`. It does not use `CONCURRENTLY`: `recipe_flags` had 0 rows on production on 2026-10-29, and `drizzle-kit migrate` runs each migration in a transaction, where `CONCURRENTLY` is not allowed.
 

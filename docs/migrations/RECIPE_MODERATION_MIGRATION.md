@@ -230,7 +230,8 @@ If you need to rollback:
 
 ```bash
 # Backup database first (recommended)
-pg_dump $DATABASE_URL > backup.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" > backup.sql
 
 # Run rollback
 pnpm tsx scripts/migrations/add-moderation-fields.ts --rollback

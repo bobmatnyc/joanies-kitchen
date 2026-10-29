@@ -20,6 +20,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Client } from 'pg';
+import { adminDbUrl } from '../../src/lib/db/admin-db-url';
 
 const PATTERN = String.raw`\m(stocks?|broths?|bouillon|consomm[eé])\M`;
 
@@ -60,8 +61,8 @@ function arg(flag: string): string | undefined {
 const has = (flag: string) => process.argv.includes(flag);
 
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is not set');
+  // D3a: pooled pg_dump broke prod reads; unpooled host only
+  const url = adminDbUrl(process.env.DATABASE_URL, 'admin');
   const modes = ['--backup', '--apply', '--restore'].filter(has);
   if (modes.length > 1) throw new Error('choose one of --dry-run, --backup, --apply, --restore');
 

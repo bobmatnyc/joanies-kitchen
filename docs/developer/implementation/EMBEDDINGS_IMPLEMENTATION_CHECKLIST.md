@@ -42,11 +42,14 @@ This creates:
 ### 3. Verify Schema
 ```bash
 # Check tables exist
-psql $DATABASE_URL -c "\dt *embeddings"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\dt *embeddings"
 
 # Check indexes exist
-psql $DATABASE_URL -c "\di meals_embeddings*"
-psql $DATABASE_URL -c "\di chefs_embeddings*"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\di meals_embeddings*"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "\di chefs_embeddings*"
 ```
 
 ## 🚀 Generate Embeddings (Do These Second)

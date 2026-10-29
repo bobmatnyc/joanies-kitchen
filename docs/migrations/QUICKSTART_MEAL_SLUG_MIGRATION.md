@@ -51,7 +51,8 @@ Output: "thanksgiving-dinner-2024-1"
 
 ```bash
 # Check all meals have slugs
-psql $DATABASE_URL -c "SELECT COUNT(*) FILTER (WHERE slug IS NULL) FROM meals;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FILTER (WHERE slug IS NULL) FROM meals;"
 # Expected: 0
 
 # Test routing

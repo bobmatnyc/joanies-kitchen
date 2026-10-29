@@ -317,7 +317,8 @@ cat data/recipes/incoming/themealdb/recipes-*.json | head -50
 pnpm db:studio
 
 # Or use SQL directly
-psql $DATABASE_URL
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED"
 
 # Count system recipes
 SELECT COUNT(*) FROM recipes WHERE is_system_recipe = true;

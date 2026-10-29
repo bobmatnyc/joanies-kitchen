@@ -298,7 +298,8 @@ If needed, to rollback this feature:
 
 ```bash
 # 1. Remove location columns from database
-psql $DATABASE_URL -c "
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "
 ALTER TABLE chefs
 DROP COLUMN IF EXISTS latitude,
 DROP COLUMN IF EXISTS longitude,

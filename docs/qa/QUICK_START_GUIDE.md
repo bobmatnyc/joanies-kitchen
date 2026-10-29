@@ -73,7 +73,8 @@ pnpm db:studio
 **Morning** (2 hours):
 ```bash
 # Step 1: Backup database
-pg_dump $DATABASE_URL > /tmp/db-backup-$(date +%Y%m%d).sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+pg_dump "$DATABASE_URL_UNPOOLED" > /tmp/db-backup-$(date +%Y%m%d).sql
 
 # Step 2: Run Phase 1
 npx tsx scripts/qa/1-structure-validation.ts
@@ -134,7 +135,8 @@ abc123,"Pasta Carbonara","salt; black pepper",0.85,"Add ingredients","approved"
 npx tsx scripts/qa/1-structure-validation.ts
 
 # Check final metrics
-psql $DATABASE_URL -c "
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "
   SELECT
     COUNT(*) as total,
     COUNT(*) FILTER (WHERE ingredients IS NULL OR ingredients = '[]') as missing_ing,
@@ -268,7 +270,8 @@ npx tsx scripts/qa/2-llm-validation.ts --batch-size=25
 **Problem**: Connection timeout
 ```bash
 # Check connection
-psql $DATABASE_URL -c "SELECT 1;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT 1;"
 
 # Verify DATABASE_URL
 echo $DATABASE_URL

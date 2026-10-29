@@ -150,7 +150,8 @@ const embeddingText = `${chef.name}. ${chef.display_name}. ${chef.bio}. Specialt
 
 3. **Verify pgvector Extension**
    ```bash
-   psql $DATABASE_URL -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
+   # D3a: pooled pg_dump broke prod reads; unpooled host only
+   psql "$DATABASE_URL_UNPOOLED" -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
    ```
 
 ### Recipe Embeddings

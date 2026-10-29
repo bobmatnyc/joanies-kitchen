@@ -14,7 +14,8 @@ pnpm db:push
 pnpm db:indexes
 
 # Verify indexes were created
-psql $DATABASE_URL -c "SELECT indexname FROM pg_indexes WHERE tablename = 'recipes' AND indexname LIKE 'idx_recipes_%';"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT indexname FROM pg_indexes WHERE tablename = 'recipes' AND indexname LIKE 'idx_recipes_%';"
 ```
 
 Expected: 8 indexes created
@@ -259,7 +260,8 @@ time curl "http://localhost:3004/api/recipes/paginated?page=1&limit=24"
 ab -n 100 -c 10 http://localhost:3004/api/recipes/paginated?page=1&limit=24
 
 # Database query plan
-psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM recipes ORDER BY system_rating DESC LIMIT 24;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "EXPLAIN ANALYZE SELECT * FROM recipes ORDER BY system_rating DESC LIMIT 24;"
 ```
 
 ## Troubleshooting
@@ -269,10 +271,12 @@ psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM recipes ORDER BY system_rat
 **Solution:**
 ```bash
 # Check if indexes exist
-psql $DATABASE_URL -c "SELECT indexname FROM pg_indexes WHERE tablename = 'recipes';"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT indexname FROM pg_indexes WHERE tablename = 'recipes';"
 
 # Manually apply
-psql $DATABASE_URL -f drizzle/add-performance-indexes.sql
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -f drizzle/add-performance-indexes.sql
 ```
 
 ### Issue: Slow queries
@@ -280,10 +284,12 @@ psql $DATABASE_URL -f drizzle/add-performance-indexes.sql
 **Solution:**
 ```bash
 # Run ANALYZE to update statistics
-psql $DATABASE_URL -c "ANALYZE recipes;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "ANALYZE recipes;"
 
 # Check if indexes are being used
-psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM recipes WHERE is_public = true ORDER BY system_rating DESC LIMIT 24;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "EXPLAIN ANALYZE SELECT * FROM recipes WHERE is_public = true ORDER BY system_rating DESC LIMIT 24;"
 # Should show: "Index Scan using idx_recipes_rating"
 ```
 
@@ -300,10 +306,12 @@ psql $DATABASE_URL -c "EXPLAIN ANALYZE SELECT * FROM recipes WHERE is_public = t
 **Solution:**
 ```bash
 # Check if you have recipes
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes;"
 
 # Check if recipes are public
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM recipes WHERE is_public = true;"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT COUNT(*) FROM recipes WHERE is_public = true;"
 ```
 
 ## Next Steps

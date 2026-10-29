@@ -163,7 +163,8 @@ pm2 restart recipe-dev
 pnpm tsc --noEmit
 
 # 4. If database issues, check connection
-psql $DATABASE_URL -c "SELECT 1"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT 1"
 
 # 5. Last resort: full clean restart
 pm2 stop recipe-dev
@@ -268,7 +269,8 @@ pm2 logs recipe-dev
 
 ```bash
 # 1. Test database connection
-psql $DATABASE_URL -c "SELECT 1"
+# D3a: pooled pg_dump broke prod reads; unpooled host only
+psql "$DATABASE_URL_UNPOOLED" -c "SELECT 1"
 
 # 2. If connection fails, check .env.local
 cat .env.local | grep DATABASE_URL
