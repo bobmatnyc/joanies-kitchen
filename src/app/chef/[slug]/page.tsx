@@ -22,7 +22,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const canonicalUrl = `${baseUrl}/chef/${slug}`;
 
   return {
-    title: `${chef.display_name || chef.name} | Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${chef.display_name || chef.name}`,
     description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
     alternates: {
       canonical: canonicalUrl,

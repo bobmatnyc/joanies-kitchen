@@ -4,7 +4,8 @@ import { RecipeUploadWizard } from '@/components/recipe/RecipeUploadWizard';
 import { auth } from '@/lib/auth';
 
 export const metadata = {
-  title: "Share Your Recipe | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Share Your Recipe',
   description: "Share your culinary creations with the Joanie's Kitchen community",
 };
 

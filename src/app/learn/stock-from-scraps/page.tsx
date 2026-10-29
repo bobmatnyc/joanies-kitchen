@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Stock from Scraps Guide | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Stock from Scraps Guide',
   description:
     'Transform vegetable peels, chicken bones, and herb stems into rich, flavorful stock. Stop buying broth—make it from scraps.',
 };

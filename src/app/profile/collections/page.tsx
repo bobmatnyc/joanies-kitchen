@@ -67,6 +67,7 @@ export default async function MyCollectionsPage() {
 }
 
 export const metadata = {
-  title: "My Collections | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'My Collections',
   description: 'Manage your recipe collections',
 };

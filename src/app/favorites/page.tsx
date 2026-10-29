@@ -1,12 +1,13 @@
-import { auth } from '@/lib/auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUserFavorites } from '@/app/actions/favorites';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/auth';
 
 export const metadata = {
-  title: "My Favorites - Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'My Favorites',
   description: 'Your favorite recipes',
 };
 

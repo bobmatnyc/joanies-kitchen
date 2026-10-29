@@ -53,6 +53,7 @@ export default async function NewMealPage() {
 }
 
 export const metadata = {
-  title: "Create New Meal | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Create New Meal',
   description: 'Create a new meal plan',
 };

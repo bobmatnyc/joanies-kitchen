@@ -12,7 +12,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: "How It Works | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'How It Works',
   description:
     "Learn how Joanie's Kitchen helps you reduce food waste by transforming fridge ingredients into delicious zero-waste recipes.",
 };

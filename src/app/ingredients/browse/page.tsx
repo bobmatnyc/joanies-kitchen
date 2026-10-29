@@ -1,7 +1,8 @@
 import { IngredientBrowser } from '@/components/ingredients/IngredientBrowser';
 
 export const metadata = {
-  title: "Browse Ingredients | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Browse Ingredients',
   description: 'Explore and filter ingredients by category, type, and dietary needs',
 };
 

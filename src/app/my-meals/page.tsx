@@ -87,6 +87,7 @@ export default async function MyMealsPage({ searchParams }: PageProps) {
 }
 
 export const metadata = {
-  title: "My Meals | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'My Meals',
   description: 'Manage your personal meal plans and shopping lists',
 };

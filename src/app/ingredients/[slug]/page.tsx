@@ -27,7 +27,8 @@ export async function generateMetadata({ params }: IngredientPageProps) {
   const canonicalUrl = `${baseUrl}/ingredients/${slug}`;
 
   return {
-    title: `${ingredient.display_name} | Ingredient Guide | Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${ingredient.display_name} | Ingredient Guide`,
     description:
       ingredient.description ||
       `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes using this ingredient.`,

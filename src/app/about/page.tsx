@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
-  title: "About Joanie | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'About Joanie',
   description:
     "Meet Joanie — a trained chef, lifelong gardener, and volunteer firefighter who cooks from her terraced home overlooking the Hudson River, turning 'nothing in the fridge' into something unforgettable.",
 };

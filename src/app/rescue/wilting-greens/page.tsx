@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "Rescue Wilting Greens | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'Rescue Wilting Greens',
   description:
     'What to do with lettuce, spinach, kale, and greens that are starting to wilt. Techniques, recipes, and storage tips.',
 };

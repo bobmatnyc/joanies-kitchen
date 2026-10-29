@@ -26,7 +26,8 @@ export async function generateMetadata({ params }: ToolPageProps) {
   const canonicalUrl = `${baseUrl}/tools/${slug}`;
 
   return {
-    title: `${tool.displayName} | Kitchen Tools | Joanie's Kitchen`,
+    // #138: the root layout's title.template appends the brand.
+    title: `${tool.displayName} | Kitchen Tools`,
     description:
       tool.description ||
       `Learn about ${tool.displayName} - alternatives, pricing, and recipes using this kitchen tool.`,
@@ -36,8 +37,7 @@ export async function generateMetadata({ params }: ToolPageProps) {
     openGraph: {
       title: `${tool.displayName} | Kitchen Tools`,
       description:
-        tool.description ||
-        `Learn about ${tool.displayName} - alternatives, pricing, and recipes.`,
+        tool.description || `Learn about ${tool.displayName} - alternatives, pricing, and recipes.`,
       url: canonicalUrl,
       type: 'article',
       images: tool.imageUrl

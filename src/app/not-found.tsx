@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
+import { NOT_FOUND_METADATA } from '@/lib/not-found-metadata';
 
 // Force dynamic rendering for error pages to avoid static generation issues
 export const dynamic = 'force-dynamic';
 
 // #134: the root layout sets robots index/follow; a 404 must not inherit it.
-export const metadata: Metadata = {
-  title: 'Page Not Found',
-  robots: { index: false, follow: false },
-};
+// #138: shared with the segments that render a 404 themselves.
+export const metadata: Metadata = NOT_FOUND_METADATA;
 
 export default function NotFound() {
   return (

@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: "FIFO Management Guide | Joanie's Kitchen",
+  // #138: the root layout's title.template appends the brand.
+  title: 'FIFO Management Guide',
   description:
     'Master First In, First Out principles to reduce food waste. Learn practical FIFO strategies for your fridge, freezer, and pantry.',
 };
