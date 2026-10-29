@@ -22,6 +22,7 @@ import {
   authorizeLocalStagingSignIn,
   authorizeLocalStagingUser,
   buildAuthProviders,
+  gateLocalStagingToken,
 } from '@/lib/local-staging-auth-provider';
 
 const EMAIL = 'staging@example.test';
@@ -121,6 +122,38 @@ describe('authorizeLocalStagingSignIn (#60 D5f)', () => {
 
   it.each(INACTIVE_ENVS)('refuses every login when inactive (%o)', (env) => {
     expect(authorizeLocalStagingSignIn({ user: { email: EMAIL }, account }, env)).toBe(false);
+  });
+});
+
+describe('gateLocalStagingToken (#60 D5f)', () => {
+  const stagingAccount = {
+    provider: 'local-staging',
+    type: 'credentials',
+    providerAccountId: 'x',
+  } as const;
+
+  it('marks a token minted by the bypass provider', () => {
+    const token = gateLocalStagingToken({ token: { sub: 'u' }, account: stagingAccount }, ACTIVE);
+    expect(token).toEqual({ sub: 'u', localStaging: true });
+  });
+
+  it('accepts a marked token while the bypass is active', () => {
+    const token = { sub: 'u', localStaging: true };
+    expect(gateLocalStagingToken({ token }, ACTIVE)).toBe(token);
+  });
+
+  it.each(INACTIVE_ENVS)('ends the session for a marked token when inactive (%o)', (env) => {
+    expect(gateLocalStagingToken({ token: { sub: 'u', localStaging: true } }, env)).toBeNull();
+  });
+
+  it.each([ACTIVE, ...INACTIVE_ENVS])('leaves an unmarked token unchanged (%o)', (env) => {
+    const token = { sub: 'u', isAdmin: true };
+    const google = { provider: 'google', type: 'oidc', providerAccountId: 'g' } as const;
+    expect(gateLocalStagingToken({ token }, env)).toBe(token);
+    expect(gateLocalStagingToken({ token, account: google }, env)).toEqual({
+      sub: 'u',
+      isAdmin: true,
+    });
   });
 });
 

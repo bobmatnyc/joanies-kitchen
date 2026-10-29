@@ -33,9 +33,7 @@ describe('localNeonFetchEndpoint (#60)', () => {
   });
 
   it('ignores loopback text outside the hostname', () => {
-    expect(
-      localNeonFetchEndpoint('postgres://localhost@neon.tech/127.0.0.1', {})
-    ).toBeUndefined();
+    expect(localNeonFetchEndpoint('postgres://localhost@neon.tech/127.0.0.1', {})).toBeUndefined();
   });
 
   it('returns undefined for an unparseable URL', () => {

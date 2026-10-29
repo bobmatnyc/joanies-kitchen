@@ -134,7 +134,7 @@ The script upserts by id. It fails if the email already belongs to a different i
 
 ## Local staging auth bypass (#60 D5f)
 
-Local EVO staging has no Google OAuth client. It signs in through a `local-staging` Credentials provider instead, as the single user in `LOCAL_STAGING_AUTH_EMAIL`. The provider, its sign-in button and notice exist only when `src/lib/local-staging-auth.ts` returns active, which needs all of: `LOCAL_STAGING_AUTH_BYPASS=1` exactly, `LOCAL_STAGING_AUTH_EMAIL` set, a `DATABASE_URL` host of exactly `127.0.0.1`, `::1` or `localhost`, and no `VERCEL`, `VERCEL_ENV` or `VERCEL_URL`. `AUTH_SECRET` is still required. Seed the user with `pnpm auth:seed-user` and list the same email in `AUTH_ADMIN_EMAILS` for admin. See `.env.example`, LOCAL STAGING ONLY.
+Local EVO staging has no Google OAuth client. It signs in through a `local-staging` Credentials provider instead, as the single user in `LOCAL_STAGING_AUTH_EMAIL`. The provider, its sign-in button and notice exist only when `src/lib/local-staging-auth.ts` returns active, which needs all of: `LOCAL_STAGING_AUTH_BYPASS=1` exactly, `LOCAL_STAGING_AUTH_EMAIL` set, a `DATABASE_URL` host of exactly `127.0.0.1`, `::1` or `localhost`, and no `VERCEL`, `VERCEL_ENV` or `VERCEL_URL`. `AUTH_SECRET` is still required, and local staging MUST use its own `AUTH_SECRET`, never production's. As a second guard, a session minted by the bypass carries `localStaging: true` in its JWT, and the `jwt` callback ends any such session wherever the bypass is inactive. Seed the user with `pnpm auth:seed-user` and list the same email in `AUTH_ADMIN_EMAILS` for admin. See `.env.example`, LOCAL STAGING ONLY.
 
 ## Tests
 

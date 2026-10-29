@@ -13,10 +13,15 @@
  * Test: `src/lib/__tests__/local-staging-auth-provider.test.ts`
  */
 import type { Account, User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from '@/auth.config';
 import { findPendingDeletionByEmail, findUserIdByEmail, normalizeEmail } from '@/lib/auth-users';
-import { LOCAL_STAGING_PROVIDER_ID, localStagingAuthEmail } from '@/lib/local-staging-auth';
+import {
+  isLocalStagingAuthBypassActive,
+  LOCAL_STAGING_PROVIDER_ID,
+  localStagingAuthEmail,
+} from '@/lib/local-staging-auth';
 
 type Env = Record<string, string | undefined>;
 
@@ -63,4 +68,20 @@ export function authorizeLocalStagingSignIn(
   if (account?.provider !== LOCAL_STAGING_PROVIDER_ID) return false;
   const email = localStagingAuthEmail(env);
   return email !== undefined && normalizeEmail(user?.email) === email;
+}
+
+/**
+ * #60 D5f: `jwt` callback gate. On sign-in through the bypass provider the
+ * token gets `localStaging = true`. A marked token returns null (Auth.js then
+ * ends the session) whenever the bypass is inactive, so a staging-minted
+ * cookie is never a session elsewhere, even under a shared AUTH_SECRET.
+ * Unmarked tokens are returned unchanged.
+ */
+export function gateLocalStagingToken<T extends JWT>(
+  { token, account }: { token: T; account?: Account | null },
+  env: Env = process.env
+): T | null {
+  if (account?.provider === LOCAL_STAGING_PROVIDER_ID) token.localStaging = true;
+  if (token.localStaging === true && !isLocalStagingAuthBypassActive(env)) return null;
+  return token;
 }
