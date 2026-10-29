@@ -87,10 +87,10 @@ src/app/page.tsx:assist/source/organizeImports 1
 src/app/page.tsx:format 1
 src/app/profile/[username]/page.tsx:assist/source/organizeImports 1
 src/app/profile/edit/page.tsx:assist/source/organizeImports 1
-src/app/recipes/[slug]/page.tsx:format 1
-src/app/recipes/[slug]/page.tsx:lint/a11y/useAriaPropsSupportedByRole 6
-src/app/recipes/[slug]/page.tsx:lint/security/noDangerouslySetInnerHtml 1
-src/app/recipes/[slug]/page.tsx:lint/suspicious/noImplicitAnyLet 1
+src/app/recipes/[slug]/RecipePageClient.tsx:format 1
+src/app/recipes/[slug]/RecipePageClient.tsx:lint/a11y/useAriaPropsSupportedByRole 6
+src/app/recipes/[slug]/RecipePageClient.tsx:lint/security/noDangerouslySetInnerHtml 1
+src/app/recipes/[slug]/RecipePageClient.tsx:lint/suspicious/noImplicitAnyLet 1
 src/app/search/page.tsx:lint/a11y/useButtonType 1
 src/app/search/page.tsx:lint/suspicious/noArrayIndexKey 1
 src/app/search/page.tsx:lint/suspicious/noImplicitAnyLet 1

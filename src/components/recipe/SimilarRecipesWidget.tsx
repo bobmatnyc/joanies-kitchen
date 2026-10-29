@@ -3,7 +3,11 @@
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { findSimilarToRecipe, type RecipeWithSimilarity } from '@/app/actions/semantic-search';
+import {
+  findSimilarToRecipe,
+  type RecipeWithSimilarity,
+  type SemanticSearchResult,
+} from '@/app/actions/semantic-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +19,32 @@ export interface SimilarRecipesWidgetProps {
   recipeName?: string;
   limit?: number;
   autoLoad?: boolean;
+  /** #128: result fetched on the server; when set, the widget sends no request on mount. */
+  initialResult?: SemanticSearchResult;
+}
+
+const FAILED = 'Failed to find similar recipes';
+
+/** Placeholder shown while similar recipes load (also the #128 Suspense fallback). */
+export function SimilarRecipesSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+          Recipes Like This
+        </CardTitle>
+        <CardDescription>Finding similar recipes using AI...</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="min-w-[280px] h-[400px] bg-muted/50 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function SimilarRecipesWidget({
@@ -22,10 +52,16 @@ export function SimilarRecipesWidget({
   recipeName,
   limit = 6,
   autoLoad = true,
+  initialResult,
 }: SimilarRecipesWidgetProps) {
-  const [recipes, setRecipes] = useState<RecipeWithSimilarity[]>([]);
+  // #128: seed state from the server result so the first render needs no client fetch.
+  const [recipes, setRecipes] = useState<RecipeWithSimilarity[]>(
+    initialResult?.success ? initialResult.recipes : []
+  );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialResult && !initialResult.success ? initialResult.error || FAILED : null
+  );
   const [scrollPosition, setScrollPosition] = useState(0);
 
   const loadSimilarRecipes = useCallback(async () => {
@@ -38,7 +74,7 @@ export function SimilarRecipesWidget({
       if (result.success) {
         setRecipes(result.recipes);
       } else {
-        setError(result.error || 'Failed to find similar recipes');
+        setError(result.error || FAILED);
       }
     } catch (err: unknown) {
       setError(toErrorMessage(err));
@@ -47,11 +83,14 @@ export function SimilarRecipesWidget({
     }
   }, [recipeId, limit]);
 
+  // #128: a server-supplied result replaces the mount-time server action, which queued
+  // behind every other action on the page.
+  const hasInitialResult = initialResult !== undefined;
   useEffect(() => {
-    if (autoLoad) {
+    if (autoLoad && !hasInitialResult) {
       loadSimilarRecipes();
     }
-  }, [autoLoad, loadSimilarRecipes]);
+  }, [autoLoad, hasInitialResult, loadSimilarRecipes]);
 
   const scrollContainer = (direction: 'left' | 'right') => {
     const container = document.getElementById(`similar-recipes-${recipeId}`);
@@ -85,27 +124,7 @@ export function SimilarRecipesWidget({
   }
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-            Recipes Like This
-          </CardTitle>
-          <CardDescription>Finding similar recipes using AI...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 overflow-hidden">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="min-w-[280px] h-[400px] bg-muted/50 rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <SimilarRecipesSkeleton />;
   }
 
   if (error) {
