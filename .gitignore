@@ -21,6 +21,7 @@
 /playwright-report/
 test/tests/artifacts/
 tests/e2e/.auth/
+test/tests/e2e/.auth/
 playwright/.auth/
 
 # linting/formatting
