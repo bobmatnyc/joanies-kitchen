@@ -15,9 +15,6 @@ function respond(req: NextRequest, user: { id?: string; isAdmin?: boolean } | un
     isAdmin: user?.isAdmin === true,
   });
 
-  if (decision === 'unauthorized') {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
   if (decision === 'sign-in') {
     const signInUrl = new URL('/sign-in', req.url);
     signInUrl.searchParams.set('callbackUrl', `${req.nextUrl.pathname}${req.nextUrl.search}`);
@@ -42,6 +39,6 @@ export const config = {
     // Skip Next.js internals, error pages, and all static files
     '/((?!_next|_error|404|500|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
-    '/(api|trpc)(.*)',
+    '/api(.*)',
   ],
 };

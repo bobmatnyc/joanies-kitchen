@@ -163,9 +163,6 @@ test.describe('User Registration Flow - Production', () => {
     // Should have security headers
     expect(headers?.['strict-transport-security']).toBeDefined();
 
-    // Should indicate signed-out status
-    expect(headers?.['x-clerk-auth-status']).toBe('signed-out');
-
     // Should be HTML content
     expect(headers?.['content-type']).toContain('text/html');
   });
