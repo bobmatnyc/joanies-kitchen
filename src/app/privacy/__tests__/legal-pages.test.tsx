@@ -41,7 +41,7 @@ describe('PrivacyPage', () => {
     expect(text).toContain('30-day grace period');
   });
 
-  it('commits to 30 days and makes no self-serve claim', () => {
+  it('commits to 30 days and states self-serve export and deletion', () => {
     render(<PrivacyPage />);
     const heading = screen.getByRole('heading', {
       level: 2,
@@ -50,12 +50,12 @@ describe('PrivacyPage', () => {
     const text = heading.parentElement?.textContent ?? '';
     expect(text).toContain('within 30 days');
     expect(text).toContain('30-day grace period');
-    expect(text).toContain('coming soon');
+    // #58: D46 self-serve wording
+    expect(text).toContain('you can export your data and delete your account yourself');
+    expect(text).toContain('account settings');
+    expect(text.toLowerCase()).not.toContain('coming soon');
+    expect(text).not.toContain('not available yet');
     expect(text).toContain('deleted user');
-    expect(text).not.toMatch(/(download|delete)[^.]*(from|in) your (account )?settings/i);
-    expect(text).not.toMatch(
-      /(delete|export) (it |your data |your account )?(yourself|instantly)/i
-    );
   });
 
   it('links a mailto contact when NEXT_PUBLIC_SUPPORT_EMAIL is set', () => {
