@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { enforceRateLimit, type RateLimitBucket } from '@/lib/rate-limit';
+import { publicRecipe, systemRecipe } from '@/lib/recipe-public';
 import {
   canViewRecipe,
   getRecipeViewer,
@@ -206,20 +207,13 @@ async function semanticSearchInternal(
     // Apply visibility filter
     if (!options.includePrivate || !userId) {
       // Only public or system recipes
-      const visibilityCondition = or(
-        eq(recipes.is_public, true),
-        eq(recipes.is_system_recipe, true)
-      );
+      const visibilityCondition = or(publicRecipe, systemRecipe);
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
     } else {
       // Include user's private recipes + public/system recipes
-      const visibilityCondition = or(
-        eq(recipes.is_public, true),
-        eq(recipes.is_system_recipe, true),
-        eq(recipes.user_id, userId)
-      );
+      const visibilityCondition = or(publicRecipe, systemRecipe, eq(recipes.user_id, userId));
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
@@ -488,15 +482,9 @@ export async function hybridSearchRecipes(
 
     // Apply visibility filter for text search
     if (!options.includePrivate || !userId) {
-      textConditions.push(or(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true)));
+      textConditions.push(or(publicRecipe, systemRecipe));
     } else {
-      textConditions.push(
-        or(
-          eq(recipes.is_public, true),
-          eq(recipes.is_system_recipe, true),
-          eq(recipes.user_id, userId)
-        )
-      );
+      textConditions.push(or(publicRecipe, systemRecipe, eq(recipes.user_id, userId)));
     }
 
     const textResults = await db
@@ -593,12 +581,8 @@ export async function getSearchSuggestions(
 
     // Build visibility conditions
     const visibilityConditions = userId
-      ? or(
-          eq(recipes.is_public, true),
-          eq(recipes.is_system_recipe, true),
-          eq(recipes.user_id, userId)
-        )
-      : or(eq(recipes.is_public, true), eq(recipes.is_system_recipe, true));
+      ? or(publicRecipe, systemRecipe, eq(recipes.user_id, userId))
+      : or(publicRecipe, systemRecipe);
 
     // Get matching recipes
     const matches = await db

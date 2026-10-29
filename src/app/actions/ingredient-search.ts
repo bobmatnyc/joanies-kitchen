@@ -21,6 +21,7 @@ import {
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/consolidation-map';
 import { rankAndDedupeSuggestions } from '@/lib/ingredients/suggestion-ranking';
+import { isPublicRecipe, publicRecipe, systemRecipe } from '@/lib/recipe-public';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import type {
@@ -311,20 +312,13 @@ export async function searchRecipesByIngredients(
     // Access control filter
     if (!validatedOptions.includePrivate || !userId) {
       // Only public or system recipes
-      const visibilityCondition = or(
-        eq(recipes.is_public, true),
-        eq(recipes.is_system_recipe, true)
-      );
+      const visibilityCondition = or(publicRecipe, systemRecipe);
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
     } else {
       // Include user's private recipes + public/system recipes
-      const visibilityCondition = or(
-        eq(recipes.is_public, true),
-        eq(recipes.is_system_recipe, true),
-        eq(recipes.user_id, userId)
-      );
+      const visibilityCondition = or(publicRecipe, systemRecipe, eq(recipes.user_id, userId));
       if (visibilityCondition) {
         conditions.push(visibilityCondition);
       }
@@ -550,9 +544,7 @@ export async function getIngredientSuggestions(
 
     // OPTIMIZATION: Start with name-only search (fastest, uses primary index)
     const nameConditions: SQL[] = [
-      or(
-        ...searchQueries.flatMap((q) => [ilike(ingredients.name, `%${q}%`)])
-      ) as SQL,
+      or(...searchQueries.flatMap((q) => [ilike(ingredients.name, `%${q}%`)])) as SQL,
     ];
 
     // Filter by category if specified
@@ -794,7 +786,7 @@ export async function getRecipeIngredients(recipeId: string): Promise<RecipeIngr
     }
 
     // Check access permissions
-    if (!recipe[0].is_public && recipe[0].user_id !== userId) {
+    if (!isPublicRecipe(recipe[0]) && recipe[0].user_id !== userId) {
       return {
         success: false,
         ingredients: [],

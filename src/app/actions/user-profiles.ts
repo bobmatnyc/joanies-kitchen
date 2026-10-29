@@ -1,8 +1,8 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   insertUserProfileSchema,
@@ -10,6 +10,7 @@ import {
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { publicRecipe } from '@/lib/recipe-public';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -341,7 +342,7 @@ export async function getUserRecipes(
       visibilityCondition = and(eq(recipes.user_id, profile.user_id), eq(recipes.is_public, false));
     } else {
       // Default: only public recipes (for non-owners or when not specified)
-      visibilityCondition = and(eq(recipes.user_id, profile.user_id), eq(recipes.is_public, true));
+      visibilityCondition = and(eq(recipes.user_id, profile.user_id), publicRecipe);
     }
 
     // Get total count

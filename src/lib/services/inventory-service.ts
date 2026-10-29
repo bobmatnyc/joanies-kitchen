@@ -191,7 +191,11 @@ export class InventoryService {
     notes?: string
   ): Promise<{ remainingQuantity: number }> {
     // Get inventory item
-    const [item] = await db.select().from(inventoryItems).where(eq(inventoryItems.id, itemId)).limit(1);
+    const [item] = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, itemId))
+      .limit(1);
 
     if (!item) {
       throw new Error('Inventory item not found');
@@ -248,7 +252,11 @@ export class InventoryService {
       weightOz?: number;
     }
   ): Promise<{ daysOwned: number }> {
-    const [item] = await db.select().from(inventoryItems).where(eq(inventoryItems.id, itemId)).limit(1);
+    const [item] = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, itemId))
+      .limit(1);
 
     if (!item) {
       throw new Error('Inventory item not found');
@@ -260,8 +268,7 @@ export class InventoryService {
     );
 
     // Use item's cost if not provided
-    const wasteCost =
-      options?.costUsd ?? (item.cost_usd ? parseFloat(item.cost_usd) : null);
+    const wasteCost = options?.costUsd ?? (item.cost_usd ? parseFloat(item.cost_usd) : null);
 
     // Create waste tracking entry
     const wasteEntry: NewWasteTracking = {
@@ -401,7 +408,7 @@ export class InventoryService {
       LEFT JOIN ingredients i ON ri.ingredient_id = i.id
       WHERE
         r.deleted_at IS NULL
-        AND (r.user_id = ${userId} OR r.is_public = true)
+        AND (r.user_id = ${userId} OR (r.is_public = true AND r.moderation_status IS DISTINCT FROM 'rejected'))
       GROUP BY
         r.id, r.name, r.slug, r.description, r.image_url, r.images,
         r.prep_time, r.cook_time, r.servings, r.difficulty, r.cuisine,

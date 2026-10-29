@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { publicRecipe } from '@/lib/recipe-public';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -130,7 +131,7 @@ export async function GET() {
       .leftJoin(chefs, eq(recipes.chef_id, chefs.id))
       .where(
         and(
-          eq(recipes.is_public, true),
+          publicRecipe,
           isNull(recipes.deleted_at),
           or(
             ...noWasteConditions,
@@ -153,7 +154,7 @@ export async function GET() {
         })
         .from(recipes)
         .leftJoin(chefs, eq(recipes.chef_id, chefs.id))
-        .where(and(eq(recipes.is_public, true), isNull(recipes.deleted_at)))
+        .where(and(publicRecipe, isNull(recipes.deleted_at)))
         .orderBy(desc(recipes.created_at))
         .limit(1)
         .then((rows) => rows[0] ?? null);

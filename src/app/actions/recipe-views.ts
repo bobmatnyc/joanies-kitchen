@@ -1,10 +1,11 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { recipeViews } from '@/lib/db/user-discovery-schema';
+import { publicRecipe } from '@/lib/recipe-public';
 import {
   findViewableRecipe,
   getRecipeViewer,
@@ -174,7 +175,7 @@ export async function getPopularRecipes(
       .where(
         and(
           sql`${recipes.id} = ANY(${recipeIdList})`,
-          eq(recipes.is_public, true) // Only show public recipes
+          publicRecipe // Only show public recipes
         )
       );
 
