@@ -91,6 +91,12 @@ export interface SubstitutionResult {
 
   /** Primary source of substitution data */
   source: SubstitutionSource;
+
+  /**
+   * #95: true when the AI call failed. Distinct from `has_substitutions:false`,
+   * which means the lookup worked and no substitutes are known.
+   */
+  failed?: boolean;
 }
 
 /**

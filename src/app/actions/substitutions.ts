@@ -24,7 +24,7 @@ interface ActionResult<T> {
   data?: T;
   error?: string;
   /** #17: typed refusal before any paid AI call. */
-  errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE' | PaidCallBlockedCode; // #57: cost codes
+  errorCode?: 'RATE_LIMITED' | 'LIMITER_UNAVAILABLE' | 'AI_FAILED' | PaidCallBlockedCode; // #57: cost codes
   retryAfterSec?: number;
 }
 
@@ -108,6 +108,16 @@ export async function getMultipleIngredientSubstitutions(
 
     // Get substitutions
     const results = await getBatchSubstitutions(validIngredients, substitutionContext);
+
+    // #95: every ingredient failed in the AI call -> a failure, not an empty success.
+    // A partial failure stays success:true; failed items carry `failed: true`.
+    if (results.length > 0 && results.every((r) => r.failed)) {
+      return {
+        success: false,
+        error: 'Substitutions could not be generated right now. Please try again.',
+        errorCode: 'AI_FAILED',
+      };
+    }
 
     return {
       success: true,

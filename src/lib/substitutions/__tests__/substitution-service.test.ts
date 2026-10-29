@@ -23,6 +23,7 @@ describe('#24 AI substitution error arm', () => {
 
     const result = await getSubstitutions('zzz-unlisted-ingredient');
 
+    expect(result.failed).toBe(true); // #95: a failure, not an empty success
     expect(result.has_substitutions).toBe(false);
     expect(result.substitutions).toEqual([]);
     expect(result.notes).toBe(
