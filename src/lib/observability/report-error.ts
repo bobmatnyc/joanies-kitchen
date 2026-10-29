@@ -19,6 +19,8 @@ export type ErrorSource =
   | 'middleware'
   | 'proxy'
   | 'cron'
+  // #55 S2: errors reported by client error boundaries via /api/client-error.
+  | 'client'
   | 'unknown';
 
 export interface ReportErrorContext {
