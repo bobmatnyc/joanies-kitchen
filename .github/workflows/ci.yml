@@ -16,6 +16,16 @@ permissions:
   contents: read
 
 jobs:
+  # Fails on credentialed DB URLs, npg_ tokens and private keys; prints file:line only.
+  secret-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node .github/scripts/check-secrets.mjs
+
   typecheck:
     runs-on: ubuntu-latest
     steps:

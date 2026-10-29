@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Fake URL shape only; neon() builds an HTTP client without connecting.
-const FAKE_URL = 'postgresql://user:pw@example.invalid/db';
+const FAKE_URL = 'postgresql://user:pw@example.invalid/db'; // secret-check: ignore (dummy)
 
 describe('lazy db (A37)', () => {
   let saved: string | undefined;
