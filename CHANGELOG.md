@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **costs**: Jina embedding calls book tokens × `JINA_USD_PER_TOKEN`, rounded up to $0.000001, so semantic search spend counts toward the $10/day cap instead of being stored as $0; a response without usage is estimated from input length (#75)
 - **search**: home search autocomplete ranks exact and prefix matches above substring matches, drops duplicate suggestions (case, plural or repeated row), shows stocks and broths as "stocks" instead of Dairy, and shows each row left-aligned with the category as a separate badge (#47)
 - **security**: collections, meals, chef pages, favorites, likes and view history show a recipe only if the viewer may read it, whoever owns the container; adding a recipe the caller cannot see to a collection, meal, meal plan, favorites or likes, or flagging or view-tracking it, answers "Recipe not found" as for a nonexistent recipe (web actions and `/api/v1`) (#41)
 - **actions**: `createRecipe` and `updateRecipe` (and `POST`/`PATCH /api/v1/recipes`) write only an allowlist of recipe columns. `is_system_recipe`, `chef_id` and `license` are kept only for an admin; the owner, ids, slug, timestamps, moderation, ratings and counters, QA and soft-delete columns from the client are ignored. `updateRecipe` now sets `updated_at` (#33)

@@ -14,6 +14,7 @@
  */
 
 import { assertWithinDailyCap, trackCost } from '@/lib/costs';
+import { jinaEmbeddingCost } from '@/lib/costs/rates';
 import type { Recipe } from '@/lib/db/schema';
 
 // Constants
@@ -206,13 +207,13 @@ async function callJinaEmbeddings(
           data?: Array<{ embedding: number[]; index: number }>;
           usage?: { total_tokens?: number };
         };
+        // #75: book tokens x price rounded up to the ledger resolution; it was stored as $0.
+        const cost = jinaEmbeddingCost(json.usage?.total_tokens, inputs);
         await trackCost({
           provider: 'jina',
           operation: 'embeddings',
-          // ~4 chars/token estimate when Jina omits usage.
-          units:
-            Number(json.usage?.total_tokens) ||
-            Math.ceil(inputs.reduce((n, text) => n + text.length, 0) / 4),
+          units: cost.tokens,
+          estimateUsd: cost.usd,
         });
 
         if (!json.data || !Array.isArray(json.data) || json.data.length !== inputs.length) {

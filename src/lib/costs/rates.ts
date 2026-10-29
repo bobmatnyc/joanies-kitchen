@@ -34,7 +34,19 @@ export interface LlmTokenPrice {
 
 const TAVILY_USD_PER_CREDIT = 0.008; // pay-as-you-go
 const FIRECRAWL_USD_PER_CREDIT = 16 / 3000; // Hobby plan: $16 / 3,000 credits
-const JINA_USD_PER_TOKEN = 0.02 / 1_000_000;
+// #75: Jina per-token price, $0.02 per 1M tokens — the list rate adopted in #6,
+// source https://jina.ai/embeddings/#pricing (re-check there when the plan changes).
+// Shared by reader and embeddings.
+export const JINA_USD_PER_TOKEN = 0.02 / 1_000_000;
+
+/**
+ * #75: smallest USD amount `crawl_cost_events.usd` (numeric(12,6)) can hold.
+ * A cost below it is written as 0.000000 and never reaches the daily-cap sum.
+ */
+export const LEDGER_USD_RESOLUTION = 0.000001;
+
+/** #75: ~4 chars/token, used only when Jina omits `usage.total_tokens`. */
+const JINA_CHARS_PER_TOKEN_ESTIMATE = 4;
 
 /**
  * Flat rates keyed `provider:operation`. LLM chat operations are priced per
@@ -97,6 +109,33 @@ export const UNKNOWN_LLM_REQUEST_FLOOR_USD: Readonly<Partial<Record<CostProvider
   anthropic: 0.01,
   perplexity: 0.005,
 };
+
+/**
+ * Why: a one-query embedding costs ~2e-7 USD, which the 6-decimal ledger column
+ * rounded to $0, so Jina spend never counted toward the daily cap (#75).
+ * What: Returns tokens x `JINA_USD_PER_TOKEN`, rounded UP to
+ * `LEDGER_USD_RESOLUTION` (minimum one unit). With no usable token count it
+ * estimates tokens from the input length (conservative estimate, not fail-closed).
+ * Test: `a Jina call adds its token cost to today`,
+ * `a Jina call with no usage still records a non-zero cost`
+ */
+export function jinaEmbeddingCost(
+  totalTokens: number | null | undefined,
+  inputs: readonly string[]
+): { tokens: number; usd: number } {
+  const reported = Number(totalTokens);
+  // #75: no usage → estimate from input length instead of booking $0.
+  const tokens =
+    Number.isFinite(reported) && reported > 0
+      ? reported
+      : Math.max(
+          1,
+          Math.ceil(inputs.reduce((n, text) => n + text.length, 0) / JINA_CHARS_PER_TOKEN_ESTIMATE)
+        );
+  // #75: round up to the ledger's resolution so a tiny call is never stored as 0.
+  const steps = Math.max(1, Math.ceil((tokens * JINA_USD_PER_TOKEN) / LEDGER_USD_RESOLUTION));
+  return { tokens, usd: steps * LEDGER_USD_RESOLUTION };
+}
 
 /** Returns the flat rate for `provider:operation`, or undefined when unknown. */
 export function lookupRate(provider: CostProvider, operation: string): CostRate | undefined {
