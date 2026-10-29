@@ -15,6 +15,13 @@
       "when": 1793230150228,
       "tag": "0001_recipe_embeddings_recipe_id_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793233346945,
+      "tag": "0002_melted_rhodey",
+      "breakpoints": true
     }
   ]
 }
