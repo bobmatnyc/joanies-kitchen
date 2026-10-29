@@ -29,6 +29,9 @@ playwright/.auth/
 # linting/formatting
 .biome
 
+# #96 D57: bge-small model, fetched and sha256-checked by scripts/fetch-embedding-model.ts in prebuild
+/models/
+
 # next.js
 /.next/
 /out/
@@ -205,6 +208,8 @@ scripts/fix-*.ts
 scripts/migrate-*.ts
 scripts/test-*.ts
 scripts/verify-*.ts
+# #96 D57: kept; the stored-vector parity check for the bge-small embedder
+!scripts/verify-bge-parity.ts
 scripts/update-*.ts
 scripts/remove-*.ts
 scripts/consolidate-*.ts

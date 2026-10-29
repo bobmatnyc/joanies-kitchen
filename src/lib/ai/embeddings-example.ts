@@ -18,7 +18,7 @@ import type { Recipe } from '@/lib/db/schema';
 import {
   buildRecipeEmbeddingText,
   cosineSimilarity,
-  generateEmbedding,
+  generateQueryEmbedding,
   generateRecipeEmbedding,
 } from './embeddings';
 
@@ -85,8 +85,8 @@ export async function embedMultipleRecipes(recipes: Recipe[]) {
 
 export async function searchSimilarRecipes(searchQuery: string, limit = 10) {
   try {
-    // Generate embedding for search query
-    const queryEmbedding = await generateEmbedding(searchQuery);
+    // #96 D57: queries take the BGE instruction prefix.
+    const queryEmbedding = await generateQueryEmbedding(searchQuery);
 
     // Find similar recipes in database
     const similar = await findSimilarRecipes(

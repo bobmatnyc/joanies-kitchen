@@ -432,7 +432,8 @@ async function saveDiscoveredRecipe(
       discovery_date: new Date(),
       confidence_score: source.confidenceScore.toFixed(2),
       validation_model: 'anthropic/claude-3-haiku',
-      embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+      // #96 D57: label from the embedder, not a stale MiniLM literal.
+      embedding_model: embeddingResult?.modelName ?? null,
       is_ai_generated: false, // Discovered from web
       is_public: !userId, // Anonymous discoveries are public
       is_system_recipe: !userId, // Anonymous = system recipe

@@ -65,6 +65,7 @@ vi.mock('@/lib/ai/meal-recommendations', () => ({
 }));
 vi.mock('@/lib/ai/embeddings', () => ({
   generateEmbedding: vi.fn(async () => [0.1, 0.2]),
+  generateQueryEmbedding: vi.fn(async () => [0.1, 0.2]), // #96 D57
   generateRecipeEmbedding: vi.fn(async () => ({
     embedding: [0.1, 0.2],
     embeddingText: 'text',
