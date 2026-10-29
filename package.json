@@ -178,7 +178,7 @@
     "version:current": "tsx test/scripts/version.ts current",
     "version:auto": "tsx test/scripts/version.ts auto",
     "version:test": "tsx test/scripts/test-version.ts",
-    "build:production": "tsx test/scripts/version.ts build && tsx scripts/generate-background-manifest.ts && tsx scripts/fetch-embedding-model.ts && next build",
+    "build:production": "tsx test/scripts/version.ts build && tsx scripts/generate-background-manifest.ts && tsx scripts/fetch-embedding-model.ts && next build && tsx scripts/check-embedding-traces.ts",
     "prebuild": "tsx test/scripts/version.ts build && tsx scripts/generate-background-manifest.ts && tsx scripts/fetch-embedding-model.ts",
     "generate:backgrounds": "tsx scripts/generate-background-manifest.ts",
     "perf:analyze": "tsx test/scripts/analyze-performance.ts",

@@ -140,6 +140,9 @@ describe('#96 D57 in-process bge-small embeddings', () => {
     const error = await generateEmbedding('pasta').catch((e) => e);
     expect(error.name).toBe('EmbeddingError');
     expect(error.code).toBe('CONFIG_ERROR');
+    // #96: the message reaches the browser, so the server path stays in details.
+    expect(error.message).not.toContain(process.cwd());
+    expect(error.details.modelDir).toContain(process.cwd());
     // A failed load is not cached: the next call retries and succeeds.
     fake.loadError = null;
     expect(await generateEmbedding('pasta')).toHaveLength(384);

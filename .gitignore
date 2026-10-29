@@ -203,6 +203,8 @@ tmp/top-10-ingredients.txt
 scripts/add-*.ts
 scripts/analyze-*.ts
 scripts/check-*.ts
+# #96 D57: kept; the post-build embedder trace check run in CI
+!scripts/check-embedding-traces.ts
 scripts/cleanup-*.ts
 scripts/fix-*.ts
 scripts/migrate-*.ts

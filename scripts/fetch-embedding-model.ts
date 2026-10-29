@@ -6,8 +6,10 @@
  * 133 MB fp32 weights are not committed (see test/scripts/README-EMBEDDINGS.md).
  * What: for each file in `EMBEDDING_MODEL_FILES`, keeps a local copy whose
  * sha256 matches, else downloads it from the pinned Hugging Face commit and
- * verifies size and sha256 before moving it into place. Any mismatch exits 1,
- * which fails the build. Runs in `prebuild`; never at request time.
+ * verifies byte size and sha256 before moving it into place. Each download
+ * attempt times out after 120 s and is tried 3 times with backoff
+ * (`scripts/lib/with-retry.ts`). A mismatch or the last failed attempt exits
+ * 1, which fails the build. Runs in `prebuild`; never at request time.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -17,6 +19,7 @@ import {
   mkdirSync,
   renameSync,
   rmSync,
+  statSync,
 } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -28,6 +31,7 @@ import {
   EMBEDDING_MODEL_ROOT,
   type EmbeddingModelFile,
 } from '../src/lib/ai/embedding-model';
+import { withRetry } from './lib/with-retry';
 
 const root = path.resolve(__dirname, '..');
 const modelDir = path.join(root, EMBEDDING_MODEL_ROOT, EMBEDDING_MODEL_REPO);
@@ -38,22 +42,46 @@ async function sha256Of(file: string): Promise<string> {
   return hash.digest('hex');
 }
 
+/** One attempt: streams `url` to `partial`, then checks byte size and sha256. */
+async function downloadVerified(
+  url: string,
+  partial: string,
+  file: EmbeddingModelFile,
+  signal: AbortSignal
+): Promise<void> {
+  const response = await fetch(url, { signal });
+  if (!response.ok || !response.body) {
+    throw new Error(`GET ${url} failed: HTTP ${response.status}`);
+  }
+  await pipeline(Readable.fromWeb(response.body as never), createWriteStream(partial));
+  const bytes = statSync(partial).size;
+  if (bytes !== file.bytes) {
+    throw new Error(`${file.path}: ${bytes} bytes, pinned size is ${file.bytes}`);
+  }
+  const actual = await sha256Of(partial);
+  if (actual !== file.sha256) {
+    throw new Error(`${file.path}: sha256 ${actual} does not match pinned ${file.sha256}`);
+  }
+}
+
 async function ensureFile(file: EmbeddingModelFile): Promise<'cached' | 'downloaded'> {
   const target = path.join(modelDir, file.path);
   if (existsSync(target) && (await sha256Of(target)) === file.sha256) return 'cached';
 
   mkdirSync(path.dirname(target), { recursive: true });
   const url = `https://huggingface.co/${EMBEDDING_MODEL_REPO}/resolve/${EMBEDDING_MODEL_REVISION}/${file.path}`;
-  const response = await fetch(url);
-  if (!response.ok || !response.body) {
-    throw new Error(`GET ${url} failed: HTTP ${response.status}`);
-  }
   const partial = `${target}.partial`;
-  await pipeline(Readable.fromWeb(response.body as never), createWriteStream(partial));
-  const actual = await sha256Of(partial);
-  if (actual !== file.sha256) {
+  try {
+    await withRetry((signal) => downloadVerified(url, partial, file, signal), {
+      attempts: 3,
+      timeoutMs: 120_000,
+      backoffMs: 2_000,
+      onRetry: (n, error) =>
+        console.warn(`[fetch-embedding-model] ${file.path}: attempt ${n} failed:`, error),
+    });
+  } catch (error) {
     rmSync(partial, { force: true });
-    throw new Error(`${file.path}: sha256 ${actual} does not match pinned ${file.sha256}`);
+    throw error;
   }
   renameSync(partial, target);
   return 'downloaded';

@@ -125,10 +125,15 @@ function getExtractor(): Promise<FeatureExtractionPipeline> {
       })) as FeatureExtractionPipeline;
     })().catch((error: unknown) => {
       extractorPromise = null;
+      // #96: the message reaches the browser via searchFailure, so the server path
+      // stays in `details` and the server log.
+      const modelDir = embeddingModelDir();
+      console.error(`[embeddings] failed to load ${EMBEDDING_MODEL_REPO} from ${modelDir}`, error);
       throw new EmbeddingError(
-        `Failed to load embedding model ${EMBEDDING_MODEL_REPO} from ${embeddingModelDir()}`,
+        'Search is temporarily unavailable (embedding model failed to load)',
         'CONFIG_ERROR',
         {
+          modelDir,
           cause: error instanceof Error ? error.message : String(error),
           hint: 'Run `pnpm exec tsx scripts/fetch-embedding-model.ts` (runs in prebuild).',
         }

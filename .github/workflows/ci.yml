@@ -73,6 +73,9 @@ jobs:
         run: |
           unset DATABASE_URL
           pnpm build
+      # #96 D57: every function that loads the embedder must ship the model and linux-x64 runtime.
+      - name: check embedding traces
+        run: pnpm exec tsx scripts/check-embedding-traces.ts
 
   lint:
     runs-on: ubuntu-latest
