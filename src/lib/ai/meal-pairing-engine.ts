@@ -11,6 +11,7 @@
 
 import 'server-only';
 import { type RecipeWithSimilarity, semanticSearchRecipes } from '@/app/actions/semantic-search';
+import { isPaidCallBlocked } from '@/lib/costs';
 import { getOpenRouterClient } from './openrouter-server';
 import { renderPrompt } from './prompts';
 import {
@@ -422,6 +423,8 @@ async function generateMealWithSemanticSearch(
       mealPlan: enrichedMealPlan,
     };
   } catch (error: any) {
+    // #57: let the cost-ceiling refusal reach the action so it returns its typed code.
+    if (isPaidCallBlocked(error)) throw error;
     console.error('Meal generation failed:', error);
     return {
       success: false,

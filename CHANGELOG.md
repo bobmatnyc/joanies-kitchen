@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **substitutions**: removed the unused `getIngredientSubstitutions` server action, which any client could call to reach the paid AI substitution path with no rate limit; `getMultipleIngredientSubstitutions` is the only substitution action
+- **rate-limit**: `generateBalancedMeal` checks a per-user `meal-pairing` bucket (5 calls per 60 s) before its paid LLM call; over the limit it returns `RATE_LIMITED`, with the limiter down it returns `LIMITER_UNAVAILABLE`, and the daily cost ceiling returns its typed code instead of a plain error
 - **embeddings**: saving a recipe embedding is a single upsert on `recipe_id`, so a repeat or concurrent save replaces the row instead of failing with a unique-constraint error (23505)
 - **costs**: a paid call with missing or zero usage (LLM response without `usage`, empty Jina reader page, Firecrawl crawl with no credits or pages, Tavily extract with nothing extracted) now books a typical-call floor cost instead of $0, and a short Jina reader cost rounds up to the ledger's $0.000001 resolution (#77)
 - **costs**: Jina embedding calls book tokens × `JINA_USD_PER_TOKEN`, rounded up to $0.000001, so semantic search spend counts toward the $10/day cap instead of being stored as $0; a response without usage is estimated from input length (#75)
