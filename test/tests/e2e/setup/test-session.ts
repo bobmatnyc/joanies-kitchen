@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { encode } from 'next-auth/jwt';
+import { configureLocalNeonProxy } from '../../../../src/lib/db/local-neon';
 
 /**
  * Test-only NextAuth session minting for the E2E auth setup.
@@ -123,7 +124,8 @@ export async function neonTestUserStore(env: Env): Promise<TestUserStore> {
   if (!env.DATABASE_URL) {
     throw new Error('E2E auth: DATABASE_URL must be set to seed the test user.');
   }
-  const { neon } = await import('@neondatabase/serverless');
+  const { neon, neonConfig } = await import('@neondatabase/serverless');
+  configureLocalNeonProxy(neonConfig, env.DATABASE_URL); // #60: local staging proxy
   const sql = neon(env.DATABASE_URL);
   return {
     async upsert(user) {

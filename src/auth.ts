@@ -4,6 +4,12 @@ import { authConfig } from '@/auth.config';
 import { authorizeSignIn, refreshAdminClaim } from '@/lib/auth-callbacks';
 import { db } from '@/lib/db';
 import { accounts, users, verificationTokens } from '@/lib/db/auth-schema';
+import { LOCAL_STAGING_PROVIDER_ID } from '@/lib/local-staging-auth';
+import {
+  authorizeLocalStagingSignIn,
+  buildAuthProviders,
+  gateLocalStagingToken,
+} from '@/lib/local-staging-auth-provider';
 
 /**
  * Node-side Auth.js instance — #22.
@@ -21,6 +27,8 @@ import { accounts, users, verificationTokens } from '@/lib/db/auth-schema';
  */
 export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
   ...authConfig,
+  // #60 D5f: Google only unless the local-staging bypass predicate holds.
+  providers: buildAuthProviders(),
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -28,12 +36,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
   }),
   callbacks: {
     ...authConfig.callbacks,
-    signIn: (params) => authorizeSignIn(params),
+    // #60 D5f: the bypass provider has its own gate; every other login is unchanged.
+    signIn: (params) =>
+      params.account?.provider === LOCAL_STAGING_PROVIDER_ID
+        ? authorizeLocalStagingSignIn(params)
+        : authorizeSignIn(params),
     jwt: (params) => {
+      // #60 D5f: mark bypass-minted tokens; a marked token ends its session
+      // whenever the bypass is inactive (e.g. production with a shared secret).
+      const token = gateLocalStagingToken(params);
+      if (!token) return null;
       // The adapter returns the stored users row, whose `image` can be null for a
       // pre-seeded user; take the picture Google just sent (default scopes) instead.
-      if (params.profile?.picture) params.token.picture = params.profile.picture;
-      return refreshAdminClaim(params);
+      if (params.profile?.picture) token.picture = params.profile.picture;
+      return refreshAdminClaim({ ...params, token });
     },
   },
 }));

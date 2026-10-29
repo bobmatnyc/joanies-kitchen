@@ -16,5 +16,7 @@ declare module 'next-auth/jwt' {
     isAdmin?: boolean;
     /** Epoch ms of the last successful users.is_admin read. */
     adminCheckedAt?: number;
+    /** #60 D5f: set when the local-staging bypass provider minted this token. */
+    localStaging?: boolean;
   }
 }
