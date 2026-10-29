@@ -9,7 +9,7 @@ The beta go/no-go checklist. The schedule is in [ROADMAP.md](ROADMAP.md). Every 
 
 - [ ] #55 Error monitoring and alerting
 - [ ] #56 `/api/health` and uptime checks
-- [ ] #57 Daily cost ceiling, with alert and hard stop
+- [x] #57 Daily cost ceiling, with alert and hard stop
 - [ ] #17 Rate limit on public semantic search
 - [ ] #58 Account deletion and data export
 - [ ] #59 Content reporting and moderation queue
