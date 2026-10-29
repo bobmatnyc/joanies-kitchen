@@ -29,15 +29,15 @@ vi.mock('@/lib/db', async () => {
   const { drizzle } = await import('drizzle-orm/pg-proxy');
   const schema = await import('@/lib/db/schema');
   const chefSchema = await import('@/lib/db/chef-schema');
-  return {
-    db: drizzle(
-      async (sql) => {
-        mocks.queries.push(sql);
-        return { rows: [] };
-      },
-      { schema: { ...schema, ...chefSchema } }
-    ),
-  };
+  const db = drizzle(
+    async (sql) => {
+      mocks.queries.push(sql);
+      return { rows: [] };
+    },
+    { schema: { ...schema, ...chefSchema } }
+  );
+  // #34: pg-proxy has no db.batch; run each batched query through the proxy.
+  return { db: Object.assign(db, { batch: (qs: unknown[]) => Promise.all(qs) }) };
 });
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock('@/lib/cache', () => ({ invalidateRecipeCaches: vi.fn() }));
