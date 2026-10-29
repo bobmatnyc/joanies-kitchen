@@ -36,13 +36,28 @@ async function checkDb(): Promise<CheckResult> {
   }
 }
 
+/**
+ * #55 S3: whether the sign-in config is present. Booleans only, never values;
+ * a missing var means sign-in is broken, so health reports 503.
+ */
+function checkAuthConfig() {
+  const secret = Boolean(process.env.AUTH_SECRET);
+  const googleId = Boolean(process.env.AUTH_GOOGLE_ID);
+  return {
+    status: secret && googleId ? ('ok' as const) : ('error' as const),
+    AUTH_SECRET: secret,
+    AUTH_GOOGLE_ID: googleId,
+  };
+}
+
 export async function GET() {
   const dbCheck = await checkDb();
-  const healthy = dbCheck.status === 'ok';
+  const authCheck = checkAuthConfig();
+  const healthy = dbCheck.status === 'ok' && authCheck.status === 'ok';
   return NextResponse.json(
     {
       status: healthy ? 'ok' : 'error',
-      checks: { db: dbCheck },
+      checks: { db: dbCheck, auth: authCheck }, // #55: auth added; db unchanged
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       timestamp: new Date().toISOString(),
     },

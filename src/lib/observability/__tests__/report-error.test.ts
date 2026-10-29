@@ -110,3 +110,25 @@ describe('onRequestError', () => {
     });
   });
 });
+
+// #55 S3: path, route and name get the same email/token redaction as the message.
+describe('reportError field redaction', () => {
+  it('redacts emails and tokens in path, route and name, keeping long slugs', () => {
+    const { lines } = captureLines();
+    const err = Object.assign(new Error('x'), { name: 'Err jane@example.com Bearer abc.DEF-1' });
+    reportError(err, {
+      source: 'render',
+      path: '/u/jane@example.com/token_ABCDEFGH12345',
+      route: '/r/sk-abcdefghijk/chocolate-chip-cookies-with-flaky-sea-salt',
+    });
+    const line = lines[0] ?? '';
+    expect(line).not.toContain('jane@example.com');
+    expect(line).not.toContain('abc.DEF-1');
+    expect(line).not.toContain('ABCDEFGH12345');
+    expect(line).not.toContain('sk-abcdefghijk');
+    const rec = JSON.parse(line);
+    expect(rec.path).toBe('/u/[email]/[secret]');
+    expect(rec.route).toBe('/r/[secret]/chocolate-chip-cookies-with-flaky-sea-salt');
+    expect(rec.name).toBe('Err [email] Bearer [redacted]');
+  });
+});

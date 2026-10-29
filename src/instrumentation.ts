@@ -5,7 +5,16 @@
  * Test: `src/lib/observability/__tests__/report-error.test.ts`
  */
 
+import { installConsoleRedaction } from '@/lib/observability/redact-console';
 import { type ErrorSource, reportError } from '@/lib/observability/report-error';
+
+/**
+ * #55 S3: Next prints its own server error lines through console.error, raw
+ * (an email reached prod logs this way). Redact them on the Node runtime only.
+ */
+export function register(): void {
+  if (process.env.NEXT_RUNTIME === 'nodejs') installConsoleRedaction();
+}
 
 const ROUTE_TYPES: ReadonlySet<string> = new Set([
   'render',

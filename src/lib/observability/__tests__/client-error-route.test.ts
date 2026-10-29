@@ -2,7 +2,7 @@
 /** #55 S2: POST /api/client-error validates, rate-limits, and logs one redacted app-error line. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { RateLimitResult } from '@/lib/rate-limit';
-import { handleClientError } from '../client-error-handler';
+import { clientErrorKey, handleClientError } from '../client-error-handler';
 import { MAX_CLIENT_ERROR_BODY_BYTES } from '../client-error-payload';
 
 const allow = async (): Promise<RateLimitResult> => ({ allowed: true, count: 1, limit: 10 });
@@ -128,5 +128,43 @@ describe('handleClientError', () => {
       },
     });
     expect(res.status).toBe(503);
+  });
+});
+
+// #55 S3: client name and pathname are redacted like the message.
+describe('handleClientError field redaction', () => {
+  it('redacts emails and tokens in the client name and pathname', async () => {
+    const lines = captureLines();
+    const res = await handleClientError(
+      post({ ...valid, name: 'E jane.doe@example.com', pathname: '/u/jane.doe@example.com' }),
+      { limit: allow }
+    );
+    expect(res.status).toBe(204);
+    expect(lines[0]).not.toContain('jane.doe@example.com');
+    const rec = JSON.parse(lines[0] ?? '');
+    expect(rec.name).toBe('E [email]');
+    expect(rec.path).toBe('/u/[email]');
+  });
+});
+
+// #55 S3: IPv6 callers share one bucket per /64.
+describe('clientErrorKey', () => {
+  it.each([
+    ['ip:2001:db8:1:2:aaaa:bbbb:cccc:dddd', 'ip6:2001:db8:1:2::/64'],
+    ['ip:2001:db8:1:2::1', 'ip6:2001:db8:1:2::/64'],
+    ['ip:2001:0db8::', 'ip6:2001:db8:0:0::/64'],
+    ['ip:::1', 'ip6:0:0:0:0::/64'],
+    ['ip:1.2.3.4', 'ip:1.2.3.4'],
+    ['ip:1::2::3', 'ip:1::2::3'],
+    ['ip:1:2:3:4:5:6:7:8:9', 'ip:1:2:3:4:5:6:7:8:9'],
+  ])('%s -> %s', (input, expected) => {
+    expect(clientErrorKey(input)).toBe(expected);
+  });
+
+  it('keys the limiter by /64 for an IPv6 caller', async () => {
+    captureLines();
+    const limit = vi.fn(allow);
+    await handleClientError(post(valid, { 'x-real-ip': '2001:db8:1:2:ffff::9' }), { limit });
+    expect(limit).toHaveBeenCalledWith('ip6:2001:db8:1:2::/64');
   });
 });

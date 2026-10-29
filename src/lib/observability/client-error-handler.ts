@@ -53,6 +53,28 @@ async function readCapped(req: Request, max: number): Promise<string | null> {
   return new TextDecoder().decode(buf);
 }
 
+/**
+ * #55 S3: one IPv6 client usually owns a whole /64, so key IPv6 by its /64
+ * prefix; otherwise rotating the low 64 bits escapes the limit. IPv4 and the
+ * shared unknown key pass through unchanged.
+ */
+export function clientErrorKey(key: string): string {
+  if (!key.startsWith('ip:') || !key.includes(':', 3)) return key;
+  const ip = key.slice(3);
+  const parts = ip.split('::');
+  if (parts.length > 2) return key;
+  const left = parts[0] ? parts[0].split(':') : [];
+  const right = parts[1] ? parts[1].split(':') : [];
+  const gap = 8 - left.length - right.length;
+  if (parts.length === 2 ? gap < 1 : gap !== 0) return key;
+  const groups = [...left, ...Array<string>(Math.max(gap, 0)).fill('0'), ...right];
+  if (groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return key;
+  return `ip6:${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
+}
+
 export async function handleClientError(
   req: Request,
   deps: ClientErrorDeps = {}
@@ -69,7 +91,7 @@ export async function handleClientError(
     const payload = parseClientErrorPayload(json);
     if (!payload) return fixed(400, 'bad request');
 
-    const key = rateLimitKey(null, req.headers);
+    const key = clientErrorKey(rateLimitKey(null, req.headers)); // #55: IPv6 by /64
     const verdict = await (deps.limit ?? ((k) => checkRateLimit('client-error', k)))(key);
     if (!verdict.allowed) {
       if (verdict.reason === 'unavailable') return fixed(503, 'unavailable');
