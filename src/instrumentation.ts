@@ -5,6 +5,10 @@
  * Test: `src/lib/observability/__tests__/report-error.test.ts`
  */
 
+import {
+  isLocalStagingAuthBypassActive,
+  LOCAL_STAGING_PROVIDER_ID,
+} from '@/lib/local-staging-auth';
 import { installConsoleRedaction } from '@/lib/observability/redact-console';
 import { type ErrorSource, reportError } from '@/lib/observability/report-error';
 
@@ -13,7 +17,14 @@ import { type ErrorSource, reportError } from '@/lib/observability/report-error'
  * (an email reached prod logs this way). Redact them on the Node runtime only.
  */
 export function register(): void {
-  if (process.env.NEXT_RUNTIME === 'nodejs') installConsoleRedaction();
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  installConsoleRedaction();
+  // #60 D5f: name the bypass at startup; never print the email or any secret.
+  if (isLocalStagingAuthBypassActive()) {
+    console.warn(
+      `[auth] LOCAL STAGING AUTH BYPASS ACTIVE (#60 D5f): Credentials provider "${LOCAL_STAGING_PROVIDER_ID}" is registered. Never enable outside local staging.`
+    );
+  }
 }
 
 const ROUTE_TYPES: ReadonlySet<string> = new Set([

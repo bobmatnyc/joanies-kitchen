@@ -15,6 +15,24 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', '[::1]', 'localhost']);
 type ProxyEnv = Record<string, string | undefined>;
 
 /**
+ * Why: the local Neon proxy (#60) and the local-staging auth bypass (#60 D5f) must
+ * agree on what "local database" means, with no substring matching.
+ * What: the URL's parsed hostname, lower-cased, when it is exactly 127.0.0.1, ::1 or
+ * localhost; `undefined` for any other host or an unparseable URL. Never throws.
+ * Test: `src/lib/db/__tests__/local-neon.test.ts`
+ */
+export function loopbackHostname(databaseUrl: string): string | undefined {
+  let hostname: string;
+  try {
+    // postgres: is a non-special scheme, so the host is not lowercased for us.
+    hostname = new URL(databaseUrl).hostname.toLowerCase();
+  } catch {
+    return undefined; // neon() reports the malformed URL itself
+  }
+  return LOOPBACK_HOSTS.has(hostname) ? hostname : undefined;
+}
+
+/**
  * Why: local staging (EVO) runs plain Postgres behind the local Neon HTTP proxy;
  * production must keep the driver's default endpoint untouched.
  * What: returns `http://<host>:<port>/sql` when the URL's parsed hostname is exactly
@@ -26,14 +44,8 @@ export function localNeonFetchEndpoint(
   databaseUrl: string,
   env: ProxyEnv = process.env
 ): string | undefined {
-  let hostname: string;
-  try {
-    // postgres: is a non-special scheme, so the host is not lowercased for us.
-    hostname = new URL(databaseUrl).hostname.toLowerCase();
-  } catch {
-    return undefined; // neon() reports the malformed URL itself
-  }
-  if (!LOOPBACK_HOSTS.has(hostname)) return undefined;
+  const hostname = loopbackHostname(databaseUrl);
+  if (hostname === undefined) return undefined;
 
   const rawPort = env.NEON_LOCAL_PROXY_PORT;
   let port = DEFAULT_NEON_LOCAL_PROXY_PORT;

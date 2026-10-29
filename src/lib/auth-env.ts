@@ -1,17 +1,29 @@
 /**
- * Auth.js environment checks — #22. Edge-safe (no imports).
+ * Auth.js environment checks — #22. Edge-safe (imports only the pure #60 D5f predicate).
  */
+import { isLocalStagingAuthBypassActive } from '@/lib/local-staging-auth';
+
+/** True when AUTH_SECRET, AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are all set. */
+export function isGoogleAuthConfigured(): boolean {
+  return Boolean(
+    process.env.AUTH_SECRET && process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+  );
+}
+
+/** #60 D5f: AUTH_SECRET is set and the local-staging bypass predicate holds. */
+export function isLocalStagingSignInEnabled(): boolean {
+  return Boolean(process.env.AUTH_SECRET) && isLocalStagingAuthBypassActive();
+}
 
 /**
- * Returns true when AUTH_SECRET, AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are all
- * set. When false the app runs signed-out: the `@/lib/auth` shim reports no
+ * Returns true when Google sign-in is configured or (#60 D5f) the local-staging
+ * bypass is enabled; with the bypass inactive this is exactly the Google check.
+ * When false the app runs signed-out: the `@/lib/auth` shim reports no
  * user and middleware treats every request as anonymous, so protected and
  * admin routes stay closed.
  */
 export function isAuthConfigured(): boolean {
-  return Boolean(
-    process.env.AUTH_SECRET && process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
-  );
+  return isGoogleAuthConfigured() || isLocalStagingSignInEnabled();
 }
 
 /**

@@ -86,3 +86,39 @@ describe('SignInPage', () => {
     expect(mocks.signIn).toHaveBeenCalledWith('google', { redirectTo: '/favorites' });
   });
 });
+
+describe('SignInPage local-staging bypass (#60 D5f)', () => {
+  const EMAIL = 'staging@example.test';
+  function stubBypass(extra: Record<string, string | undefined> = {}) {
+    vi.stubEnv('LOCAL_STAGING_AUTH_BYPASS', '1');
+    vi.stubEnv('LOCAL_STAGING_AUTH_EMAIL', EMAIL);
+    vi.stubEnv('DATABASE_URL', 'postgres://u@127.0.0.1:5432/db');
+    for (const k of ['VERCEL', 'VERCEL_ENV', 'VERCEL_URL']) vi.stubEnv(k, undefined);
+    for (const [k, v] of Object.entries(extra)) vi.stubEnv(k, v);
+  }
+  async function html() {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    return renderToStaticMarkup(await render('/favorites'));
+  }
+
+  it('shows no bypass marker or button when a Vercel marker is present', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    stubBypass({ VERCEL: '1' });
+    const out = await html();
+    expect(out).not.toContain('LOCAL STAGING');
+    expect(out).not.toContain('local-staging-bypass');
+    expect(out.match(/<form/g)).toHaveLength(1);
+  });
+
+  it('shows the marker without the email and signs in through the bypass provider', async () => {
+    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    stubBypass({ AUTH_GOOGLE_ID: '', AUTH_GOOGLE_SECRET: '' });
+    const out = await html();
+    expect(out).toContain('LOCAL STAGING AUTH BYPASS ACTIVE');
+    expect(out).not.toContain(EMAIL);
+    expect(out).not.toContain('Continue with Google');
+    expect(out).not.toContain('Sign-in is not configured');
+    await findFormAction(await render('/favorites'))?.();
+    expect(mocks.signIn).toHaveBeenCalledWith('local-staging', { redirectTo: '/favorites' });
+  });
+});

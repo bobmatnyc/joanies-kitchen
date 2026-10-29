@@ -132,8 +132,13 @@ The script upserts by id. It fails if the email already belongs to a different i
 2. Apply migration 0023 to your development database and seed yourself.
 3. `pnpm dev`, then open `http://localhost:3002/sign-in`.
 
+## Local staging auth bypass (#60 D5f)
+
+Local EVO staging has no Google OAuth client. It signs in through a `local-staging` Credentials provider instead, as the single user in `LOCAL_STAGING_AUTH_EMAIL`. The provider, its sign-in button and notice exist only when `src/lib/local-staging-auth.ts` returns active, which needs all of: `LOCAL_STAGING_AUTH_BYPASS=1` exactly, `LOCAL_STAGING_AUTH_EMAIL` set, a `DATABASE_URL` host of exactly `127.0.0.1`, `::1` or `localhost`, and no `VERCEL`, `VERCEL_ENV` or `VERCEL_URL`. `AUTH_SECRET` is still required. Seed the user with `pnpm auth:seed-user` and list the same email in `AUTH_ADMIN_EMAILS` for admin. See `.env.example`, LOCAL STAGING ONLY.
+
 ## Tests
 
 - `src/lib/__tests__/auth-callbacks.test.ts` — sign-in gate and JWT admin refresh.
 - `src/lib/__tests__/admin-db-check.test.ts` — `requireAdmin` and `checkAdminAccess` read the database every call and deny on failure.
 - `src/lib/__tests__/auth-shim.test.ts`, `auth-client.test.tsx`, `auth-config.test.ts`, `auth-routes.test.ts`, `auth-seed.test.ts`.
+- `src/lib/__tests__/local-staging-auth.test.ts`, `local-staging-auth-provider.test.ts` — the #60 D5f bypass stays off outside local staging.
