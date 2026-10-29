@@ -53,6 +53,8 @@ docs/
 # Exclude most scripts except build-related ones
 scripts/*
 !scripts/version.ts
+# #38: prebuild runs this to write src/generated/background-images.json
+!scripts/generate-background-manifest.ts
 
 # Data acquisition (large files)
 data/
