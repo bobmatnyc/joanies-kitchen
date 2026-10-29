@@ -18,6 +18,7 @@ const fake = vi.hoisted(() => {
     failItems: false,
     failRunCreate: false,
     failRunUpdate: false,
+    slowItemUrl: '',
     dupUrls: [] as string[],
     storeFailUrls: [] as string[],
     inserts: [] as { table: string; values: Record<string, unknown> }[],
@@ -45,6 +46,9 @@ vi.mock('@/lib/db', () => {
             }
             if (name === 'recipe_discovery_runs' && fake.state.failRunCreate) {
               throw new Error('run insert failed: connection refused');
+            }
+            if (name === 'recipe_discovery_run_items' && values.url === fake.state.slowItemUrl) {
+              await new Promise((r) => setTimeout(r, 150));
             }
             if (name === 'recipe_discovery_run_items' && fake.state.failItems) {
               throw new Error('item insert failed: connection refused');
@@ -183,6 +187,7 @@ beforeEach(() => {
     failItems: false,
     failRunCreate: false,
     failRunUpdate: false,
+    slowItemUrl: '',
     dupUrls: [],
     storeFailUrls: [],
     inserts: [],
@@ -406,6 +411,34 @@ describe('#6: work that resolves after the deadline', () => {
       }),
     ]);
     // No storeRecipe insert for the late URL, and one finalize only.
+    expect(
+      fake.state.inserts.filter((i) => i.table === 'recipes' && i.values.source === url('late'))
+    ).toHaveLength(0);
+    expect(runUpdate()).toMatchObject({ recipes_stored: 1, recipes_extracted: 1 });
+    expect(result.recipesStored).toBe(1);
+  }, 2000);
+});
+
+describe('#6: abandoned-row claim race', () => {
+  it('work resolving during the abandoned-row write adds no row and moves no counter', async () => {
+    const urls = ['a', 'late', 'c'].map(url);
+    // The abandoned row's insert takes 150ms; the extraction resolves inside it.
+    fake.state.slowItemUrl = url('late');
+    const { service } = buildService({ urls, plans: { [url('late')]: 'late' }, lateMs: 100 });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 50,
+    });
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(items().filter((r) => r.url === url('late'))).toEqual([
+      expect.objectContaining({
+        outcome: 'failed',
+        error: 'deadline: abandoned in flight; may have stored late',
+      }),
+    ]);
     expect(
       fake.state.inserts.filter((i) => i.table === 'recipes' && i.values.source === url('late'))
     ).toHaveLength(0);

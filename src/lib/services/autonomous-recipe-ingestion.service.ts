@@ -340,16 +340,15 @@ export class AutonomousRecipeIngestionService {
           );
           if (processed === DEADLINE_HIT) {
             // #6: the abandoned URL still gets its one item row before close.
-            const inFlight = urlsToProcess[i].url;
-            if (!m.itemUrls.has(inFlight)) {
-              await this.recordItem(m, {
-                runId,
-                url: inFlight,
-                extractionTier: 'none',
-                outcome: 'failed',
-                error: ABANDONED_IN_FLIGHT_ERROR,
-              });
-            }
+            // recordItem claims the URL synchronously, so a late resume of
+            // its processUrl can neither write a second row nor move a counter.
+            await this.recordItem(m, {
+              runId,
+              url: urlsToProcess[i].url,
+              extractionTier: 'none',
+              outcome: 'failed',
+              error: ABANDONED_IN_FLIGHT_ERROR,
+            });
             stopAtDeadline();
             break;
           }
@@ -444,8 +443,8 @@ export class AutonomousRecipeIngestionService {
     try {
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
       const recipe = await this.extractionService.extractRecipe(url);
-      // #6: the deadline abandoned this URL; finalize already read the counters.
-      if (m.closed) return;
+      // #6: the deadline abandoned this URL; its row is claimed, counters are final.
+      if (this.released(m, url)) return;
 
       if (!recipe) {
         const err = `Extraction failed (all tiers): ${url}`;
@@ -481,7 +480,7 @@ export class AutonomousRecipeIngestionService {
       }
 
       // Step 7: Store recipe (never after the deadline closed the run)
-      if (m.closed) return;
+      if (this.released(m, url)) return;
       let recipeId: string | null = null;
       try {
         recipeId = await this.storeRecipe(recipe, chefId, url, discovered.searchQuery);
@@ -505,7 +504,7 @@ export class AutonomousRecipeIngestionService {
       }
 
       // #6: stored after the deadline closed the run; its item row already says so.
-      if (m.closed) return;
+      if (this.released(m, url)) return;
       m.recipesStored++;
       console.log(`[AutonomousIngestion] Stored recipe: "${recipe.title}" (${recipeId})`);
       // Record first stored recipe as today's Recipe of the Day
@@ -522,9 +521,15 @@ export class AutonomousRecipeIngestionService {
     }
   }
 
+  /** #6: true once the run closed or another row claimed `url`; late work then changes nothing. */
+  private released(m: RunMetrics, url: string): boolean {
+    return m.closed || m.itemUrls.has(url);
+  }
+
   /** Writes one item row; a failed write on a tracked run is counted, never thrown. */
   private async recordItem(m: RunMetrics, item: RunItemInput): Promise<void> {
-    if (m.closed) return;
+    // #6: claim before any await — exactly one row per URL under any interleaving.
+    if (m.closed || m.itemUrls.has(item.url)) return;
     m.itemUrls.add(item.url);
     const written = await recordRunItem(item);
     if (!written && isTrackedRunId(item.runId)) m.itemWriteFailures++;
@@ -543,7 +548,7 @@ export class AutonomousRecipeIngestionService {
         recipe.chef_name,
         chefWebsite
       );
-      if (chefProfile.isNew && !m.closed) m.chefsCreated++;
+      if (chefProfile.isNew && !this.released(m, url)) m.chefsCreated++;
       return chefProfile.id;
     } catch (chefErr) {
       const msg = chefErr instanceof Error ? chefErr.message : String(chefErr);
