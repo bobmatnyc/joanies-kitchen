@@ -11,12 +11,13 @@
 
 'use server';
 
-import { auth } from '@/lib/auth';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeRatings, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export interface RateRecipeResult {
@@ -58,14 +59,9 @@ export async function rateRecipe(
       };
     }
 
-    // Verify recipe exists
-    const recipe = await db
-      .select({ id: recipes.id })
-      .from(recipes)
-      .where(eq(recipes.id, recipeId))
-      .limit(1);
-
-    if (recipe.length === 0) {
+    // #137: a recipe the caller may not see (private, rejected or soft-deleted
+    // and not theirs) answers exactly as a missing one, before any write.
+    if (!(await findViewableRecipe(recipeId, await getRecipeViewer()))) {
       return {
         success: false,
         error: 'Recipe not found',
@@ -103,7 +99,8 @@ export async function rateRecipe(
       .from(recipeRatings)
       .where(eq(recipeRatings.recipe_id, recipeId));
 
-    const avgRating = stats[0]?.avgRating || 0;
+    // #137: Postgres returns a DECIMAL as a string; toFixed on it threw after the upsert.
+    const avgRating = Number(stats[0]?.avgRating ?? 0);
     const totalRatings = stats[0]?.totalRatings || 0;
 
     // Update recipe with new averages
@@ -157,6 +154,11 @@ export async function getUserRating(recipeId: string): Promise<{
       return null;
     }
 
+    // #137: no rating for a recipe the caller may not see, as for a missing one.
+    if (!(await findViewableRecipe(recipeId, await getRecipeViewer()))) {
+      return null;
+    }
+
     const userRating = await db
       .select()
       .from(recipeRatings)
@@ -204,6 +206,11 @@ export async function getRecipeRatings(
   }[]
 > {
   try {
+    // #137: a hidden recipe's reviews are as unreadable as a missing recipe's.
+    if (!(await findViewableRecipe(recipeId, await getRecipeViewer()))) {
+      return [];
+    }
+
     // Get ratings with left join to user profiles for display names
     const ratingsWithProfiles = await db
       .select({
@@ -285,7 +292,8 @@ export async function deleteRating(
       .from(recipeRatings)
       .where(eq(recipeRatings.recipe_id, recipeId));
 
-    const avgRating = stats[0]?.avgRating || null;
+    // #137: Postgres returns a DECIMAL as a string; toFixed on it threw.
+    const avgRating = stats[0]?.avgRating ? Number(stats[0].avgRating) : null;
     const totalRatings = stats[0]?.totalRatings || 0;
 
     // Update recipe
