@@ -1,82 +1,30 @@
 import path from 'node:path';
 import { expect, test as setup } from '@playwright/test';
+import { mintTestSessionCookie, TEST_USER } from './test-session';
 
 /**
- * Authentication Setup for E2E Tests
+ * E2E authentication setup (NextAuth).
  *
- * This setup script authenticates a test user with Clerk
- * and saves the authentication state for reuse in all tests.
- *
- * This avoids having to sign in before every test, which:
- * - Speeds up test execution
- * - Reduces flakiness from repeated auth flows
- * - Conserves Clerk API rate limits
+ * Why: dependent projects reuse one signed-in storageState; the app's only
+ * provider is Google OAuth, which cannot be scripted.
+ * What: mints a signed Auth.js session cookie for TEST_USER (gated by
+ * `assertTestAuthAllowed`), confirms `/api/auth/session` returns that user,
+ * and saves the storageState. Requires E2E_TEST_AUTH=1 and the dev server's
+ * AUTH_SECRET in this process's environment.
+ * Test: `test/tests/unit/e2e-test-session.test.ts`
  */
 
 const authFile = path.join(__dirname, '../.auth/user.json');
 
-setup('authenticate', async ({ page }) => {
-  // Check for required environment variables
-  const testUserEmail = process.env.TEST_USER_EMAIL;
-  const testUserPassword = process.env.TEST_USER_PASSWORD;
+setup('authenticate', async ({ context, page, baseURL }) => {
+  if (!baseURL) throw new Error('Playwright baseURL must be set for the auth setup.');
 
-  if (!testUserEmail || !testUserPassword) {
-    throw new Error(
-      'TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables must be set.\n' +
-        'Add them to .env.local:\n' +
-        'TEST_USER_EMAIL=test@example.com\n' +
-        'TEST_USER_PASSWORD=yourSecurePassword123'
-    );
-  }
+  await context.addCookies([await mintTestSessionCookie(process.env, baseURL)]);
 
-  console.log('🔐 Authenticating test user...');
+  const response = await page.request.get('/api/auth/session');
+  expect(response.ok()).toBe(true);
+  const session = await response.json();
+  expect(session?.user?.id, 'dev server rejected the minted session').toBe(TEST_USER.id);
 
-  // Navigate to sign-in page
-  await page.goto('/sign-in');
-  await page.waitForLoadState('networkidle');
-
-  // Check if already signed in (redirect to home)
-  if (page.url().includes('/sign-in') === false) {
-    console.log('✅ Already authenticated');
-    await page.context().storageState({ path: authFile });
-    return;
-  }
-
-  // Fill in Clerk sign-in form
-  // Note: Selectors may need adjustment based on Clerk's UI
-  await page.fill('input[name="identifier"], input[type="email"]', testUserEmail);
-
-  // Check if there's a "Continue" button (Clerk's two-step flow)
-  const continueButton = page.locator('button:has-text("Continue")');
-  if (await continueButton.isVisible()) {
-    await continueButton.click();
-    await page.waitForTimeout(500);
-  }
-
-  // Fill password
-  await page.fill('input[name="password"], input[type="password"]', testUserPassword);
-
-  // Submit the form
-  await page.click('button[type="submit"]');
-
-  // Wait for redirect to home page (successful sign-in)
-  await page.waitForURL('/', { timeout: 10000 });
-  await page.waitForLoadState('networkidle');
-
-  // Verify we're signed in by checking for user-specific elements
-  // This could be a profile link, sign-out button, or user name
-  const userIndicator = page.locator(
-    '[data-testid="user-button"], .user-button, button:has-text("Sign out"), button:has-text("Profile")'
-  );
-
-  try {
-    await expect(userIndicator.first()).toBeVisible({ timeout: 5000 });
-    console.log('✅ Authentication successful');
-  } catch (_error) {
-    console.error('⚠️  Could not verify authentication. Continuing anyway...');
-  }
-
-  // Save authentication state
-  await page.context().storageState({ path: authFile });
-  console.log('💾 Saved authentication state to:', authFile);
+  await context.storageState({ path: authFile });
 });
