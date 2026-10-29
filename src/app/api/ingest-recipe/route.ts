@@ -25,7 +25,7 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
+import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import {
   type IngestedRecipe,
   type ParsedIngredient,
@@ -166,7 +166,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     const tagsJson = JSON.stringify(parsedRecipe.tags || []);
 
     // Step 7: Generate embedding (non-blocking)
-    let embeddingResult: { embedding: number[]; embeddingText: string } | null = null;
+    let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
       console.log(`[Ingest API] Generating embedding for: ${parsedRecipe.name}`);
       embeddingResult = await generateRecipeEmbedding({
@@ -293,7 +293,8 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         source: url,
         slug,
         model_used: 'anthropic/claude-sonnet-4.5',
-        embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+        // #96 D57: label from the embedder, not a stale MiniLM literal.
+        embedding_model: embeddingResult?.modelName ?? null,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -306,7 +307,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           savedRecipe.id,
           embeddingResult.embedding,
           embeddingResult.embeddingText,
-          'sentence-transformers/all-MiniLM-L6-v2'
+          embeddingResult.modelName // #96 D57: was a stale MiniLM literal
         );
         console.log(`[Ingest API] Embedding saved successfully`);
       } catch (error: unknown) {

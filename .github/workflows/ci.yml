@@ -50,6 +50,12 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # #96 D57: the bge-small parity test skips without the pinned model, so fetch it (sha256-checked).
+      - uses: actions/cache@v4
+        with:
+          path: models
+          key: bge-small-${{ hashFiles('src/lib/ai/embedding-model.ts') }}
+      - run: pnpm exec tsx scripts/fetch-embedding-model.ts
       - run: pnpm test:run
 
   # A37: Vercel Preview may build with no DATABASE_URL; the build must not need one.
@@ -67,6 +73,9 @@ jobs:
         run: |
           unset DATABASE_URL
           pnpm build
+      # #96 D57: every function that loads the embedder must ship the model and linux-x64 runtime.
+      - name: check embedding traces
+        run: pnpm exec tsx scripts/check-embedding-traces.ts
 
   lint:
     runs-on: ubuntu-latest

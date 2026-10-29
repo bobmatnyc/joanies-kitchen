@@ -1,7 +1,7 @@
 'use server';
 
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
-import { generateEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
+import { generateQueryEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { auth } from '@/lib/auth';
 import {
   ENABLE_CACHE_STATS,
@@ -171,8 +171,8 @@ async function semanticSearchInternal(
       if (refusal) return refusal;
     }
 
-    // Generate embedding for query
-    const queryEmbedding = await generateEmbedding(query);
+    // #96 D57: queries carry the BGE retrieval instruction; stored recipe vectors do not.
+    const queryEmbedding = await generateQueryEmbedding(query);
 
     // Search with vector similarity (get more results to allow filtering)
     const similarEmbeddings = await findSimilarRecipes(

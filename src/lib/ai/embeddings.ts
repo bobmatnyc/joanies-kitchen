@@ -1,38 +1,36 @@
 /**
- * Embedding Generation Utilities for Recipe Manager
+ * Embedding generation for Recipe Manager.
  *
- * Uses Jina AI Embeddings v3 API (https://api.jina.ai/v1/embeddings)
- * Model details: 1024-dimensional embeddings, truncated to 384 via Matryoshka
- * representation learning (MRL) to preserve the existing pgvector schema.
+ * #96 D57: embeddings are computed in-process with `@huggingface/transformers`
+ * running `Xenova/bge-small-en-v1.5` (fp32, CLS pooling, L2-normalised, 384
+ * dimensions). That is the model and settings that wrote ~93% of the stored
+ * vectors (`test/scripts/generate_embeddings_local.py`), so queries and new
+ * recipes land in the same vector space. The model is loaded from disk
+ * (`models/`, fetched at build time); no network call and no paid call is made.
  *
- * Features:
- * - Single and batch embedding generation (native batching via Jina API)
- * - Recipe-specific embedding generation
- * - Automatic retry with exponential backoff
- * - Rate limiting support
- * - Comprehensive error handling
+ * Passages (recipes) are embedded with no prefix. Search queries go through
+ * `generateQueryEmbedding`, which adds the BGE retrieval instruction.
  */
 
-import { assertWithinDailyCap, trackCost } from '@/lib/costs';
-import { jinaEmbeddingCost } from '@/lib/costs/rates';
+import path from 'node:path';
+import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import type { Recipe } from '@/lib/db/schema';
+import { EMBEDDING_MODEL_REPO, EMBEDDING_MODEL_ROOT } from './embedding-model';
 
 // Constants
-// Jina Embeddings v3 supports Matryoshka dimensions — we request 384 to remain
-// compatible with the existing pgvector column (no schema change required).
-const JINA_API_URL = 'https://api.jina.ai/v1/embeddings';
 const EMBEDDING_DIMENSION = 384;
-const MODEL_NAME = 'jina-embeddings-v3';
-const JINA_TASK = 'text-matching'; // best for semantic similarity / retrieval pairs
-const DEFAULT_TIMEOUT = 30000; // 30 seconds
-const DEFAULT_RETRIES = 5;
-const INITIAL_RETRY_DELAY = 2000; // 2 seconds base delay
+// #96 D57: label stored in recipe_embeddings.model_name / recipes.embedding_model.
+const MODEL_NAME = 'BAAI/bge-small-en-v1.5';
+/** #96 D57: BGE v1.5 retrieval instruction, applied to short queries only. */
+export const BGE_QUERY_PREFIX = 'Represent this sentence for searching relevant passages: ';
 
 // Types
 export interface EmbeddingGenerationOptions {
+  /** @deprecated #96 D57: ignored; in-process inference has no transient network failure to retry. */
   retries?: number;
+  /** @deprecated #96 D57: ignored; in-process inference is not network-bound. */
   timeout?: number;
-  /** @deprecated Retained for API compatibility; Jina has no cold-start concept. */
+  /** @deprecated Retained for API compatibility; the model loads once per process. */
   waitForModel?: boolean;
 }
 
@@ -87,20 +85,144 @@ function validateEmbedding(embedding: number[]): void {
 }
 
 /**
- * Sleep utility for retry delays
+ * Sleep utility for batch pacing
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// #96 D57: one pipeline per process; concurrent first calls share the same load.
+let extractorPromise: Promise<FeatureExtractionPipeline> | null = null;
+
+/** Absolute directory holding `<repo>/<file>`; Vercel bundles it via `outputFileTracingIncludes`. */
+export function embeddingModelDir(): string {
+  return path.join(process.cwd(), EMBEDDING_MODEL_ROOT);
+}
+
 /**
- * Generates a single embedding from text using Hugging Face API
+ * Why: loading the ONNX session costs ~0.3-1 s, so it must happen once per
+ * process, and never over the network (#96 D57).
+ * What: Lazily imports `@huggingface/transformers` (no work at module load),
+ * pins it to the local `models/` directory with `allowRemoteModels=false`, and
+ * caches the fp32 feature-extraction pipeline in a module-level promise. A
+ * failed load clears the cache so the next call retries, and throws
+ * `EmbeddingError('CONFIG_ERROR')`.
+ * Test: `matches the Python sentence-transformers vectors`, `throws EmbeddingError when the model files are missing`
+ */
+function getExtractor(): Promise<FeatureExtractionPipeline> {
+  if (!extractorPromise) {
+    extractorPromise = (async () => {
+      // #96 D57: transformers loads onnxruntime-node through createRequire, which the
+      // build tracer cannot follow; naming it here puts the native runtime in the function.
+      await import('onnxruntime-node');
+      const { env, pipeline } = await import('@huggingface/transformers');
+      env.allowRemoteModels = false;
+      env.allowLocalModels = true;
+      env.localModelPath = embeddingModelDir();
+      return (await pipeline('feature-extraction', EMBEDDING_MODEL_REPO, {
+        dtype: 'fp32',
+        device: 'cpu',
+      })) as FeatureExtractionPipeline;
+    })().catch((error: unknown) => {
+      extractorPromise = null;
+      // #96: the message reaches the browser via searchFailure, so the server path
+      // stays in `details` and the server log.
+      const modelDir = embeddingModelDir();
+      console.error(`[embeddings] failed to load ${EMBEDDING_MODEL_REPO} from ${modelDir}`, error);
+      throw new EmbeddingError(
+        'Search is temporarily unavailable (embedding model failed to load)',
+        'CONFIG_ERROR',
+        {
+          modelDir,
+          cause: error instanceof Error ? error.message : String(error),
+          hint: 'Run `pnpm exec tsx scripts/fetch-embedding-model.ts` (runs in prebuild).',
+        }
+      );
+    });
+  }
+  return extractorPromise;
+}
+
+/** Test-only: drops the cached pipeline so a test can exercise a fresh load. */
+export function resetEmbeddingModelForTests(): void {
+  extractorPromise = null;
+}
+
+interface TokenTensor {
+  data: BigInt64Array;
+  dims: number[];
+}
+
+/**
+ * #96 D57: transformers.js truncates after adding special tokens, so a text
+ * over 512 tokens loses its trailing [SEP] (Hugging Face keeps it). Writing
+ * [SEP] back into the last attended position of such a row gives the same
+ * token ids as sentence-transformers. Rows that were not truncated already end
+ * in [SEP] or padding and are left alone.
+ * Test: `keeps [SEP] when truncating a text over 512 tokens`
+ */
+function restoreTruncatedSep(
+  inputIds: TokenTensor,
+  attentionMask: TokenTensor,
+  sepId: number
+): void {
+  const [rows, cols] = inputIds.dims;
+  const sep = BigInt(sepId);
+  for (let row = 0; row < rows; row++) {
+    const last = row * cols + cols - 1;
+    if (attentionMask.data[last] === BigInt(1) && inputIds.data[last] !== sep) {
+      inputIds.data[last] = sep;
+    }
+  }
+}
+
+/**
+ * Why: every public entry point needs the same CLS-pooled, L2-normalised
+ * 384-dim vectors that sentence-transformers wrote to the DB (#96 D57).
+ * What: Tokenises `inputs` with the cached pipeline's tokenizer (padding,
+ * truncation to 512 with [SEP] kept, as sentence-transformers does), runs one
+ * forward pass, takes the [CLS] hidden state and L2-normalises it. This is the
+ * pipeline's own `pooling:'cls', normalize:true` path plus the [SEP] repair.
+ * Returns one validated vector per input, in input order.
+ * Test: `matches the Python sentence-transformers vectors`
+ */
+async function embedTexts(inputs: string[]): Promise<number[][]> {
+  const extractor = await getExtractor();
+  let vectors: number[][];
+  try {
+    const { tokenizer, model } = extractor;
+    const modelInputs = tokenizer(inputs, { padding: true, truncation: true });
+    restoreTruncatedSep(
+      modelInputs.input_ids as unknown as TokenTensor,
+      modelInputs.attention_mask as unknown as TokenTensor,
+      tokenizer.sep_token_id as number
+    );
+    const outputs = await model(modelInputs);
+    const output = outputs.last_hidden_state.slice(null, 0).normalize(2, -1);
+    vectors = output.tolist() as number[][];
+  } catch (error: unknown) {
+    throw new EmbeddingError('Embedding inference failed', 'API_ERROR', {
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  }
+  if (vectors.length !== inputs.length) {
+    throw new EmbeddingError(
+      `Embedding model returned ${vectors.length} vectors for ${inputs.length} inputs`,
+      'API_ERROR'
+    );
+  }
+  for (const vector of vectors) validateEmbedding(vector);
+  return vectors;
+}
+
+/**
+ * Generates a passage embedding for `text` (no query prefix).
  *
  * @param text - Text to generate embedding for
- * @param options - Generation options (retries, timeout)
- * @returns 384-dimensional embedding vector
+ * @param _options - Retained for API compatibility; ignored (#96 D57)
+ * @returns 384-dimensional L2-normalised embedding vector
  *
- * @throws {EmbeddingError} If API key is missing, API call fails, or validation fails
+ * @throws {EmbeddingError} If the text is empty, the model cannot be loaded, or inference fails
  *
  * @example
  * const embedding = await generateEmbedding("Delicious pasta recipe");
@@ -108,172 +230,36 @@ function sleep(ms: number): Promise<void> {
  */
 export async function generateEmbedding(
   text: string,
-  options: EmbeddingGenerationOptions = {}
+  _options: EmbeddingGenerationOptions = {}
 ): Promise<number[]> {
-  const { retries = DEFAULT_RETRIES, timeout = DEFAULT_TIMEOUT } = options;
-
   // Validate input
   if (!text || text.trim().length === 0) {
     throw new EmbeddingError('Text cannot be empty', 'VALIDATION_ERROR');
   }
 
-  const embeddings = await callJinaEmbeddings([text], { retries, timeout });
-  const embedding = embeddings[0];
-  validateEmbedding(embedding);
+  // #96 D57: in-process bge-small; the Jina call and its cost booking are gone.
+  const [embedding] = await embedTexts([text]);
   return embedding;
 }
 
 /**
- * Low-level helper that calls the Jina Embeddings v3 endpoint with retry/backoff.
- * Supports native batching — returns one embedding per input in the same order.
+ * Why: BGE v1.5 is trained with an instruction on the query side of
+ * short-query-to-passage retrieval; the stored recipe vectors have none (#96 D57).
+ * What: Prepends `BGE_QUERY_PREFIX` to `query` and embeds it. Use this for
+ * search queries only; recipes and other passages use `generateEmbedding`.
+ * Test: `generateQueryEmbedding prepends the BGE instruction`, `generateEmbedding adds no prefix`
+ *
+ * @throws {EmbeddingError} If the query is empty, the model cannot be loaded, or inference fails
  */
-async function callJinaEmbeddings(
-  inputs: string[],
-  { retries, timeout }: { retries: number; timeout: number }
-): Promise<number[][]> {
-  // Validate API key
-  const apiKey = process.env.JINA_API_KEY;
-  if (!apiKey) {
-    throw new EmbeddingError(
-      'JINA_API_KEY not configured in environment variables',
-      'CONFIG_ERROR',
-      { hint: 'Get your API key from https://jina.ai/' }
-    );
+export async function generateQueryEmbedding(
+  query: string,
+  _options: EmbeddingGenerationOptions = {}
+): Promise<number[]> {
+  if (!query || query.trim().length === 0) {
+    throw new EmbeddingError('Query cannot be empty', 'VALIDATION_ERROR');
   }
-
-  // #57: daily cost ceiling hard stop before the paid call.
-  await assertWithinDailyCap();
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      try {
-        const response = await fetch(JINA_API_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: MODEL_NAME,
-            input: inputs,
-            dimensions: EMBEDDING_DIMENSION,
-            task: JINA_TASK,
-            embedding_type: 'float',
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorBody = await response.text();
-          let errorData: any;
-          try {
-            errorData = JSON.parse(errorBody);
-          } catch {
-            errorData = { message: errorBody };
-          }
-
-          // Rate limiting - retry with backoff
-          if (response.status === 503 || response.status === 429) {
-            if (attempt < retries) {
-              const delay = Math.min(INITIAL_RETRY_DELAY * 2 ** attempt, 30000);
-              console.log(
-                `[Jina] Rate limited (HTTP ${response.status}), retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
-              );
-              await sleep(delay);
-              continue;
-            }
-
-            throw new EmbeddingError(
-              `Rate limit after ${retries + 1} attempts: ${errorData.detail || errorData.message || 'Service unavailable'}`,
-              'RATE_LIMIT',
-              { status: response.status, errorData, attempts: retries + 1 }
-            );
-          }
-
-          throw new EmbeddingError(
-            `Jina API error: ${errorData.detail || errorData.message || errorBody}`,
-            'API_ERROR',
-            { status: response.status, errorData }
-          );
-        }
-
-        const json = (await response.json()) as {
-          data?: Array<{ embedding: number[]; index: number }>;
-          usage?: { total_tokens?: number };
-        };
-        // #75: book tokens x price rounded up to the ledger resolution; it was stored as $0.
-        const cost = jinaEmbeddingCost(json.usage?.total_tokens, inputs);
-        await trackCost({
-          provider: 'jina',
-          operation: 'embeddings',
-          units: cost.tokens,
-          estimateUsd: cost.usd,
-        });
-
-        if (!json.data || !Array.isArray(json.data) || json.data.length !== inputs.length) {
-          throw new EmbeddingError(
-            `Jina API returned unexpected response shape (expected ${inputs.length} embeddings)`,
-            'API_ERROR',
-            { received: json.data?.length }
-          );
-        }
-
-        // Order by `index` to guarantee alignment with inputs
-        const ordered = [...json.data].sort((a, b) => a.index - b.index);
-        return ordered.map((d) => d.embedding);
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    } catch (error: any) {
-      lastError = error;
-
-      if (
-        error instanceof EmbeddingError &&
-        (error.code === 'VALIDATION_ERROR' || error.code === 'CONFIG_ERROR')
-      ) {
-        throw error;
-      }
-
-      if (error.name === 'AbortError') {
-        if (attempt < retries) {
-          const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
-          console.log(
-            `[Jina] Request timeout, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1})`
-          );
-          await sleep(delay);
-          continue;
-        }
-        throw new EmbeddingError(
-          `Request timeout after ${timeout}ms and ${retries + 1} attempts`,
-          'TIMEOUT',
-          { timeout, attempts: retries + 1 }
-        );
-      }
-
-      if (attempt < retries) {
-        const delay = INITIAL_RETRY_DELAY * 2 ** attempt;
-        console.log(
-          `[Jina] Network error, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries + 1}): ${error.message}`
-        );
-        await sleep(delay);
-      }
-    }
-  }
-
-  throw new EmbeddingError(
-    `Failed to generate embedding after ${retries + 1} attempts`,
-    'API_ERROR',
-    {
-      lastError: lastError?.message,
-      attempts: retries + 1,
-    }
-  );
+  const [embedding] = await embedTexts([`${BGE_QUERY_PREFIX}${query}`]);
+  return embedding;
 }
 
 /**
@@ -373,49 +359,41 @@ export async function generateRecipeEmbedding(
 }
 
 /**
- * Generates embeddings for multiple texts in batches
- * Includes rate limiting to avoid overwhelming the API
+ * Generates passage embeddings for multiple texts in batches.
  *
  * @param texts - Array of texts to generate embeddings for
- * @param options - Batch processing options
- * @returns Array of embedding vectors in same order as input texts
+ * @param options - Batch size, optional pause between batches, progress callback
+ * @returns Array of embedding vectors in input order; a failed batch is
+ *   skipped and logged, so the result can be shorter than `texts`
  *
  * @example
  * const embeddings = await generateEmbeddingsBatch(
  *   ["Recipe 1", "Recipe 2", "Recipe 3"],
- *   { batchSize: 5, delayMs: 1000 }
+ *   { batchSize: 5 }
  * );
  */
 export async function generateEmbeddingsBatch(
   texts: string[],
   options: BatchEmbeddingOptions = {}
 ): Promise<number[][]> {
-  const { batchSize = 32, delayMs = 1000, onProgress } = options;
+  // #96 D57: in-process inference has no rate limit, so batches run back to back by default.
+  const { batchSize = 32, delayMs = 0, onProgress } = options;
 
   if (texts.length === 0) {
     return [];
   }
 
-  // Jina supports native batching — send chunks of `batchSize` inputs per request.
   const results: number[][] = [];
   const errors: Array<{ batchStart: number; size: number; error: Error }> = [];
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
 
-    // Filter out empty strings (Jina will reject) but preserve order via placeholder
+    // Keep a placeholder for empty strings so output order matches input order.
     const sanitized = batch.map((t) => (t && t.trim().length > 0 ? t : ' '));
 
     try {
-      const batchEmbeddings = await callJinaEmbeddings(sanitized, {
-        retries: DEFAULT_RETRIES,
-        timeout: DEFAULT_TIMEOUT,
-      });
-
-      for (const emb of batchEmbeddings) {
-        validateEmbedding(emb);
-        results.push(emb);
-      }
+      results.push(...(await embedTexts(sanitized)));
     } catch (error) {
       errors.push({ batchStart: i, size: batch.length, error: error as Error });
       // Skip this batch's embeddings; downstream callers should handle shorter arrays.
@@ -425,7 +403,7 @@ export async function generateEmbeddingsBatch(
       onProgress(Math.min(i + batchSize, texts.length), texts.length);
     }
 
-    if (i + batchSize < texts.length) {
+    if (delayMs > 0 && i + batchSize < texts.length) {
       await sleep(delayMs);
     }
   }

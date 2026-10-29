@@ -43,6 +43,7 @@ vi.mock('@/lib/ai/openrouter-server', () => ({
 vi.mock('@/lib/ai/embeddings', () => ({
   generateRecipeEmbedding: mocks.embed,
   generateEmbedding: mocks.embed,
+  generateQueryEmbedding: mocks.embed, // #96 D57
 }));
 vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({ evaluateRecipeQuality: mocks.llmCreate }));
 vi.mock('@/lib/db', () => ({

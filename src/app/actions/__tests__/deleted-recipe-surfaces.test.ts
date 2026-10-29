@@ -29,6 +29,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => ({ allowed: true }) }));
 vi.mock('@/lib/ai/embeddings', () => ({
   generateEmbedding: async () => [0.1, 0.2],
+  generateQueryEmbedding: async () => [0.1, 0.2], // #96 D57
   generateRecipeEmbedding: vi.fn(),
 }));
 // Vector search ignores visibility; it returns every seeded id, as a real index would.

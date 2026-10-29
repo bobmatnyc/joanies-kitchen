@@ -15,7 +15,7 @@
  * and the admin-gated wrappers in `src/app/actions/recipe-crawl.ts`.
  */
 
-import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
+import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
 import { auth } from '@/lib/auth';
@@ -391,7 +391,7 @@ export async function storeRecipe(
 
     // Generate embedding for semantic search
     // IMPORTANT: Wrap in try-catch to prevent embedding failures from blocking recipe storage
-    let embeddingResult: { embedding: number[]; embeddingText: string } | null = null;
+    let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
       console.log(`[Store] Generating embedding for: ${recipe.name}`);
       embeddingResult = await generateRecipeEmbedding({
@@ -523,7 +523,8 @@ export async function storeRecipe(
         discovery_date: new Date(),
         confidence_score: recipe.confidenceScore.toString(),
         validation_model: 'anthropic/claude-3-haiku',
-        embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+        // #96 D57: label from the embedder, not a stale MiniLM literal.
+        embedding_model: embeddingResult?.modelName ?? null,
         is_ai_generated: false,
         is_public: true,
         is_system_recipe: !userId,
@@ -542,7 +543,7 @@ export async function storeRecipe(
           savedRecipe.id,
           embeddingResult.embedding,
           embeddingResult.embeddingText,
-          'sentence-transformers/all-MiniLM-L6-v2'
+          embeddingResult.modelName // #96 D57: was a stale MiniLM literal
         );
         console.log(`[Store] Successfully saved embedding to database`);
       } catch (error: unknown) {
@@ -662,7 +663,7 @@ async function storeRecipeWithWeek(
 
     // Generate embedding for semantic search
     // IMPORTANT: Wrap in try-catch to prevent embedding failures from blocking recipe storage
-    let embeddingResult: { embedding: number[]; embeddingText: string } | null = null;
+    let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
       console.log(`[Store] Generating embedding for: ${recipe.name}`);
       embeddingResult = await generateRecipeEmbedding({
@@ -816,7 +817,8 @@ async function storeRecipeWithWeek(
         published_date: publishedDate,
         confidence_score: recipe.confidenceScore.toString(),
         validation_model: 'anthropic/claude-3-haiku',
-        embedding_model: embeddingResult ? 'sentence-transformers/all-MiniLM-L6-v2' : null,
+        // #96 D57: label from the embedder, not a stale MiniLM literal.
+        embedding_model: embeddingResult?.modelName ?? null,
         is_ai_generated: false,
         is_public: true,
         is_system_recipe: !userId,
@@ -835,7 +837,7 @@ async function storeRecipeWithWeek(
           savedRecipe.id,
           embeddingResult.embedding,
           embeddingResult.embeddingText,
-          'sentence-transformers/all-MiniLM-L6-v2'
+          embeddingResult.modelName // #96 D57: was a stale MiniLM literal
         );
         console.log(`[Store] Successfully saved embedding to database`);
       } catch (error: unknown) {

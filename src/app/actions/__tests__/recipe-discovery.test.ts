@@ -118,7 +118,7 @@ describe('Recipe Discovery Pipeline', () => {
       if (result.recipes.length > 0) {
         const recipe = result.recipes[0];
         expect(recipe.embedding_model).toBeTruthy();
-        expect(recipe.embedding_model).toContain('all-MiniLM-L6-v2');
+        expect(recipe.embedding_model).toContain('bge-small-en-v1.5'); // #96 D57
       }
     }, 60000);
   });
