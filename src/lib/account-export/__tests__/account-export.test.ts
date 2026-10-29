@@ -2,35 +2,11 @@
 /** #58: the account export is scoped to one user, covers every user-owned table, and drops secrets. */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { is } from 'drizzle-orm';
-import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig } from 'drizzle-orm/pg-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import * as apiKeysSchema from '@/lib/db/api-keys-schema';
-import * as authSchema from '@/lib/db/auth-schema';
-import * as scraperSchema from '@/lib/db/autonomous-scraper-schema';
-import * as chefSchema from '@/lib/db/chef-schema';
-import * as ingredientsSchema from '@/lib/db/ingredients-schema';
-import * as inventorySchema from '@/lib/db/inventory-schema';
-import * as mealsSchema from '@/lib/db/meals-schema';
-import * as schema from '@/lib/db/schema';
-import * as usageCountersSchema from '@/lib/db/usage-counters-schema';
-import * as discoverySchema from '@/lib/db/user-discovery-schema';
 import { buildUserExport, EXCLUDED_COLUMNS, EXPORT_SCHEMA_VERSION, EXPORTED_TABLES } from '..';
 import { SECRETS, seedExportDb } from './export-fixture';
-
-/** Every schema module under src/lib/db, keyed by file name. */
-const SCHEMA_MODULES: Record<string, Record<string, unknown>> = {
-  'api-keys-schema.ts': apiKeysSchema,
-  'auth-schema.ts': authSchema,
-  'autonomous-scraper-schema.ts': scraperSchema,
-  'chef-schema.ts': chefSchema,
-  'ingredients-schema.ts': ingredientsSchema,
-  'inventory-schema.ts': inventorySchema,
-  'meals-schema.ts': mealsSchema,
-  'schema.ts': schema,
-  'usage-counters-schema.ts': usageCountersSchema,
-  'user-discovery-schema.ts': discoverySchema,
-};
+import { allSchemaTables, SCHEMA_MODULES } from './schema-modules';
 
 /** Columns that name the owning user. `created_by` covers meal_templates. */
 const OWNER_COLUMNS = new Set(['user_id', 'created_by']);
@@ -106,12 +82,9 @@ describe('export table coverage', () => {
 
   it('covers every table with an owner column', () => {
     const owned = new Set<string>();
-    for (const mod of Object.values(SCHEMA_MODULES)) {
-      for (const value of Object.values(mod)) {
-        if (!is(value, PgTable)) continue;
-        const config = getTableConfig(value);
-        if (config.columns.some((c) => OWNER_COLUMNS.has(c.name))) owned.add(config.name);
-      }
+    for (const table of allSchemaTables()) {
+      const config = getTableConfig(table);
+      if (config.columns.some((c) => OWNER_COLUMNS.has(c.name))) owned.add(config.name);
     }
     expect(owned.size).toBeGreaterThan(10);
     const missing = [...owned].filter((name) => !(EXPORTED_TABLES as string[]).includes(name));

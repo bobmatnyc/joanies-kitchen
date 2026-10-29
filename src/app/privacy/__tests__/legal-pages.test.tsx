@@ -31,6 +31,16 @@ describe('PrivacyPage', () => {
     );
   });
 
+  // #104: the Retention section describes the daily purge job.
+  it('describes the daily purge in Retention', () => {
+    render(<PrivacyPage />);
+    const heading = screen.getByRole('heading', { level: 2, name: 'Retention' });
+    const text = heading.parentElement?.textContent ?? '';
+    expect(text).not.toContain('no automatic deletion schedule');
+    expect(text).toContain('runs once a day');
+    expect(text).toContain('30-day grace period');
+  });
+
   it('commits to 30 days and makes no self-serve claim', () => {
     render(<PrivacyPage />);
     const heading = screen.getByRole('heading', {

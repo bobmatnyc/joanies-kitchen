@@ -20,6 +20,7 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
+import { isCronAuthorized } from '@/lib/cron-auth';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import { crawlRunDeadline } from '@/lib/services/crawl-run-deadline';
 import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
@@ -50,16 +51,9 @@ function getEnvMaxRecipes(): number {
 // Auth helper
 // ---------------------------------------------------------------------------
 
+// #104: shared with the purge cron.
 function isAuthorized(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret) {
-    console.error('[DailyRecipeCron] CRON_SECRET environment variable not configured');
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  return authHeader === `Bearer ${cronSecret}`;
+  return isCronAuthorized(request, '[DailyRecipeCron]');
 }
 
 /**

@@ -149,8 +149,9 @@ async function seedUser(client: PGlite, userId: string, tag: string): Promise<st
   return ids;
 }
 
-export async function seedExportDb() {
-  const { client, db } = await createVisibilityDb(EXPORT_TABLES, {});
+/** #104: `extraTables` are created empty alongside the exported ones (purge tests). */
+export async function seedExportDb(extraTables: PgTable[] = []) {
+  const { client, db } = await createVisibilityDb([...EXPORT_TABLES, ...extraTables], {});
   const userA = `user-a-${randomUUID()}`;
   const userB = `user-b-${randomUUID()}`;
   const aIds = await seedUser(client, userA, 'a');
