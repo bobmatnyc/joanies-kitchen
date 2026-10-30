@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getIngredientBySlug } from '@/app/actions/ingredients';
 import { JoanieComment } from '@/components/recipe/JoanieComment';
 import { Button } from '@/components/ui/button';
+import { getBaseUrl } from '@/lib/site-url';
 
 interface IngredientPageProps {
   params: Promise<{
@@ -23,7 +24,8 @@ export async function generateMetadata({ params }: IngredientPageProps) {
   }
 
   const { ingredient } = result;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+  // #163: normalized base URL (env may carry a trailing newline)
+  const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/ingredients/${slug}`;
 
   return {

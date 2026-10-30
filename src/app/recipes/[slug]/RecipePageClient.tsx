@@ -64,6 +64,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useUser } from '@/lib/auth-client';
+import { getBaseUrl } from '@/lib/site-url';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
 
 // #22: Auth.js session via the Clerk-shaped client shim.
@@ -362,7 +363,9 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
   const recipeJsonLd = useMemo(() => {
     if (!recipe) return null;
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+    // #163: normalized base URL (env may carry a trailing newline)
+
+    const baseUrl = getBaseUrl();
     const recipeUrl = recipe.slug
       ? `${baseUrl}/recipes/${recipe.slug}`
       : `${baseUrl}/recipes/${recipe.id}`;

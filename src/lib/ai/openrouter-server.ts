@@ -1,4 +1,5 @@
 // Server-only file for OpenRouter API client
+import { getBaseUrl } from '@/lib/site-url';
 import 'server-only';
 import OpenAI from 'openai';
 import { withChatCostTracking } from '@/lib/costs';
@@ -17,7 +18,8 @@ export function getOpenRouterClient() {
       apiKey,
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004',
+        // #163: normalized base URL (env may carry a trailing newline)
+        'HTTP-Referer': getBaseUrl('http://localhost:3004'),
         'X-Title': 'Recipe Manager',
       },
     }),

@@ -6,6 +6,7 @@ import { ChefAvatar } from '@/components/chef/ChefAvatar';
 import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 import { RecipeList } from '@/components/recipe/RecipeList';
 import { Badge } from '@/components/ui/badge';
+import { getBaseUrl } from '@/lib/site-url';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -18,7 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const chef = chefResult.chef;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+  // #163: normalized base URL (env may carry a trailing newline)
+  const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/chef/${slug}`;
 
   return {

@@ -14,6 +14,7 @@ import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionB
 import { AlphaStamp } from '@/components/shared/AlphaStamp';
 import { isAuthConfigured } from '@/lib/auth-env';
 import { SITE_TITLE_TEMPLATE } from '@/lib/site-title';
+import { getBaseUrl } from '@/lib/site-url';
 import './globals.css';
 
 // Joanie's Kitchen Typography
@@ -63,7 +64,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen'),
+  // #163: normalized base URL (env may carry a trailing newline)
+  metadataBase: new URL(getBaseUrl()),
   title: {
     default: "Joanie's Kitchen | Stop Food Waste, Cook From Your Fridge",
     template: SITE_TITLE_TEMPLATE, // #138: page titles must not repeat the brand
