@@ -23,13 +23,13 @@ vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: 'user-1' })) }
 vi.mock('@/lib/cache', () => ({ invalidateRecipeById: vi.fn(), invalidateRecipeCaches: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
+import { revalidatePath } from 'next/cache';
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import { adminBulkDeleteRecipes, adminDeleteRecipe } from '@/app/actions/admin';
 import { deleteRecipe } from '@/app/actions/recipes';
+import { linkInsertedRecipe } from '@/lib/chef-scraping-links';
 import { chefRecipes, chefs, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
-import { linkInsertedRecipe } from '@/lib/chef-scraping-links';
-import { revalidatePath } from 'next/cache';
 
 const CHEF = '00000000-0000-4000-8000-000000000001';
 
