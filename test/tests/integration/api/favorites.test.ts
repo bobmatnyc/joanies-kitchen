@@ -313,12 +313,14 @@ describe('Favorites & Social API Endpoints', () => {
         apiKey: writeContext.testApiKey,
       });
 
-      assertStatus(response, 200);
+      // #167 (D26): the real contract is 201 + likeCount, plus deprecation headers.
+      assertStatus(response, 201);
+      expect(response.headers.get('Deprecation')).toBe('true');
       const data = await assertJsonResponse(response);
 
       expect(data.success).toBe(true);
-      expect(data.data).toHaveProperty('likes');
-      expect(typeof data.data.likes).toBe('number');
+      expect(data.data).toHaveProperty('likeCount');
+      expect(typeof data.data.likeCount).toBe('number');
     });
 
     it('should reject without write scope', async () => {
@@ -340,8 +342,8 @@ describe('Favorites & Social API Endpoints', () => {
         apiKey: writeContext.testApiKey,
       });
 
-      // Should be 200 regardless
-      assertStatus(response, 200);
+      // #167 (D26): idempotent; POST always answers 201
+      assertStatus(response, 201);
     });
 
     it('should return 404 for non-existent recipe', async () => {
@@ -356,14 +358,14 @@ describe('Favorites & Social API Endpoints', () => {
     it('should increment like count', async () => {
       if (!testRecipeId) return;
 
-      // Get initial count
-      const initialResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${testRecipeId}`, {
-        method: 'GET',
-        apiKey: readContext.testApiKey,
-      });
+      // Get initial count (#167: likeCount from GET /like)
+      const initialResponse = await makeAuthenticatedRequest(
+        `/api/v1/recipes/${testRecipeId}/like`,
+        { method: 'GET', apiKey: readContext.testApiKey }
+      );
 
       const initialData = await assertJsonResponse(initialResponse);
-      const initialLikes = initialData.data?.likes || 0;
+      const initialLikes = initialData.data?.likeCount || 0;
 
       // Like the recipe
       const likeResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${testRecipeId}/like`, {
@@ -372,7 +374,7 @@ describe('Favorites & Social API Endpoints', () => {
       });
 
       const likeData = await assertJsonResponse(likeResponse);
-      expect(likeData.data.likes).toBeGreaterThanOrEqual(initialLikes);
+      expect(likeData.data.likeCount).toBeGreaterThanOrEqual(initialLikes);
     });
   });
 
@@ -393,7 +395,7 @@ describe('Favorites & Social API Endpoints', () => {
       const data = await assertJsonResponse(response);
 
       expect(data.success).toBe(true);
-      expect(data.data).toHaveProperty('likes');
+      expect(data.data).toHaveProperty('likeCount');
     });
 
     it('should reject without write scope', async () => {
@@ -437,14 +439,14 @@ describe('Favorites & Social API Endpoints', () => {
         apiKey: writeContext.testApiKey,
       });
 
-      // Get count
-      const beforeResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${testRecipeId}`, {
-        method: 'GET',
-        apiKey: readContext.testApiKey,
-      });
+      // Get count (#167: likeCount from GET /like)
+      const beforeResponse = await makeAuthenticatedRequest(
+        `/api/v1/recipes/${testRecipeId}/like`,
+        { method: 'GET', apiKey: readContext.testApiKey }
+      );
 
       const beforeData = await assertJsonResponse(beforeResponse);
-      const beforeLikes = beforeData.data?.likes || 0;
+      const beforeLikes = beforeData.data?.likeCount || 0;
 
       // Unlike
       const unlikeResponse = await makeAuthenticatedRequest(`/api/v1/recipes/${testRecipeId}/like`, {
@@ -453,7 +455,7 @@ describe('Favorites & Social API Endpoints', () => {
       });
 
       const unlikeData = await assertJsonResponse(unlikeResponse);
-      expect(unlikeData.data.likes).toBeLessThanOrEqual(beforeLikes);
+      expect(unlikeData.data.likeCount).toBeLessThanOrEqual(beforeLikes);
     });
   });
 });

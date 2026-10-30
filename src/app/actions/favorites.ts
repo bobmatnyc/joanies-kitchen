@@ -1,16 +1,9 @@
 'use server';
 
-import { auth } from '@/lib/auth';
-import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
-import { favorites } from '@/lib/db/user-discovery-schema';
-import {
-  findViewableRecipe,
-  getRecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
+import { auth } from '@/lib/auth';
+import * as core from '@/lib/favorites';
+import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -18,6 +11,9 @@ import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
  *
  * Manage user favorite recipes (heart button functionality).
  * Separate from collections for quick favoriting without organization.
+ *
+ * #167 (D26): each action resolves the session user and delegates to the shared
+ * favorites core (`@/lib/favorites`), the single like/favorite store.
  */
 
 // ============================================================================
@@ -29,18 +25,10 @@ import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
  */
 export async function addFavorite(recipeId: string) {
   try {
-    const { userId } = await auth();
+    const { userId, user } = await auth();
 
     if (!userId) {
       return { success: false, error: 'Please sign in to favorite recipes' };
-    }
-
-    // Ensure user has a profile (auto-create if needed)
-    const { ensureUserProfile } = await import('./user-profiles');
-    const profile = await ensureUserProfile();
-
-    if (!profile) {
-      return { success: false, error: 'Failed to create user profile' };
     }
 
     // #41: a recipe the caller cannot see is answered as nonexistent.
@@ -50,27 +38,21 @@ export async function addFavorite(recipeId: string) {
       return { success: false, error: 'Recipe not found' };
     }
 
-    // Add to favorites
-    const [newFavorite] = await db
-      .insert(favorites)
-      .values({
-        user_id: userId,
-        recipe_id: recipeId,
-      })
-      .returning();
+    // #167 (D26): core ensures the profile, then inserts and increments like_count
+    // in one statement; a repeat add inserts nothing and counts nothing.
+    const result = await core.addFavorite(userId, recipeId, user ?? null);
 
-    // Increment recipe like_count
-    await db
-      .update(recipes)
-      .set({
-        like_count: sql`${recipes.like_count} + 1`,
-      })
-      .where(eq(recipes.id, recipeId));
+    if (result.status === 'no-profile') {
+      return { success: false, error: 'Failed to create user profile' };
+    }
+    if (result.status === 'exists') {
+      return { success: false, error: 'Recipe already in favorites' };
+    }
 
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);
 
-    return { success: true, favorite: newFavorite };
+    return { success: true, favorite: result.favorite };
   } catch (error) {
     console.error('Error adding favorite:', error);
 
@@ -94,20 +76,8 @@ export async function removeFavorite(recipeId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    // #167: delete and decrement are ONE statement. The decrement runs only if the
-    // DELETE removed a row (EXISTS on its RETURNING), so a repeated call or a
-    // never-favorited recipe leaves like_count alone. Single statement = atomic on
-    // neon-http, which cannot branch on a prior statement's result inside db.batch.
-    await db.execute(sql`
-      WITH removed AS (
-        DELETE FROM ${favorites}
-        WHERE ${favorites.user_id} = ${userId} AND ${favorites.recipe_id} = ${recipeId}
-        RETURNING 1
-      )
-      UPDATE ${recipes}
-      SET like_count = GREATEST(${recipes.like_count} - 1, 0)
-      WHERE ${recipes.id} = ${recipeId} AND EXISTS (SELECT 1 FROM removed)
-    `);
+    // #167 (D26): the #176 delete-and-decrement statement now lives in the core.
+    await core.removeFavorite(userId, recipeId);
 
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);
@@ -131,18 +101,9 @@ export async function toggleFavorite(recipeId: string) {
       return { success: false, error: 'Please sign in to favorite recipes' };
     }
 
-    // Check if already favorited
-    const [existingFavorite] = await db
-      .select()
-      .from(favorites)
-      .where(and(eq(favorites.user_id, userId), eq(favorites.recipe_id, recipeId)))
-      .limit(1);
-
-    if (existingFavorite) {
-      // Remove favorite
-      await db
-        .delete(favorites)
-        .where(and(eq(favorites.user_id, userId), eq(favorites.recipe_id, recipeId)));
+    if (await core.isFavorite(userId, recipeId)) {
+      // #167 (D26): was a bare DELETE that never decremented like_count.
+      await core.removeFavorite(userId, recipeId);
 
       revalidatePath('/favorites');
       revalidatePath(`/recipes/${recipeId}`);
@@ -184,25 +145,13 @@ export async function getUserFavorites(targetUserId?: string) {
       return [];
     }
 
-    const userFavorites = await db
-      .select({
-        favorite: favorites,
-        recipe: recipes,
-      })
-      .from(favorites)
-      .innerJoin(recipes, eq(favorites.recipe_id, recipes.id))
-      .where(
-        and(
-          eq(favorites.user_id, userId),
-          // #41: drop favorites whose recipe the viewer can no longer read.
-          recipeVisibilityCondition(await getRecipeViewer())
-        )
-      )
-      .orderBy(desc(favorites.created_at));
+    // #41: drop favorites whose recipe the viewer can no longer read.
+    // #167 (D26): the query lives in the favorites core.
+    const userFavorites = await core.listFavorites(userId, await getRecipeViewer());
 
     return userFavorites.map((f) => ({
       ...f.recipe,
-      favoritedAt: f.favorite.created_at,
+      favoritedAt: f.favoritedAt,
     }));
   } catch (error) {
     console.error('Error fetching favorites:', error);
@@ -221,13 +170,7 @@ export async function isFavorited(recipeId: string): Promise<boolean> {
       return false;
     }
 
-    const [favorite] = await db
-      .select()
-      .from(favorites)
-      .where(and(eq(favorites.user_id, userId), eq(favorites.recipe_id, recipeId)))
-      .limit(1);
-
-    return !!favorite;
+    return await core.isFavorite(userId, recipeId);
   } catch (error) {
     console.error('Error checking favorite status:', error);
     return false;
@@ -239,12 +182,8 @@ export async function isFavorited(recipeId: string): Promise<boolean> {
  */
 export async function getFavoriteCount(recipeId: string): Promise<number> {
   try {
-    const [result] = await db
-      .select({ count: favorites.id })
-      .from(favorites)
-      .where(eq(favorites.recipe_id, recipeId));
-
-    return result ? 1 : 0; // This is a simplified version; proper count query will be added
+    // #167 (D26): a real count(*); the old version returned 0 or 1.
+    return await core.getFavoriteCount(recipeId);
   } catch (error) {
     console.error('Error getting favorite count:', error);
     return 0;
@@ -263,12 +202,7 @@ export async function getUserFavoriteIds(): Promise<string[]> {
       return [];
     }
 
-    const userFavorites = await db
-      .select({ recipe_id: favorites.recipe_id })
-      .from(favorites)
-      .where(eq(favorites.user_id, userId));
-
-    return userFavorites.map((f) => f.recipe_id);
+    return await core.listFavoriteRecipeIds(userId);
   } catch (error) {
     console.error('Error fetching favorite IDs:', error);
     return [];

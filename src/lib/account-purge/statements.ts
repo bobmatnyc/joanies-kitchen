@@ -6,7 +6,8 @@
  * sent as one `db.batch` (one transaction on neon-http): a guard that aborts
  * the batch unless the account is still due, an id-ordered lock on every
  * recipes row the batch writes (#158), the kept-recipe reassignment,
- * the deletes, the actor-column anonymization, and the `users` delete last.
+ * the deletes (with a `like_count` recount for recipes the user favorited, #167),
+ * the actor-column anonymization, and the `users` delete last.
  * `PURGE_COLUMN_PLAN` names how each user/recipe reference column is handled;
  * the inventory test fails when the schema gains a column missing from it.
  * Test: `src/lib/account-purge/__tests__/account-purge.test.ts`
@@ -154,6 +155,11 @@ export function purgeStatements(t: PurgeTarget) {
     .from(inventoryItems)
     .where(eq(inventoryItems.user_id, uid));
   const ownKeyIds = db.select({ id: apiKeys.id }).from(apiKeys).where(eq(apiKeys.user_id, uid));
+  // #167 (D26): recipes the user favorited; their like_count is recounted before the delete.
+  const favoritedRecipeIds = db
+    .select({ id: favorites.recipe_id })
+    .from(favorites)
+    .where(eq(favorites.user_id, uid));
 
   return [
     // Guard: 1/0 aborts the whole batch when the account is no longer due.
@@ -171,7 +177,9 @@ export function purgeStatements(t: PurgeTarget) {
           eq(recipes.user_id, uid),
           eq(recipes.deleted_by, uid),
           eq(recipes.moderated_by, uid),
-          eq(recipes.image_regeneration_requested_by, uid)
+          eq(recipes.image_regeneration_requested_by, uid),
+          // #167 (D26): the like_count recount below writes these rows too.
+          inArray(recipes.id, favoritedRecipeIds)
         )
       )
       .orderBy(asc(recipes.id))
@@ -233,6 +241,15 @@ export function purgeStatements(t: PurgeTarget) {
       ),
     db.delete(collectionRecipes).where(inArray(collectionRecipes.collection_id, ownCollectionIds)),
     db.delete(collections).where(eq(collections.user_id, uid)),
+    // #167 (D26): recount like_count for every recipe the user favorited, as it
+    // will be once their favorites are deleted (the next statement). Runs first
+    // so the id list still exists; counts every favorite except the user's.
+    db
+      .update(recipes)
+      .set({
+        like_count: sql`(SELECT count(*)::int FROM "favorites" f WHERE f."recipe_id" = "recipes"."id" AND f."user_id" <> ${uid})`,
+      })
+      .where(inArray(recipes.id, favoritedRecipeIds)),
     db.delete(favorites).where(eq(favorites.user_id, uid)),
     db.delete(recipeViews).where(eq(recipeViews.user_id, uid)),
     db.delete(inventoryUsageLog).where(inArray(inventoryUsageLog.inventory_item_id, ownItemIds)),

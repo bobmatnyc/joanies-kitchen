@@ -100,7 +100,19 @@ DELETE /api/v1/favorites/:recipeId
 
 ---
 
-### Recipe Likes (Alternative Interface)
+### Recipe Likes (Deprecated Alias)
+
+**Deprecated (#167).** `/api/v1/recipes/:id/like` is an alias of
+`/api/v1/favorites/:recipeId`. It reads and writes the `favorites` table, and
+`likeCount` is the number of `favorites` rows for the recipe. Bodies, status
+codes and scopes are unchanged. Every response carries:
+
+```http
+Deprecation: true
+Link: </api/v1/favorites/:recipeId>; rel="successor-version"
+```
+
+New clients should use the favorites endpoints above.
 
 #### Get Like Status & Count
 ```http
@@ -265,7 +277,7 @@ curl -X POST \
 ## Notes
 
 - **Idempotent Operations**: Adding/removing favorites multiple times is safe
-- **Likes = Favorites**: Both endpoints modify the same underlying data
+- **Likes = Favorites**: `favorites` is the single store (#167); `/like` is a deprecated alias of `/favorites/:recipeId`
 - **Public Like Counts**: Anyone can see how many likes a recipe has
 - **Private User Likes**: Individual user's like status requires authentication
 - **Recipe Validation**: All operations verify the recipe exists before proceeding

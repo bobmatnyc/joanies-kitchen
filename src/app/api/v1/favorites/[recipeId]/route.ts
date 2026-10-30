@@ -109,6 +109,7 @@ export const POST = requireScopes(
       }
 
       // Add to favorites (idempotent operation)
+      // #167 (D26): writes `favorites` and creates the caller's profile when missing.
       await socialService.addFavorite(auth.userId!, recipeId);
 
       return apiSuccess(

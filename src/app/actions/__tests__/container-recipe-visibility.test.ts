@@ -3,8 +3,8 @@
  * #41: a private recipe stays private when it sits in a container.
  *
  * One private recipe P (owned by OWNER) is linked into another user's public
- * collection, public meal, chef page, and every user's favorites, likes and
- * view history. Runs against real Postgres (PGlite). Per path and caller:
+ * collection, public meal, chef page, and every user's favorites (likes are
+ * favorites since #167) and view history. Runs against real Postgres (PGlite). Per path and caller:
  * - read paths: anonymous / other user never see P, and get exactly the
  *   answer they get once P is deleted; owner / admin see P;
  * - attach paths: anonymous / other user are refused, with exactly the answer
@@ -77,7 +77,6 @@ import {
   getUserViewHistory,
   trackRecipeView,
 } from '@/app/actions/recipe-views';
-import { getUserLikedRecipes, toggleRecipeLike } from '@/app/actions/social';
 import { GET as chefRecipesGET } from '@/app/api/v1/chefs/[slug]/recipes/route';
 import {
   GET as collectionRecipesGET,
@@ -125,7 +124,6 @@ const TABLES = [
   'collection_recipes',
   'favorites',
   'recipe_views',
-  'recipe_likes',
   'recipe_flags',
   'meals',
   'meal_recipes',
@@ -148,20 +146,18 @@ function recipeRow(id: string, userId: string, isPublic: boolean, name: string) 
   };
 }
 
-const collectionId = (role: Role) =>
-  `44444444-0000-4000-8000-00000000000${ROLES.indexOf(role)}`;
+const collectionId = (role: Role) => `44444444-0000-4000-8000-00000000000${ROLES.indexOf(role)}`;
 const mealId = (role: Role) => `55555555-0000-4000-8000-00000000000${ROLES.indexOf(role)}`;
 
 async function seed() {
   const db = state.db as any;
   for (const table of TABLES) await client.exec(`DELETE FROM "${table}";`);
-  await db.insert(schema.recipes).values([
-    recipeRow(P, OWNER, false, SECRET),
-    recipeRow(Q, OTHER, true, 'Open Soup'),
-  ]);
-  await db.insert(discovery.userProfiles).values(
-    [OWNER, OTHER, ADMIN].map((u) => ({ user_id: u, username: u, display_name: u }))
-  );
+  await db
+    .insert(schema.recipes)
+    .values([recipeRow(P, OWNER, false, SECRET), recipeRow(Q, OTHER, true, 'Open Soup')]);
+  await db
+    .insert(discovery.userProfiles)
+    .values([OWNER, OTHER, ADMIN].map((u) => ({ user_id: u, username: u, display_name: u })));
   // OTHER's public collection holds P (attached before #41) and Q.
   await db.insert(discovery.collections).values([
     {
@@ -224,10 +220,9 @@ async function seed() {
     { chef_id: CHEF, recipe_id: P },
     { chef_id: CHEF, recipe_id: Q },
   ]);
-  // Every user favorited, liked and viewed P (attached before #41).
+  // Every user favorited (#167 D26: likes are favorites) and viewed P (attached before #41).
   for (const u of [OWNER, OTHER, ADMIN]) {
     await db.insert(discovery.favorites).values({ user_id: u, recipe_id: P, created_at: T0 });
-    await db.insert(schema.recipeLikes).values({ user_id: u, recipe_id: P, created_at: T0 });
     await db.insert(discovery.recipeViews).values({ user_id: u, recipe_id: P, viewed_at: T0 });
   }
 }
@@ -297,11 +292,6 @@ const READS: ReadPath[] = [
     name: 'getUserFavorites',
     run: () => getUserFavorites(),
     sees: (r) => hasP(r),
-  },
-  {
-    name: 'getUserLikedRecipes',
-    run: () => getUserLikedRecipes(),
-    sees: (r) => hasP(r.data?.map((l: any) => l.recipe)),
   },
   {
     name: 'getRecentlyViewedRecipes',
@@ -399,15 +389,10 @@ const ATTACHES: AttachPath[] = [
     passed: (r) => r.success === true,
   },
   {
-    name: 'toggleRecipeLike',
-    run: async (_r, id) => {
-      // Clear the seeded like so the call takes the "like" branch.
-      await client.exec(`DELETE FROM "recipe_likes" WHERE recipe_id = '${id}';`);
-      return toggleRecipeLike(id);
-    },
+    name: 'flagRecipe',
+    run: (_r, id) => flagRecipe(id, 'spam'),
     passed: (r) => r.success === true,
   },
-  { name: 'flagRecipe', run: (_r, id) => flagRecipe(id, 'spam'), passed: (r) => r.success === true },
   {
     name: 'trackRecipeView',
     run: async (role, id) => {
@@ -467,7 +452,6 @@ beforeAll(async () => {
     discovery.collectionRecipes,
     discovery.favorites,
     discovery.recipeViews,
-    schema.recipeLikes,
     schema.recipeFlags,
     schema.meals,
     schema.mealRecipes,

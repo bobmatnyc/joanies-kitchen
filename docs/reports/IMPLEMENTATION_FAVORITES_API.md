@@ -163,8 +163,12 @@ curl -X POST \
 
 ## Notes
 
-- Likes and Favorites are the same in the system (using `recipe_likes` table)
-- The `/like` endpoints provide an alternative semantic interface
+- Likes and Favorites are the same in the system. Since #167 the `favorites`
+  table is the single store, shared by the web UI, the server actions and the
+  API through `src/lib/favorites`. `recipe_likes` is no longer read or written.
+- The `/like` endpoints are a deprecated alias of `/api/v1/favorites/:recipeId`.
+  Responses are unchanged apart from a `Deprecation: true` header and a `Link`
+  header naming the favorites endpoint as successor; `likeCount` counts `favorites` rows.
 - All operations are idempotent (can be called multiple times safely)
 - Recipe existence is validated before any operation
 - Like counts are public, but individual user likes require authentication

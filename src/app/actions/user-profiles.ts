@@ -10,6 +10,7 @@ import {
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { ensureUserProfileFor } from '@/lib/ensure-user-profile';
 import { publicRecipe } from '@/lib/recipe-public';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -410,76 +411,8 @@ export async function ensureUserProfile(): Promise<UserProfile | null> {
       return null;
     }
 
-    // Check if profile exists
-    const existingProfile = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.user_id, userId))
-      .limit(1);
-
-    if (existingProfile.length > 0) {
-      return existingProfile[0];
-    }
-
-    // #22: profile data comes from the Auth.js session (Google name, email,
-    // image) instead of a Clerk Backend API lookup.
-    // Priority: full name > email prefix > user id
-    const fullName = user?.name?.trim() || null;
-    let username: string;
-    if (fullName) {
-      username = fullName.toLowerCase().replace(/\s+/g, '-');
-    } else if (user?.email) {
-      username = user.email.split('@')[0];
-    } else {
-      // Fallback: use user ID
-      username = `user-${userId.slice(0, 8)}`;
-    }
-
-    // Clean username (remove special characters, ensure lowercase)
-    username = username
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    // Ensure username is unique by appending numbers if needed
-    let finalUsername = username;
-    let counter = 1;
-    let isUnique = false;
-
-    while (!isUnique) {
-      const existing = await db
-        .select({ username: userProfiles.username })
-        .from(userProfiles)
-        .where(eq(sql`LOWER(${userProfiles.username})`, finalUsername.toLowerCase()))
-        .limit(1);
-
-      if (existing.length === 0) {
-        isUnique = true;
-      } else {
-        finalUsername = `${username}-${counter}`;
-        counter++;
-      }
-    }
-
-    // Generate display name
-    const displayName = fullName || finalUsername;
-
-    // Create profile
-    const profileData = insertUserProfileSchema.parse({
-      user_id: userId,
-      username: finalUsername,
-      display_name: displayName,
-      profile_image_url: user?.image || null,
-      is_public: true, // Default to public
-    });
-
-    const [newProfile] = await db.insert(userProfiles).values(profileData).returning();
-
-    revalidatePath('/profile/edit');
-    revalidatePath(`/profile/${newProfile.username}`);
-
-    return newProfile;
+    // #167 (D26): the body moved to a user-id helper so API-key callers (no session) share it.
+    return await ensureUserProfileFor(userId, user ?? null);
   } catch (error) {
     console.error('Error ensuring user profile:', error);
     return null;

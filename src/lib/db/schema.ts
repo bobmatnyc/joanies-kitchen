@@ -191,7 +191,7 @@ export const recipes = pgTable(
     deleted_by: text('deleted_by'), // Admin user ID who soft-deleted
 
     // Social engagement metrics (denormalized for performance)
-    like_count: integer('like_count').default(0).notNull(), // Total likes from recipeLikes table
+    like_count: integer('like_count').default(0).notNull(), // Total likes from favorites (#167 D26)
     fork_count: integer('fork_count').default(0).notNull(), // Times this recipe has been cloned
     collection_count: integer('collection_count').default(0).notNull(), // Times added to collections
 
