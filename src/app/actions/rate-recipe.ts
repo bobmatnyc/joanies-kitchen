@@ -21,10 +21,25 @@ import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
- * #137: one statement derives the recipe's aggregates from `recipe_ratings`, so
- * they cannot drift from the rows. It always rides in the same `db.batch` as the
- * rating write (neon-http has no `db.transaction`; a batch is one HTTP
- * transaction), so the write and the recompute succeed or fail together.
+ * #141: first statement of every rating batch. Locks the recipe row so a
+ * concurrent rating batch on the same recipe waits here, before its write and
+ * recompute, instead of at the recompute's UPDATE with a subquery snapshot that
+ * misses the other batch's rating. Under READ COMMITTED each later statement
+ * takes a fresh snapshot, so it sees the committed rating.
+ * Test: `rate-recipe-aggregates.test.ts`
+ */
+function lockRecipeRow(recipeId: string) {
+  return db.select({ id: recipes.id }).from(recipes).where(eq(recipes.id, recipeId)).for('update');
+}
+
+/**
+ * #137: one statement derives the recipe's aggregates from `recipe_ratings`. It
+ * always rides in the same `db.batch` as the rating write (neon-http has no
+ * `db.transaction`; a batch is one HTTP transaction), so the write and the
+ * recompute succeed or fail together.
+ * #141: atomicity alone does not stop drift. Two concurrent batches can each
+ * compute the subqueries without the other's uncommitted rating, so the batch
+ * must start with `lockRecipeRow` to serialize writers on the recipe.
  * An average over zero ratings is NULL; an average of 0 stays 0.
  * Test: `rate-recipe-aggregates.test.ts`
  */
@@ -97,7 +112,9 @@ export async function rateRecipe(
 
     // #137: upsert and aggregate recompute in one atomic batch.
     const now = new Date();
-    const [, recomputed] = await db.batch([
+    const [, , recomputed] = await db.batch([
+      // #141: lock the recipe row first so concurrent raters cannot compute stale aggregates.
+      lockRecipeRow(recipeId),
       db
         .insert(recipeRatings)
         .values({
@@ -302,6 +319,8 @@ export async function deleteRating(
 
     // Delete and recompute in one atomic batch (a concurrent delete only makes the delete a no-op).
     await db.batch([
+      // #141: lock the recipe row first so a concurrent rate/delete cannot leave stale aggregates.
+      lockRecipeRow(recipeId),
       db
         .delete(recipeRatings)
         .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete))),
