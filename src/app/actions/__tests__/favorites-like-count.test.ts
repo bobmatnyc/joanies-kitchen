@@ -93,6 +93,18 @@ describe('#167 removeFavorite like_count', () => {
     expect(await likeCount()).toBe(0);
   });
 
+  // GREATEST(…, 0) hides a repeat at count 1, so this case stays above the floor.
+  it('a repeat call does not take another liker’s count when the total is above 0', async () => {
+    await seed(2, true);
+    await db.insert(favorites).values({ user_id: 'user_b', recipe_id: RECIPE });
+
+    await removeFavorite(RECIPE);
+    expect(await likeCount()).toBe(1);
+
+    await removeFavorite(RECIPE);
+    expect(await likeCount()).toBe(1);
+  });
+
   it('leaves like_count alone when this user never favorited the recipe', async () => {
     await seed(5, false);
 
