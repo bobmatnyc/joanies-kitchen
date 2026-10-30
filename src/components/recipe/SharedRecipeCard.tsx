@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
+import { toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface SharedRecipeCardProps {
@@ -32,7 +33,8 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   // Use themed placeholder if no image available
-  const displayImage = recipe.image_url || getPlaceholderImage(tags);
+  // #172: skip data: placeholders in image_url
+  const displayImage = toUsableImageUrl(recipe.image_url) || getPlaceholderImage(tags);
 
   const handleCopy = async () => {
     setIsCopying(true);

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useRecipeImageFallback } from '@/hooks/useRecipeImageFallback';
 import type { Recipe } from '@/lib/db/schema';
-import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
+import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 interface SharedRecipeCarouselProps {
   recipes: Recipe[];
@@ -37,7 +37,10 @@ export function SharedRecipeCarousel({ recipes }: SharedRecipeCarouselProps) {
       <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth">
         {recipes.map((recipe) => {
           // #94: shared resolver; the old unguarded JSON.parse here could throw and break the carousel.
-          const imageCount = getRecipeImageUrls(recipe.images).length || (recipe.image_url ? 1 : 0);
+          // #172: a data: placeholder in image_url does not count as an image
+          const imageCount =
+            getRecipeImageUrls(recipe.images).length ||
+            (toUsableImageUrl(recipe.image_url) ? 1 : 0);
 
           return (
             <Link

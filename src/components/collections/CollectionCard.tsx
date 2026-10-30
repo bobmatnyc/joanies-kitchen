@@ -4,6 +4,7 @@ import { BookOpen, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { Collection } from '@/lib/db/user-discovery-schema';
+import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 interface CollectionCardProps {
   collection: Collection & {
@@ -38,8 +39,8 @@ export function CollectionCard({
     for (let i = 0; i < Math.min(4, collection.recipes.length); i++) {
       const recipe = collection.recipes[i];
       try {
-        const images = recipe.images ? JSON.parse(recipe.images as string) : [];
-        const imageUrl = images[0] || recipe.image_url;
+        // #172: shared parser + data: filter
+        const imageUrl = getRecipeImageUrls(recipe.images)[0] ?? toUsableImageUrl(recipe.image_url);
         if (imageUrl) {
           recipeImages.push(imageUrl);
         }

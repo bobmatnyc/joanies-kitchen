@@ -20,6 +20,7 @@ import {
   getGuestShoppingLists,
 } from '@/lib/utils/guest-meals';
 import { parseIngredientString } from '@/lib/utils/ingredient-consolidation';
+import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { ShoppingListView } from './ShoppingListView';
 import { GuestMealBanner } from './SignInToSaveDialog';
 
@@ -399,8 +400,9 @@ export function MealDetailContent({
                   {courseRecipes.map(({ mealRecipe, recipe }) => {
                     if (!recipe) return null;
 
-                    const images = recipe.images ? JSON.parse(recipe.images as string) : [];
-                    const displayImage = images[0] || recipe.image_url;
+                    // #172: shared parser (the raw JSON.parse threw on array-literal rows) + data: filter
+                    const displayImage =
+                      getRecipeImageUrls(recipe.images)[0] ?? toUsableImageUrl(recipe.image_url);
                     const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
                     const multiplier = parseFloat(mealRecipe.serving_multiplier || '1');
                     const adjustedServings = recipe.servings

@@ -35,6 +35,55 @@ export function toUsableImageUrl(value: unknown): string | null {
   return null;
 }
 
+/**
+ * #172: ONE rule for "can this string be an image src". Drops every `data:` URI
+ * (not only svg lazy-load placeholders): the app stores remote or Blob URLs, so an
+ * inline payload is never a real recipe photo and a bloated `data:` string in a
+ * row is a scraper artefact. Also drops bare words (`1`, `fill`) and blanks.
+ */
+export function isUsableImageUrl(value: unknown): boolean {
+  return toUsableImageUrl(value) !== null;
+}
+
+/**
+ * #172: parses a Postgres array literal such as `{"/a.png","/b.png"}` or `{a,b}`.
+ * Handles double-quoted elements with backslash escapes; unquoted NULL is skipped.
+ * Returns null when `text` is not wrapped in braces.
+ */
+export function parsePostgresArrayLiteral(text: string): string[] | null {
+  const s = text.trim();
+  if (s.length < 2 || !s.startsWith('{') || !s.endsWith('}')) return null;
+  const body = s.slice(1, -1);
+  const out: string[] = [];
+  let i = 0;
+  while (i < body.length) {
+    while (i < body.length && /\s/.test(body[i])) i++;
+    if (i >= body.length) break;
+    if (body[i] === '"') {
+      i++;
+      let el = '';
+      while (i < body.length && body[i] !== '"') {
+        if (body[i] === '\\' && i + 1 < body.length) i++;
+        el += body[i];
+        i++;
+      }
+      i++; // closing quote
+      out.push(el);
+    } else {
+      let el = '';
+      while (i < body.length && body[i] !== ',') {
+        el += body[i];
+        i++;
+      }
+      el = el.trim();
+      if (el.toUpperCase() !== 'NULL') out.push(el);
+    }
+    while (i < body.length && body[i] !== ',') i++;
+    i++; // comma
+  }
+  return out;
+}
+
 /** Parses `images` (JSON string or array) into a list; never throws. */
 export function parseRecipeImages(images: unknown): unknown[] {
   if (Array.isArray(images)) return images;
@@ -45,6 +94,10 @@ export function parseRecipeImages(images: unknown): unknown[] {
     // #94: a bare JSON string or object is treated as a single entry.
     return parsed == null ? [] : [parsed];
   } catch {
+    // #172: JSON failed first so a JSON object string is not misread; some rows
+    // hold a Postgres array literal `{"/x.png"}` instead of JSON.
+    const pgArray = parsePostgresArrayLiteral(images);
+    if (pgArray) return pgArray;
     // #94: a non-JSON string may itself be a URL.
     return [images];
   }
