@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { swapToFallbackImage } from '@/lib/utils/image-fallback';
 import type { RecipeFormData } from './RecipeUploadWizard';
 
 interface RecipeStepReviewProps {
@@ -173,10 +174,7 @@ export function RecipeStepReview({ formData, updateFormData, onEditStep }: Recip
                   src={image}
                   alt={`Recipe photo ${index + 1}`}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/api/placeholder/200/200';
-                  }}
+                  onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
                 />
               </div>
             ))}
