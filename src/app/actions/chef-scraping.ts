@@ -1,32 +1,24 @@
 'use server';
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { parseRecipeWithAI } from '@/lib/ai/recipe-parser';
 import { recountChefRecipes } from '@/lib/chef-recipe-count';
+// #142: duplicate checks and chef links live in a server-internal module.
+import {
+  linkInsertedRecipe,
+  linkSkippedDuplicate,
+  skippedDuplicate,
+  skippedResult,
+} from '@/lib/chef-scraping-links';
 import { db } from '@/lib/db';
-import { scrapingJobs } from '@/lib/db/chef-schema';
+import { type NewScrapingJob, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
-import { duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
+import type { DuplicateMatch } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
-import { linkRecipeToChef } from './chefs';
-
-/**
- * #135: the stored recipe this candidate duplicates, logged as skipped; null
- * when it is new. Scraped recipes are system recipes, so the owner is 'system'.
- */
-async function skippedDuplicate(candidate: { sourceUrl: string | undefined; title?: string }) {
-  const match = await findDuplicateRecipe(candidate, { ownerId: 'system', titleRule: true });
-  if (match) {
-    console.log(
-      `[ChefScraping] ${duplicateSkipReason(match)} (${match.reason}): ${candidate.sourceUrl}`
-    );
-  }
-  return match;
-}
 
 /**
  * Start a scraping job for a chef's recipes
@@ -115,7 +107,26 @@ async function scrapeAndParseRecipes(
 
     let recipesScraped = 0;
     let recipesFailed = 0;
+    let recipesSkipped = 0;
     const totalPages = crawlResult.data.length;
+    const saveProgress = (extra: Partial<NewScrapingJob> = {}) =>
+      db
+        .update(scrapingJobs)
+        .set({
+          ...extra,
+          recipes_scraped: recipesScraped,
+          recipes_failed: recipesFailed,
+          // #142: scraping_jobs has no skipped column; the count lives in metadata.
+          metadata: sql`coalesce(${scrapingJobs.metadata}, '{}'::jsonb) || jsonb_build_object('recipes_skipped', ${recipesSkipped}::int)`,
+          updated_at: new Date(),
+        })
+        .where(eq(scrapingJobs.id, jobId));
+    /** #142: a skipped duplicate; a source-URL match is linked to the chef first. */
+    const skip = async (match: DuplicateMatch, url: string) => {
+      await linkSkippedDuplicate(params.chefId, match, url);
+      recipesSkipped++;
+      await saveProgress();
+    };
 
     // Update total pages
     await db
@@ -136,7 +147,11 @@ async function scrapeAndParseRecipes(
 
         // #135: a page without its own URL is not checked (its source falls back to
         // the crawl's base URL, which every such page shares).
-        if (page.url && (await skippedDuplicate({ sourceUrl: page.url }))) continue;
+        const urlMatch = page.url ? await skippedDuplicate({ sourceUrl: page.url }) : null;
+        if (page.url && urlMatch) {
+          await skip(urlMatch, page.url); // #142: link it to the chef, count it as skipped
+          continue;
+        }
 
         // Parse recipe with AI
         const parsed = await parseRecipeWithAI({
@@ -145,8 +160,12 @@ async function scrapeAndParseRecipes(
           images: page.metadata?.ogImage ? [page.metadata.ogImage] : undefined,
         });
 
-        if (page.url && (await skippedDuplicate({ sourceUrl: page.url, title: parsed.name }))) {
-          continue; // #135
+        const match = page.url
+          ? await skippedDuplicate({ sourceUrl: page.url, title: parsed.name })
+          : null;
+        if (page.url && match) {
+          await skip(match, page.url); // #135, #142
+          continue;
         }
 
         // Create recipe in database
@@ -177,24 +196,13 @@ async function scrapeAndParseRecipes(
           })
           .returning();
 
-        // Link recipe to chef
-        await linkRecipeToChef({
-          chefId: params.chefId,
-          recipeId: recipe[0].id,
-          originalUrl: page.url || params.sourceUrl,
-        });
+        // #142: a failed link deletes the recipe and throws, so the page counts as failed.
+        await linkInsertedRecipe(params.chefId, recipe[0].id, page.url || params.sourceUrl);
 
         recipesScraped++;
 
         // Update job progress
-        await db
-          .update(scrapingJobs)
-          .set({
-            recipes_scraped: recipesScraped,
-            recipes_failed: recipesFailed,
-            updated_at: new Date(),
-          })
-          .where(eq(scrapingJobs.id, jobId));
+        await saveProgress();
 
         // Small delay to avoid rate limits
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -202,28 +210,12 @@ async function scrapeAndParseRecipes(
         console.error(`Failed to parse recipe from ${page.url}:`, error);
         recipesFailed++;
 
-        await db
-          .update(scrapingJobs)
-          .set({
-            recipes_scraped: recipesScraped,
-            recipes_failed: recipesFailed,
-            updated_at: new Date(),
-          })
-          .where(eq(scrapingJobs.id, jobId));
+        await saveProgress();
       }
     }
 
     // Mark job as completed
-    await db
-      .update(scrapingJobs)
-      .set({
-        status: 'completed',
-        completed_at: new Date(),
-        recipes_scraped: recipesScraped,
-        recipes_failed: recipesFailed,
-        updated_at: new Date(),
-      })
-      .where(eq(scrapingJobs.id, jobId));
+    await saveProgress({ status: 'completed', completed_at: new Date() });
 
     // Update chef recipe count
     await recountChefRecipes(params.chefId);
@@ -256,7 +248,7 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
   try {
     // #135: a URL variant of a stored source is skipped before the paid scrape.
     const urlDuplicate = await skippedDuplicate({ sourceUrl: params.url });
-    if (urlDuplicate) return duplicateFailure(urlDuplicate.id);
+    if (urlDuplicate) return await skippedResult(params.chefId, urlDuplicate, params.url);
 
     // Scrape the page
     const scraped = await scrapeRecipePage(params.url);
@@ -277,7 +269,7 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     });
 
     const duplicate = await skippedDuplicate({ sourceUrl: params.url, title: parsed.name });
-    if (duplicate) return duplicateFailure(duplicate.id); // #135
+    if (duplicate) return await skippedResult(params.chefId, duplicate, params.url); // #135
 
     // Create recipe
     const recipe = await db
@@ -307,12 +299,8 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
       })
       .returning();
 
-    // Link to chef
-    await linkRecipeToChef({
-      chefId: params.chefId,
-      recipeId: recipe[0].id,
-      originalUrl: params.url,
-    });
+    // #142: a failed link deletes the recipe and throws into the failure answer below.
+    await linkInsertedRecipe(params.chefId, recipe[0].id, params.url);
 
     return { success: true, recipe: recipe[0] };
   } catch (error) {
@@ -322,11 +310,6 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
       error: toErrorMessage(error),
     };
   }
-}
-
-/** #135: `scrapeSingleRecipe`'s answer for a duplicate; nothing was inserted. */
-function duplicateFailure(id: string) {
-  return { success: false as const, error: `skipped: duplicate of ${id}`, duplicateOf: id };
 }
 
 /**

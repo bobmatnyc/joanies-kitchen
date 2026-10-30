@@ -96,6 +96,8 @@ export const scrapingJobs = pgTable(
       crawl_id?: string;
       estimated_time?: number;
       user_agent?: string;
+      /** #142: pages skipped as duplicates of stored recipes (no column; no migration). */
+      recipes_skipped?: number;
     }>(),
     started_at: timestamp('started_at'),
     completed_at: timestamp('completed_at'),

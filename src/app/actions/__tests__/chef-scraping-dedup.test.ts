@@ -80,6 +80,7 @@ describe('scrapeSingleRecipe duplicate guard (#135)', () => {
       success: false,
       error: 'skipped: duplicate of seed-1',
       duplicateOf: 'seed-1',
+      linkedToChef: true, // #142: a source-URL match is linked to the chef
     });
     expect(state.scraped).toEqual([]);
     expect(await count()).toBe(1);

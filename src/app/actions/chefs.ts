@@ -1,6 +1,6 @@
 'use server';
 
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
 import { recountChefRecipes } from '@/lib/chef-recipe-count';
@@ -240,41 +240,53 @@ export async function updateChefRecipeCount(chefId: string) {
 }
 
 /**
- * Link recipe to chef
- * Admin only
+ * Why: a recipe appears on a chef's page only through a `chef_recipes` row.
+ * Chef scraping also links a stored duplicate it skips, which may already be
+ * linked or belong to another chef (#142).
+ * What: admin only. Returns `{ success: false, error: 'Chef not found: <id>' }`
+ * and writes nothing when the chef does not exist. Otherwise writes the link
+ * row and `recipes.chef_id` in one `db.batch`; an existing link is a no-op
+ * (`link` is then undefined). `keepExistingRecipeChef` sets `chef_id` only
+ * where it is null, so another chef keeps the recipe.
+ * Test: `src/app/actions/__tests__/chef-scraping-link.test.ts`
  */
 export async function linkRecipeToChef(params: {
   chefId: string;
   recipeId: string;
   originalUrl?: string;
+  keepExistingRecipeChef?: boolean;
 }) {
   await requireAdmin();
 
   try {
-    const link = await db
-      .insert(chefRecipes)
-      .values({
-        chef_id: params.chefId,
-        recipe_id: params.recipeId,
-        original_url: params.originalUrl,
-        scraped_at: params.originalUrl ? new Date() : undefined,
-      })
-      .returning();
+    // #142: look the chef up before any write, so an unknown chef writes nothing.
+    const chef = await db.query.chefs.findFirst({
+      where: eq(chefs.id, params.chefId),
+    });
+    if (!chef) return { success: false, error: `Chef not found: ${params.chefId}` };
+
+    const recipeTarget = params.keepExistingRecipeChef
+      ? and(eq(recipes.id, params.recipeId), isNull(recipes.chef_id))
+      : eq(recipes.id, params.recipeId);
+    // #142: link and chef_id in one transaction; re-linking a linked pair is not an error.
+    const [link] = await db.batch([
+      db
+        .insert(chefRecipes)
+        .values({
+          chef_id: params.chefId,
+          recipe_id: params.recipeId,
+          original_url: params.originalUrl,
+          scraped_at: params.originalUrl ? new Date() : undefined,
+        })
+        .onConflictDoNothing({ target: [chefRecipes.chef_id, chefRecipes.recipe_id] })
+        .returning(),
+      db.update(recipes).set({ chef_id: params.chefId }).where(recipeTarget),
+    ]);
 
     // Update chef recipe count
     await recountChefRecipes(params.chefId);
 
-    // Update recipe to reference chef
-    await db.update(recipes).set({ chef_id: params.chefId }).where(eq(recipes.id, params.recipeId));
-
-    // Get chef slug for revalidation
-    const chef = await db.query.chefs.findFirst({
-      where: eq(chefs.id, params.chefId),
-    });
-
-    if (chef) {
-      revalidatePath(`/chef/${chef.slug}`);
-    }
+    revalidatePath(`/chef/${chef.slug}`);
     revalidatePath('/discover/chefs');
 
     return { success: true, link: link[0] };
