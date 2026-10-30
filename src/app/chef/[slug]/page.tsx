@@ -38,9 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       images: chef.profile_image_url
         ? [
             {
+              // #164: no width/height; the profile image's real size is unknown.
               url: chef.profile_image_url,
-              width: 1200,
-              height: 630,
               alt: `${chef.display_name || chef.name} - Chef Profile`,
             },
           ]

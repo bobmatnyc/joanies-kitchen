@@ -47,9 +47,8 @@ export async function generateMetadata({ params }: IngredientPageProps) {
       images: ingredient.image_url
         ? [
             {
+              // #164: no width/height; the ingredient image's real size is unknown.
               url: ingredient.image_url,
-              width: 1200,
-              height: 630,
               alt: ingredient.display_name,
             },
           ]

@@ -57,9 +57,9 @@ export async function generateMetadata({
       images: firstImage
         ? [
             {
+              // #164: no width/height. The image is an arbitrary external or Blob file whose
+              // real size we do not store; the Open Graph spec lets us omit the dimensions.
               url: firstImage,
-              width: 1200,
-              height: 630,
               alt: recipe.name,
             },
           ]
