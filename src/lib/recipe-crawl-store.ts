@@ -22,6 +22,7 @@ import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
 import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
+import { pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import type { WeekInfo } from '@/lib/week-utils';
 
@@ -47,16 +48,8 @@ export interface StoreRecipeMetadata {
 function downloadAndStoreImages(imageUrls: string[]): string[] {
   // In production, you would download the images, upload them to cloud
   // storage (Vercel Blob, S3, etc.) and return the new URLs.
-  return imageUrls
-    .filter((url) => {
-      try {
-        new URL(url);
-        return true;
-      } catch {
-        return false;
-      }
-    })
-    .slice(0, 6);
+  // #185: absolute http(s) URLs only, and never a site logo or icon.
+  return pickRecipeImages({ contentImages: imageUrls }, 6);
 }
 
 /**

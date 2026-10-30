@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { getRecipeImageUrls, parseRecipeTags } from '@/lib/utils/recipe-image';
+import { getRecipeHeroImages, parseRecipeTags } from '@/lib/utils/recipe-image';
 import { safeParseArray } from '@/lib/utils/recipe-utils';
 import { ModerationActionDialog } from './ModerationActionDialog';
 
@@ -53,7 +53,8 @@ export function RecipePreviewModal({
 
   // Parse JSON fields
   // #179: images go through the shared helper (never throws, drops data: URIs and non-URLs).
-  const images = getRecipeImageUrls(recipe.images);
+  // #185: never empty; no usable image shows the shared placeholder.
+  const images = getRecipeHeroImages(recipe);
   // #184: shared safe parsers; a malformed stored value no longer throws during render.
   const ingredients = safeParseArray(recipe.ingredients);
   const instructions = safeParseArray(recipe.instructions);

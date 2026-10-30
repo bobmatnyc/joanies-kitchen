@@ -40,8 +40,9 @@ describe('SimilarRecipesCompact image guard', () => {
     ['unterminated JSON', '[not json'],
     ['data: URI', '["data:image/svg+xml;base64,AAAA"]'],
     ['non-URL entry', '["1"]'],
-  ])('renders the row without an image for %s', async (_label, images) => {
-    expect(await renderWith(images)).toBeNull();
+  ])('renders the row with the placeholder image for %s', async (_label, images) => {
+    // #185: no usable image shows the shared placeholder instead of no thumbnail.
+    expect((await renderWith(images))?.getAttribute('src')).toBe('/placeholders/generic.svg');
   });
 
   it('keeps rendering a valid JSON image as before', async () => {

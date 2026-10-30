@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { deduplicateAcrossCourses } from '@/lib/meals/recipe-classification';
-import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
+import { resolveRecipeImage } from '@/lib/utils/recipe-image';
 
 interface CourseSuggestions {
   appetizer: RecipeWithSimilarity[];
@@ -275,7 +275,8 @@ const RecipeSuggestionCard = memo(function RecipeSuggestionCard({
   }, [recipe, courseCategory, onAdd]);
 
   // #179: shared helper rejects data: URIs and non-URL entries as well as malformed JSON.
-  const imageUrl = getRecipeImageUrls(recipe.images)[0] || '/placeholder-recipe.jpg';
+  // #185: shared placeholder; /placeholder-recipe.jpg does not exist under public/.
+  const imageUrl = resolveRecipeImage(recipe);
 
   return (
     <div className="border border-jk-sage/30 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white">

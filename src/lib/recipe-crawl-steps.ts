@@ -11,6 +11,7 @@
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { metadataImageSources, pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 
 // Types
 export interface RecipeSearchResult {
@@ -223,6 +224,12 @@ Important:
         error: 'Could not extract valid recipe from URL',
       };
     }
+
+    // #185: the page's og:image leads; the LLM's picks follow, and site assets are dropped.
+    extracted.images = pickRecipeImages(
+      { ...metadataImageSources(scrapeResult.metadata), contentImages: extracted.images },
+      6
+    );
 
     console.log(`[Convert] Successfully extracted recipe: ${extracted.name}`);
 
