@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **recipes**: migration `0005_dedup_135_redirects_ledger` adds `recipe_redirects` (retired recipe id and slug to the survivor) and `dedup_135_ledger`. `scripts/dedup-135/apply.ts` merges duplicate recipe groups from a signed decisions file, one transaction per group: it moves dependent rows to the survivor (dropping a loser row whose unique key the survivor already holds), soft-deletes the losers, recomputes the survivor's counters, gives a survivor without a slug one, and writes a redirect per loser. It refuses an unsigned decisions file, and stops before any write when the live data differs from the signed dry run in any group id, member id or per-table loser-row count (recipe_views within 5%). Each group also stops on a unique-key collision the dry run did not record, a survivor not owned by `system`/`system_imported`, or a loser with more `recipe_ingredients` rows than the survivor unless acknowledged in the decisions file. Backup tables (`*_bak_*`) are never re-pointed. Chef and collection `recipe_count` are recounted, a group may override the survivor's `source`, and post-checks run after every batch of 50 groups. `scripts/dedup-135/rollback.ts` reverses a batch from the ledger; `scripts/dedup-135/checksum.ts` prints read-only row counts and checksums for the rehearsal. `plan.ts` now records per-member row counts, unique-key values and the chef_recipes collision triples. None of these has been run against production (#135)
+
 ### Fixed
 
 - **auth**: a deployment without the Auth.js env vars (`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`), such as a Vercel preview, no longer logs an Auth.js "server configuration" error on every page. The root layout passes `isAuthConfigured()` to `AuthProvider`, which then renders a fixed signed-out session and never fetches `/api/auth/session`. The `/api/auth/*` route answers without calling Auth.js: `GET /api/auth/session` returns `null` and every other action returns 503, so sign-in stays off. Deployments with the vars set are unchanged (#154)
