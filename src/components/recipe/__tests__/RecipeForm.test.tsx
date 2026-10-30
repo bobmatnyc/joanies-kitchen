@@ -1,21 +1,37 @@
 // #179: RecipeForm parsed `recipe.images` with a bare JSON.parse, so a malformed stored value
 // crashed the edit page.
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '@/lib/db/schema';
 import { RecipeForm } from '../RecipeForm';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
-vi.mock('@/app/actions/recipes', () => ({ createRecipe: vi.fn(), updateRecipe: vi.fn() }));
+const updateRecipe = vi.hoisted(() => vi.fn());
+const createRecipe = vi.hoisted(() => vi.fn());
+vi.mock('@/app/actions/recipes', () => ({ createRecipe, updateRecipe }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 // The uploader is stubbed so the test reads exactly what the form hands it.
 vi.mock('../ImageUploader', () => ({
-  ImageUploader: ({ images }: { images: string[] }) => (
-    <ul data-testid="images">
-      {images.map((src) => (
-        <li key={src}>{src}</li>
-      ))}
-    </ul>
+  ImageUploader: ({
+    images,
+    onChange,
+  }: {
+    images: string[];
+    onChange: (images: string[]) => void;
+  }) => (
+    <div>
+      <ul data-testid="images">
+        {images.map((src) => (
+          <li key={src}>{src}</li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={() => onChange([...images, 'https://cdn.example.com/new.jpg'])}
+      >
+        add-image
+      </button>
+    </div>
   ),
 }));
 
@@ -65,5 +81,56 @@ describe('RecipeForm images', () => {
   ])('shows an empty image list for %s instead of throwing', (_label, images) => {
     render(<RecipeForm recipe={recipe(images)} />);
     expect(listed()).toEqual([]);
+  });
+});
+
+describe('RecipeForm submit keeps stored images (#179)', () => {
+  beforeEach(() => {
+    updateRecipe.mockReset().mockResolvedValue({ success: true, data: { id: 'r-1' } });
+    createRecipe.mockReset().mockResolvedValue({ success: true, data: { id: 'r-2' } });
+  });
+
+  async function renameAndSubmit() {
+    fireEvent.change(screen.getByLabelText('Recipe Name *'), { target: { value: 'Renamed' } });
+    fireEvent.click(screen.getByRole('button', { name: /update|save|create/i }));
+    await waitFor(() =>
+      expect(updateRecipe.mock.calls.length + createRecipe.mock.calls.length).toBe(1)
+    );
+  }
+
+  it.each([
+    ['unusable entries mixed with a URL', '["images/x.jpg","https://a.test/b.jpg"]'],
+    ['non-JSON text', '[not json'],
+  ])('omits images and image_url when only the name changed (%s)', async (_label, images) => {
+    render(<RecipeForm recipe={recipe(images)} />);
+    await renameAndSubmit();
+    const payload = updateRecipe.mock.calls[0][1];
+    expect(payload.name).toBe('Renamed');
+    expect('images' in payload).toBe(false);
+    expect('image_url' in payload).toBe(false);
+  });
+
+  it('writes the cleaned list once images were changed through the uploader', async () => {
+    render(<RecipeForm recipe={recipe('["images/x.jpg","https://a.test/b.jpg"]')} />);
+    fireEvent.click(screen.getByText('add-image'));
+    await renameAndSubmit();
+    expect(updateRecipe.mock.calls[0][1].images).toBe(
+      '["https://a.test/b.jpg","https://cdn.example.com/new.jpg"]'
+    );
+  });
+
+  it('a new recipe still writes images and image_url', async () => {
+    render(<RecipeForm />);
+    fireEvent.click(screen.getByText('add-image'));
+    fireEvent.change(screen.getByPlaceholderText('e.g., 2 cups flour'), {
+      target: { value: 'flour' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Describe this step...'), {
+      target: { value: 'mix' },
+    });
+    await renameAndSubmit();
+    const payload = createRecipe.mock.calls[0][0];
+    expect(payload.images).toBe('["https://cdn.example.com/new.jpg"]');
+    expect(payload.image_url).toBe('https://cdn.example.com/new.jpg');
   });
 });
