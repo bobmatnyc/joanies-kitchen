@@ -17,6 +17,7 @@ import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { publicRecipe } from '@/lib/recipe-public';
+import { serializeUsableImages, toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -94,8 +95,8 @@ export async function GET() {
           recipe_id: recipe.id,
           title: recipe.name,
           description: recipe.description,
-          image_url: recipe.image_url,
-          images: recipe.images,
+          image_url: toUsableImageUrl(recipe.image_url), // #179: usable URLs only
+          images: serializeUsableImages(recipe.images), // #179: same string shape, usable URLs only
           prep_time: recipe.prep_time,
           cook_time: recipe.cook_time,
           servings: recipe.servings,
@@ -174,8 +175,8 @@ export async function GET() {
       recipe_id: recipe.id,
       title: recipe.name,
       description: recipe.description,
-      image_url: recipe.image_url,
-      images: recipe.images,
+      image_url: toUsableImageUrl(recipe.image_url), // #179: usable URLs only
+      images: serializeUsableImages(recipe.images), // #179: same string shape, usable URLs only
       prep_time: recipe.prep_time,
       cook_time: recipe.cook_time,
       servings: recipe.servings,
