@@ -316,6 +316,10 @@ export const recipeEmbeddings = pgTable(
   (table) => ({
     // #9 (D7d): one embedding per recipe; added to prod by migration 0001.
     recipeIdUnique: unique('recipe_embeddings_recipe_id_unique').on(table.recipe_id),
+    // #131: HNSW kNN index for findSimilarRecipes; added by migration 0006.
+    embeddingHnswIdx: index('recipe_embeddings_embedding_hnsw_idx')
+      .using('hnsw', table.embedding.op('vector_cosine_ops'))
+      .with({ m: 16, ef_construction: 64 }),
   })
 );
 

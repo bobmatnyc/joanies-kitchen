@@ -579,12 +579,14 @@ describe('#96 findSimilarRecipes SQL', () => {
   it('filters visibility and the source before LIMIT; no options means no filter', async () => {
     const actual =
       await vi.importActual<typeof import('@/lib/db/embeddings')>('@/lib/db/embeddings');
-    const captured: string[] = [];
+    const captured: string[][] = [];
     const realDb = state.db;
+    // #131: the query runs as db.batch([SET LOCAL, SET LOCAL, SELECT]).
     state.db = {
-      execute: async (query: SQL) => {
-        captured.push(new PgDialect().sqlToQuery(query).sql);
-        return { rows: [] };
+      execute: (query: SQL) => query,
+      batch: async (queries: SQL[]) => {
+        captured.push(queries.map((q) => new PgDialect().sqlToQuery(q).sql));
+        return queries.map(() => ({ rows: [] }));
       },
     };
     try {
@@ -597,14 +599,17 @@ describe('#96 findSimilarRecipes SQL', () => {
     } finally {
       state.db = realDb;
     }
-    const [filtered, plain] = captured;
-    expect(filtered).toMatch(
-      /AND e\.recipe_id IN \(SELECT "recipes"\."id" FROM "recipes" WHERE [\s\S]*"recipes"\."is_public"/
-    );
+    const [[efSearch, iterative, filtered], [, , plain]] = captured;
+    expect(efSearch).toBe('SET LOCAL hnsw.ef_search = 40');
+    expect(iterative).toBe('SET LOCAL hnsw.iterative_scan = relaxed_order');
+    expect(filtered).toMatch(/AND \([\s\S]*"recipes"\."is_public"/);
     expect(filtered).toMatch(/"recipes"\."deleted_at" is null/);
-    expect(filtered).toMatch(/AND e\.recipe_id <> \$\d+/);
-    expect(filtered.indexOf('e.recipe_id IN')).toBeLessThan(filtered.indexOf('LIMIT'));
-    expect(plain).not.toContain('e.recipe_id IN');
-    expect(plain).not.toContain('e.recipe_id <>');
+    expect(filtered).toMatch(/AND knn\.recipe_id <> \$\d+/);
+    // Filters sit in `hits`, after the kNN LIMIT and before the final LIMIT.
+    const hits = filtered.indexOf('hits AS MATERIALIZED');
+    expect(filtered.indexOf('"recipes"."is_public"')).toBeGreaterThan(hits);
+    expect(filtered.indexOf('"recipes"."is_public"')).toBeLessThan(filtered.lastIndexOf('LIMIT'));
+    expect(plain).not.toContain('"recipes"."is_public"');
+    expect(plain).not.toContain('knn.recipe_id <>');
   });
 });

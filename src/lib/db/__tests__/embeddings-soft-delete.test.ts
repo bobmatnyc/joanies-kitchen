@@ -54,17 +54,11 @@ import { GET as similarGET } from '@/app/api/v1/recipes/[id]/similar/route';
 import { searchCaches } from '@/lib/cache';
 import * as schema from '@/lib/db/schema';
 import { getAllRecipeEmbeddings, getRecipesNeedingEmbedding } from '../embeddings';
+import { installVectorStub, vec } from './pglite-vector-stub';
 
 const OWNER = 'user_owner';
 const SOURCE = '00000000-0000-4000-8000-000000000000';
 const DELETED_AT = new Date('2026-10-01T00:00:00Z');
-
-/** 384-dim vector with the given non-zero components. */
-function vec(components: Record<number, number>): number[] {
-  const v = new Array<number>(384).fill(0);
-  for (const [i, x] of Object.entries(components)) v[Number(i)] = x;
-  return v;
-}
 
 const id = (prefix: string, i: number) =>
   `${prefix}${String(i).padStart(7, '0')}-0000-4000-8000-000000000000`;
@@ -120,26 +114,8 @@ beforeAll(async () => {
   client = built.client;
   db = built.db;
   state.db = db;
-  // PGlite ships no pgvector: a text domain plus a cosine-distance operator.
-  await client.exec(`
-    CREATE DOMAIN vector AS text;
-    CREATE FUNCTION jk_cosine_distance(a text, b text) RETURNS float8
-      LANGUAGE sql IMMUTABLE AS $$
-        SELECT 1 - sum(x * y) / (sqrt(sum(x * x)) * sqrt(sum(y * y)))
-        FROM unnest(string_to_array(btrim(a, '[] '), ',')::float8[],
-                    string_to_array(btrim(b, '[] '), ',')::float8[]) AS t(x, y)
-      $$;
-    CREATE OPERATOR <=> (LEFTARG = text, RIGHTARG = text, FUNCTION = jk_cosine_distance);
-    CREATE TABLE "recipe_embeddings" (
-      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      "recipe_id" text NOT NULL UNIQUE,
-      "embedding" text NOT NULL,
-      "embedding_text" text NOT NULL,
-      "model_name" varchar(100) NOT NULL DEFAULT 'all-MiniLM-L6-v2',
-      "created_at" timestamptz DEFAULT now(),
-      "updated_at" timestamptz DEFAULT now()
-    );
-  `);
+  // #131: shared stub; PGlite ships no pgvector.
+  await installVectorStub(client);
 });
 
 afterAll(async () => {
