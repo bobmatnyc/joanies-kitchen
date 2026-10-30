@@ -54,6 +54,7 @@ import {
 import type { RouteContext } from '@/lib/api-auth/types';
 import * as schema from '@/lib/db/schema';
 import { favorites, userProfiles } from '@/lib/db/user-discovery-schema';
+import { ensureUserProfileFor } from '@/lib/ensure-user-profile';
 import * as core from '@/lib/favorites';
 
 let client: PGlite;
@@ -124,6 +125,32 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await client?.close();
+});
+
+describe('#167 ensureUserProfileFor is race-safe', () => {
+  it('two concurrent first calls for one user both return the same profile', async () => {
+    const [a, b] = await Promise.all([
+      ensureUserProfileFor(API_USER),
+      ensureUserProfileFor(API_USER),
+    ]);
+
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    expect(a?.id).toBe(b?.id);
+    expect(await count('user_profiles', `WHERE user_id = '${API_USER}'`)).toBe(1);
+  });
+
+  it('two concurrent new users with the same derived username both get a profile', async () => {
+    const identity = { name: 'Same Name' };
+    const [a, b] = await Promise.all([
+      ensureUserProfileFor(API_USER, identity),
+      ensureUserProfileFor(OTHER, identity),
+    ]);
+
+    expect(a?.user_id).toBe(API_USER);
+    expect(b?.user_id).toBe(OTHER);
+    expect([a?.username, b?.username].sort()).toEqual(['same-name', 'same-name-1']);
+  });
 });
 
 describe('#167 favorites core', () => {

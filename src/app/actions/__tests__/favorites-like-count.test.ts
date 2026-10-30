@@ -25,9 +25,6 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
-vi.mock('@/app/actions/user-profiles', () => ({
-  ensureUserProfile: async () => ({ user_id: state.userId }),
-}));
 
 import { addFavorite, removeFavorite, toggleFavorite } from '@/app/actions/favorites';
 import * as schema from '@/lib/db/schema';

@@ -7,7 +7,10 @@
  * with the caller's user id instead.
  * What: returns the existing profile, or inserts one whose username is derived
  * from the optional identity (name > email prefix > user id) and made unique.
- * Returns null on failure (logged), as the action always has.
+ * Concurrent first calls for one user all get the same row (insert is
+ * `ON CONFLICT (user_id) DO NOTHING`, then re-select); a username taken by a
+ * concurrent new user is retried with the next suffix. Returns null on any
+ * other failure (logged), as the action always has.
  * Test: `src/lib/favorites/__tests__/favorites-core.test.ts`
  */
 
@@ -19,6 +22,24 @@ import {
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { isUniqueViolation } from '@/lib/utils/error-handling';
+
+/** Inserts tried before giving up when concurrent new users keep taking the chosen username. */
+const USERNAME_ATTEMPTS = 5;
+
+/** `base`, or `base-N` with the lowest N, that no profile uses (case-insensitive). */
+async function freeUsername(base: string): Promise<string> {
+  let candidate = base;
+  for (let counter = 1; ; counter++) {
+    const existing = await db
+      .select({ username: userProfiles.username })
+      .from(userProfiles)
+      .where(eq(sql`LOWER(${userProfiles.username})`, candidate.toLowerCase()))
+      .limit(1);
+    if (existing.length === 0) return candidate;
+    candidate = `${base}-${counter}`;
+  }
+}
 
 /** Identity fields a new profile is named from; all optional. */
 export interface ProfileIdentity {
@@ -62,40 +83,47 @@ export async function ensureUserProfileFor(
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    // Ensure username is unique by appending numbers if needed
-    let finalUsername = username;
-    let counter = 1;
-    let isUnique = false;
+    // #167: the existence check above and the insert below can race with another
+    // first-time call. A user_id conflict is absorbed by ON CONFLICT and answered
+    // by re-selecting the winner's row; a username conflict (another new user took
+    // the same name in between) picks the next free name and retries.
+    for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt++) {
+      const finalUsername = await freeUsername(username);
+      const profileData = insertUserProfileSchema.parse({
+        user_id: userId,
+        username: finalUsername,
+        display_name: fullName || finalUsername,
+        profile_image_url: identity?.image || null,
+        is_public: true, // Default to public
+      });
 
-    while (!isUnique) {
-      const existing = await db
-        .select({ username: userProfiles.username })
-        .from(userProfiles)
-        .where(eq(sql`LOWER(${userProfiles.username})`, finalUsername.toLowerCase()))
-        .limit(1);
-
-      if (existing.length === 0) {
-        isUnique = true;
-      } else {
-        finalUsername = `${username}-${counter}`;
-        counter++;
+      let inserted: UserProfile | undefined;
+      try {
+        [inserted] = await db
+          .insert(userProfiles)
+          .values(profileData)
+          .onConflictDoNothing({ target: userProfiles.user_id })
+          .returning();
+      } catch (error) {
+        if (isUniqueViolation(error)) continue; // username taken meanwhile
+        throw error;
       }
+
+      if (!inserted) {
+        const [winner] = await db
+          .select()
+          .from(userProfiles)
+          .where(eq(userProfiles.user_id, userId))
+          .limit(1);
+        if (winner) return winner;
+        throw new Error(`user_profiles conflict for ${userId} but no row on re-select`);
+      }
+
+      revalidatePath('/profile/edit');
+      revalidatePath(`/profile/${inserted.username}`);
+      return inserted;
     }
-
-    const profileData = insertUserProfileSchema.parse({
-      user_id: userId,
-      username: finalUsername,
-      display_name: fullName || finalUsername,
-      profile_image_url: identity?.image || null,
-      is_public: true, // Default to public
-    });
-
-    const [newProfile] = await db.insert(userProfiles).values(profileData).returning();
-
-    revalidatePath('/profile/edit');
-    revalidatePath(`/profile/${newProfile.username}`);
-
-    return newProfile;
+    throw new Error(`no free username for ${userId} after ${USERNAME_ATTEMPTS} attempts`);
   } catch (error) {
     console.error('Error ensuring user profile:', error);
     return null;
