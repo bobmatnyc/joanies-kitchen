@@ -25,6 +25,7 @@ import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
+import { apiRecipeRedirect } from '@/lib/recipe-redirects';
 import { similarRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -72,6 +73,12 @@ export const GET = requireScopes(
 
       // Fetch the source recipe
       const sourceRecipeResult = await getRecipe(id);
+      // #135: miss path only — an old duplicate's id or slug redirects to the survivor's
+      // similar URL (307 by default, 308 when RECIPE_REDIRECT_STATUS=308).
+      if (sourceRecipeResult.error === 'Recipe not found') {
+        const moved = await apiRecipeRedirect(request.url, id, '/similar');
+        if (moved) return moved;
+      }
       const recipeCheck = handleActionResult(sourceRecipeResult);
       if ('error' in recipeCheck) return recipeCheck.error;
 
