@@ -94,18 +94,20 @@ export async function removeFavorite(recipeId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Remove from favorites
-    await db
-      .delete(favorites)
-      .where(and(eq(favorites.user_id, userId), eq(favorites.recipe_id, recipeId)));
-
-    // Decrement recipe like_count (don't go below 0)
-    await db
-      .update(recipes)
-      .set({
-        like_count: sql`GREATEST(${recipes.like_count} - 1, 0)`,
-      })
-      .where(eq(recipes.id, recipeId));
+    // #167: delete and decrement are ONE statement. The decrement runs only if the
+    // DELETE removed a row (EXISTS on its RETURNING), so a repeated call or a
+    // never-favorited recipe leaves like_count alone. Single statement = atomic on
+    // neon-http, which cannot branch on a prior statement's result inside db.batch.
+    await db.execute(sql`
+      WITH removed AS (
+        DELETE FROM ${favorites}
+        WHERE ${favorites.user_id} = ${userId} AND ${favorites.recipe_id} = ${recipeId}
+        RETURNING 1
+      )
+      UPDATE ${recipes}
+      SET like_count = GREATEST(${recipes.like_count} - 1, 0)
+      WHERE ${recipes.id} = ${recipeId} AND EXISTS (SELECT 1 FROM removed)
+    `);
 
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);
