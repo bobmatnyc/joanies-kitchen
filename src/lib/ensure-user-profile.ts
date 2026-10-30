@@ -7,6 +7,8 @@
  * with the caller's user id instead.
  * What: returns the existing profile, or inserts one whose username is derived
  * from the optional identity (name > email prefix > user id) and made unique.
+ * #181: with no identity (API-key caller) the identity is read from the Auth.js
+ * `users` row by id; no row or a failed lookup falls back to the user id.
  * Concurrent first calls for one user all get the same row (insert is
  * `ON CONFLICT (user_id) DO NOTHING`, then re-select); a username taken by a
  * concurrent new user is retried with the next suffix. Returns null on any
@@ -17,6 +19,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { users } from '@/lib/db/auth-schema';
 import {
   insertUserProfileSchema,
   type UserProfile,
@@ -48,6 +51,24 @@ export interface ProfileIdentity {
   image?: string | null;
 }
 
+/**
+ * #181: name, email and image from the Auth.js `users` row; null when there is no
+ * row or the lookup fails (logged), so profile creation falls back to `user-<id8>`.
+ */
+async function loadUserIdentity(userId: string): Promise<ProfileIdentity | null> {
+  try {
+    const [row] = await db
+      .select({ name: users.name, email: users.email, image: users.image })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return row ?? null;
+  } catch (error) {
+    console.error('Error loading user identity for profile:', error);
+    return null;
+  }
+}
+
 export async function ensureUserProfileFor(
   userId: string,
   identity: ProfileIdentity | null = null
@@ -63,15 +84,19 @@ export async function ensureUserProfileFor(
       return existingProfile[0];
     }
 
+    // #181: an API-key caller passes no identity; read it from the Auth.js `users`
+    // row so the name derivation below is the same one the web path uses.
+    const resolved = identity ?? (await loadUserIdentity(userId));
+
     // #22: profile data comes from the Auth.js session (Google name, email,
     // image) instead of a Clerk Backend API lookup.
     // Priority: full name > email prefix > user id
-    const fullName = identity?.name?.trim() || null;
+    const fullName = resolved?.name?.trim() || null;
     let username: string;
     if (fullName) {
       username = fullName.toLowerCase().replace(/\s+/g, '-');
-    } else if (identity?.email) {
-      username = identity.email.split('@')[0];
+    } else if (resolved?.email) {
+      username = resolved.email.split('@')[0];
     } else {
       username = `user-${userId.slice(0, 8)}`;
     }
@@ -93,7 +118,7 @@ export async function ensureUserProfileFor(
         user_id: userId,
         username: finalUsername,
         display_name: fullName || finalUsername,
-        profile_image_url: identity?.image || null,
+        profile_image_url: resolved?.image || null,
         is_public: true, // Default to public
       });
 
