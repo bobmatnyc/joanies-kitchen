@@ -1,4 +1,5 @@
 import type { Recipe } from '@/lib/db/schema';
+import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 // Helper function to safely parse a field that could be JSON array or plain text
 function safeParseArray(value: string | string[] | null | undefined): string[] {
@@ -94,7 +95,10 @@ export function parseRecipe(recipe: Recipe) {
     ingredients: safeParseArray(recipe.ingredients),
     instructions: safeParseArray(recipe.instructions),
     tags: recipe.tags ? safeParseArray(recipe.tags) : [],
-    images: recipe.images ? safeParseArray(recipe.images) : [],
+    // #172: only usable URLs; handles Postgres array literals, drops data: placeholders.
+    images: getRecipeImageUrls(recipe.images),
+    // #172: a data: placeholder in image_url must not reach <img src> / OG / JSON-LD.
+    image_url: toUsableImageUrl(recipe.image_url),
   };
 }
 

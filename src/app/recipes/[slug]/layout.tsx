@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { NOT_FOUND_METADATA } from '@/lib/not-found-metadata';
 import { getBaseUrl } from '@/lib/site-url';
 import { parseRecipeTags } from '@/lib/types/parsers';
+import { toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { findVisibleRecipe, loadVisibleRecipeOrNotFound } from './recipe-access';
 
 interface RecipeLayoutProps {
@@ -38,7 +39,8 @@ export async function generateMetadata({
 
   // Get first image for OG image
   const images = recipe.images && Array.isArray(recipe.images) ? recipe.images : [];
-  const firstImage = images.length > 0 ? images[0] : recipe.image_url;
+  // #172: a data: placeholder must not become og:image.
+  const firstImage = toUsableImageUrl(images.length > 0 ? images[0] : recipe.image_url);
 
   return {
     // #138: the root layout's title.template appends the brand.

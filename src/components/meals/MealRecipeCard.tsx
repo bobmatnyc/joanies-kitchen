@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import type { NewMealRecipe, Recipe } from '@/lib/db/schema';
 import { parseRecipeImages } from '@/lib/meals/type-guards';
+import { toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface MealRecipeCardProps {
@@ -62,7 +63,9 @@ export const MealRecipeCard = memo(function MealRecipeCard({
   }, [recipe.tags]);
 
   // Use themed placeholder if no image available
-  const displayImage = images[0] || recipe.image_url || getPlaceholderImage(tags);
+  // #172: images[0] / image_url may be a data: placeholder; keep only usable URLs
+  const displayImage =
+    toUsableImageUrl(images[0]) || toUsableImageUrl(recipe.image_url) || getPlaceholderImage(tags);
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   const _courseColor = COURSE_COLORS[mealRecipe.course_category || 'other'] || COURSE_COLORS.other;
