@@ -45,9 +45,8 @@ export async function generateMetadata({ params }: ToolPageProps) {
       images: tool.imageUrl
         ? [
             {
+              // #164: no width/height; the tool image's real size is unknown.
               url: tool.imageUrl,
-              width: 1200,
-              height: 630,
               alt: tool.displayName,
             },
           ]
