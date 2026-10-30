@@ -105,6 +105,24 @@ describe('range mode', () => {
     expect(r.out).toContain('check-secrets: OK (1 commits scanned)');
   });
 
+  // #125: fail closed; neither a missing nor an unresolvable base may shrink the scan.
+  it.each([[[]], [['']]])('exits 2 with usage when the base is missing or empty %#', (extra) => {
+    const { dir, commit } = repo();
+    commit('a.ts', 'export const a = 1;\n');
+    const r = cli(dir, '--range', ...extra);
+    expect(r.status).toBe(2);
+    expect(r.err).toContain('usage: check-secrets.mjs --range');
+  });
+
+  it('exits 1 naming the sha when a non-zero base does not resolve', () => {
+    const { dir, commit } = repo();
+    const head = commit('a.ts', 'export const a = 1;\n');
+    const gone = 'a'.repeat(40);
+    const r = cli(dir, '--range', gone, head);
+    expect(r.status).toBe(1);
+    expect(r.err).toContain(`base ${gone} does not resolve to a commit`);
+  });
+
   it('scans the head commit when base is the zero sha', () => {
     const { dir, commit } = repo();
     commit('a.ts', 'export const a = 1;\n');

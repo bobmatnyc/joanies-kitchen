@@ -34,8 +34,9 @@ jobs:
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           # #125: a force push's old tip is on no ref; fetch it so the merge-base is computable.
+          # If the fetch fails, the script cannot resolve $BASE and exits 1, so the job fails.
           if [ -n "${BASE//0/}" ] && ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            git fetch --no-tags origin "$BASE" || echo "could not fetch $BASE"
+            git fetch --no-tags origin "$BASE" || echo "::error::could not fetch base $BASE"
           fi
           node .github/scripts/check-secrets.mjs --range "$BASE" "$HEAD_SHA"
 

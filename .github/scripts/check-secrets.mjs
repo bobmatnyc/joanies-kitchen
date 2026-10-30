@@ -63,17 +63,25 @@ const tryGit = (args) => {
 /**
  * Why: #125 — a commit range's added lines can hold a secret that the final tree no longer has.
  * What: returns `git log` revision args for the commits `head` adds over `base`: `merge-base..head`.
- * A zero or unknown `base` (new branch, force push whose old tip is gone) falls back to the
- * `head` commit alone, with a warning. Unrelated histories scan all of `head`.
+ * Only the all-zeros `base` (new branch) falls back to the `head` commit alone, with a warning.
+ * A `base` or `head` that does not resolve to a commit throws. Unrelated histories scan all of `head`.
  * Test: .github/scripts/check-secrets.test.mjs ("range mode")
  */
 export function rangeRevs(base, head = 'HEAD') {
   if (!tryGit(['rev-parse', '--verify', '-q', `${head}^{commit}`])) {
     throw new Error(`check-secrets: head ${head} is not a commit`);
   }
-  if (!base || /^0+$/.test(base) || !tryGit(['rev-parse', '--verify', '-q', `${base}^{commit}`])) {
-    console.error(`check-secrets: base "${base}" is zero or unknown; scanning ${head} only`);
+  if (/^0+$/.test(base)) {
+    console.error(
+      `check-secrets: base ${base} is the zero sha (new branch); scanning ${head} only`
+    );
     return ['-1', head];
+  }
+  // #125: fail closed; an unresolvable base (e.g. an unfetched force-push tip) must not shrink the scan.
+  if (!tryGit(['rev-parse', '--verify', '-q', `${base}^{commit}`])) {
+    throw new Error(
+      `check-secrets: base ${base} does not resolve to a commit; cannot scan the range`
+    );
   }
   const mb = tryGit(['merge-base', base, head]);
   return mb ? [`${mb}..${head}`] : [head];
@@ -136,7 +144,7 @@ export function scanLog(log) {
 /** #125: scans lines added by the commits in `base..head`; prints `sha file:line: kind`, returns `{ count, commits }`. */
 export function runRange(base, head) {
   const revs = rangeRevs(base, head);
-  const commits = tryGit(['rev-list', '--no-merges', '--count', ...revs]) || '0';
+  const commits = git(['rev-list', '--no-merges', '--count', ...revs]).trim(); // #125: throw, not '0'
   const flags = ['-p', '-U1', '--no-merges', '--no-color', '--no-ext-diff', '--no-textconv'];
   const log = git(['-c', 'core.quotePath=false', 'log', ...flags, '--format=commit %H', ...revs]);
   const findings = scanLog(log);
@@ -167,7 +175,21 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
   // #125: `--range <base> <head>` scans the lines added by the commits in merge-base(base, head)..head.
   if (args[0] === '--range') {
-    const { count, commits } = runRange(args[1], args[2] || 'HEAD');
+    if (!args[1]) {
+      // #125: a missing base is a caller bug, not a reason to scan less.
+      console.error(
+        'usage: check-secrets.mjs --range <base-sha> [<head>]  (all-zeros base = head only)'
+      );
+      process.exit(2);
+    }
+    let result;
+    try {
+      result = runRange(args[1], args[2] || 'HEAD');
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e)); // #125: fail closed, exit 1
+      process.exit(1);
+    }
+    const { count, commits } = result;
     if (count) {
       console.error(
         `check-secrets: ${count} finding(s) in added lines. The secret is in git history:` +
