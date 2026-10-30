@@ -4,6 +4,7 @@ import { getTopRatedRecipes, getTotalRecipeCount } from '@/app/actions/recipes';
 import { AnimatedRecipeBackground } from '@/components/recipes/AnimatedRecipeBackground';
 import { Top50Tabs } from '@/components/recipes/Top50Tabs';
 import { Button } from '@/components/ui/button';
+import { getRecipeImageCandidates } from '@/lib/utils/recipe-image';
 
 /**
  * Top 50 Recipes Page - Server Component
@@ -24,30 +25,12 @@ export default async function Top50Page() {
     ]);
 
   // Extract images from top recipes for animated background
+  // #155: use the shared #94 resolver so only usable URLs reach <Image>;
+  // recipes with no usable image are skipped (the hero gradient shows instead).
   const backgroundImages = allRecipes
-    .filter((r) => {
-      if (r.image_url) return true;
-      if (r.images) {
-        try {
-          const parsed = JSON.parse(r.images as string);
-          return Array.isArray(parsed) && parsed.length > 0;
-        } catch {
-          return false;
-        }
-      }
-      return false;
-    })
-    .slice(0, 12) // Use first 12 recipes with images
-    .map((r) => {
-      if (r.image_url) return r.image_url;
-      try {
-        const parsed = JSON.parse(r.images as string);
-        return parsed[0];
-      } catch {
-        return '';
-      }
-    })
-    .filter((img): img is string => Boolean(img)); // Remove empty strings
+    .map((r) => getRecipeImageCandidates(r)[0])
+    .filter((img): img is string => Boolean(img))
+    .slice(0, 12); // Use first 12 recipes with images
 
   // Calculate average rating
   const avgRating =
