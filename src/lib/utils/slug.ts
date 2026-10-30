@@ -319,39 +319,6 @@ export async function updateRecipeSlug(recipeId: string, newSlug: string): Promi
 }
 
 /**
- * Batch check if multiple slugs exist
- * Useful for bulk operations
- *
- * @param slugs Array of slugs to check
- * @returns Map of slug -> exists boolean
- */
-export async function batchCheckSlugs(slugs: string[]): Promise<Map<string, boolean>> {
-  try {
-    const result = await db
-      .select({ slug: recipes.slug })
-      .from(recipes)
-      .where(sql`${recipes.slug} = ANY(${slugs})`);
-
-    const existingSet = new Set(result.map((r) => r.slug));
-    const resultMap = new Map<string, boolean>();
-
-    for (const slug of slugs) {
-      resultMap.set(slug, existingSet.has(slug));
-    }
-
-    return resultMap;
-  } catch (error) {
-    console.error('Error batch checking slugs:', error);
-    // On error, assume all exist to be safe
-    const resultMap = new Map<string, boolean>();
-    for (const slug of slugs) {
-      resultMap.set(slug, true);
-    }
-    return resultMap;
-  }
-}
-
-/**
  * Get all existing slugs from the database
  * Useful for bulk operations and validation
  *

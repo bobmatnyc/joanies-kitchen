@@ -1,6 +1,19 @@
 'use server';
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -488,6 +501,9 @@ export async function matchRecipesToInventory(options?: {
     }
 
     const inventoryIngredientIds = userInventory.map((item) => item.ingredient_id);
+    // #146: `ANY(${array})` expands to a row, not an array; inArray binds one param per id
+    const inInventory = inArray(sql`ri.ingredient_id`, inventoryIngredientIds);
+    const notInInventory = notInArray(sql`ri.ingredient_id`, inventoryIngredientIds);
 
     // Find recipes with ingredient match calculation
     // This uses a CTE (Common Table Expression) for optimal performance
@@ -497,7 +513,7 @@ export async function matchRecipesToInventory(options?: {
           ri.recipe_id,
           COUNT(DISTINCT ri.ingredient_id) as total_ingredients,
           COUNT(DISTINCT CASE
-            WHEN ri.ingredient_id = ANY(${inventoryIngredientIds})
+            WHEN ${inInventory}
             THEN ri.ingredient_id
           END) as matched_ingredients
         FROM recipe_ingredients ri
@@ -532,7 +548,7 @@ export async function matchRecipesToInventory(options?: {
         rm.match_percentage,
         ARRAY_AGG(
           DISTINCT CASE
-            WHEN ri.ingredient_id != ALL(${inventoryIngredientIds})
+            WHEN ${notInInventory}
             THEN jsonb_build_object(
               'ingredient_id', ri.ingredient_id,
               'ingredient_name', i.display_name,
@@ -540,7 +556,7 @@ export async function matchRecipesToInventory(options?: {
               'unit', ri.unit
             )
           END
-        ) FILTER (WHERE ri.ingredient_id != ALL(${inventoryIngredientIds})) as missing_ingredients
+        ) FILTER (WHERE ${notInInventory}) as missing_ingredients
       FROM recipes r
       INNER JOIN recipe_matches rm ON r.id = rm.recipe_id
       LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id

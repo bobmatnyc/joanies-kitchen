@@ -81,7 +81,6 @@
 #### recipe-views.ts (306 lines)
 - ✅ trackRecipeView (authenticated + anonymous)
 - ✅ getRecentlyViewedRecipes
-- ✅ getPopularRecipes (with timeframe filters)
 - ✅ getRecipeViewCount
 - ✅ getRecipeViewStats
 - ✅ getUserViewHistory (with pagination)
