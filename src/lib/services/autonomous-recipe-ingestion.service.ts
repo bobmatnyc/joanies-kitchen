@@ -18,9 +18,10 @@
  * Every URL attempted gets one `recipe_discovery_run_items` row (#6 S2).
  *
  * Adapted from aipowerranking AutomatedIngestionService.
+ *
+ * #142: the DB writes and result building live in `autonomous-ingestion-store.ts`.
  */
 
-import { eq, inArray, sql } from 'drizzle-orm';
 import {
   currentRunSpend,
   formatBudgetExceeded,
@@ -29,17 +30,22 @@ import {
   setCostRunId,
   withCostRun,
 } from '@/lib/costs';
-import { db } from '@/lib/db';
-import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
-import { chefRecipes, chefs } from '@/lib/db/chef-schema';
-import { recipes } from '@/lib/db/schema';
 import {
   type DuplicateCandidate,
   duplicateSkipReason,
   findDuplicateRecipe,
 } from '@/lib/recipes/dedup';
 import { describeDbError } from '@/lib/utils/error-handling';
-import { toRecipeInt } from '@/lib/utils/recipe-int';
+import {
+  buildRunResult,
+  checkUrlDuplicates,
+  determineRunStatus,
+  type IngestionRunResult,
+  type RunMetrics,
+  recordRecipeOfTheDay,
+  SYSTEM_USER_ID,
+  storeIngestedRecipe,
+} from './autonomous-ingestion-store';
 import { type ChefDiscoveryService, getChefDiscoveryService } from './chef-discovery.service';
 import { DEADLINE_HIT, raceDeadline } from './crawl-run-deadline';
 import {
@@ -67,7 +73,7 @@ import {
 
 const ZERO_WASTE_TAGS = ['zero-waste', 'scraped'];
 const EXTRACTION_DELAY_MS = 2000; // 2 seconds between URL extractions
-const SYSTEM_USER_ID = 'system';
+export type { IngestionRunResult } from './autonomous-ingestion-store'; // #142: moved
 /** #6: item error for the URL in flight when the deadline hit. */
 export const ABANDONED_IN_FLIGHT_ERROR = 'deadline: abandoned in flight; may have stored late';
 
@@ -92,40 +98,6 @@ export interface IngestionRunOptions {
    * the cron route from its `maxDuration` minus a safety margin.
    */
   deadlineAt?: number;
-}
-
-interface RunMetrics {
-  urlsDiscovered: number;
-  recipesExtracted: number;
-  recipesStored: number;
-  recipesSkipped: number;
-  chefsCreated: number;
-  errors: string[];
-  /** #6 S2: item rows that failed to write (fail-open); summarised into errors[]. */
-  itemWriteFailures: number;
-  /** False when the run row could not be created (dry run or create failure). */
-  tracked: boolean;
-  /**
-   * #6: true once the deadline hit. Abandoned in-flight work then writes no
-   * item rows and moves no counters, so the finalized counters match the items.
-   */
-  closed: boolean;
-  /** #6: URLs that already have (or are writing) their item row. */
-  itemUrls: Set<string>;
-}
-
-export interface IngestionRunResult {
-  runId: string;
-  status: DiscoveryRunStatus;
-  urlsDiscovered: number;
-  recipesExtracted: number;
-  recipesStored: number;
-  recipesSkipped: number;
-  chefsCreated: number;
-  errors: string[];
-  durationMs: number;
-  /** False when no `recipe_discovery_runs` row backs this run. */
-  tracked: boolean;
 }
 
 export class AutonomousRecipeIngestionService {
@@ -265,7 +237,7 @@ export class AutonomousRecipeIngestionService {
         }
         if (budgetExhausted()) {
           status = 'partial';
-          return this.buildResult(runId, status, m, startTime);
+          return buildRunResult(runId, status, m, startTime);
         }
 
         const discovered = await raceDeadline(
@@ -278,7 +250,7 @@ export class AutonomousRecipeIngestionService {
         if (discovered === DEADLINE_HIT) {
           stopAtDeadline();
           status = 'partial';
-          return this.buildResult(runId, status, m, startTime);
+          return buildRunResult(runId, status, m, startTime);
         }
         const discoveredUrls = discovered;
 
@@ -287,11 +259,11 @@ export class AutonomousRecipeIngestionService {
 
         if (m.urlsDiscovered === 0) {
           status = 'completed';
-          return this.buildResult(runId, status, m, startTime);
+          return buildRunResult(runId, status, m, startTime);
         }
 
         // Step 3: Deduplicate against existing recipes.source + chefRecipes.original_url
-        const existingUrls = await this.checkUrlDuplicates(discoveredUrls.map((d) => d.url));
+        const existingUrls = await checkUrlDuplicates(discoveredUrls.map((d) => d.url));
         const newUrls = discoveredUrls.filter((d) => !existingUrls.has(d.url));
 
         for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
@@ -312,7 +284,7 @@ export class AutonomousRecipeIngestionService {
         if (newUrls.length === 0) {
           console.log('[AutonomousIngestion] All URLs already ingested');
           status = 'completed';
-          return this.buildResult(runId, status, m, startTime);
+          return buildRunResult(runId, status, m, startTime);
         }
 
         // Step 4: Extract recipes (up to maxRecipes)
@@ -365,21 +337,21 @@ export class AutonomousRecipeIngestionService {
         }
 
         status =
-          budgetStopped || m.closed ? 'partial' : this.determineStatus(m.recipesStored, m.errors);
+          budgetStopped || m.closed ? 'partial' : determineRunStatus(m.recipesStored, m.errors);
 
         console.log(
           `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
             `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${status}`
         );
 
-        return this.buildResult(runId, status, m, startTime);
+        return buildRunResult(runId, status, m, startTime);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`[AutonomousIngestion] Pipeline error: ${msg}`);
         m.errors.push(`Pipeline error: ${msg}`);
         status = 'failed';
 
-        return this.buildResult(runId, status, m, startTime);
+        return buildRunResult(runId, status, m, startTime);
       }
     };
 
@@ -497,7 +469,7 @@ export class AutonomousRecipeIngestionService {
       if (this.released(m, url)) return;
       let recipeId: string | null = null;
       try {
-        recipeId = await this.storeRecipe(recipe, chefId, url, discovered.searchQuery);
+        recipeId = await storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery);
       } catch (storeErr) {
         // storeRecipe already logs internally; surface into errors[] so it's visible in run metrics
         // #12: record the Postgres error on err.cause, not the Drizzle "Failed query" wrapper.
@@ -523,7 +495,7 @@ export class AutonomousRecipeIngestionService {
       console.log(`[AutonomousIngestion] Stored recipe: "${recipe.title}" (${recipeId})`);
       // Record first stored recipe as today's Recipe of the Day
       if (m.recipesStored === 1) {
-        await this.recordRecipeOfTheDay(recipeId, url);
+        await recordRecipeOfTheDay(recipeId, url);
       }
       await record('stored', null, recipeId);
     } catch (error) {
@@ -601,199 +573,6 @@ export class AutonomousRecipeIngestionService {
       return null;
     }
   }
-  /**
-   * Record the featured recipe of the day.
-   * Uses ON CONFLICT DO NOTHING so re-runs on the same day are idempotent.
-   */
-  private async recordRecipeOfTheDay(recipeId: string, sourceUrl: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
-    try {
-      await db
-        .insert(recipeOfTheDay)
-        .values({
-          recipe_id: recipeId,
-          date: today,
-          source_url: sourceUrl,
-          theme: 'no-waste',
-        })
-        .onConflictDoNothing();
-      console.log(`[AutonomousIngestion] Recorded recipe-of-the-day for ${today}: ${recipeId}`);
-    } catch (error) {
-      // Non-fatal — log but don't fail the pipeline
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[AutonomousIngestion] Failed to record recipe-of-the-day: ${msg}`);
-    }
-  }
-
-  /**
-   * Store a recipe and link it to a chef.
-   *
-   * Throws on DB errors so the caller (runDailyDiscovery) can surface the real
-   * error message into errors[] and distinguish "extracted but not stored" cases.
-   * The caller is responsible for catching and continuing to the next URL.
-   */
-  private async storeRecipe(
-    recipe: ScrapedRecipe,
-    chefId: string | null,
-    sourceUrl: string,
-    searchQuery: string
-  ): Promise<string | null> {
-    let newRecipeId: string | null = null;
-
-    const [newRecipe] = await db
-      .insert(recipes)
-      .values({
-        user_id: SYSTEM_USER_ID,
-        chef_id: chefId ?? undefined,
-        name: recipe.title,
-        description: recipe.description ?? '',
-        ingredients: JSON.stringify(recipe.ingredients),
-        instructions: JSON.stringify(recipe.instructions),
-        // #12: integer columns get an integer or null, whatever the extractor produced.
-        prep_time: toRecipeInt(recipe.prep_time),
-        cook_time: toRecipeInt(recipe.cook_time),
-        servings: toRecipeInt(recipe.servings),
-        cuisine: recipe.cuisine,
-        tags: JSON.stringify(recipe.tags),
-        images: recipe.image_url ? JSON.stringify([recipe.image_url]) : JSON.stringify([]),
-        image_url: recipe.image_url ?? null,
-        is_public: true,
-        is_system_recipe: true,
-        source: sourceUrl,
-        search_query: searchQuery,
-        discovery_date: new Date(),
-        discovery_week: this.getISOWeek(new Date()),
-        discovery_year: new Date().getFullYear(),
-        license: 'ALL_RIGHTS_RESERVED',
-        // Auto-approve system-scraped recipes (high-confidence path)
-        moderation_status: 'approved',
-        qa_status: 'validated',
-        // Zero-waste enrichment — all scraped recipes get baseline score/tags
-        resourcefulness_score: 3, // Default mid-range; enrichment job can refine later
-        waste_reduction_tags: JSON.stringify(['zero-waste', 'scraped', 'no-waste']),
-      })
-      .returning({ id: recipes.id });
-
-    if (!newRecipe?.id) {
-      throw new Error('DB insert returned no ID — possible schema constraint violation');
-    }
-
-    newRecipeId = newRecipe.id;
-
-    // Link to chef (non-fatal if this fails)
-    if (chefId) {
-      try {
-        await db
-          .insert(chefRecipes)
-          .values({
-            chef_id: chefId,
-            recipe_id: newRecipeId,
-            original_url: sourceUrl,
-            scraped_at: new Date(),
-          })
-          .onConflictDoNothing();
-
-        // Increment chef's recipe count
-        await db
-          .update(chefs)
-          .set({
-            recipe_count: sql`${chefs.recipe_count} + 1`,
-            updated_at: new Date(),
-          })
-          .where(eq(chefs.id, chefId));
-      } catch (chefLinkErr) {
-        const msg = chefLinkErr instanceof Error ? chefLinkErr.message : String(chefLinkErr);
-        console.warn(
-          `[AutonomousIngestion] Chef link failed for recipe ${newRecipeId} (non-fatal): ${msg}`
-        );
-        // Do not re-throw — recipe is already stored; chef link is supplemental
-      }
-    }
-
-    return newRecipeId;
-  }
-
-  /**
-   * Check which URLs already exist — dual check:
-   *   1. recipes.source (catches all scraped recipes, with or without chef)
-   *   2. chefRecipes.original_url (catches chef-linked recipes)
-   */
-  private async checkUrlDuplicates(urls: string[]): Promise<Set<string>> {
-    if (urls.length === 0) return new Set();
-
-    const validUrls = urls.filter((u): u is string => !!u);
-    const seen = new Set<string>();
-
-    try {
-      // Check recipes.source (primary — catches all autonomous scrapes)
-      const bySource = await db
-        .select({ source: recipes.source })
-        .from(recipes)
-        .where(inArray(recipes.source, validUrls));
-      for (const r of bySource) {
-        if (r.source) seen.add(r.source);
-      }
-
-      // Check chefRecipes.original_url (secondary — catches chef-linked scrapes)
-      const byChefUrl = await db
-        .select({ original_url: chefRecipes.original_url })
-        .from(chefRecipes)
-        .where(inArray(chefRecipes.original_url, validUrls));
-      for (const r of byChefUrl) {
-        if (r.original_url) seen.add(r.original_url);
-      }
-
-      return seen;
-    } catch (dupCheckErr) {
-      const msg = dupCheckErr instanceof Error ? dupCheckErr.message : String(dupCheckErr);
-      console.error(
-        `[AutonomousIngestion] Duplicate check failed (assuming no duplicates): ${msg}`
-      );
-      return new Set();
-    }
-  }
-
-  private determineStatus(recipesStored: number, errors: string[]): DiscoveryRunStatus {
-    if (errors.length > 0 && recipesStored > 0) return 'partial';
-    if (errors.length > 0 && recipesStored === 0) return 'failed';
-    return 'completed';
-  }
-
-  private buildResult(
-    runId: string,
-    status: DiscoveryRunStatus,
-    metrics: RunMetrics,
-    startTime: number
-  ): IngestionRunResult {
-    return {
-      runId,
-      status,
-      urlsDiscovered: metrics.urlsDiscovered,
-      recipesExtracted: metrics.recipesExtracted,
-      recipesStored: metrics.recipesStored,
-      recipesSkipped: metrics.recipesSkipped,
-      chefsCreated: metrics.chefsCreated,
-      // #6 S2: item-write failures are surfaced as one summary entry. It is added
-      // here, after the status was decided, so it never changes the status.
-      errors:
-        metrics.itemWriteFailures > 0
-          ? [...metrics.errors, `item writes failed: ${metrics.itemWriteFailures}`]
-          : metrics.errors,
-      durationMs: Date.now() - startTime,
-      tracked: metrics.tracked,
-    };
-  }
-
-  /**
-   * Get ISO week number for a date (1-52)
-   */
-  private getISOWeek(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  }
-
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
