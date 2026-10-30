@@ -3,6 +3,7 @@
 // Why: four committed scripts once carried a live prod Postgres URL; nothing caught it.
 // What: scans the given files (default: every git-tracked file) and prints `file:line: <kind>`
 //   per finding. It never prints the matched value. Exit 1 on any finding, 0 when clean.
+// #125: `--range <base> <head>` instead scans the lines added by each commit in merge-base..head.
 // Ignore a line with `secret-check: ignore` on it, or `secret-check: ignore-next-line` on the line above.
 // Test: .github/scripts/check-secrets.test.mjs
 import { execFileSync } from 'node:child_process';
@@ -49,6 +50,108 @@ function trackedFiles() {
   return execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
 }
 
+// #125: the final-tree scan misses a secret added and then removed inside a PR; scan added lines too.
+const git = (args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 30 });
+const tryGit = (args) => {
+  try {
+    return git(args).trim();
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * Why: #125 — a commit range's added lines can hold a secret that the final tree no longer has.
+ * What: returns `git log` revision args for the commits `head` adds over `base`: `merge-base..head`.
+ * Only the all-zeros `base` (new branch) falls back to the `head` commit alone, with a warning.
+ * A `base` or `head` that does not resolve to a commit throws. Unrelated histories scan all of `head`.
+ * Test: .github/scripts/check-secrets.test.mjs ("range mode")
+ */
+export function rangeRevs(base, head = 'HEAD') {
+  if (!tryGit(['rev-parse', '--verify', '-q', `${head}^{commit}`])) {
+    throw new Error(`check-secrets: head ${head} is not a commit`);
+  }
+  if (/^0+$/.test(base)) {
+    console.error(
+      `check-secrets: base ${base} is the zero sha (new branch); scanning ${head} only`
+    );
+    return ['-1', head];
+  }
+  // #125: fail closed; an unresolvable base (e.g. an unfetched force-push tip) must not shrink the scan.
+  if (!tryGit(['rev-parse', '--verify', '-q', `${base}^{commit}`])) {
+    throw new Error(
+      `check-secrets: base ${base} does not resolve to a commit; cannot scan the range`
+    );
+  }
+  const mb = tryGit(['merge-base', base, head]);
+  return mb ? [`${mb}..${head}`] : [head];
+}
+
+/**
+ * Why: #125 — reuse `scanText` (same patterns, placeholders, ignore annotations) on diff output.
+ * What: parses `git log -p -U1` text and returns `{ sha, file, line, kind }` for findings on added
+ * lines only. One context line keeps a `secret-check: ignore-next-line` above an added line visible.
+ * Test: .github/scripts/check-secrets.test.mjs ("range mode")
+ */
+export function scanLog(log) {
+  const findings = [];
+  let sha = '';
+  let file = null;
+  let hunk = null; // { start, lines: [], added: Set<offset> }
+  let oldLeft = 0;
+  let newLeft = 0;
+  const flush = () => {
+    if (!hunk || file === null) return;
+    for (const f of scanText(hunk.lines.join('\n'))) {
+      if (hunk.added.has(f.line - 1))
+        findings.push({ sha, file, line: hunk.start + f.line - 1, kind: f.kind });
+    }
+    hunk = null;
+  };
+  for (const l of log.split('\n')) {
+    if (oldLeft > 0 || newLeft > 0) {
+      // Inside a hunk: line counts from the header decide, so `+++`/`commit` content is not a header.
+      if (l.startsWith('\\')) continue; // "\ No newline at end of file"
+      const tag = l[0];
+      if (tag === '-') {
+        oldLeft--;
+        continue;
+      }
+      if (tag === '+') hunk.added.add(hunk.lines.length);
+      else oldLeft--; // context line (' ' or an empty line)
+      hunk.lines.push(l.slice(1));
+      newLeft--;
+      continue;
+    }
+    flush();
+    const c = /^commit ([0-9a-f]{40})/.exec(l);
+    const h = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(l);
+    if (c) {
+      sha = c[1];
+      file = null;
+    } else if (l.startsWith('+++ ')) {
+      file = l === '+++ /dev/null' ? null : l.slice(4).replace(/^b\//, '');
+    } else if (h) {
+      oldLeft = h[1] === undefined ? 1 : Number(h[1]);
+      newLeft = h[3] === undefined ? 1 : Number(h[3]);
+      hunk = { start: Number(h[2]), lines: [], added: new Set() };
+    }
+  }
+  flush();
+  return findings;
+}
+
+/** #125: scans lines added by the commits in `base..head`; prints `sha file:line: kind`, returns `{ count, commits }`. */
+export function runRange(base, head) {
+  const revs = rangeRevs(base, head);
+  const commits = git(['rev-list', '--no-merges', '--count', ...revs]).trim(); // #125: throw, not '0'
+  const flags = ['-p', '-U1', '--no-merges', '--no-color', '--no-ext-diff', '--no-textconv'];
+  const log = git(['-c', 'core.quotePath=false', 'log', ...flags, '--format=commit %H', ...revs]);
+  const findings = scanLog(log);
+  for (const f of findings) console.error(`${f.sha.slice(0, 12)} ${f.file}:${f.line}: ${f.kind}`);
+  return { count: findings.length, commits: Number(commits) };
+}
+
 /** Scans `files`, prints `file:line: kind` per finding, returns the finding count. */
 export function run(files) {
   let count = 0;
@@ -70,6 +173,33 @@ export function run(files) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
+  // #125: `--range <base> <head>` scans the lines added by the commits in merge-base(base, head)..head.
+  if (args[0] === '--range') {
+    if (!args[1]) {
+      // #125: a missing base is a caller bug, not a reason to scan less.
+      console.error(
+        'usage: check-secrets.mjs --range <base-sha> [<head>]  (all-zeros base = head only)'
+      );
+      process.exit(2);
+    }
+    let result;
+    try {
+      result = runRange(args[1], args[2] || 'HEAD');
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e)); // #125: fail closed, exit 1
+      process.exit(1);
+    }
+    const { count, commits } = result;
+    if (count) {
+      console.error(
+        `check-secrets: ${count} finding(s) in added lines. The secret is in git history:` +
+          ' rotate it, then rewrite or drop the commit.'
+      );
+      process.exit(1);
+    }
+    console.log(`check-secrets: OK (${commits} commits scanned)`);
+    process.exit(0);
+  }
   const files = args.length ? args : trackedFiles();
   const n = run(files);
   if (n) {

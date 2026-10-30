@@ -12,6 +12,7 @@ import { DesktopNav } from '@/components/navigation/DesktopNav';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { AlphaStamp } from '@/components/shared/AlphaStamp';
+import { isAuthConfigured } from '@/lib/auth-env';
 import { SITE_TITLE_TEMPLATE } from '@/lib/site-title';
 import './globals.css';
 
@@ -161,7 +162,8 @@ export default function RootLayout({
         {/* Analytics Components */}
         <GoogleAnalytics />
 
-        <AuthProvider>
+        {/* #154: no Auth.js config (e.g. a Vercel preview) → signed-out, no session fetch. */}
+        <AuthProvider enabled={isAuthConfigured()}>
           {/* Navigation Header - Joanie's Kitchen */}
           <header className="bg-jk-olive border-b border-jk-sage shadow-sm">
             <div className="container mx-auto px-4">

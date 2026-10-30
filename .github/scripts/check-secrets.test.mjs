@@ -53,3 +53,83 @@ describe('CLI', () => {
     expect(stderr).not.toContain(FAKE_PW);
   });
 });
+
+// #125: a secret added in one commit and removed in a later one leaves the final tree clean.
+describe('range mode', () => {
+  const G = [
+    'user.name=t',
+    'user.email=t@example.invalid',
+    'core.hooksPath=/dev/null',
+    'commit.gpgsign=false',
+  ].flatMap((kv) => ['-c', kv]);
+  const repo = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'check-secrets-range-'));
+    const g = (...a) => execFileSync('git', [...G, ...a], { cwd: dir, encoding: 'utf8' }).trim();
+    g('init', '-q', '-b', 'main');
+    const commit = (name, text) => {
+      writeFileSync(join(dir, name), text);
+      g('add', '-A');
+      g('commit', '-q', '-m', name);
+      return g('rev-parse', 'HEAD');
+    };
+    return { dir, commit };
+  };
+  const cli = (cwd, ...args) => {
+    try {
+      const out = execFileSync('node', [SCRIPT, ...args], { cwd, encoding: 'utf8', stdio: 'pipe' });
+      return { status: 0, out, err: '' };
+    } catch (e) {
+      return { status: e.status, out: String(e.stdout), err: String(e.stderr) };
+    }
+  };
+
+  it('fails on a secret added then removed, naming sha and file:line without the value', () => {
+    const { dir, commit } = repo();
+    const base = commit('a.ts', 'export const a = 1;\n');
+    const leak = commit('a.ts', `export const a = 1;\nconst u = '${url('postgres', FAKE_PW)}';\n`);
+    const head = commit('a.ts', 'export const a = 1;\n');
+    expect(cli(dir).status).toBe(0); // the final tree is clean
+    const r = cli(dir, '--range', base, head);
+    expect(r.status).toBe(1);
+    expect(r.err).toContain(`${leak.slice(0, 12)} a.ts:2: credentialed database URL`);
+    expect(r.err).not.toContain(FAKE_PW);
+  });
+
+  it('passes a clean range and honours ignore-next-line from a context line', () => {
+    const { dir, commit } = repo();
+    const base = commit('a.ts', '// secret-check: ignore-next-line\nconst u = 1;\n');
+    const dummy = `const u = '${url('postgres', FAKE_PW)}';`;
+    const head = commit('a.ts', `// secret-check: ignore-next-line\n${dummy}\n`);
+    const r = cli(dir, '--range', base, head);
+    expect(r.status).toBe(0);
+    expect(r.out).toContain('check-secrets: OK (1 commits scanned)');
+  });
+
+  // #125: fail closed; neither a missing nor an unresolvable base may shrink the scan.
+  it.each([[[]], [['']]])('exits 2 with usage when the base is missing or empty %#', (extra) => {
+    const { dir, commit } = repo();
+    commit('a.ts', 'export const a = 1;\n');
+    const r = cli(dir, '--range', ...extra);
+    expect(r.status).toBe(2);
+    expect(r.err).toContain('usage: check-secrets.mjs --range');
+  });
+
+  it('exits 1 naming the sha when a non-zero base does not resolve', () => {
+    const { dir, commit } = repo();
+    const head = commit('a.ts', 'export const a = 1;\n');
+    const gone = 'a'.repeat(40);
+    const r = cli(dir, '--range', gone, head);
+    expect(r.status).toBe(1);
+    expect(r.err).toContain(`base ${gone} does not resolve to a commit`);
+  });
+
+  it('scans the head commit when base is the zero sha', () => {
+    const { dir, commit } = repo();
+    commit('a.ts', 'export const a = 1;\n');
+    const head = commit('b.ts', `const u = '${url('mysql', FAKE_PW)}';\n`);
+    const r = cli(dir, '--range', '0'.repeat(40), head);
+    expect(r.status).toBe(1);
+    expect(r.err).toContain(`${head.slice(0, 12)} b.ts:1: credentialed database URL`);
+    expect(r.err).not.toContain(FAKE_PW);
+  });
+});

@@ -23,33 +23,39 @@ export function AnimatedRecipeBackground({
 }: AnimatedRecipeBackgroundProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // #155: a URL that fails to load (e.g. a 404 local file) leaves the rotation
+  // instead of rendering a broken-image icon over the hero.
+  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
+  const visible = images.filter((url) => !failed.has(url));
+  const count = visible.length;
+  const active = count === 0 ? 0 : currentIndex % count;
 
   useEffect(() => {
-    if (images.length <= 1) return; // No slideshow needed for single image
+    if (count <= 1) return; // No slideshow needed for single image
 
     const interval = setInterval(() => {
       setIsTransitioning(true);
 
       // After fade starts, update index
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setCurrentIndex((prev) => (prev + 1) % count);
         setIsTransitioning(false);
       }, fadeDuration / 2);
     }, displayDuration);
 
     return () => clearInterval(interval);
-  }, [images.length, displayDuration, fadeDuration]);
+  }, [count, displayDuration, fadeDuration]);
 
-  // If no images, render nothing
-  if (images.length === 0) {
+  // If no images (or every image failed), render nothing; the hero gradient shows.
+  if (count === 0) {
     return null;
   }
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {images.map((imageUrl, index) => {
-        const isActive = index === currentIndex;
-        const isPrevious = index === (currentIndex - 1 + images.length) % images.length;
+      {visible.map((imageUrl, index) => {
+        const isActive = index === active;
+        const isPrevious = index === (active - 1 + count) % count;
 
         // Show current and previous images for crossfade effect
         if (!isActive && !isPrevious) return null;
@@ -71,6 +77,7 @@ export function AnimatedRecipeBackground({
               priority={index === 0} // Only prioritize first image
               quality={75}
               sizes="100vw"
+              onError={() => setFailed((prev) => new Set(prev).add(imageUrl))}
             />
           </div>
         );
