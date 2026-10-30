@@ -168,6 +168,31 @@ describe('#137 admin viewer', () => {
   });
 });
 
+// #141: PGlite is one session, so it cannot interleave two batches. This pins the
+// issued shape instead: each rating batch must lock the recipe row before its write.
+describe('#141 rating batches lock the recipe row first', () => {
+  function firstStatement(batch: { mock: { calls: unknown[][] } }) {
+    const queries = batch.mock.calls[0][0] as { toSQL(): { sql: string; params: unknown[] } }[];
+    return queries[0].toSQL();
+  }
+
+  it.each([
+    ['rateRecipe', () => rateRecipe(RECIPE, 4)],
+    ['deleteRating', () => deleteRating(RECIPE)],
+  ])('%s opens its batch with SELECT … FROM recipes WHERE id = … FOR UPDATE', async (_, act) => {
+    state.userId = A;
+    await rateRecipe(RECIPE, 5);
+    const batch = vi.spyOn(db, 'batch');
+
+    expect(await act()).toMatchObject({ success: true });
+
+    expect(batch).toHaveBeenCalledTimes(1);
+    const { sql, params } = firstStatement(batch);
+    expect(sql).toMatch(/^select .+ from "recipes" where "recipes"\."id" = \$1 for update$/);
+    expect(params).toEqual([RECIPE]);
+  });
+});
+
 describe('#137 atomicity', () => {
   it('a failing recompute rolls back the rating write', async () => {
     state.userId = A;
