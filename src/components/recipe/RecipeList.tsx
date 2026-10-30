@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Recipe } from '@/lib/db/schema';
+import { parseRecipeTags } from '@/lib/utils/recipe-image';
 import { RecipeCard } from './RecipeCard';
 
 interface RecipeListProps {
@@ -41,11 +42,8 @@ export function RecipeList({ recipes, onRecipeDeleted, fromChefSlug }: RecipeLis
         const name = recipe.name.toLowerCase();
         const description = (recipe.description || '').toLowerCase();
         const cuisine = (recipe.cuisine || '').toLowerCase();
-        const tags = recipe.tags
-          ? JSON.parse(recipe.tags as string)
-              .join(' ')
-              .toLowerCase()
-          : '';
+        // #184: parseRecipeTags never throws on a malformed stored value.
+        const tags = parseRecipeTags(recipe.tags).join(' ').toLowerCase();
 
         return (
           name.includes(query) ||

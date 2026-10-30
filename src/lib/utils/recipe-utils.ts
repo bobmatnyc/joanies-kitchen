@@ -2,7 +2,8 @@ import type { Recipe } from '@/lib/db/schema';
 import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 // Helper function to safely parse a field that could be JSON array or plain text
-function safeParseArray(value: string | string[] | null | undefined): string[] {
+// #184: exported so render paths (RecipeForm, RecipePreviewModal) reuse it instead of bare JSON.parse.
+export function safeParseArray(value: string | string[] | null | undefined): string[] {
   // Already an array
   if (Array.isArray(value)) {
     return value;

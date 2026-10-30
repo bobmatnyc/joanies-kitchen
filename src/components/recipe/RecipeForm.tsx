@@ -18,7 +18,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
-import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
+import { getRecipeImageUrls, parseRecipeTags } from '@/lib/utils/recipe-image';
+import { safeParseArray } from '@/lib/utils/recipe-utils';
 import { ImageUploader } from './ImageUploader';
 
 interface RecipeFormProps {
@@ -30,11 +31,15 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Parse existing recipe data if editing
-  const existingIngredients = recipe?.ingredients ? JSON.parse(recipe.ingredients as string) : [''];
-  const existingInstructions = recipe?.instructions
-    ? JSON.parse(recipe.instructions as string)
-    : [''];
-  const existingTags = recipe?.tags ? JSON.parse(recipe.tags as string) : [];
+  // #184: shared safe parsers never throw; a malformed stored value yields a display-only list
+  // (plain text splits into lines, an unreadable one is empty). These lists are for display:
+  // unless the user edits a field (`ingredientsTouched` / `instructionsTouched`), submit omits
+  // it so the stored value is kept as it is. Tags have no editor here, so edits never send them.
+  const existingIngredients = recipe?.ingredients ? safeParseArray(recipe.ingredients) : [''];
+  const existingInstructions = recipe?.instructions ? safeParseArray(recipe.instructions) : [''];
+  const existingTags = recipe?.tags ? parseRecipeTags(recipe.tags) : [];
+  const [ingredientsTouched, setIngredientsTouched] = useState(false);
+  const [instructionsTouched, setInstructionsTouched] = useState(false);
   // #179: shared helper never throws; a malformed value yields an empty (display) list. This
   // list is for display only: unless the user changes images (`imagesTouched`), submit omits
   // `images`/`image_url` so the stored values are kept as they are.
@@ -57,11 +62,18 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     isPublic: recipe?.is_public || false,
   });
 
+  // #184: any edit to a list marks it touched so submit writes it.
+  const markTouched = (field: 'ingredients' | 'instructions') => {
+    if (field === 'ingredients') setIngredientsTouched(true);
+    else setInstructionsTouched(true);
+  };
+
   const handleArrayChange = (
     field: 'ingredients' | 'instructions',
     index: number,
     value: string
   ) => {
+    markTouched(field);
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].map((item: string, i: number) => (i === index ? value : item)),
@@ -69,6 +81,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
   };
 
   const addArrayItem = (field: 'ingredients' | 'instructions') => {
+    markTouched(field);
     setFormData((prev) => ({
       ...prev,
       [field]: [...prev[field], ''],
@@ -76,6 +89,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
   };
 
   const removeArrayItem = (field: 'ingredients' | 'instructions', index: number) => {
+    markTouched(field);
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].filter((_: string, i: number) => i !== index),
@@ -91,13 +105,18 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
       const filteredIngredients = formData.ingredients.filter((i: string) => i.trim());
       const filteredInstructions = formData.instructions.filter((i: string) => i.trim());
 
-      if (filteredIngredients.length === 0) {
+      // #184: a create, or an edit that touched the field, writes it and must have content.
+      // An untouched edit omits the key (see cleanedData), so its stored value is not judged.
+      const writeIngredients = !recipe || ingredientsTouched;
+      const writeInstructions = !recipe || instructionsTouched;
+
+      if (writeIngredients && filteredIngredients.length === 0) {
         toast.error('Please add at least one ingredient');
         setIsSubmitting(false);
         return;
       }
 
-      if (filteredInstructions.length === 0) {
+      if (writeInstructions && filteredInstructions.length === 0) {
         toast.error('Please add at least one instruction');
         setIsSubmitting(false);
         return;
@@ -108,9 +127,6 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
       const cleanedData = {
         name: formData.name,
         difficulty: formData.difficulty,
-        ingredients: JSON.stringify(filteredIngredients),
-        instructions: JSON.stringify(filteredInstructions),
-        tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : null,
         prep_time: formData.prepTime || null,
         cook_time: formData.cookTime || null,
         servings: formData.servings || null,
@@ -130,9 +146,22 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
 
       let result;
       if (recipe) {
-        result = await updateRecipe(recipe.id, cleanedData);
+        // #184: untouched edit fields are omitted; pickRecipeWriteFields skips an absent key
+        // (src/lib/utils/recipe-write-fields.ts:43) and updateRecipe's `if (data.x)` guards
+        // leave it absent, so a malformed stored value is never rewritten as an empty array.
+        // Tags have no editor in this form, so an edit never sends them.
+        result = await updateRecipe(recipe.id, {
+          ...cleanedData,
+          ...(writeIngredients ? { ingredients: JSON.stringify(filteredIngredients) } : {}),
+          ...(writeInstructions ? { instructions: JSON.stringify(filteredInstructions) } : {}),
+        });
       } else {
-        result = await createRecipe(cleanedData);
+        result = await createRecipe({
+          ...cleanedData,
+          ingredients: JSON.stringify(filteredIngredients),
+          instructions: JSON.stringify(filteredInstructions),
+          tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : null,
+        });
       }
 
       if (result.success && result.data) {
