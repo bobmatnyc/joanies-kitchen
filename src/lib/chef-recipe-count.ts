@@ -4,7 +4,7 @@
  * client-callable `updateChefRecipeCount` action wraps it behind requireAdmin.
  */
 
-import { asc, eq, inArray, type SQLWrapper, sql } from 'drizzle-orm';
+import { asc, eq, inArray, or, type SQLWrapper, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -98,6 +98,39 @@ export async function deleteRecipesWithChefRecount(recipeIds: string[]) {
       .for('update'),
     ...chefRecountBeforeDelete(ids),
     db.delete(recipes).where(inArray(recipes.id, recipeIds)).returning(),
+  ]);
+  return deleted;
+}
+
+/**
+ * Why: #189, `DELETE FROM chefs` locks the chef row and then its FK actions
+ * update the chef's recipes (`recipes.chef_id` SET NULL), which is chefs →
+ * recipes. Every recipe delete locks recipes → chefs, so the two deadlocked.
+ * What: one `db.batch`: an id-ordered FOR NO KEY UPDATE lock on every recipe
+ * that names the chef (`recipes.chef_id`) or links to it (`chef_recipes`),
+ * then FOR UPDATE on the chef row, then the delete. The SET NULL and the
+ * `chef_recipes` cascade run under locks already held. Recipes are kept.
+ * Returns the deleted chef's `{ id, slug }` (empty for an unknown chef).
+ * FOR NO KEY UPDATE is what the SET NULL itself takes (`chef_id` is no key
+ * column); it still queues behind #174's recipes FOR UPDATE, and unlike FOR
+ * UPDATE it does not block a `chef_recipes` insert's FOR KEY SHARE, which
+ * could otherwise hold the chef and wait on a recipe locked here.
+ * Test: `src/app/actions/__tests__/chef-delete-lock-order.test.ts`
+ */
+export async function deleteChefLockingRecipesFirst(chefId: string) {
+  const linkedRecipeIds = db
+    .select({ id: chefRecipes.recipe_id })
+    .from(chefRecipes)
+    .where(eq(chefRecipes.chef_id, chefId));
+  const [, , deleted] = await db.batch([
+    db
+      .select({ id: recipes.id })
+      .from(recipes)
+      .where(or(eq(recipes.chef_id, chefId), inArray(recipes.id, linkedRecipeIds)))
+      .orderBy(asc(recipes.id))
+      .for('no key update'),
+    db.select({ id: chefs.id }).from(chefs).where(eq(chefs.id, chefId)).for('update'),
+    db.delete(chefs).where(eq(chefs.id, chefId)).returning({ id: chefs.id, slug: chefs.slug }),
   ]);
   return deleted;
 }

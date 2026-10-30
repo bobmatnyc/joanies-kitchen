@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { deleteChefLockingRecipesFirst } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type Chef, type NewChef } from '@/lib/db/chef-schema';
 import { parseChef, parseRecipe, type ParsedChef, type ParsedRecipe } from '@/lib/db/transformers';
@@ -141,7 +142,8 @@ export class ChefService {
    * Delete a chef by ID
    */
   async delete(id: string): Promise<boolean> {
-    const result = await db.delete(chefs).where(eq(chefs.id, id)).returning();
+    // #189: lock the chef's recipes before the chef, as every recipe delete does.
+    const result = await deleteChefLockingRecipesFirst(id);
 
     return result.length > 0;
   }
