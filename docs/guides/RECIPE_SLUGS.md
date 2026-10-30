@@ -61,7 +61,6 @@ Recipe displayed
 - `isReservedSlug(slug: string)` - Check reserved system slugs
 - `updateRecipeSlug(id: string, slug: string)` - Update recipe slug
 - `getAllSlugs()` - Get all existing slugs
-- `batchCheckSlugs(slugs: string[])` - Bulk slug existence check
 
 **Reserved Slugs:**
 ```typescript

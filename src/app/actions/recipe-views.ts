@@ -5,7 +5,6 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { recipeViews } from '@/lib/db/user-discovery-schema';
-import { publicRecipe } from '@/lib/recipe-public';
 import {
   findViewableRecipe,
   getRecipeViewer,
@@ -109,83 +108,6 @@ export async function getRecentlyViewedRecipes(limit: number = 10): Promise<Reci
     return Array.from(uniqueRecipes.values());
   } catch (error) {
     console.error('Error fetching recently viewed recipes:', error);
-    return [];
-  }
-}
-
-// ============================================================================
-// GET POPULAR RECIPES
-// ============================================================================
-
-/**
- * Get popular recipes based on view count
- * Supports filtering by timeframe
- */
-export async function getPopularRecipes(
-  timeframe: 'day' | 'week' | 'month' | 'all' = 'week',
-  limit: number = 10
-): Promise<Recipe[]> {
-  try {
-    // Calculate timeframe cutoff
-    let cutoffDate: Date | null = null;
-    const now = new Date();
-
-    switch (timeframe) {
-      case 'day':
-        cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case 'week':
-        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'all':
-        cutoffDate = null;
-        break;
-    }
-
-    // Build query with timeframe filter
-    const viewsQuery = db
-      .select({
-        recipe_id: recipeViews.recipe_id,
-        view_count: sql<number>`count(*)::int`.as('view_count'),
-      })
-      .from(recipeViews)
-      .groupBy(recipeViews.recipe_id)
-      .orderBy(desc(sql`count(*)`))
-      .limit(limit);
-
-    // Add timeframe filter if applicable
-    const viewsWithTimeframe = cutoffDate
-      ? viewsQuery.where(gte(recipeViews.viewed_at, cutoffDate))
-      : viewsQuery;
-
-    const popularRecipeIds = await viewsWithTimeframe;
-
-    if (popularRecipeIds.length === 0) {
-      return [];
-    }
-
-    // Fetch full recipe data
-    const recipeIdList = popularRecipeIds.map((r) => r.recipe_id);
-    const popularRecipes = await db
-      .select()
-      .from(recipes)
-      .where(
-        and(
-          sql`${recipes.id} = ANY(${recipeIdList})`,
-          publicRecipe // Only show public recipes
-        )
-      );
-
-    // Sort recipes by view count (maintain order from popularity query)
-    const recipeMap = new Map(popularRecipes.map((r) => [r.id, r]));
-    return popularRecipeIds
-      .map((pId) => recipeMap.get(pId.recipe_id))
-      .filter((r): r is Recipe => r !== undefined);
-  } catch (error) {
-    console.error('Error fetching popular recipes:', error);
     return [];
   }
 }

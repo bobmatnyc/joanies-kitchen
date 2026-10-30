@@ -46,7 +46,6 @@ Complete SEO-friendly slug system implemented for Joanie's Kitchen recipe URLs.
 - `isReservedSlug()` - Protect system routes
 - `updateRecipeSlug()` - Update existing recipe slug
 - `getAllSlugs()` - Get all slugs from database
-- `batchCheckSlugs()` - Bulk slug verification
 
 **Features:**
 - Removes filler words (the, a, an, best, etc.)
