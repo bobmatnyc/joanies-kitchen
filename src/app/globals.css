@@ -1,7 +1,43 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap");
-
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+
+/* #152: the theme font names below (--font-heading etc. in @theme inline) resolve to these
+   self-hosted faces; this replaces the former fonts.googleapis.com @import. */
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/playfair-display-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/playfair-display-latin-wght-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/lora-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/lora-latin-wght-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("./fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
 
 @custom-variant dark (&:is(.dark *));
 
