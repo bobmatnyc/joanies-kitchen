@@ -56,14 +56,30 @@ async function linkSkippedDuplicate(
 }
 
 /**
- * #142: links a recipe this job just inserted. On failure it deletes the
- * recipe and throws, so no recipe is left stored but missing from the chef's page.
+ * #142: links a recipe this job just inserted. A link failure, returned or
+ * thrown (e.g. by `requireAdmin`), deletes the recipe and throws, so no recipe
+ * is left stored but missing from the chef's page. If the delete also fails,
+ * the thrown message carries both errors.
  */
 async function linkInsertedRecipe(chefId: string, recipeId: string, url: string): Promise<void> {
-  const res = await linkRecipeToChef({ chefId, recipeId, originalUrl: url });
-  if (res.success) return;
-  await db.delete(recipes).where(eq(recipes.id, recipeId));
-  throw new Error(`failed to link recipe to chef ${chefId}: ${res.error}`);
+  let linkError: string;
+  try {
+    const res = await linkRecipeToChef({ chefId, recipeId, originalUrl: url });
+    if (res.success) return;
+    linkError = res.error ?? 'unknown error';
+  } catch (error) {
+    linkError = toErrorMessage(error); // #142: a thrown failure takes the same cleanup path
+  }
+  const message = `failed to link recipe to chef ${chefId}: ${linkError}`;
+  try {
+    await db.delete(recipes).where(eq(recipes.id, recipeId));
+  } catch (deleteError) {
+    // #142: report the link error too, not only the delete error.
+    throw new Error(
+      `${message}; cleanup delete of recipe ${recipeId} also failed: ${toErrorMessage(deleteError)}`
+    );
+  }
+  throw new Error(message);
 }
 
 /**

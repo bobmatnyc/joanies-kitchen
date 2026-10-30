@@ -7,7 +7,7 @@
  */
 
 import type { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -43,6 +43,7 @@ vi.mock('@/lib/ai/recipe-parser', () => ({
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import { scrapeSingleRecipe, startChefScraping } from '@/app/actions/chef-scraping';
+import { requireAdmin } from '@/lib/admin';
 import { chefRecipes, chefs, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
@@ -88,6 +89,10 @@ beforeEach(async () => {
   for (const level of ['log', 'error'] as const) {
     vi.spyOn(console, level).mockImplementation(() => undefined);
   }
+});
+
+afterEach(() => {
+  vi.restoreAllMocks(); // #142: drop per-test db.batch / db.delete spies
 });
 
 const scrapeOne = (url: string, chefId = CHEF) => scrapeSingleRecipe({ chefId, url });
@@ -199,5 +204,50 @@ describe('chef scraping job chef linking (#142)', () => {
     });
     expect(await links()).toEqual([]);
     expect(await seedChefId()).toBeNull();
+  });
+});
+
+type SpiedDb = {
+  batch: (...args: unknown[]) => Promise<unknown>;
+  delete: (...args: unknown[]) => unknown;
+};
+const NEW_URL = 'https://chef.com/beef-stew';
+const newRecipeRows = () =>
+  rows<{ id: string }>(`SELECT id FROM "recipes" WHERE source = '${NEW_URL}'`);
+
+describe('a failed link on a newly inserted recipe, chef exists (#142)', () => {
+  it('deletes the recipe and fails the page when the link batch rejects', async () => {
+    vi.spyOn(state.db as SpiedDb, 'batch').mockRejectedValueOnce(new Error('batch down'));
+    state.pages = [{ url: NEW_URL, markdown: 'new' }];
+    const job = await runJob(CHEF);
+    expect(job).toMatchObject({ status: 'completed', recipes_scraped: 0, recipes_failed: 1 });
+    expect(await newRecipeRows()).toEqual([]);
+    expect(await links()).toEqual([]);
+  });
+
+  it('deletes the recipe and fails the page when requireAdmin throws inside the link', async () => {
+    // Call 1 is startChefScraping's own check; call 2 is linkRecipeToChef's.
+    vi.mocked(requireAdmin)
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(new Error('admin check: db timeout'));
+    state.pages = [{ url: NEW_URL, markdown: 'new' }];
+    const job = await runJob(CHEF);
+    expect(job).toMatchObject({ status: 'completed', recipes_scraped: 0, recipes_failed: 1 });
+    expect(await newRecipeRows()).toEqual([]);
+    expect(await links()).toEqual([]);
+  });
+
+  it('reports both the link error and the delete error when the cleanup delete fails', async () => {
+    vi.spyOn(state.db as SpiedDb, 'batch').mockRejectedValueOnce(new Error('batch down'));
+    vi.spyOn(state.db as SpiedDb, 'delete').mockReturnValueOnce({
+      where: async () => {
+        throw new Error('delete down');
+      },
+    });
+    const res = await scrapeOne(NEW_URL);
+    expect(res).toEqual({
+      success: false,
+      error: expect.stringMatching(/^failed to link recipe to chef .*batch down.*delete down/),
+    });
   });
 });
