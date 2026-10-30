@@ -6,7 +6,8 @@
  * sent as one `db.batch` (one transaction on neon-http): a guard that aborts
  * the batch unless the account is still due, an id-ordered lock on every
  * recipes row the batch writes (#158), the kept-recipe reassignment,
- * the deletes (with a `like_count` recount for recipes the user favorited, #167),
+ * the deletes (with a `like_count` recount for recipes the user favorited, #167,
+ * and a `recipe_count` recount for chefs linked to the deleted recipes, #174),
  * the actor-column anonymization, and the `users` delete last.
  * `PURGE_COLUMN_PLAN` names how each user/recipe reference column is handled;
  * the inventory test fails when the schema gains a column missing from it.
@@ -27,6 +28,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { accountDeletionMarker } from '@/lib/account-deletion';
+import { chefRecountBeforeDelete } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { apiKeys, apiKeyUsage } from '@/lib/db/api-keys-schema';
 import { accounts, users, verificationTokens } from '@/lib/db/auth-schema';
@@ -207,6 +209,9 @@ export function purgeStatements(t: PurgeTarget) {
     db.delete(collectionRecipes).where(own(collectionRecipes.recipe_id)),
     db.delete(recipeViews).where(own(recipeViews.recipe_id)),
     db.delete(mealRecipes).where(own(mealRecipes.recipe_id)),
+    // #174: lock (chefs in id order, after the #158 recipes lock) and recount every
+    // chef linked to the user's deleted recipes, while those links still exist.
+    ...chefRecountBeforeDelete(ownRecipeIds),
     db.delete(chefRecipes).where(own(chefRecipes.recipe_id)),
     db.delete(joanieComments).where(own(joanieComments.recipe_id)),
     db.update(recipeOfTheDay).set({ recipe_id: null }).where(own(recipeOfTheDay.recipe_id)),

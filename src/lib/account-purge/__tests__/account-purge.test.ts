@@ -29,7 +29,7 @@ import { purgeStatements } from '@/lib/account-purge/statements';
 import { apiKeyUsage } from '@/lib/db/api-keys-schema';
 import { verificationTokens } from '@/lib/db/auth-schema';
 import { recipeDiscoveryRunItems, recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
-import { chefRecipes } from '@/lib/db/chef-schema';
+import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { joanieComments } from '@/lib/db/schema';
 
 const NOW = new Date('2026-10-29T12:00:00.000Z');
@@ -78,6 +78,7 @@ async function addUser(id: string, extra: Record<string, unknown> = {}) {
 
 beforeEach(async () => {
   fx = await seedExportDb([
+    chefs, // #174: the purge recounts chefs linked to the deleted recipes
     chefRecipes,
     joanieComments,
     recipeOfTheDay,
@@ -220,6 +221,37 @@ describe('purgeDueAccounts', () => {
     ]);
   });
 
+  it.each([
+    [false, 1],
+    [true, 2],
+  ])(
+    '#174: recounts chefs linked to the deleted recipes (keepRecipes=%s)',
+    async (keep, expected) => {
+      // A chef linked to A's public recipe (kept under "keep"), A's private recipe, and B's recipe.
+      const chef = 'cccccccc-0000-4000-8000-00000000000c';
+      await rows(`INSERT INTO chefs (id, slug, name, recipe_count) VALUES ($1, 'c', 'C', 3)`, [
+        chef,
+      ]);
+      await rows(
+        `INSERT INTO chef_recipes (id, chef_id, recipe_id) VALUES
+        (gen_random_uuid(), $1, $2), (gen_random_uuid(), $1, 'a-private'), (gen_random_uuid(), $1, $3)`,
+        [chef, recipeA, recipeB]
+      );
+      await requestDeletion(fx.userA, keep, 31);
+
+      const result = await purgeDueAccounts(NOW);
+
+      expect(result.purged).toEqual([fx.userA]);
+      const [live] = await rows('SELECT count(*)::int AS n FROM chef_recipes WHERE chef_id = $1', [
+        chef,
+      ]);
+      expect(live.n).toBe(expected);
+      expect(await rows('SELECT recipe_count FROM chefs WHERE id = $1', [chef])).toEqual([
+        { recipe_count: expected },
+      ]);
+    }
+  );
+
   it('leaves a day-29 account and an admin untouched', async () => {
     await requestDeletion(fx.userA, false, 29);
     await addUser('admin-1', { is_admin: true });
@@ -331,6 +363,21 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
     expect(ratingDeletes).toHaveLength(2);
     expect(recipeWrites.length).toBeGreaterThan(0);
     for (const i of [...ratingDeletes, ...recipeWrites]) expect(i).toBeGreaterThan(lock);
+  });
+
+  it('#174: locks and recounts chefs after the recipes lock and before the chef_recipes and recipes deletes', () => {
+    const sqls = purgeSql();
+    const at = (re: RegExp) => sqls.findIndex((s) => re.test(s));
+    const order = [
+      at(LOCK),
+      at(/^select .+ from "chefs" where .+ order by "chefs"\."id" asc for no key update$/),
+      at(/^update "chefs" set "recipe_count" = /),
+      at(/^delete from "chef_recipes" /),
+      at(/^delete from "recipes" /),
+    ];
+
+    for (const i of order) expect(i).toBeGreaterThan(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it('locks the own recipes, every recipe naming the user as an actor or favorited by them, and no other', async () => {
