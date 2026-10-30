@@ -4,14 +4,27 @@
  * Why: a purge must reach every row that names the user, and nothing else.
  * What: `purgeStatements` returns the ordered DB writes for one account, to be
  * sent as one `db.batch` (one transaction on neon-http): a guard that aborts
- * the batch unless the account is still due, the kept-recipe reassignment,
+ * the batch unless the account is still due, an id-ordered lock on every
+ * recipes row the batch writes (#158), the kept-recipe reassignment,
  * the deletes, the actor-column anonymization, and the `users` delete last.
  * `PURGE_COLUMN_PLAN` names how each user/recipe reference column is handled;
  * the inventory test fails when the schema gains a column missing from it.
  * Test: `src/lib/account-purge/__tests__/account-purge.test.ts`
  */
 
-import { type AnyColumn, and, eq, inArray, isNull, lte, ne, or, type SQL, sql } from 'drizzle-orm';
+import {
+  type AnyColumn,
+  and,
+  asc,
+  eq,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 import { accountDeletionMarker } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { apiKeys, apiKeyUsage } from '@/lib/db/api-keys-schema';
@@ -148,6 +161,21 @@ export function purgeStatements(t: PurgeTarget) {
       .select({ ok: sql<number>`1 / count(*)::int` })
       .from(users)
       .where(stillDue(t)),
+    // #158: lock every recipes row this batch writes, in id order, before any
+    // recipe_ratings delete: rateRecipe/deleteRating lock the recipe row first.
+    db
+      .select({ id: recipes.id })
+      .from(recipes)
+      .where(
+        or(
+          eq(recipes.user_id, uid),
+          eq(recipes.deleted_by, uid),
+          eq(recipes.moderated_by, uid),
+          eq(recipes.image_regeneration_requested_by, uid)
+        )
+      )
+      .orderBy(asc(recipes.id))
+      .for('update'),
     // Kept recipes: credited to deleted-user and shown again.
     db
       .update(recipes)
