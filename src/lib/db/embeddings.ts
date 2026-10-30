@@ -237,6 +237,8 @@ export async function findSimilarRecipes(
       ? sql`AND e.recipe_id <> ${options.excludeRecipeId}`
       : sql``;
 
+    // #135: `r.deleted_at IS NULL` runs before LIMIT for every caller, with or
+    // without a visibility filter, so soft-deleted recipes never fill a slot.
     // Query using cosine distance
     // Note: Smaller distance = more similar
     // Cosine distance = 1 - cosine_similarity
@@ -251,6 +253,7 @@ export async function findSimilarRecipes(
       FROM recipe_embeddings e
       JOIN recipes r ON e.recipe_id = r.id
       WHERE (1 - (e.embedding <=> ${vectorString}::vector)) >= ${minSimilarity}
+        AND r.deleted_at IS NULL
         ${visibilityFilter}
         ${excludeFilter}
       ORDER BY e.embedding <=> ${vectorString}::vector
@@ -282,6 +285,7 @@ export async function getAllRecipeEmbeddings(
   offset: number = 0
 ): Promise<Array<RecipeEmbedding & { recipe?: any }>> {
   try {
+    // #135: skip soft-deleted recipes; an orphan embedding (no recipe row) still lists.
     const results = await db.execute(sql`
       SELECT
         e.*,
@@ -291,6 +295,7 @@ export async function getAllRecipeEmbeddings(
         r.tags as recipe_tags
       FROM recipe_embeddings e
       LEFT JOIN recipes r ON e.recipe_id = r.id
+      WHERE r.deleted_at IS NULL
       ORDER BY e.created_at DESC
       LIMIT ${limit}
       OFFSET ${offset}
@@ -347,20 +352,22 @@ export async function getRecipesNeedingEmbedding(modelName?: string): Promise<an
 
     if (modelName) {
       // Find recipes with embeddings from different model
+      // #135: never re-embed a soft-deleted recipe.
       query = sql`
         SELECT r.*
         FROM recipes r
         LEFT JOIN recipe_embeddings e ON r.id = e.recipe_id
-        WHERE e.id IS NULL OR e.model_name != ${modelName}
+        WHERE (e.id IS NULL OR e.model_name != ${modelName}) AND r.deleted_at IS NULL
         ORDER BY r.created_at DESC
       `;
     } else {
       // Find recipes without any embeddings
+      // #135: never embed a soft-deleted recipe.
       query = sql`
         SELECT r.*
         FROM recipes r
         LEFT JOIN recipe_embeddings e ON r.id = e.recipe_id
-        WHERE e.id IS NULL
+        WHERE e.id IS NULL AND r.deleted_at IS NULL
         ORDER BY r.created_at DESC
       `;
     }
