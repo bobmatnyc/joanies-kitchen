@@ -37,6 +37,8 @@ TypeScript admin scripts use `src/lib/db/admin-db-url.ts`: `adminDbUrl(url, purp
 
 `0004` (#103) is `ADD COLUMN` (nullable, no default, so no table rewrite) plus one `CREATE UNIQUE INDEX` on `recipe_flags`. It does not use `CONCURRENTLY`: `recipe_flags` had 0 rows on production on 2026-10-29, and `drizzle-kit migrate` runs each migration in a transaction, where `CONCURRENTLY` is not allowed.
 
+`0005` (#135) creates two new tables, `recipe_redirects` and `dedup_135_ledger`, for the duplicate-recipe merge (`scripts/dedup-135/apply.ts`). It touches no existing table; the only new constraint on existing data is the `recipe_redirects.to_recipe_id` FK to `recipes`. Not applied to production yet.
+
 Do not edit a migration after it is applied anywhere: the migrator stores each file's sha256.
 
 ## `baseline-mark-applied.sql`

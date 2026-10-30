@@ -1,0 +1,115 @@
+{
+  "_comment": "#135 example decisions file. UNSIGNED: apply rejects it until signed_by and signed_at are filled. Proposals from 2026-10-30-135-survivors.md with the A69 changes: G20 no_merge, G21 survivor eef4c7f9, G13 source_override. Optional ack_fewer_ingredients: a list of {group_id, reason} or an object keyed by group id with {reason, survivor?, loser?}. Auto groups not listed follow the keeper rules. The dry_run_sha256 names the first dry run, which predates the per-member detail apply now requires; re-run plan.ts and re-sign.",
+  "signed_by": "",
+  "signed_at": "",
+  "dry_run_file": "2026-10-30-135-dry-run.json",
+  "dry_run_sha256": "2071ddb91a9b60a6805574f1431e0873d99977a420c8b41b8587a492050f777e",
+  "decisions": {
+    "g-345d9f56": {
+      "action": "merge",
+      "keeper": "cdfa79c1-e419-439e-90e5-373d7f03dc34"
+    },
+    "g-a070cacd": {
+      "action": "partial",
+      "keeper": "dacf63c6-524c-4086-a3d8-9d5b461d85ec",
+      "retire": ["f3c712c6-4d04-42a9-99b9-5e481bf0c072"]
+    },
+    "g-d14a602b": {
+      "action": "partial",
+      "keeper": "b326e64d-8316-4fdd-ba7d-8e8473145da5",
+      "retire": ["a4245c01-ebe4-407a-b2ce-6fe25cf5a3c8"]
+    },
+    "g-05e0d647": {
+      "action": "partial",
+      "keeper": "760da8c1-45b6-4536-9902-85557bd6074a",
+      "retire": ["2cdcd787-bd4a-4633-a10d-3d04c3d95675"]
+    },
+    "g-f1c9ac74": {
+      "action": "partial",
+      "keeper": "fa8148cf-0f81-4101-b4b7-3fe6efd8b09e",
+      "retire": ["b377f9d5-7d38-476c-bfb0-c6fddce2eb4b"]
+    },
+    "g-971bb9f5": {
+      "action": "no_merge"
+    },
+    "g-47d2f1d5": {
+      "action": "no_merge"
+    },
+    "g-51b664c7": {
+      "action": "merge",
+      "keeper": "d1930c15-32c9-4d50-8aac-b31727fcc905"
+    },
+    "g-957430b7": {
+      "action": "no_merge"
+    },
+    "g-f9f66ae3": {
+      "action": "no_merge"
+    },
+    "g-d4dbf2c1": {
+      "action": "no_merge"
+    },
+    "g-e1f302be": {
+      "action": "merge",
+      "keeper": "3546b3a5-ec97-4223-afd3-da8fcbe09b81"
+    },
+    "g-e5a34e49": {
+      "action": "merge",
+      "keeper": "5d0d51fa-b5d3-46e0-b6b5-32b7ac090784",
+      "source_override": "https://cookieandkate.com/cashew-milk-recipe"
+    },
+    "g-841eaa94": {
+      "action": "no_merge"
+    },
+    "g-76e0218e": {
+      "action": "no_merge"
+    },
+    "g-9ce66e65": {
+      "action": "no_merge"
+    },
+    "g-34683afa": {
+      "action": "no_merge"
+    },
+    "g-1f5dced8": {
+      "action": "merge",
+      "keeper": "8158ee96-b3af-421d-bd69-2b955fc3ca95"
+    },
+    "g-218a1a55": {
+      "action": "merge",
+      "keeper": "1e34a6ac-5a68-44c5-a468-1a4f1ee31a71"
+    },
+    "g-f40cb083": {
+      "action": "no_merge"
+    },
+    "g-4cf220e8": {
+      "action": "merge",
+      "keeper": "eef4c7f9-8085-4f11-a50d-1067d1d93ee5"
+    },
+    "g-06c2d2d0": {
+      "action": "no_merge"
+    },
+    "g-740eb0bb": {
+      "action": "no_merge"
+    },
+    "g-9a2f0b1a": {
+      "action": "merge",
+      "keeper": "4ebdcfa1-0294-4f36-aeb0-47e8a3cbb53e"
+    },
+    "g-5f8afa81": {
+      "action": "merge",
+      "keeper": "bbd58a7e-5fe4-4aa9-b23f-58356412ec66"
+    },
+    "g-dc1e5171": {
+      "action": "merge",
+      "keeper": "980ec4e8-b795-409f-aba6-423471763a45"
+    },
+    "g-b39e6e08": {
+      "action": "merge",
+      "keeper": "773777c0-8758-4755-8c93-e8f2c912d46d"
+    },
+    "g-9a0f3d2c": {
+      "action": "merge",
+      "keeper": "d8e62613-cb8f-4361-a83b-a86676aa528f"
+    }
+  },
+  "ack_fewer_ingredients": {}
+}
