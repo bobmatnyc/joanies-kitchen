@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { checkAdminAccess } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
-import { chefIdsLinkedToRecipes, recountChefsAfterDelete } from '@/lib/chef-recipe-count';
+import { deleteRecipesWithChefRecount } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
@@ -412,9 +412,8 @@ export async function deleteRecipe(id: string) {
       return { success: false, error: 'Shared recipes cannot be deleted' };
     }
 
-    const chefIds = await chefIdsLinkedToRecipes([id]); // #165: the delete cascades the links away
-    const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
-    await recountChefsAfterDelete(chefIds); // #165: keep chefs.recipe_count in step
+    // #174: delete and chef recount in one transaction (#165: the delete cascades the links away)
+    const result = await deleteRecipesWithChefRecount([id]);
 
     // Invalidate caches for this specific recipe and all searches
     invalidateRecipeById(id);

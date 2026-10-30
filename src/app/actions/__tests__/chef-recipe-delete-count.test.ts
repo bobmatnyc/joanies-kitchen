@@ -115,3 +115,52 @@ describe('chef recipe_count after a recipe delete (#165)', () => {
     });
   });
 });
+
+// #174: the delete and the chef recount run in one db.batch transaction.
+describe('delete and chef recount are atomic (#174)', () => {
+  const recipeIds = async () =>
+    (await rows<{ id: string }>('SELECT id FROM "recipes" ORDER BY id')).map((r) => r.id);
+
+  afterEach(async () => {
+    await client.exec('DROP TRIGGER IF EXISTS fail_recount ON "chefs";');
+  });
+
+  it.each([
+    ['adminDeleteRecipe', () => adminDeleteRecipe('r1'), 'Failed to delete recipe'],
+    ['adminBulkDeleteRecipes', () => adminBulkDeleteRecipes(['r1']), 'Failed to delete recipes'],
+    ['deleteRecipe', () => deleteRecipe('r1'), 'Failed to delete recipe'],
+  ])('%s deletes nothing when the recount statement fails', async (_name, run, error) => {
+    await client.exec(`CREATE OR REPLACE FUNCTION fail_recount() RETURNS trigger AS $$
+      BEGIN RAISE EXCEPTION 'recount down'; END $$ LANGUAGE plpgsql;
+      CREATE TRIGGER fail_recount BEFORE UPDATE ON "chefs" FOR EACH ROW EXECUTE FUNCTION fail_recount();`);
+
+    expect(await run()).toEqual({ success: false, error });
+
+    expect(await recipeIds()).toEqual(['r1', 'r2']);
+    expect(await liveLinks()).toBe(2);
+    expect(await storedCount()).toBe(2);
+  });
+
+  it('a chef with two of the bulk-deleted recipes keeps the count of its surviving links', async () => {
+    const other = '00000000-0000-4000-8000-000000000002';
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions)
+      VALUES ('r3', 'user-1', 'Three', '[]', '[]')`);
+    await client.exec(
+      `INSERT INTO "chefs" (id, slug, name, recipe_count) VALUES ('${other}', 'chef-b', 'Chef B', 9)`
+    );
+    await client.exec(`INSERT INTO "chef_recipes" (chef_id, recipe_id)
+      VALUES ('${CHEF}', 'r3'), ('${other}', 'r2'), ('${other}', 'r3')`);
+
+    expect(await adminBulkDeleteRecipes(['r1', 'r2'])).toMatchObject({
+      success: true,
+      data: { deleted: 2 },
+    });
+
+    expect(await recipeIds()).toEqual(['r3']);
+    expect(await storedCount()).toBe(1);
+    const [b] = await rows<{ recipe_count: number }>(
+      `SELECT recipe_count FROM "chefs" WHERE id = '${other}'`
+    );
+    expect(b.recipe_count).toBe(1);
+  });
+});
