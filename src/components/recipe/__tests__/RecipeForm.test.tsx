@@ -133,4 +133,15 @@ describe('RecipeForm submit keeps stored images (#179)', () => {
     expect(payload.images).toBe('["https://cdn.example.com/new.jpg"]');
     expect(payload.image_url).toBe('https://cdn.example.com/new.jpg');
   });
+
+  it('keeps a stored photo the ingestion site-asset set would flag when images change (#185)', async () => {
+    const photo = 'https://x.test/Our-Signature-Margarita.jpg';
+    render(<RecipeForm recipe={recipe(JSON.stringify([photo]))} />);
+    fireEvent.click(screen.getByText('add-image'));
+    await renameAndSubmit();
+    expect(JSON.parse(updateRecipe.mock.calls[0][1].images)).toEqual([
+      photo,
+      'https://cdn.example.com/new.jpg',
+    ]);
+  });
 });

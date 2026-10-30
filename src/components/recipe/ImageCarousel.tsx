@@ -13,6 +13,8 @@ interface ImageCarouselProps {
   recipeId?: string;
   isFlagged?: boolean | null;
   isAdmin?: boolean;
+  /** #185: replaces the per-image alt, e.g. the placeholder's own description. */
+  imageAlt?: string;
 }
 
 export function ImageCarousel({
@@ -22,6 +24,7 @@ export function ImageCarousel({
   recipeId,
   isFlagged,
   isAdmin = false,
+  imageAlt,
 }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -48,7 +51,7 @@ export function ImageCarousel({
       <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
         <img
           src={images[currentIndex]}
-          alt={`${title || 'Recipe'} - Image ${currentIndex + 1}`}
+          alt={imageAlt ?? `${title || 'Recipe'} - Image ${currentIndex + 1}`}
           className="w-full h-full object-cover cursor-pointer"
           onClick={() => setIsFullscreen(true)}
           onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
@@ -135,7 +138,7 @@ export function ImageCarousel({
             <div className="relative flex items-center justify-center min-h-[60vh]">
               <img
                 src={images[currentIndex]}
-                alt={`${title || 'Recipe'} - Image ${currentIndex + 1}`}
+                alt={imageAlt ?? `${title || 'Recipe'} - Image ${currentIndex + 1}`}
                 className="max-w-full max-h-[85vh] object-contain"
                 onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
               />

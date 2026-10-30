@@ -13,7 +13,7 @@ import {
 } from '@/app/actions/admin-recipes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getRecipeImageUrls, toUsableImageUrl } from '@/lib/utils/recipe-image';
+import { resolveRecipeImage } from '@/lib/utils/recipe-image';
 
 interface FlaggedRecipe {
   id: string;
@@ -131,11 +131,8 @@ export function FlaggedImagesManager() {
   const getImageUrl = (recipe: FlaggedRecipe): string => {
     // #179: shared helpers handle malformed `images` and reject data: / non-URL values,
     // including a raw `image_url`.
-    return (
-      getRecipeImageUrls(recipe.images)[0] ||
-      toUsableImageUrl(recipe.image_url) ||
-      '/placeholder-recipe.jpg'
-    );
+    // #185: shared placeholder; /placeholder-recipe.jpg does not exist under public/.
+    return resolveRecipeImage(recipe);
   };
 
   if (isLoading) {

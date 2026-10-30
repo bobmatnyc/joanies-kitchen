@@ -65,6 +65,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useUser } from '@/lib/auth-client';
 import { getBaseUrl } from '@/lib/site-url';
+import { getRecipeHero } from '@/lib/utils/recipe-image';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
 
 // #22: Auth.js session via the Clerk-shaped client shim.
@@ -451,6 +452,9 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
     return null;
   }
 
+  // #185: never empty; a placeholder hero carries the placeholder's own alt text.
+  const hero = getRecipeHero(recipe);
+
   return (
     <AdminEditModeProvider>
       {/* JSON-LD Structured Data for SEO */}
@@ -772,24 +776,17 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           </div>
         )}
 
-        {/* Images */}
-        {(recipe.images?.length > 0 || recipe.image_url) && (
-          <div className="mb-8">
-            <ImageCarousel
-              images={
-                recipe.images?.length > 0
-                  ? recipe.images
-                  : recipe.image_url
-                    ? [recipe.image_url]
-                    : []
-              }
-              title={recipe.name}
-              recipeId={recipe.id}
-              isFlagged={recipe.image_flagged_for_regeneration}
-              isAdmin={isUserAdmin}
-            />
-          </div>
-        )}
+        {/* Images; #185: no usable image renders the shared placeholder, not nothing. */}
+        <div className="mb-8">
+          <ImageCarousel
+            images={hero.images}
+            imageAlt={hero.placeholderAlt ?? undefined}
+            title={recipe.name}
+            recipeId={recipe.id}
+            isFlagged={recipe.image_flagged_for_regeneration}
+            isAdmin={isUserAdmin}
+          />
+        </div>
 
         <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
           {/* Recipe Content with Admin Edit Overlays */}

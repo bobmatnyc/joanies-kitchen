@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 /**
@@ -124,6 +125,12 @@ export async function uploadRecipeFromUrl(url: string) {
         : undefined,
     });
 
+    // #185: og:image first, then the parser's pick; never a site logo or icon.
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scraped.metadata), contentImages: parsed.imageUrl },
+      url
+    );
+
     // Create recipe
     const recipe = await db
       .insert(recipes)
@@ -140,8 +147,8 @@ export async function uploadRecipeFromUrl(url: string) {
         difficulty: parsed.difficulty || null,
         cuisine: parsed.cuisine || null,
         tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-        images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-        image_url: parsed.imageUrl || null,
+        images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+        image_url: imageUrl,
         nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
         is_ai_generated: true,
         is_public: false,

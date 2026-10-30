@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toErrorMessage } from '@/lib/utils/error-handling';
-import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
+import { resolveRecipeImage } from '@/lib/utils/recipe-image';
 import { RecipeCard } from './RecipeCard';
 
 export interface SimilarRecipesWidgetProps {
@@ -254,19 +254,17 @@ export function SimilarRecipesCompact({
       <div className="space-y-2">
         {recipes.map((recipe) => {
           const recipeUrl = recipe.slug ? `/recipes/${recipe.slug}` : `/recipes/${recipe.id}`;
-          // #179: shared helper never throws on a malformed `images` value and drops data: URIs.
-          const thumbUrl = getRecipeImageUrls(recipe.images)[0];
+          // #185: shared resolver; no usable image shows the shared placeholder.
+          const thumbUrl = resolveRecipeImage(recipe);
           return (
             <Link
               key={recipe.id}
               href={recipeUrl}
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
             >
-              {thumbUrl && (
-                <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
-                  <img src={thumbUrl} alt={recipe.name} className="w-full h-full object-cover" />
-                </div>
-              )}
+              <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
+                <img src={thumbUrl} alt={recipe.name} className="w-full h-full object-cover" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{recipe.name}</p>
                 <p className="text-xs text-muted-foreground">

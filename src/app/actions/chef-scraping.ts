@@ -18,6 +18,7 @@ import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
 import type { DuplicateMatch } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 /**
@@ -168,6 +169,12 @@ async function scrapeAndParseRecipes(
           continue;
         }
 
+        // #185: og:image first, then the parser's pick; never a site logo or icon.
+        const imageUrl = pickRecipeImage(
+          { ...metadataImageSources(page.metadata), contentImages: parsed.imageUrl },
+          page.url || params.sourceUrl
+        );
+
         // Create recipe in database
         const recipe = await db
           .insert(recipes)
@@ -185,8 +192,8 @@ async function scrapeAndParseRecipes(
             difficulty: parsed.difficulty || null,
             cuisine: parsed.cuisine || null,
             tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-            images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-            image_url: parsed.imageUrl || null,
+            images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+            image_url: imageUrl,
             nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
             is_system_recipe: true,
             is_public: true,
@@ -271,6 +278,12 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     const duplicate = await skippedDuplicate({ sourceUrl: params.url, title: parsed.name });
     if (duplicate) return await skippedResult(params.chefId, duplicate, params.url); // #135
 
+    // #185: og:image first, then the parser's pick; never a site logo or icon.
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scraped.metadata), contentImages: parsed.imageUrl },
+      params.url
+    );
+
     // Create recipe
     const recipe = await db
       .insert(recipes)
@@ -288,8 +301,8 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
         difficulty: parsed.difficulty || null,
         cuisine: parsed.cuisine || null,
         tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-        images: parsed.imageUrl ? JSON.stringify([parsed.imageUrl]) : null,
-        image_url: parsed.imageUrl || null,
+        images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+        image_url: imageUrl,
         nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
         is_system_recipe: true,
         is_public: true,

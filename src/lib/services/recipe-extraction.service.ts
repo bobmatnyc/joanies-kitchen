@@ -22,6 +22,7 @@ import {
   unitsOrFloor,
   withChatCostTracking,
 } from '@/lib/costs';
+import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 export interface ScrapedRecipe {
@@ -234,7 +235,7 @@ export class RecipeExtractionService {
       ) as FirecrawlRecipeSchema | undefined;
 
       if (recipeSchema) {
-        return this.mapFirecrawlSchema(recipeSchema, url);
+        return this.mapFirecrawlSchema(recipeSchema, url, metadata); // #185: og:image first
       }
     }
 
@@ -402,7 +403,8 @@ Return ONLY the JSON object, no other text.`;
         servings: toRecipeInt(data.servings) ?? undefined,
         cuisine: data.cuisine,
         tags: data.tags ?? [],
-        image_url: data.image_url,
+        // #185: the LLM can pick the header logo; drop it rather than store a site asset.
+        image_url: pickRecipeImage({ contentImages: data.image_url }, url) ?? undefined,
         extraction_method: 'claude_structured',
       };
     } catch (error) {
@@ -415,7 +417,11 @@ Return ONLY the JSON object, no other text.`;
   /**
    * Map Firecrawl schema.org Recipe data to ScrapedRecipe
    */
-  private mapFirecrawlSchema(data: FirecrawlRecipeSchema, url: string): ScrapedRecipe {
+  private mapFirecrawlSchema(
+    data: FirecrawlRecipeSchema,
+    url: string,
+    metadata?: Record<string, unknown>
+  ): ScrapedRecipe {
     const title = data.name || data.title || 'Untitled Recipe';
 
     const ingredients = this.extractIngredients(data);
@@ -436,8 +442,10 @@ Return ONLY the JSON object, no other text.`;
       tags.push(...kws.filter(Boolean));
     }
 
+    // #185: og:image, then JSON-LD Recipe.image, then twitter:image; never a site asset.
     const imageUrl =
-      typeof data.image === 'string' ? data.image : (data.image as { url?: string })?.url;
+      pickRecipeImage({ ...metadataImageSources(metadata), jsonLdImage: data.image }, url) ??
+      undefined;
 
     const chefName =
       typeof data.author === 'string' ? data.author : (data.author as { name?: string })?.name;
@@ -476,7 +484,15 @@ Return ONLY the JSON object, no other text.`;
     const times = this.extractTimesFromMarkdown(markdown);
     const servings = this.extractServingsFromMarkdown(markdown);
     const chefName = this.extractAuthorFromMarkdown(markdown, metadata);
-    const imageUrl = metadata?.ogImage ?? this.extractImageFromMarkdown(markdown);
+    // #185: og:image, then twitter:image, then body images; a header logo is skipped.
+    const imageUrl =
+      pickRecipeImage(
+        {
+          ...metadataImageSources(metadata),
+          contentImages: this.extractImagesFromMarkdown(markdown),
+        },
+        url
+      ) ?? undefined;
 
     return {
       url,
@@ -575,9 +591,10 @@ Return ONLY the JSON object, no other text.`;
     return authorMatch ? authorMatch[1] : undefined;
   }
 
-  private extractImageFromMarkdown(markdown: string): string | undefined {
-    const match = markdown.match(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/);
-    return match ? match[1] : undefined;
+  // #185: every body image in order, so the picker can skip a logo that comes first.
+  // Relative paths are kept; the picker resolves them against the page URL.
+  private extractImagesFromMarkdown(markdown: string): string[] {
+    return [...markdown.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)].map((m) => m[1]);
   }
 
   // ---------------------------------------------------------------------------

@@ -46,6 +46,7 @@ import {
   findDuplicateRecipe,
 } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
 
@@ -166,6 +167,13 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 
     console.log(`[Ingest API] Successfully parsed recipe: ${parsedRecipe.name}`);
 
+    // #185: og:image first, then the parser's pick; a site logo or icon is stored as NULL.
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scrapeResult.metadata), contentImages: parsedRecipe.image_url },
+      url
+    );
+    const imagesJson = imageUrl ? JSON.stringify([imageUrl]) : null;
+
     // Step 4: Generate unique slug
     const slug = await generateUniqueSlug(parsedRecipe.name);
     console.log(`[Ingest API] Generated slug: ${slug}`);
@@ -204,8 +212,8 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         prep_time: toRecipeInt(parsedRecipe.prep_time),
         cook_time: toRecipeInt(parsedRecipe.cook_time),
         servings: toRecipeInt(parsedRecipe.servings),
-        image_url: parsedRecipe.image_url || null,
-        images: parsedRecipe.image_url ? JSON.stringify([parsedRecipe.image_url]) : null,
+        image_url: imageUrl, // #185
+        images: imagesJson,
         is_ai_generated: false,
         is_public: true,
         is_system_recipe: true,
@@ -299,8 +307,8 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         difficulty: parsedRecipe.difficulty || null,
         cuisine: parsedRecipe.cuisine || null,
         tags: tagsJson,
-        image_url: parsedRecipe.image_url || null,
-        images: parsedRecipe.image_url ? JSON.stringify([parsedRecipe.image_url]) : null,
+        image_url: imageUrl, // #185
+        images: imagesJson,
         video_url: parsedRecipe.video_url || null,
         nutrition_info: parsedRecipe.nutritionInfo
           ? JSON.stringify(parsedRecipe.nutritionInfo)

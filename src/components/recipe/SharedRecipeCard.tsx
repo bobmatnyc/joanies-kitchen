@@ -18,8 +18,7 @@ import {
 } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
-import { parseRecipeTags, toUsableImageUrl } from '@/lib/utils/recipe-image';
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
+import { parseRecipeTags, resolveRecipeImage } from '@/lib/utils/recipe-image';
 
 interface SharedRecipeCardProps {
   recipe: Recipe;
@@ -33,9 +32,9 @@ export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecip
   const tags = parseRecipeTags(recipe.tags);
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
-  // Use themed placeholder if no image available
-  // #172: skip data: placeholders in image_url
-  const displayImage = toUsableImageUrl(recipe.image_url) || getPlaceholderImage(tags);
+  // #185: shared resolver (images, then image_url, then the tag-themed placeholder),
+  // the same image every other recipe card shows.
+  const displayImage = resolveRecipeImage(recipe);
 
   const handleCopy = async () => {
     setIsCopying(true);

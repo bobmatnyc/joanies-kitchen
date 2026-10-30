@@ -22,6 +22,7 @@ import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
 import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
+import { pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import type { WeekInfo } from '@/lib/week-utils';
 
@@ -44,19 +45,11 @@ export interface StoreRecipeMetadata {
  * Downloads and stores recipe images
  * For now, just validates and returns URLs (at most 6)
  */
-function downloadAndStoreImages(imageUrls: string[]): string[] {
+function downloadAndStoreImages(imageUrls: string[], pageUrl: string): string[] {
   // In production, you would download the images, upload them to cloud
   // storage (Vercel Blob, S3, etc.) and return the new URLs.
-  return imageUrls
-    .filter((url) => {
-      try {
-        new URL(url);
-        return true;
-      } catch {
-        return false;
-      }
-    })
-    .slice(0, 6);
+  // #185: absolute http(s) URLs only, and never a site logo or icon.
+  return pickRecipeImages({ contentImages: imageUrls }, pageUrl, 6);
 }
 
 /**
@@ -275,7 +268,8 @@ export async function storeCrawledRecipe(
     );
     if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
-    const storedImages = downloadAndStoreImages(recipe.images || []);
+    // #185: relative candidates resolve against the source page.
+    const storedImages = downloadAndStoreImages(recipe.images || [], metadata.sourceUrl);
 
     // Evaluate recipe quality with AI
     console.log(`[Store] Evaluating recipe quality for "${recipe.name}"`);

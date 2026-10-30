@@ -4,7 +4,11 @@
  * `getHeroImage` copies passed straight to `<Image>` (objects, "", relative
  * paths), which rendered nothing on the home page.
  */
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
+import {
+  getPlaceholderAlt,
+  getPlaceholderImage,
+  getPlaceholderTheme,
+} from '@/lib/utils/recipe-placeholders';
 
 /** Fields the resolver reads; satisfied by `Recipe` and the recipe-of-the-day payload. */
 export interface RecipeImageSource {
@@ -13,12 +17,88 @@ export interface RecipeImageSource {
   tags?: unknown;
 }
 
+// #185: path patterns of a source site's own assets (logos, icons, theme files). Each
+// keyword must start a word, so `catalogo-pasta.jpg` and `iconic-burger.jpg` stay photos.
+const SITE_ASSET_PATH_PATTERNS: readonly RegExp[] = [
+  /\.svgz?$/i, // vector art, never a dish photo
+  /\/themes\//i, // CMS theme assets, including wp-content/themes
+  /favicon/i,
+  /(?:^|[^a-z])logo/i, // logo.svg, omv-logo-200x70, LogoTM
+  /[a-z0-9]Logo/, // camelCase SiteLogo.png
+  /(?:^|[^a-z])icons?(?:[^a-z]|$)/i, // /icons/, apple-touch-icon.png; not "iconic"
+  /(?:^|[^a-z])signature/i,
+  /(?:^|[^a-z])sprite/i,
+  /(?:^|[^a-z])placeholder/i,
+  /(?:^|[^a-z])pixel(?:[^a-z]|$)/i, // tracking pixel
+];
+
+/** URL path, percent-decoded where possible; null when the value does not parse. */
+function imagePathOf(url: string): string | null {
+  let path: string;
+  try {
+    path = new URL(url, 'https://local.invalid').pathname;
+  } catch {
+    return null;
+  }
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
+/**
+ * Why: ingestion stored source-site logos (`wp-content/themes/.../logo.svg`) as recipe
+ * photos, and a logo is a valid URL, so the #172 checks kept it (#185).
+ * What: true for a `data:` URI, or when the URL path matches a site-asset pattern:
+ * ends in `.svg`, contains `/themes/` or `favicon`, or has a word starting with `logo`,
+ * `signature`, `sprite` or `placeholder`, or the whole word `icon(s)` or `pixel`, or a
+ * `1x1` file name. Only the path is read, never the host or query. Callers apply it to
+ * remote URLs only: local paths such as `/placeholders/generic.svg` are this app's own.
+ * Test: `recipe-image-185.test.ts` "isLikelySiteAsset".
+ */
+export function isLikelySiteAsset(value: string): boolean {
+  const raw = value.trim();
+  if (/^data:/i.test(raw)) return true;
+  const path = imagePathOf(raw);
+  if (path === null) return false;
+  if (SITE_ASSET_PATH_PATTERNS.some((re) => re.test(path))) return true;
+  // #185: a 1x1 tracking gif; checked on the file name only, not on directory names.
+  const file = path.slice(path.lastIndexOf('/') + 1);
+  return /(?:^|[^a-z0-9])1x1(?:[^a-z0-9]|$)/i.test(file);
+}
+
+// #185: the read-side subset. Each rule names an asset that is never a dish photo, so a
+// stored real photo (`Our-Signature-Margarita.jpg`, imgix `/themes/fall/`) is never hidden.
+const DEFINITE_SITE_ASSET_PATH_PATTERNS: readonly RegExp[] = [
+  /\.svgz?$/i,
+  /favicon/i,
+  /wp-content\/themes\//i, // WordPress theme assets only, not any /themes/ folder
+  /(?:^|[^a-z])logo/i,
+];
+
+/**
+ * Why: hiding a stored image on read must not hide a real photo, and RecipeForm writes
+ * the read-side list back on save, so a false positive deletes the photo (#185).
+ * What: true for a `data:` URI, or a path that ends in `.svg`, contains `favicon` or
+ * `wp-content/themes/`, or has a word starting with `logo`. A strict subset of
+ * `isLikelySiteAsset`; only the path is read.
+ * Test: `recipe-image-185.test.ts` "read-side guard".
+ */
+export function isDefinitelySiteAsset(value: string): boolean {
+  const raw = value.trim();
+  if (/^data:/i.test(raw)) return true;
+  const path = imagePathOf(raw);
+  return path !== null && DEFINITE_SITE_ASSET_PATH_PATTERNS.some((re) => re.test(path));
+}
+
 /**
  * Why: `<Image>` throws or renders nothing for a value that is not an absolute
  * http(s) URL or a root-relative path.
  * What: returns the trimmed URL when usable (protocol-relative `//host` is
- * upgraded to https), else null.
- * Test: `recipe-image.test.ts` "toUsableImageUrl".
+ * upgraded to https), else null. A remote URL that `isDefinitelySiteAsset` flags
+ * is not usable (#185); root-relative paths are this app's own files and pass.
+ * Test: `recipe-image.test.ts` "toUsableImageUrl", `recipe-image-185.test.ts`.
  */
 export function toUsableImageUrl(value: unknown): string | null {
   let candidate = value;
@@ -29,10 +109,15 @@ export function toUsableImageUrl(value: unknown): string | null {
   }
   if (typeof candidate !== 'string') return null;
   const url = candidate.trim();
-  if (url.startsWith('//')) return url.length > 2 ? `https:${url}` : null;
+  if (url.startsWith('//')) return url.length > 2 ? unlessSiteAsset(`https:${url}`) : null;
   if (url.startsWith('/')) return url.length > 1 ? url : null;
-  if (/^https?:\/\/[^/\s]+/i.test(url)) return url;
+  if (/^https?:\/\/[^/\s]+/i.test(url)) return unlessSiteAsset(url);
   return null;
+}
+
+/** #185: a stored remote logo is hidden on read; only the narrow read-side set applies. */
+function unlessSiteAsset(url: string): string | null {
+  return isDefinitelySiteAsset(url) ? null : url;
 }
 
 /**
@@ -150,4 +235,36 @@ export function getRecipeImageCandidates(recipe: RecipeImageSource): string[] {
  */
 export function resolveRecipeImage(recipe: RecipeImageSource): string {
   return getRecipeImageCandidates(recipe)[0] ?? getPlaceholderImage(parseRecipeTags(recipe.tags));
+}
+
+/**
+ * Why: the recipe page hero rendered nothing when a recipe had no usable image (#185).
+ * What: usable `images` in stored order; else `image_url`; else the same tag-themed
+ * placeholder `resolveRecipeImage` uses. Never empty.
+ * Test: `recipe-image-185.test.ts` "getRecipeHeroImages", `RecipePageHero185.test.tsx`.
+ */
+export function getRecipeHeroImages(recipe: RecipeImageSource): string[] {
+  return getRecipeHero(recipe).images;
+}
+
+/**
+ * Why: a placeholder announced as "<dish> - Image 1" tells a screen-reader user a
+ * photo is there when none is (#185).
+ * What: the `getRecipeHeroImages` list, plus the placeholder's own alt text
+ * (`getPlaceholderAlt`) when the list is the placeholder, else null.
+ * Test: `recipe-image-185.test.ts` "getRecipeHeroImages", `RecipePageHero185.test.tsx`.
+ */
+export function getRecipeHero(recipe: RecipeImageSource): {
+  images: string[];
+  placeholderAlt: string | null;
+} {
+  const urls = getRecipeImageUrls(recipe.images);
+  if (urls.length > 0) return { images: urls, placeholderAlt: null };
+  const single = toUsableImageUrl(recipe.image_url);
+  if (single) return { images: [single], placeholderAlt: null };
+  const tags = parseRecipeTags(recipe.tags);
+  return {
+    images: [getPlaceholderImage(tags)],
+    placeholderAlt: getPlaceholderAlt(getPlaceholderTheme(tags)),
+  };
 }

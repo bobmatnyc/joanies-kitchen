@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import type { DiscoveryRunStatus } from './discovery-run-store';
 import type { ScrapedRecipe } from './recipe-extraction.service';
@@ -91,6 +92,8 @@ export async function storeIngestedRecipe(
   sourceUrl: string,
   searchQuery: string
 ): Promise<string | null> {
+  // #185: last check before the write; a site asset is stored as no image (NULL).
+  const imageUrl = pickRecipeImage({ contentImages: recipe.image_url }, sourceUrl);
   const [newRecipe] = await db
     .insert(recipes)
     .values({
@@ -106,8 +109,8 @@ export async function storeIngestedRecipe(
       servings: toRecipeInt(recipe.servings),
       cuisine: recipe.cuisine,
       tags: JSON.stringify(recipe.tags),
-      images: recipe.image_url ? JSON.stringify([recipe.image_url]) : JSON.stringify([]),
-      image_url: recipe.image_url ?? null,
+      images: JSON.stringify(imageUrl ? [imageUrl] : []),
+      image_url: imageUrl,
       is_public: true,
       is_system_recipe: true,
       source: sourceUrl,
