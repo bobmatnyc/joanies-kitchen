@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
 import { ingredients, recipes } from '@/lib/db/schema';
 import { publicRecipe, systemRecipe } from '@/lib/recipe-public';
+import { getBaseUrl } from '@/lib/site-url';
 
 /**
  * Dynamic Sitemap Generation for Joanie's Kitchen
@@ -23,7 +24,8 @@ import { publicRecipe, systemRecipe } from '@/lib/recipe-public';
  * For production, consider using ISR with revalidation.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+  // #163: normalized base URL (env may carry a trailing newline)
+  const baseUrl = getBaseUrl();
 
   try {
     // Fetch all public recipes (include both public and system recipes)

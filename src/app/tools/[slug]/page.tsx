@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getToolBySlug } from '@/app/actions/tools';
 import { Button } from '@/components/ui/button';
+import { getBaseUrl } from '@/lib/site-url';
 
 interface ToolPageProps {
   params: Promise<{
@@ -22,7 +23,8 @@ export async function generateMetadata({ params }: ToolPageProps) {
   }
 
   const { tool } = result;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+  // #163: normalized base URL (env may carry a trailing newline)
+  const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/tools/${slug}`;
 
   return {

@@ -1,4 +1,5 @@
 import { DEFAULT_AI_MODEL } from '@/lib/ai/models';
+import { getBaseUrl } from '@/lib/site-url';
 /**
  * Recipe Instruction Classifier
  *
@@ -41,7 +42,8 @@ function getOpenRouterClient() {
       apiKey,
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002',
+        // #163: normalized base URL (env may carry a trailing newline)
+        'HTTP-Referer': getBaseUrl('http://localhost:3002'),
         'X-Title': 'Recipe Manager',
       },
     }),

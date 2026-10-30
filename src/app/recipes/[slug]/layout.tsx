@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { NOT_FOUND_METADATA } from '@/lib/not-found-metadata';
+import { getBaseUrl } from '@/lib/site-url';
 import { parseRecipeTags } from '@/lib/types/parsers';
 import { findVisibleRecipe, loadVisibleRecipeOrNotFound } from './recipe-access';
 
@@ -28,7 +29,8 @@ export async function generateMetadata({
   // A missing or hidden recipe gets the fixed 404 metadata, so no private field leaks.
   const recipe = await findVisibleRecipe(slug);
   if (!recipe) return NOT_FOUND_METADATA;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joanies.kitchen';
+  // #163: normalized base URL (env may carry a trailing newline)
+  const baseUrl = getBaseUrl();
 
   // Prefer slug over ID for canonical URL (SEO best practice)
   const canonicalSlug = recipe.slug || recipe.id;
