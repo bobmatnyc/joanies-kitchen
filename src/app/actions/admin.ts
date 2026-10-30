@@ -3,6 +3,7 @@
 import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { chefIdsLinkedToRecipes, recountChefsAfterDelete } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 
@@ -214,11 +215,14 @@ export async function adminDeleteRecipe(id: string) {
   try {
     await requireAdmin();
 
+    const chefIds = await chefIdsLinkedToRecipes([id]); // #165: the delete cascades the links away
     const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
 
     if (result.length === 0) {
       return { success: false, error: 'Recipe not found' };
     }
+
+    await recountChefsAfterDelete(chefIds); // #165: keep chefs.recipe_count in step
 
     revalidatePath('/admin/recipes');
     revalidatePath('/recipes');
@@ -283,10 +287,13 @@ export async function adminBulkDeleteRecipes(ids: string[]) {
 
     // Delete all recipes in the list
     const conditions = ids.map((id) => eq(recipes.id, id));
+    const chefIds = await chefIdsLinkedToRecipes(ids); // #165: the delete cascades the links away
     const result = await db
       .delete(recipes)
       .where(or(...conditions))
       .returning();
+
+    await recountChefsAfterDelete(chefIds); // #165: keep chefs.recipe_count in step
 
     revalidatePath('/admin/recipes');
     revalidatePath('/recipes');
