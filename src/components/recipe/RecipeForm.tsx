@@ -18,6 +18,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 import { ImageUploader } from './ImageUploader';
 
 interface RecipeFormProps {
@@ -34,7 +35,11 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     ? JSON.parse(recipe.instructions as string)
     : [''];
   const existingTags = recipe?.tags ? JSON.parse(recipe.tags as string) : [];
-  const existingImages = recipe?.images ? JSON.parse(recipe.images as string) : [];
+  // #179: shared helper never throws; a malformed value yields an empty (display) list. This
+  // list is for display only: unless the user changes images (`imagesTouched`), submit omits
+  // `images`/`image_url` so the stored values are kept as they are.
+  const existingImages = getRecipeImageUrls(recipe?.images);
+  const [imagesTouched, setImagesTouched] = useState(false);
 
   const [formData, setFormData] = useState({
     name: recipe?.name || '',
@@ -106,14 +111,21 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
         ingredients: JSON.stringify(filteredIngredients),
         instructions: JSON.stringify(filteredInstructions),
         tags: formData.tags.length > 0 ? JSON.stringify(formData.tags) : null,
-        images: formData.images.length > 0 ? JSON.stringify(formData.images) : null,
         prep_time: formData.prepTime || null,
         cook_time: formData.cookTime || null,
         servings: formData.servings || null,
         description: formData.description || null,
         cuisine: formData.cuisine || null,
-        image_url: formData.imageUrl || formData.images[0] || null, // Use first image as fallback
         is_public: formData.isPublic,
+        // #179: a new recipe, or an edit where images changed, writes the cleaned list. An
+        // untouched edit omits both keys: pickRecipeWriteFields skips an absent key
+        // (src/lib/utils/recipe-write-fields.ts:43), so updateRecipe leaves the columns as stored.
+        ...(!recipe || imagesTouched
+          ? {
+              images: formData.images.length > 0 ? JSON.stringify(formData.images) : null,
+              image_url: formData.imageUrl || formData.images[0] || null, // first image as fallback
+            }
+          : {}),
       };
 
       let result;
@@ -170,7 +182,10 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
             <div className="col-span-2">
               <ImageUploader
                 images={formData.images}
-                onChange={(images) => setFormData((prev) => ({ ...prev, images }))}
+                onChange={(images) => {
+                  setImagesTouched(true); // #179
+                  setFormData((prev) => ({ ...prev, images }));
+                }}
                 maxImages={6}
               />
             </div>

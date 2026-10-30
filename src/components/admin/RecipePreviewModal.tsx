@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 import { ModerationActionDialog } from './ModerationActionDialog';
 
 interface Recipe {
@@ -50,7 +51,8 @@ export function RecipePreviewModal({
   if (!recipe) return null;
 
   // Parse JSON fields
-  const images = recipe.images ? JSON.parse(recipe.images) : [];
+  // #179: images go through the shared helper (never throws, drops data: URIs and non-URLs).
+  const images = getRecipeImageUrls(recipe.images);
   const ingredients = recipe.ingredients ? JSON.parse(recipe.ingredients) : [];
   const instructions = recipe.instructions ? JSON.parse(recipe.instructions) : [];
   const tags = recipe.tags ? JSON.parse(recipe.tags) : [];
