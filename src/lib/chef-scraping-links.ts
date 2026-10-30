@@ -10,6 +10,7 @@
 
 import { eq } from 'drizzle-orm';
 import { linkRecipeToChef } from '@/app/actions/chefs';
+import { chefIdsLinkedToRecipes, recountChefsAfterDelete } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
@@ -80,7 +81,10 @@ export async function linkInsertedRecipe(
   }
   const message = `failed to link recipe to chef ${chefId}: ${linkError}`;
   try {
+    // #165: the link may exist (e.g. revalidatePath threw after the recount); the cascade drops it.
+    const chefIds = await chefIdsLinkedToRecipes([recipeId]);
     await db.delete(recipes).where(eq(recipes.id, recipeId));
+    await recountChefsAfterDelete(chefIds); // #165: keep chefs.recipe_count in step
   } catch (deleteError) {
     // #142: report the link error too, not only the delete error.
     throw new Error(
