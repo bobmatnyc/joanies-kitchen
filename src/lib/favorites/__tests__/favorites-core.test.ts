@@ -52,6 +52,7 @@ import {
   POST as likePOST,
 } from '@/app/api/v1/recipes/[id]/like/route';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { favorites, userProfiles } from '@/lib/db/user-discovery-schema';
 import { ensureUserProfileFor } from '@/lib/ensure-user-profile';
@@ -94,7 +95,7 @@ async function read(response: Response) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, userProfiles, favorites, schema.recipeLikes],
+    [schema.recipes, userProfiles, favorites, schema.recipeLikes, users],
     { ...schema, userProfiles, favorites },
     { constraints: true }
   );
@@ -107,7 +108,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   state.apiUser = API_USER;
   await client.exec(
-    'DELETE FROM "favorites"; DELETE FROM "recipe_likes"; DELETE FROM "user_profiles"; DELETE FROM "recipes";'
+    'DELETE FROM "favorites"; DELETE FROM "recipe_likes"; DELETE FROM "user_profiles"; DELETE FROM "recipes"; DELETE FROM "users";'
   );
   await db.insert(schema.recipes).values({
     id: RECIPE,
@@ -150,6 +151,69 @@ describe('#167 ensureUserProfileFor is race-safe', () => {
     expect(a?.user_id).toBe(API_USER);
     expect(b?.user_id).toBe(OTHER);
     expect([a?.username, b?.username].sort()).toEqual(['same-name', 'same-name-1']);
+  });
+});
+
+describe('#181 an API-key caller gets a profile named from the users row', () => {
+  it('derives username, display name and image from users.name', async () => {
+    await db.insert(users).values({
+      id: API_USER,
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      image: 'https://img.example/ada.png',
+    });
+
+    const profile = await ensureUserProfileFor(API_USER);
+
+    expect(profile).toMatchObject({
+      username: 'ada-lovelace',
+      display_name: 'Ada Lovelace',
+      profile_image_url: 'https://img.example/ada.png',
+      is_public: true,
+    });
+  });
+
+  it('uses the email prefix when the users row has no name', async () => {
+    await db.insert(users).values({ id: API_USER, name: null, email: 'grace@example.com' });
+
+    const profile = await ensureUserProfileFor(API_USER);
+
+    expect(profile?.username).toBe('grace');
+  });
+
+  it('falls back to user-<id8> when there is no users row', async () => {
+    const profile = await ensureUserProfileFor(API_USER);
+
+    expect(profile?.username).toBe('user-user_api');
+    expect(profile?.display_name).toBe('user-user_api');
+  });
+
+  it('falls back to user-<id8> and still creates the profile when the users lookup throws', async () => {
+    await client.exec('ALTER TABLE "users" RENAME TO "users_hidden"');
+    try {
+      const profile = await ensureUserProfileFor(API_USER);
+
+      expect(profile?.username).toBe('user-user_api');
+    } finally {
+      await client.exec('ALTER TABLE "users_hidden" RENAME TO "users"');
+    }
+  });
+
+  it('web path: a passed identity wins over the users row', async () => {
+    await db.insert(users).values({ id: API_USER, name: 'Row Name', email: 'row@example.com' });
+
+    const profile = await ensureUserProfileFor(API_USER, { name: 'Session Name' });
+
+    expect(profile).toMatchObject({ username: 'session-name', display_name: 'Session Name' });
+  });
+
+  it('never changes an existing profile', async () => {
+    await ensureUserProfileFor(API_USER);
+    await db.insert(users).values({ id: API_USER, name: 'Late Name' });
+
+    const again = await ensureUserProfileFor(API_USER);
+
+    expect(again?.username).toBe('user-user_api');
   });
 });
 
