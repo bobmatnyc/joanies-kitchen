@@ -5,7 +5,7 @@
  */
 
 import type { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -70,7 +70,18 @@ afterAll(async () => {
   await client?.close();
 });
 
+// #180: the limiter uses fixed 60s windows on the real clock. A minute boundary crossed during the
+// 21 calls reset the count, so the over-limit call succeeded (CI flake). Pin Date mid-window so
+// no boundary can fall inside a test; only Date is faked, PGlite keeps its real timers.
+const PINNED_NOW = Date.UTC(2026, 9, 30, 12, 0, 30);
+
+afterEach(() => {
+  vi.useRealTimers(); // #180
+});
+
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] }); // #180
+  vi.setSystemTime(PINNED_NOW); // #180
   await client.exec('DELETE FROM "usage_counters"; DELETE FROM "crawl_cost_events";');
   state.dbDown = false;
   state.realClient = false;
