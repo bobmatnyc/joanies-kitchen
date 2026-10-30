@@ -209,7 +209,6 @@ describe('chef scraping job chef linking (#142)', () => {
 
 type SpiedDb = {
   batch: (...args: unknown[]) => Promise<unknown>;
-  delete: (...args: unknown[]) => unknown;
 };
 const NEW_URL = 'https://chef.com/beef-stew';
 const newRecipeRows = () =>
@@ -238,12 +237,10 @@ describe('a failed link on a newly inserted recipe, chef exists (#142)', () => {
   });
 
   it('reports both the link error and the delete error when the cleanup delete fails', async () => {
-    vi.spyOn(state.db as SpiedDb, 'batch').mockRejectedValueOnce(new Error('batch down'));
-    vi.spyOn(state.db as SpiedDb, 'delete').mockReturnValueOnce({
-      where: async () => {
-        throw new Error('delete down');
-      },
-    });
+    // #174: the cleanup delete is the second db.batch (delete + chef recount in one transaction).
+    vi.spyOn(state.db as SpiedDb, 'batch')
+      .mockRejectedValueOnce(new Error('batch down'))
+      .mockRejectedValueOnce(new Error('delete down'));
     const res = await scrapeOne(NEW_URL);
     expect(res).toEqual({
       success: false,
