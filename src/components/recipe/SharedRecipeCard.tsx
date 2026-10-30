@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
-import { toUsableImageUrl } from '@/lib/utils/recipe-image';
+import { parseRecipeTags, toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
 
 interface SharedRecipeCardProps {
@@ -29,7 +29,8 @@ interface SharedRecipeCardProps {
 export function SharedRecipeCard({ recipe, isSystemRecipe = false }: SharedRecipeCardProps) {
   const router = useRouter();
   const [isCopying, setIsCopying] = useState(false);
-  const tags = recipe.tags ? JSON.parse(recipe.tags as string) : [];
+  // #184: parseRecipeTags never throws on a malformed stored value.
+  const tags = parseRecipeTags(recipe.tags);
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
   // Use themed placeholder if no image available
