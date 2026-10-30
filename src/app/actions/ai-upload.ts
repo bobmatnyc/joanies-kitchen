@@ -126,10 +126,10 @@ export async function uploadRecipeFromUrl(url: string) {
     });
 
     // #185: og:image first, then the parser's pick; never a site logo or icon.
-    const imageUrl = pickRecipeImage({
-      ...metadataImageSources(scraped.metadata),
-      contentImages: parsed.imageUrl,
-    });
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scraped.metadata), contentImages: parsed.imageUrl },
+      url
+    );
 
     // Create recipe
     const recipe = await db

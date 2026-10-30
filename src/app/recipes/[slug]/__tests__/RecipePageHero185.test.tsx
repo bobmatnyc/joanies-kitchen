@@ -89,9 +89,11 @@ function recipeRow(images: string | null, image_url: string | null) {
   };
 }
 
+/** The placeholder hero is announced as a placeholder, never as "Plain Soup - Image 1". */
 async function heroSrc(): Promise<string | null> {
   render(<RecipePageClient params={Promise.resolve({ slug: 'plain-soup' })} />);
-  const hero = await screen.findByAltText('Plain Soup - Image 1');
+  const hero = await screen.findByAltText('Recipe placeholder');
+  expect(screen.queryByAltText('Plain Soup - Image 1')).toBeNull();
   return hero.getAttribute('src');
 }
 
@@ -112,5 +114,13 @@ describe('recipe page hero placeholder (#185)', () => {
       data: recipeRow(JSON.stringify([LOGO]), LOGO),
     });
     expect(await heroSrc()).toBe('/placeholders/generic.svg');
+  });
+
+  it('a real photo keeps the dish alt text', async () => {
+    const photo = 'https://x.test/uploads/Our-Signature-Margarita.jpg';
+    getRecipe.mockResolvedValue({ success: true, data: recipeRow(JSON.stringify([photo]), null) });
+    render(<RecipePageClient params={Promise.resolve({ slug: 'plain-soup' })} />);
+    const hero = await screen.findByAltText('Plain Soup - Image 1');
+    expect(hero.getAttribute('src')).toBe(photo);
   });
 });

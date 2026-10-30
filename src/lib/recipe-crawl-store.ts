@@ -45,11 +45,11 @@ export interface StoreRecipeMetadata {
  * Downloads and stores recipe images
  * For now, just validates and returns URLs (at most 6)
  */
-function downloadAndStoreImages(imageUrls: string[]): string[] {
+function downloadAndStoreImages(imageUrls: string[], pageUrl: string): string[] {
   // In production, you would download the images, upload them to cloud
   // storage (Vercel Blob, S3, etc.) and return the new URLs.
   // #185: absolute http(s) URLs only, and never a site logo or icon.
-  return pickRecipeImages({ contentImages: imageUrls }, 6);
+  return pickRecipeImages({ contentImages: imageUrls }, pageUrl, 6);
 }
 
 /**
@@ -268,7 +268,8 @@ export async function storeCrawledRecipe(
     );
     if (duplicate) return { success: false, error: duplicateSkipReason(duplicate), duplicate };
 
-    const storedImages = downloadAndStoreImages(recipe.images || []);
+    // #185: relative candidates resolve against the source page.
+    const storedImages = downloadAndStoreImages(recipe.images || [], metadata.sourceUrl);
 
     // Evaluate recipe quality with AI
     console.log(`[Store] Evaluating recipe quality for "${recipe.name}"`);

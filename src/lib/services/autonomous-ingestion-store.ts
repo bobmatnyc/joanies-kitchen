@@ -93,7 +93,7 @@ export async function storeIngestedRecipe(
   searchQuery: string
 ): Promise<string | null> {
   // #185: last check before the write; a site asset is stored as no image (NULL).
-  const imageUrl = pickRecipeImage({ contentImages: recipe.image_url });
+  const imageUrl = pickRecipeImage({ contentImages: recipe.image_url }, sourceUrl);
   const [newRecipe] = await db
     .insert(recipes)
     .values({

@@ -66,4 +66,11 @@ describe('extraction image picker (#185)', () => {
     const data = { '@type': 'Recipe', name: "Lion's Head", image: { url: LOGO } };
     expect(service().mapFirecrawlSchema(data, PAGE_URL, { ogImage: PHOTO })?.image_url).toBe(PHOTO);
   });
+
+  it('a relative body image is resolved against the page URL', () => {
+    const page = `![Logo](${LOGO})\n# Lion's Head\n![Dish](/wp-content/uploads/meatballs.jpg)`;
+    expect(service().parseMarkdown(page, undefined, PAGE_URL)?.image_url).toBe(
+      'https://omnivorescookbook.com/wp-content/uploads/meatballs.jpg'
+    );
+  });
 });

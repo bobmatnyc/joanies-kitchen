@@ -404,7 +404,7 @@ Return ONLY the JSON object, no other text.`;
         cuisine: data.cuisine,
         tags: data.tags ?? [],
         // #185: the LLM can pick the header logo; drop it rather than store a site asset.
-        image_url: pickRecipeImage({ contentImages: data.image_url }) ?? undefined,
+        image_url: pickRecipeImage({ contentImages: data.image_url }, url) ?? undefined,
         extraction_method: 'claude_structured',
       };
     } catch (error) {
@@ -444,7 +444,8 @@ Return ONLY the JSON object, no other text.`;
 
     // #185: og:image, then JSON-LD Recipe.image, then twitter:image; never a site asset.
     const imageUrl =
-      pickRecipeImage({ ...metadataImageSources(metadata), jsonLdImage: data.image }) ?? undefined;
+      pickRecipeImage({ ...metadataImageSources(metadata), jsonLdImage: data.image }, url) ??
+      undefined;
 
     const chefName =
       typeof data.author === 'string' ? data.author : (data.author as { name?: string })?.name;
@@ -485,10 +486,13 @@ Return ONLY the JSON object, no other text.`;
     const chefName = this.extractAuthorFromMarkdown(markdown, metadata);
     // #185: og:image, then twitter:image, then body images; a header logo is skipped.
     const imageUrl =
-      pickRecipeImage({
-        ...metadataImageSources(metadata),
-        contentImages: this.extractImagesFromMarkdown(markdown),
-      }) ?? undefined;
+      pickRecipeImage(
+        {
+          ...metadataImageSources(metadata),
+          contentImages: this.extractImagesFromMarkdown(markdown),
+        },
+        url
+      ) ?? undefined;
 
     return {
       url,
@@ -588,8 +592,9 @@ Return ONLY the JSON object, no other text.`;
   }
 
   // #185: every body image in order, so the picker can skip a logo that comes first.
+  // Relative paths are kept; the picker resolves them against the page URL.
   private extractImagesFromMarkdown(markdown: string): string[] {
-    return [...markdown.matchAll(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)/g)].map((m) => m[1]);
+    return [...markdown.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)].map((m) => m[1]);
   }
 
   // ---------------------------------------------------------------------------

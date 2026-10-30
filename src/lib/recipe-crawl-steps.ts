@@ -228,6 +228,7 @@ Important:
     // #185: the page's og:image leads; the LLM's picks follow, and site assets are dropped.
     extracted.images = pickRecipeImages(
       { ...metadataImageSources(scrapeResult.metadata), contentImages: extracted.images },
+      url,
       6
     );
 

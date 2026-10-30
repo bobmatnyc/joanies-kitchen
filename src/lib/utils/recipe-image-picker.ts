@@ -28,7 +28,7 @@ function flattenCandidates(value: unknown): unknown[] {
 }
 
 /**
- * Why: a scraped image must be an absolute remote photo; a relative path would resolve
+ * Why: a stored image must be an absolute remote photo; a relative path would resolve
  * against this app's domain, and a logo or icon is not a dish photo (#185).
  * What: the usable absolute http(s) URL, or null when the value is not one or
  * `isLikelySiteAsset` flags it.
@@ -40,13 +40,29 @@ export function toIngestibleImageUrl(value: unknown): string | null {
   return isLikelySiteAsset(url) ? null : url;
 }
 
+/** #185: a relative candidate (`/wp-content/uploads/x.jpg`) resolved against the page URL. */
+function resolveCandidate(candidate: unknown, baseUrl: string | null | undefined): unknown {
+  if (typeof candidate !== 'string' || !baseUrl) return candidate;
+  try {
+    return new URL(candidate.trim(), baseUrl).href;
+  } catch {
+    return candidate;
+  }
+}
+
 /**
  * Why: the page's own photo is nearly always its og:image (#185).
  * What: up to `max` distinct ingestible URLs, taken in the order og:image, JSON-LD
- * `Recipe.image`, twitter:image, in-content images. Empty when no candidate passes.
+ * `Recipe.image`, twitter:image, in-content images. A relative candidate is resolved
+ * against `baseUrl` (the page URL) first; without one it is dropped. Empty when no
+ * candidate passes.
  * Test: `recipe-image-185.test.ts` "pickRecipeImage".
  */
-export function pickRecipeImages(sources: RecipeImageSources, max = 1): string[] {
+export function pickRecipeImages(
+  sources: RecipeImageSources,
+  baseUrl: string | null | undefined,
+  max = 1
+): string[] {
   const ordered = [
     sources.ogImage,
     sources.jsonLdImage,
@@ -56,15 +72,18 @@ export function pickRecipeImages(sources: RecipeImageSources, max = 1): string[]
   const picked: string[] = [];
   for (const candidate of ordered) {
     if (picked.length >= max) break;
-    const url = toIngestibleImageUrl(candidate);
+    const url = toIngestibleImageUrl(resolveCandidate(candidate, baseUrl));
     if (url && !picked.includes(url)) picked.push(url);
   }
   return picked;
 }
 
 /** First image `pickRecipeImages` accepts, or null: never a site asset (#185). */
-export function pickRecipeImage(sources: RecipeImageSources): string | null {
-  return pickRecipeImages(sources, 1)[0] ?? null;
+export function pickRecipeImage(
+  sources: RecipeImageSources,
+  baseUrl: string | null | undefined
+): string | null {
+  return pickRecipeImages(sources, baseUrl, 1)[0] ?? null;
 }
 
 /** og:image and twitter:image from a Firecrawl `metadata` object, under either key style. */

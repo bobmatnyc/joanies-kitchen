@@ -43,6 +43,8 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
   // #179: shared helper never throws; a malformed value yields an empty (display) list. This
   // list is for display only: unless the user changes images (`imagesTouched`), submit omits
   // `images`/`image_url` so the stored values are kept as they are.
+  // #185: getRecipeImageUrls applies only the narrow read-side check
+  // (isDefinitelySiteAsset), so a photo the ingestion set would flag survives a save.
   const existingImages = getRecipeImageUrls(recipe?.images);
   const [imagesTouched, setImagesTouched] = useState(false);
 

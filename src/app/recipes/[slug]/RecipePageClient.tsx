@@ -65,7 +65,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useUser } from '@/lib/auth-client';
 import { getBaseUrl } from '@/lib/site-url';
-import { getRecipeHeroImages } from '@/lib/utils/recipe-image';
+import { getRecipeHero } from '@/lib/utils/recipe-image';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
 
 // #22: Auth.js session via the Clerk-shaped client shim.
@@ -452,6 +452,9 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
     return null;
   }
 
+  // #185: never empty; a placeholder hero carries the placeholder's own alt text.
+  const hero = getRecipeHero(recipe);
+
   return (
     <AdminEditModeProvider>
       {/* JSON-LD Structured Data for SEO */}
@@ -776,7 +779,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         {/* Images; #185: no usable image renders the shared placeholder, not nothing. */}
         <div className="mb-8">
           <ImageCarousel
-            images={getRecipeHeroImages(recipe)}
+            images={hero.images}
+            imageAlt={hero.placeholderAlt ?? undefined}
             title={recipe.name}
             recipeId={recipe.id}
             isFlagged={recipe.image_flagged_for_regeneration}

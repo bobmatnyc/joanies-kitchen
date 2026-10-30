@@ -4,7 +4,11 @@
  * `getHeroImage` copies passed straight to `<Image>` (objects, "", relative
  * paths), which rendered nothing on the home page.
  */
-import { getPlaceholderImage } from '@/lib/utils/recipe-placeholders';
+import {
+  getPlaceholderAlt,
+  getPlaceholderImage,
+  getPlaceholderTheme,
+} from '@/lib/utils/recipe-placeholders';
 
 /** Fields the resolver reads; satisfied by `Recipe` and the recipe-of-the-day payload. */
 export interface RecipeImageSource {
@@ -64,11 +68,35 @@ export function isLikelySiteAsset(value: string): boolean {
   return /(?:^|[^a-z0-9])1x1(?:[^a-z0-9]|$)/i.test(file);
 }
 
+// #185: the read-side subset. Each rule names an asset that is never a dish photo, so a
+// stored real photo (`Our-Signature-Margarita.jpg`, imgix `/themes/fall/`) is never hidden.
+const DEFINITE_SITE_ASSET_PATH_PATTERNS: readonly RegExp[] = [
+  /\.svgz?$/i,
+  /favicon/i,
+  /wp-content\/themes\//i, // WordPress theme assets only, not any /themes/ folder
+  /(?:^|[^a-z])logo/i,
+];
+
+/**
+ * Why: hiding a stored image on read must not hide a real photo, and RecipeForm writes
+ * the read-side list back on save, so a false positive deletes the photo (#185).
+ * What: true for a `data:` URI, or a path that ends in `.svg`, contains `favicon` or
+ * `wp-content/themes/`, or has a word starting with `logo`. A strict subset of
+ * `isLikelySiteAsset`; only the path is read.
+ * Test: `recipe-image-185.test.ts` "read-side guard".
+ */
+export function isDefinitelySiteAsset(value: string): boolean {
+  const raw = value.trim();
+  if (/^data:/i.test(raw)) return true;
+  const path = imagePathOf(raw);
+  return path !== null && DEFINITE_SITE_ASSET_PATH_PATTERNS.some((re) => re.test(path));
+}
+
 /**
  * Why: `<Image>` throws or renders nothing for a value that is not an absolute
  * http(s) URL or a root-relative path.
  * What: returns the trimmed URL when usable (protocol-relative `//host` is
- * upgraded to https), else null. A remote URL that `isLikelySiteAsset` flags
+ * upgraded to https), else null. A remote URL that `isDefinitelySiteAsset` flags
  * is not usable (#185); root-relative paths are this app's own files and pass.
  * Test: `recipe-image.test.ts` "toUsableImageUrl", `recipe-image-185.test.ts`.
  */
@@ -87,9 +115,9 @@ export function toUsableImageUrl(value: unknown): string | null {
   return null;
 }
 
-/** #185: a stored remote logo or icon is hidden on read, so the render path shows the placeholder. */
+/** #185: a stored remote logo is hidden on read; only the narrow read-side set applies. */
 function unlessSiteAsset(url: string): string | null {
-  return isLikelySiteAsset(url) ? null : url;
+  return isDefinitelySiteAsset(url) ? null : url;
 }
 
 /**
@@ -216,8 +244,27 @@ export function resolveRecipeImage(recipe: RecipeImageSource): string {
  * Test: `recipe-image-185.test.ts` "getRecipeHeroImages", `RecipePageHero185.test.tsx`.
  */
 export function getRecipeHeroImages(recipe: RecipeImageSource): string[] {
+  return getRecipeHero(recipe).images;
+}
+
+/**
+ * Why: a placeholder announced as "<dish> - Image 1" tells a screen-reader user a
+ * photo is there when none is (#185).
+ * What: the `getRecipeHeroImages` list, plus the placeholder's own alt text
+ * (`getPlaceholderAlt`) when the list is the placeholder, else null.
+ * Test: `recipe-image-185.test.ts` "getRecipeHeroImages", `RecipePageHero185.test.tsx`.
+ */
+export function getRecipeHero(recipe: RecipeImageSource): {
+  images: string[];
+  placeholderAlt: string | null;
+} {
   const urls = getRecipeImageUrls(recipe.images);
-  if (urls.length > 0) return urls;
+  if (urls.length > 0) return { images: urls, placeholderAlt: null };
   const single = toUsableImageUrl(recipe.image_url);
-  return [single ?? getPlaceholderImage(parseRecipeTags(recipe.tags))];
+  if (single) return { images: [single], placeholderAlt: null };
+  const tags = parseRecipeTags(recipe.tags);
+  return {
+    images: [getPlaceholderImage(tags)],
+    placeholderAlt: getPlaceholderAlt(getPlaceholderTheme(tags)),
+  };
 }

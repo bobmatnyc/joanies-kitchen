@@ -168,10 +168,10 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     console.log(`[Ingest API] Successfully parsed recipe: ${parsedRecipe.name}`);
 
     // #185: og:image first, then the parser's pick; a site logo or icon is stored as NULL.
-    const imageUrl = pickRecipeImage({
-      ...metadataImageSources(scrapeResult.metadata),
-      contentImages: parsedRecipe.image_url,
-    });
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scrapeResult.metadata), contentImages: parsedRecipe.image_url },
+      url
+    );
     const imagesJson = imageUrl ? JSON.stringify([imageUrl]) : null;
 
     // Step 4: Generate unique slug

@@ -170,10 +170,10 @@ async function scrapeAndParseRecipes(
         }
 
         // #185: og:image first, then the parser's pick; never a site logo or icon.
-        const imageUrl = pickRecipeImage({
-          ...metadataImageSources(page.metadata),
-          contentImages: parsed.imageUrl,
-        });
+        const imageUrl = pickRecipeImage(
+          { ...metadataImageSources(page.metadata), contentImages: parsed.imageUrl },
+          page.url || params.sourceUrl
+        );
 
         // Create recipe in database
         const recipe = await db
@@ -279,10 +279,10 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     if (duplicate) return await skippedResult(params.chefId, duplicate, params.url); // #135
 
     // #185: og:image first, then the parser's pick; never a site logo or icon.
-    const imageUrl = pickRecipeImage({
-      ...metadataImageSources(scraped.metadata),
-      contentImages: parsed.imageUrl,
-    });
+    const imageUrl = pickRecipeImage(
+      { ...metadataImageSources(scraped.metadata), contentImages: parsed.imageUrl },
+      params.url
+    );
 
     // Create recipe
     const recipe = await db
