@@ -1,7 +1,7 @@
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
-import { Inter, Lora, Playfair_Display } from 'next/font/google';
+import localFont from 'next/font/local';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
@@ -16,26 +16,38 @@ import { SITE_TITLE_TEMPLATE } from '@/lib/site-title';
 import './globals.css';
 
 // Joanie's Kitchen Typography
-const playfair = Playfair_Display({
+// #152: self-hosted variable woff2 (latin subset, SIL OFL; licenses in ./fonts) so a build
+// never fetches Google Fonts. Same CSS variables, weights and `display` as the former
+// next/font/google calls; the wght axis covers every weight those calls requested.
+const playfair = localFont({
   variable: '--font-heading',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  src: [
+    {
+      path: './fonts/playfair-display-latin-wght-normal.woff2',
+      weight: '400 700',
+      style: 'normal',
+    },
+    {
+      path: './fonts/playfair-display-latin-wght-italic.woff2',
+      weight: '400 700',
+      style: 'italic',
+    },
+  ],
   display: 'swap',
 });
 
-const lora = Lora({
+const lora = localFont({
   variable: '--font-body',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  src: [
+    { path: './fonts/lora-latin-wght-normal.woff2', weight: '400 700', style: 'normal' },
+    { path: './fonts/lora-latin-wght-italic.woff2', weight: '400 700', style: 'italic' },
+  ],
   display: 'swap',
 });
 
-const inter = Inter({
+const inter = localFont({
   variable: '--font-ui',
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  src: [{ path: './fonts/inter-latin-wght-normal.woff2', weight: '300 700', style: 'normal' }],
   display: 'swap',
 });
 
