@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **recipes**: old URLs of recipes merged away by the duplicate-recipe merge redirect to the surviving recipe. `/recipes/<old id or slug>` answers a 308 to the survivor's slug URL (its id URL if it has no slug); `GET /api/v1/recipes/<old id or slug>` and `GET /api/v1/recipes/<old id>/similar` answer a 308 to the survivor's API URL. The lookup reads `recipe_redirects` only when the recipe is missing or soft-deleted, never redirects a live recipe, and skips a survivor that is itself soft-deleted or not public (#135)
+
 ### Fixed
 
 - **search**: semantic search and `GET /api/v1/recipes/:id/similar` exclude soft-deleted recipes in SQL before the result limit, so deleted near-duplicates no longer take result slots and shorten the list. "Recipes Like This" no longer lists soft-deleted recipes to their owner or an admin. The embedding batch queries (`getAllRecipeEmbeddings`, `getRecipesNeedingEmbedding`) skip soft-deleted recipes, so a batch run does not embed or re-embed them (#135)
