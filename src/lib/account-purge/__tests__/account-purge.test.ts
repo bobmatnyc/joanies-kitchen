@@ -25,6 +25,7 @@ import { DELETION_GRACE_PERIOD_MS, markAccountDeleted } from '@/lib/account-dele
 import { seedExportDb } from '@/lib/account-export/__tests__/export-fixture';
 import { allSchemaTables } from '@/lib/account-export/__tests__/schema-modules';
 import { DELETED_USER_ID, PURGE_COLUMN_PLAN, purgeDueAccounts } from '@/lib/account-purge';
+import { purgeStatements } from '@/lib/account-purge/statements';
 import { apiKeyUsage } from '@/lib/db/api-keys-schema';
 import { verificationTokens } from '@/lib/db/auth-schema';
 import { recipeDiscoveryRunItems, recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
@@ -286,6 +287,56 @@ describe('purgeDueAccounts', () => {
     // The same blob is requested again on the re-run; Vercel's del is a no-op for a missing blob.
     expect(deletedBlobs()).toEqual([PRIVATE_BLOB, PRIVATE_BLOB]);
     expect(await dump()).not.toContain(fx.userA);
+  });
+});
+
+// #158: PGlite is one session, so it cannot interleave the purge with a rating.
+// This pins the issued order instead: rateRecipe/deleteRating lock the recipe row
+// before writing recipe_ratings, so the purge must lock its recipes rows first too.
+describe('#158 purge locks recipes rows before deleting ratings', () => {
+  const LOCK = /^select .+ from "recipes" where .+ order by "recipes"\."id" asc for update$/;
+  function purgeSql() {
+    const t = { userId: fx.userA, email: null, keepRecipes: true, cutoff: NOW };
+    return purgeStatements(t).map((q) => q.toSQL().sql);
+  }
+
+  it('takes one id-ordered FOR UPDATE lock before every recipe_ratings and recipes write', () => {
+    const sqls = purgeSql();
+    const lock = sqls.findIndex((s) => LOCK.test(s));
+    const ratingDeletes = sqls.flatMap((s, i) =>
+      /^delete from "recipe_ratings"/.test(s) ? [i] : []
+    );
+    const recipeWrites = sqls.flatMap((s, i) =>
+      /^(update|delete from) "recipes"/.test(s) ? [i] : []
+    );
+
+    expect(lock).toBeGreaterThan(-1);
+    expect(ratingDeletes).toHaveLength(2);
+    expect(recipeWrites.length).toBeGreaterThan(0);
+    for (const i of [...ratingDeletes, ...recipeWrites]) expect(i).toBeGreaterThan(lock);
+  });
+
+  it('locks the own recipes and every recipe naming the user as an actor, and no other', async () => {
+    await rows(
+      `INSERT INTO recipes (id, user_id, name, deleted_by) VALUES ('c-del', $1, 'D', $2)`,
+      [fx.userB, fx.userA]
+    );
+    await rows(
+      `INSERT INTO recipes (id, user_id, name, moderated_by) VALUES ('c-mod', $1, 'M', $2)`,
+      [fx.userB, fx.userA]
+    );
+    await rows(
+      `INSERT INTO recipes (id, user_id, name, image_regeneration_requested_by) VALUES ('c-img', $1, 'I', $2)`,
+      [fx.userB, fx.userA]
+    );
+    const t = { userId: fx.userA, email: null, keepRecipes: true, cutoff: NOW };
+    const lock = purgeStatements(t).find((q) => LOCK.test(q.toSQL().sql));
+    expect(lock).toBeDefined();
+
+    const locked = ((await lock) as { id: string }[]).map((r) => r.id);
+
+    expect([...locked].sort()).toEqual([recipeA, 'a-private', 'c-del', 'c-mod', 'c-img'].sort());
+    expect(locked).not.toContain(recipeB);
   });
 });
 
