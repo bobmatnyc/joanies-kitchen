@@ -3,7 +3,7 @@
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
-import { recountChefRecipes } from '@/lib/chef-recipe-count';
+import { deleteChefLockingRecipesFirst, recountChefRecipes } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -83,17 +83,13 @@ export async function deleteChef(id: string) {
   await requireAdmin();
 
   try {
-    // Get chef slug for revalidation
-    const chef = await db.query.chefs.findFirst({
-      where: eq(chefs.id, id),
-    });
+    // #189: one batch locks the chef's recipes, then the chef, then deletes it
+    // (the cascade drops chef_recipes; recipes.chef_id is set to NULL).
+    const [chef] = await deleteChefLockingRecipesFirst(id);
 
     if (!chef) {
       return { success: false, error: 'Chef not found' };
     }
-
-    // Delete chef (cascade will handle chef_recipes)
-    await db.delete(chefs).where(eq(chefs.id, id));
 
     revalidatePath('/discover/chefs');
     revalidatePath(`/chef/${chef.slug}`);
