@@ -5,6 +5,7 @@
  * into recipe pages and other contexts.
  */
 
+import { toUsableImageUrl } from '@/lib/utils/recipe-image';
 import { InventoryMatchSection } from './InventoryMatchSection';
 
 /**
@@ -60,7 +61,8 @@ export function RecipeCardWithMatchExample({ recipe }: { recipe: any }) {
   return (
     <div className="recipe-card border rounded-lg p-4 space-y-4">
       <h3 className="font-bold">{recipe.name}</h3>
-      <img src={recipe.image_url} alt={recipe.name} />
+      {/* #179: guard the stored image_url */}
+      <img src={toUsableImageUrl(recipe.image_url) ?? undefined} alt={recipe.name} />
 
       {/* Compact version for cards */}
       <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} className="text-sm" />

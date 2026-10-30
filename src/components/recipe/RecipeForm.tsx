@@ -18,6 +18,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import type { Recipe } from '@/lib/db/schema';
 import { toast } from '@/lib/toast';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 import { ImageUploader } from './ImageUploader';
 
 interface RecipeFormProps {
@@ -34,7 +35,9 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
     ? JSON.parse(recipe.instructions as string)
     : [''];
   const existingTags = recipe?.tags ? JSON.parse(recipe.tags as string) : [];
-  const existingImages = recipe?.images ? JSON.parse(recipe.images as string) : [];
+  // #179: shared helper never throws; a malformed value yields an empty list and the stored
+  // value is untouched until the user saves.
+  const existingImages = getRecipeImageUrls(recipe?.images);
 
   const [formData, setFormData] = useState({
     name: recipe?.name || '',

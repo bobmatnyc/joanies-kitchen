@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toUsableImageUrl } from '@/lib/utils/recipe-image';
 
 interface ImageEditorProps {
   recipeId: string;
@@ -131,7 +132,8 @@ export function ImageEditor({
     onOpenChange(false);
   };
 
-  const displayImageUrl = previewUrl || currentImageUrl;
+  // #179: the stored image_url goes through the shared guard; the local upload preview stays as is.
+  const displayImageUrl = previewUrl || toUsableImageUrl(currentImageUrl);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

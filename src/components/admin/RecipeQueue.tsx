@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { getRecipeImageUrls } from '@/lib/utils/recipe-image';
 import { ModerationActionDialog } from './ModerationActionDialog';
 import { RecipePreviewModal } from './RecipePreviewModal';
 
@@ -104,8 +105,8 @@ export function RecipeQueue({ recipes: initialRecipes }: RecipeQueueProps) {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {recipes.map((recipe) => {
-          const images = recipe.images ? JSON.parse(recipe.images) : [];
-          const firstImage = images[0] || '/placeholder-recipe.jpg';
+          // #179: shared helper never throws on a malformed `images` value and drops data: URIs.
+          const firstImage = getRecipeImageUrls(recipe.images)[0] || '/placeholder-recipe.jpg';
 
           return (
             <Card key={recipe.id} className="overflow-hidden">

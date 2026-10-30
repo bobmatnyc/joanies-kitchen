@@ -110,6 +110,15 @@ export function getRecipeImageUrls(images: unknown): string[] {
     .filter((u): u is string => u !== null);
 }
 
+/**
+ * #179: re-serializes `images` for an API payload that keeps the stored string shape.
+ * Returns a JSON array string of usable URLs only, or null when none remain.
+ */
+export function serializeUsableImages(images: unknown): string | null {
+  const urls = getRecipeImageUrls(images);
+  return urls.length > 0 ? JSON.stringify(urls) : null;
+}
+
 /** Parses `tags` into strings; never throws. */
 export function parseRecipeTags(tags: unknown): string[] {
   const list = Array.isArray(tags) ? tags : parseRecipeImages(tags);
