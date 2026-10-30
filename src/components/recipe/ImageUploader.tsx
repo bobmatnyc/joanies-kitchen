@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/lib/toast';
+import { swapToFallbackImage } from '@/lib/utils/image-fallback';
 
 interface ImageUploaderProps {
   images: string[];
@@ -70,10 +71,7 @@ function SortableImage({
         src={url}
         alt={`Recipe ${index + 1}`}
         className="w-full h-full object-cover"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.src = '/api/placeholder/400/400';
-        }}
+        onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
       />
       {isUploading && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
