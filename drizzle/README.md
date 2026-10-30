@@ -39,6 +39,8 @@ TypeScript admin scripts use `src/lib/db/admin-db-url.ts`: `adminDbUrl(url, purp
 
 `0005` (#135) creates two new tables, `recipe_redirects` and `dedup_135_ledger`, for the duplicate-recipe merge (`scripts/dedup-135/apply.ts`). It touches no existing table; the only new constraint on existing data is the `recipe_redirects.to_recipe_id` FK to `recipes`. Not applied to production yet.
 
+`0006` (#131) is one `CREATE INDEX ... USING hnsw ("embedding" vector_cosine_ops) WITH (m = 16, ef_construction = 64)` on `recipe_embeddings`. It needs pgvector >= 0.8.0, for the `hnsw.iterative_scan` setting `findSimilarRecipes` uses. It does not use `CONCURRENTLY`, for the same transaction reason as `0004`; the build blocks writes to `recipe_embeddings` while it runs (1.28 s for 5039 rows on a Neon branch of production). Not applied to production yet.
+
 Do not edit a migration after it is applied anywhere: the migrator stores each file's sha256.
 
 ## `baseline-mark-applied.sql`

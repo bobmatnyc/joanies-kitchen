@@ -43,6 +43,13 @@
       "when": 1793328018757,
       "tag": "0005_dedup_135_redirects_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793366674915,
+      "tag": "0006_recipe_embeddings_hnsw",
+      "breakpoints": true
     }
   ]
 }

@@ -5,8 +5,9 @@
  * real unique keys and FKs, so a constraint-free fixture would prove nothing.
  * What: applies every migration in `drizzle/meta/_journal.json` (0005 creates
  * `recipe_redirects` and `dedup_135_ledger`) to a fresh PGlite with pg_trgm.
- * PGlite ships no pgvector, so two substitutions apply: the
- * `CREATE EXTENSION vector` line is dropped and `vector(384)` becomes `real[]`.
+ * PGlite ships no pgvector, so three substitutions apply: the
+ * `CREATE EXTENSION vector` line is dropped, `vector(384)` becomes `real[]`,
+ * and a `USING hnsw` index statement (#131, 0006) is skipped.
  * Test: `dedup-merge-apply.test.ts`, `dedup-merge-rollback.test.ts`
  */
 import { readFileSync } from 'node:fs';
@@ -29,7 +30,8 @@ export async function createMigratedDb(): Promise<PGlite> {
       .replace(/^CREATE EXTENSION IF NOT EXISTS vector;/m, '')
       .replace(/vector\(384\)/g, 'real[]');
     for (const stmt of text.split('--> statement-breakpoint')) {
-      if (stmt.trim()) await db.exec(stmt);
+      // #131: PGlite has no hnsw access method; the index changes no data.
+      if (stmt.trim() && !/USING hnsw/.test(stmt)) await db.exec(stmt);
     }
   }
   return db;

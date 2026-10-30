@@ -190,6 +190,17 @@ export async function updateRecipeEmbedding(
   return saveRecipeEmbedding(recipeId, embedding, embeddingText, modelName);
 }
 
+/** #131: `hnsw.ef_search` for findSimilarRecipes; at 100 the Neon dry run planner chose a seq scan. */
+export const HNSW_EF_SEARCH = 40;
+
+/**
+ * #131: kNN over-fetch K = max(100, limit * 4). The index returns K nearest
+ * rows before the visibility, soft-delete and cutoff filters run.
+ */
+export function knnCandidateCount(limit: number): number {
+  return Math.max(100, limit * 4);
+}
+
 /**
  * Finds similar recipes using vector similarity search
  * Uses cosine distance to find nearest neighbors
@@ -201,6 +212,9 @@ export async function updateRecipeEmbedding(
  *   is a predicate on `recipes` (e.g. `recipeVisibilityCondition(viewer)`);
  *   `excludeRecipeId` drops one recipe (the source) from the candidates.
  * @returns Array of recipe embeddings sorted by similarity (most similar first)
+ *
+ * Test: `src/lib/db/__tests__/embeddings-knn.test.ts`,
+ * `src/lib/db/__tests__/embeddings-soft-delete.test.ts`
  *
  * @example
  * const similar = await findSimilarRecipes(queryEmbedding, 5, SEARCH_MIN_SIMILARITY);
@@ -225,40 +239,62 @@ export async function findSimilarRecipes(
     }
 
     // Convert to pgvector format
-    const vectorString = `[${queryEmbedding.join(',')}]`;
+    const vector = sql`${`[${queryEmbedding.join(',')}]`}::vector`;
 
-    // #96: filter before LIMIT, so hidden recipes and the source cannot fill
-    // every slot. The subquery reads unaliased `recipes`, which is how drizzle
-    // renders the visibility predicate's columns.
-    const visibilityFilter = options.visibility
-      ? sql`AND e.recipe_id IN (SELECT ${recipes.id} FROM ${recipes} WHERE ${options.visibility})`
-      : sql``;
+    // #96: filter before the outer LIMIT, so hidden recipes and the source
+    // cannot fill every slot. The predicate reads unaliased `recipes`, which is
+    // how drizzle renders the visibility condition's columns.
+    const visibilityFilter = options.visibility ? sql`AND (${options.visibility})` : sql``;
     const excludeFilter = options.excludeRecipeId
-      ? sql`AND e.recipe_id <> ${options.excludeRecipeId}`
+      ? sql`AND knn.recipe_id <> ${options.excludeRecipeId}`
       : sql``;
 
-    // #135: `r.deleted_at IS NULL` runs before LIMIT for every caller, with or
-    // without a visibility filter, so soft-deleted recipes never fill a slot.
-    // Query using cosine distance
-    // Note: Smaller distance = more similar
-    // Cosine distance = 1 - cosine_similarity
-    // So we convert back: similarity = 1 - distance
-    const results = await db.execute(sql`
-      SELECT
-        e.*,
-        (1 - (e.embedding <=> ${vectorString}::vector)) as similarity,
-        r.name as recipe_name,
-        r.description as recipe_description,
-        r.cuisine as recipe_cuisine
-      FROM recipe_embeddings e
-      JOIN recipes r ON e.recipe_id = r.id
-      WHERE (1 - (e.embedding <=> ${vectorString}::vector)) >= ${minSimilarity}
-        AND r.deleted_at IS NULL
-        ${visibilityFilter}
-        ${excludeFilter}
-      ORDER BY e.embedding <=> ${vectorString}::vector
-      LIMIT ${limit}
-    `);
+    // #131: `knn` reads only ids and distance, ordered by `<=>` with a LIMIT, so
+    // the planner can use the HNSW index (migration 0006). MATERIALIZED keeps
+    // the filters below out of the index scan. Over-fetch K rows so hidden,
+    // soft-deleted (#135) and below-cutoff neighbours still leave `limit` rows.
+    // `hits` joins `recipes` and filters; the wide `e.*` columns are read only
+    // for the final rows. similarity = 1 - cosine distance.
+    const knnQuery = sql`
+      WITH knn AS MATERIALIZED (
+        SELECT e.id, e.recipe_id, e.embedding <=> ${vector} AS dist
+        FROM recipe_embeddings e
+        ORDER BY e.embedding <=> ${vector}
+        LIMIT ${knnCandidateCount(limit)}
+      ),
+      hits AS MATERIALIZED (
+        SELECT knn.id, knn.dist,
+          recipes.name AS recipe_name,
+          recipes.description AS recipe_description,
+          recipes.cuisine AS recipe_cuisine
+        FROM knn
+        JOIN recipes ON recipes.id = knn.recipe_id
+        WHERE recipes.deleted_at IS NULL
+          AND (1 - knn.dist) >= ${minSimilarity}
+          ${visibilityFilter}
+          ${excludeFilter}
+        ORDER BY knn.dist
+        LIMIT ${limit}
+      )
+      SELECT e.*, (1 - hits.dist) AS similarity,
+        hits.recipe_name, hits.recipe_description, hits.recipe_cuisine
+      FROM hits
+      JOIN recipe_embeddings e ON e.id = hits.id
+      ORDER BY hits.dist
+    `;
+
+    // #131: SET LOCAL lasts until the end of the current transaction, so it
+    // must share one with the SELECT. On neon-http `db.batch` sends all three
+    // statements in one HTTP request that runs as one transaction
+    // (`neon().transaction`). ef_search 40 keeps the planner on the index, but
+    // one HNSW pass returns at most ~ef_search rows, fewer than K; the
+    // iterative scan keeps going until K. relaxed_order may emit slightly
+    // out of order; the ORDER BY in `hits` re-sorts.
+    const [, , results] = await db.batch([
+      db.execute(sql.raw(`SET LOCAL hnsw.ef_search = ${HNSW_EF_SEARCH}`)),
+      db.execute(sql.raw('SET LOCAL hnsw.iterative_scan = relaxed_order')),
+      db.execute(knnQuery),
+    ]);
 
     return results.rows as any[];
   } catch (error: any) {

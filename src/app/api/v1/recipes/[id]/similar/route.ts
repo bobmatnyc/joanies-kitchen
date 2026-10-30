@@ -7,7 +7,7 @@
  * Authorization: Scope-based permissions
  */
 
-import { eq, or } from 'drizzle-orm';
+import { and, inArray, isNull } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
 import {
@@ -20,12 +20,11 @@ import {
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { findSimilarRecipes, getRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
-import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { apiRecipeRedirect } from '@/lib/recipe-redirects';
+import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { similarRecipesQuerySchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -91,80 +90,32 @@ export const GET = requireScopes(
         return apiNotFound('No embedding available for this recipe. Semantic search not possible');
       }
 
-      // Find similar recipes using vector similarity (defaults guaranteed by schema)
+      // #131: visibility, soft-delete and the source run inside the kNN query,
+      // before its LIMIT, so hidden neighbours cannot leave the list short.
+      const viewer = await getRecipeViewer();
+      const visibility = recipeVisibilityCondition(viewer);
       const similarResults = await findSimilarRecipes(
         embedding.embedding,
-        validatedQuery.limit! + 1, // +1 to exclude source recipe
-        validatedQuery.minSimilarity!
+        validatedQuery.limit!, // defaults guaranteed by schema
+        validatedQuery.minSimilarity!,
+        { visibility, excludeRecipeId: sourceRecipe.id }
       );
 
-      // Filter out the source recipe and recipes user doesn't have access to
-      const { userId } = await auth();
-
-      // Fetch full recipe details for similar recipes
-      const similarRecipeIds = similarResults
-        .map((result) => result.recipe_id)
-        .filter((recipeId) => recipeId !== sourceRecipe.id); // Exclude source recipe
-
+      const similarRecipeIds = similarResults.map((result) => result.recipe_id);
       if (similarRecipeIds.length === 0) {
-        return apiSuccess({
-          sourceRecipe,
-          similarRecipes: [],
-        });
+        return apiSuccess({ sourceRecipe, similarRecipes: [] });
       }
 
-      // Build access condition
-      const _accessCondition = userId
-        ? or(eq(recipes.user_id, userId), publicRecipe)
-        : publicRecipe;
-
-      // Fetch similar recipes with proper access control
-      const _similarRecipesData = await db
+      // #131: one query for the full rows (was one per id); the visibility
+      // condition repeats so a recipe hidden in between is still dropped.
+      const rows = await db
         .select()
         .from(recipes)
-        .where(eq(recipes.id, similarRecipeIds[0]));
-
-      // Fetch all similar recipes
-      const allSimilarRecipes = await Promise.all(
-        similarRecipeIds.map(async (recipeId) => {
-          const recipeResult = await db
-            .select()
-            .from(recipes)
-            .where(eq(recipes.id, recipeId))
-            .limit(1);
-
-          if (recipeResult.length === 0) {
-            return null;
-          }
-
-          const recipe = recipeResult[0];
-
-          // Check access
-          if (!isPublicRecipe(recipe) && recipe.user_id !== userId) {
-            return null; // User doesn't have access
-          }
-
-          // Exclude soft-deleted recipes
-          if (recipe.deleted_at) {
-            return null;
-          }
-
-          // Find similarity score
-          const similarResult = similarResults.find((r) => r.recipe_id === recipeId);
-          const similarity = similarResult?.similarity || 0;
-
-          return {
-            ...recipe,
-            similarity,
-          };
-        })
-      );
-
-      // Filter out null values and sort by similarity (limit guaranteed by schema)
-      const filteredSimilarRecipes = allSimilarRecipes
-        .filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== null)
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, validatedQuery.limit!);
+        .where(and(inArray(recipes.id, similarRecipeIds), isNull(recipes.deleted_at), visibility));
+      const similarity = new Map(similarResults.map((r) => [r.recipe_id, Number(r.similarity)]));
+      const filteredSimilarRecipes = rows
+        .map((recipe) => ({ ...recipe, similarity: similarity.get(recipe.id) ?? 0 }))
+        .sort((a, b) => b.similarity - a.similarity);
 
       return apiSuccess({
         sourceRecipe,
