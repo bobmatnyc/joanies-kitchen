@@ -1,17 +1,10 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import {
-  recipeComments,
-  recipeForks,
-  recipeLikes,
-  recipes,
-} from '@/lib/db/schema';
+import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
-import {
-  ANONYMOUS_VIEWER,
-  type RecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
+import type { ProfileIdentity } from '@/lib/ensure-user-profile';
+import * as favoritesCore from '@/lib/favorites';
+import { ANONYMOUS_VIEWER, type RecipeViewer } from '@/lib/recipe-visibility';
 
 /**
  * SocialService - Business logic for social features
@@ -27,6 +20,8 @@ import {
 export class SocialService {
   // ==================
   // FAVORITES (LIKES)
+  // #167 (D26): every method here delegates to the favorites core (`favorites`
+  // table). `recipe_likes` is no longer read or written.
   // ==================
 
   /**
@@ -35,61 +30,40 @@ export class SocialService {
   async getFavorites(
     userId: string,
     viewer: RecipeViewer = ANONYMOUS_VIEWER
-  ): Promise<typeof recipes.$inferSelect[]> {
-    const likedRecipes = await db
-      .select({
-        recipe: recipes,
-      })
-      .from(recipeLikes)
-      .innerJoin(recipes, eq(recipeLikes.recipe_id, recipes.id))
-      .where(
-        and(
-          eq(recipeLikes.user_id, userId),
-          recipeVisibilityCondition(viewer) // #41: only recipes the viewer may read
-        )
-      )
-      .orderBy(desc(recipeLikes.created_at));
-
-    return likedRecipes.map((lr) => lr.recipe);
+  ): Promise<(typeof recipes.$inferSelect)[]> {
+    // #41: only recipes the viewer may read
+    const rows = await favoritesCore.listFavorites(userId, viewer);
+    return rows.map((r) => r.recipe);
   }
 
   /**
-   * Add a recipe to user's favorites
+   * Add a recipe to user's favorites. Idempotent: a repeat call is a no-op.
+   * Creates the user's profile first when missing (`favorites` FK).
+   * Throws when the profile cannot be created.
    */
-  async addFavorite(userId: string, recipeId: string): Promise<void> {
-    // Check if already liked
-    const existingLike = await this.isFavorite(userId, recipeId);
-
-    if (existingLike) {
-      return; // Already favorited, idempotent operation
+  async addFavorite(
+    userId: string,
+    recipeId: string,
+    identity: ProfileIdentity | null = null
+  ): Promise<void> {
+    const result = await favoritesCore.addFavorite(userId, recipeId, identity);
+    if (result.status === 'no-profile') {
+      throw new Error('Failed to create user profile');
     }
-
-    await db.insert(recipeLikes).values({
-      recipe_id: recipeId,
-      user_id: userId,
-    });
   }
 
   /**
    * Remove a recipe from user's favorites
    */
   async removeFavorite(userId: string, recipeId: string): Promise<void> {
-    await db
-      .delete(recipeLikes)
-      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)));
+    await favoritesCore.removeFavorite(userId, recipeId);
   }
 
   /**
    * Check if a user has favorited a recipe
    */
   async isFavorite(userId: string, recipeId: string): Promise<boolean> {
-    const [result] = await db
-      .select()
-      .from(recipeLikes)
-      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)))
-      .limit(1);
-
-    return !!result;
+    return favoritesCore.isFavorite(userId, recipeId);
   }
 
   /**
@@ -133,15 +107,10 @@ export class SocialService {
   }
 
   /**
-   * Get total like count for a recipe
+   * Get total like count for a recipe: the number of `favorites` rows.
    */
   async getLikeCount(recipeId: string): Promise<number> {
-    const [result] = await db
-      .select({ count: count() })
-      .from(recipeLikes)
-      .where(eq(recipeLikes.recipe_id, recipeId));
-
-    return result?.count || 0;
+    return favoritesCore.getFavoriteCount(recipeId);
   }
 
   // ==================
@@ -151,9 +120,7 @@ export class SocialService {
   /**
    * Get comments for a recipe
    */
-  async getComments(
-    recipeId: string
-  ): Promise<
+  async getComments(recipeId: string): Promise<
     Array<{
       id: string;
       user_id: string;
@@ -182,12 +149,7 @@ export class SocialService {
       })
       .from(recipeComments)
       .leftJoin(userProfiles, eq(recipeComments.user_id, userProfiles.user_id))
-      .where(
-        and(
-          eq(recipeComments.recipe_id, recipeId),
-          eq(recipeComments.is_flagged, false)
-        )
-      )
+      .where(and(eq(recipeComments.recipe_id, recipeId), eq(recipeComments.is_flagged, false)))
       .orderBy(desc(recipeComments.created_at));
 
     return commentsWithProfiles.map((c) => ({
@@ -288,9 +250,7 @@ export class SocialService {
     const [result] = await db
       .select({ count: count() })
       .from(recipeComments)
-      .where(
-        and(eq(recipeComments.recipe_id, recipeId), eq(recipeComments.is_flagged, false))
-      );
+      .where(and(eq(recipeComments.recipe_id, recipeId), eq(recipeComments.is_flagged, false)));
 
     return result?.count || 0;
   }
@@ -302,10 +262,7 @@ export class SocialService {
   /**
    * Fork a recipe (create a copy)
    */
-  async forkRecipe(
-    userId: string,
-    originalRecipeId: string
-  ): Promise<typeof recipes.$inferSelect> {
+  async forkRecipe(userId: string, originalRecipeId: string): Promise<typeof recipes.$inferSelect> {
     // Get the original recipe
     const [originalRecipe] = await db
       .select()

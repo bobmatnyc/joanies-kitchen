@@ -203,6 +203,23 @@ describe('purgeDueAccounts', () => {
     expect(await dump()).not.toContain(fx.userA);
   });
 
+  it('#167 (D26): recounts like_count for recipes the purged user favorited', async () => {
+    // A and B both favorited B's recipe (B's row comes from the fixture); like_count says 2.
+    await rows(
+      `INSERT INTO favorites (id, user_id, recipe_id) VALUES (gen_random_uuid(), $1, $2)`,
+      [fx.userA, recipeB]
+    );
+    await rows('UPDATE recipes SET like_count = 2 WHERE id = $1', [recipeB]);
+    await requestDeletion(fx.userA, false, 31);
+
+    const result = await purgeDueAccounts(NOW);
+
+    expect(result.purged).toEqual([fx.userA]);
+    expect(await rows('SELECT like_count FROM recipes WHERE id = $1', [recipeB])).toEqual([
+      { like_count: 1 },
+    ]);
+  });
+
   it('leaves a day-29 account and an admin untouched', async () => {
     await requestDeletion(fx.userA, false, 29);
     await addUser('admin-1', { is_admin: true });
@@ -316,7 +333,7 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
     for (const i of [...ratingDeletes, ...recipeWrites]) expect(i).toBeGreaterThan(lock);
   });
 
-  it('locks the own recipes and every recipe naming the user as an actor, and no other', async () => {
+  it('locks the own recipes, every recipe naming the user as an actor or favorited by them, and no other', async () => {
     await rows(
       `INSERT INTO recipes (id, user_id, name, deleted_by) VALUES ('c-del', $1, 'D', $2)`,
       [fx.userB, fx.userA]
@@ -329,13 +346,21 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
       `INSERT INTO recipes (id, user_id, name, image_regeneration_requested_by) VALUES ('c-img', $1, 'I', $2)`,
       [fx.userB, fx.userA]
     );
+    // #167 (D26): the like_count recount writes recipes the user favorited.
+    await rows(`INSERT INTO recipes (id, user_id, name) VALUES ('c-fav', $1, 'F')`, [fx.userB]);
+    await rows(
+      `INSERT INTO favorites (id, user_id, recipe_id) VALUES (gen_random_uuid(), $1, 'c-fav')`,
+      [fx.userA]
+    );
     const t = { userId: fx.userA, email: null, keepRecipes: true, cutoff: NOW };
     const lock = purgeStatements(t).find((q) => LOCK.test(q.toSQL().sql));
     expect(lock).toBeDefined();
 
     const locked = ((await lock) as { id: string }[]).map((r) => r.id);
 
-    expect([...locked].sort()).toEqual([recipeA, 'a-private', 'c-del', 'c-mod', 'c-img'].sort());
+    expect([...locked].sort()).toEqual(
+      [recipeA, 'a-private', 'c-del', 'c-mod', 'c-img', 'c-fav'].sort()
+    );
     expect(locked).not.toContain(recipeB);
   });
 });

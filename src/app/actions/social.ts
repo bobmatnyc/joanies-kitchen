@@ -6,26 +6,18 @@ import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { requireAdmin } from '@/lib/admin';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { recipeComments, recipeForks, recipeLikes, recipes } from '@/lib/db/schema';
+import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
-import {
-  canViewRecipe,
-  findViewableRecipe,
-  getRecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
+import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
+
+// #167 (D26): the recipe_likes actions (toggleRecipeLike, getRecipeLikesCount,
+// hasUserLikedRecipe, getUserLikedRecipes) are gone; likes are favorites now
+// (`@/app/actions/favorites`, `@/lib/favorites`).
 
 // ==================
 // TYPE DEFINITIONS
 // ==================
-
-export interface LikeToggleResult {
-  success: boolean;
-  liked?: boolean;
-  likesCount?: number;
-  error?: string;
-}
 
 export interface DataResult<T> {
   success: boolean;
@@ -36,178 +28,6 @@ export interface DataResult<T> {
 export interface SuccessResult {
   success: boolean;
   error?: string;
-}
-
-// ==================
-// RECIPE LIKES
-// ==================
-
-/**
- * Toggle like on a recipe (add if not liked, remove if liked)
- */
-export async function toggleRecipeLike(recipeId: string): Promise<LikeToggleResult> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Authentication required' };
-    }
-
-    // Check if user already liked this recipe
-    const existingLike = await db
-      .select()
-      .from(recipeLikes)
-      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)))
-      .limit(1);
-
-    if (existingLike.length > 0) {
-      // Unlike: remove the like
-      await db
-        .delete(recipeLikes)
-        .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)));
-
-      // Get updated count
-      const likesCount = await getRecipeLikesCount(recipeId);
-
-      revalidatePath(`/recipes/${recipeId}`);
-      revalidatePath('/recipes');
-      revalidatePath('/discover');
-
-      return {
-        success: true,
-        liked: false,
-        likesCount: likesCount.data || 0,
-      };
-    } else {
-      // #41: a recipe the caller cannot see is answered as nonexistent.
-      if (!(await findViewableRecipe(recipeId, await getRecipeViewer()))) {
-        return { success: false, error: 'Recipe not found' };
-      }
-
-      // Like: add new like
-      await db.insert(recipeLikes).values({
-        recipe_id: recipeId,
-        user_id: userId,
-      });
-
-      // Get updated count
-      const likesCount = await getRecipeLikesCount(recipeId);
-
-      revalidatePath(`/recipes/${recipeId}`);
-      revalidatePath('/recipes');
-      revalidatePath('/discover');
-
-      return {
-        success: true,
-        liked: true,
-        likesCount: likesCount.data || 0,
-      };
-    }
-  } catch (error) {
-    console.error('[toggleRecipeLike] Error:', error);
-    return {
-      success: false,
-      error: toErrorMessage(error),
-    };
-  }
-}
-
-/**
- * Get total likes count for a recipe
- */
-export async function getRecipeLikesCount(recipeId: string): Promise<DataResult<number>> {
-  try {
-    const result = await db
-      .select({ count: count() })
-      .from(recipeLikes)
-      .where(eq(recipeLikes.recipe_id, recipeId));
-
-    return {
-      success: true,
-      data: result[0]?.count || 0,
-    };
-  } catch (error) {
-    console.error('[getRecipeLikesCount] Error:', error);
-    return {
-      success: false,
-      error: toErrorMessage(error),
-      data: 0,
-    };
-  }
-}
-
-/**
- * Check if current user has liked a recipe
- */
-export async function hasUserLikedRecipe(recipeId: string): Promise<DataResult<boolean>> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: true, data: false };
-    }
-
-    const result = await db
-      .select()
-      .from(recipeLikes)
-      .where(and(eq(recipeLikes.recipe_id, recipeId), eq(recipeLikes.user_id, userId)))
-      .limit(1);
-
-    return {
-      success: true,
-      data: result.length > 0,
-    };
-  } catch (error) {
-    console.error('[hasUserLikedRecipe] Error:', error);
-    return {
-      success: false,
-      error: toErrorMessage(error),
-      data: false,
-    };
-  }
-}
-
-/**
- * Get recipes liked by current user
- */
-export async function getUserLikedRecipes(): Promise<
-  DataResult<Array<{ recipe: typeof recipes.$inferSelect; likedAt: Date | null }>>
-> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Authentication required', data: [] };
-    }
-
-    const likedRecipes = await db
-      .select({
-        recipe: recipes,
-        likedAt: recipeLikes.created_at,
-      })
-      .from(recipeLikes)
-      .innerJoin(recipes, eq(recipeLikes.recipe_id, recipes.id))
-      .where(
-        and(
-          eq(recipeLikes.user_id, userId),
-          // #41: drop liked recipes the viewer can no longer read.
-          recipeVisibilityCondition(await getRecipeViewer())
-        )
-      )
-      .orderBy(desc(recipeLikes.created_at));
-
-    return {
-      success: true,
-      data: likedRecipes,
-    };
-  } catch (error) {
-    console.error('[getUserLikedRecipes] Error:', error);
-    return {
-      success: false,
-      error: toErrorMessage(error),
-      data: [],
-    };
-  }
 }
 
 // ==================

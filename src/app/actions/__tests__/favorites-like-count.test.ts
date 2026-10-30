@@ -2,8 +2,8 @@
 /**
  * #167: `removeFavorite` decrements `recipes.like_count` only when its DELETE
  * removed a favorites row. Runs against real Postgres (PGlite). `addFavorite`
- * needs no matching guard: `favorites_unique` makes a duplicate insert throw
- * before the increment runs, which the last test pins.
+ * increments only when its insert added a row (D26: `ON CONFLICT DO NOTHING`
+ * in the same statement), and `toggleFavorite`'s remove path decrements too.
  */
 
 import type { PGlite } from '@electric-sql/pglite';
@@ -25,11 +25,8 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
-vi.mock('@/app/actions/user-profiles', () => ({
-  ensureUserProfile: async () => ({ user_id: state.userId }),
-}));
 
-import { addFavorite, removeFavorite } from '@/app/actions/favorites';
+import { addFavorite, removeFavorite, toggleFavorite } from '@/app/actions/favorites';
 import * as schema from '@/lib/db/schema';
 import { favorites, userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -122,8 +119,23 @@ describe('#167 removeFavorite like_count', () => {
   });
 });
 
+describe('#167 (D26) toggleFavorite like_count', () => {
+  it('add then remove nets 0; a repeat remove changes nothing', async () => {
+    await seed(3, false);
+
+    expect(await toggleFavorite(RECIPE)).toEqual({ success: true, isFavorited: true });
+    expect(await likeCount()).toBe(4);
+
+    expect(await toggleFavorite(RECIPE)).toEqual({ success: true, isFavorited: false });
+    expect(await likeCount()).toBe(3);
+
+    expect(await removeFavorite(RECIPE)).toEqual({ success: true });
+    expect(await likeCount()).toBe(3);
+  });
+});
+
 describe('#167 addFavorite like_count', () => {
-  it('a duplicate add fails on favorites_unique and does not increment', async () => {
+  it('a duplicate add answers "already in favorites" and does not increment', async () => {
     await seed(0, false);
 
     expect(await addFavorite(RECIPE)).toMatchObject({ success: true });
