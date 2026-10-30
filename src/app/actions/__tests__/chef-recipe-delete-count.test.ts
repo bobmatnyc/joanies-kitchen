@@ -27,6 +27,7 @@ import { revalidatePath } from 'next/cache';
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import { adminBulkDeleteRecipes, adminDeleteRecipe } from '@/app/actions/admin';
 import { deleteRecipe } from '@/app/actions/recipes';
+import { deleteRecipesWithChefRecount, recountChefRecipes } from '@/lib/chef-recipe-count';
 import { linkInsertedRecipe } from '@/lib/chef-scraping-links';
 import { chefRecipes, chefs, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -162,5 +163,41 @@ describe('delete and chef recount are atomic (#174)', () => {
       `SELECT recipe_count FROM "chefs" WHERE id = '${other}'`
     );
     expect(b.recipe_count).toBe(1);
+  });
+
+  // PGlite is one session, so it cannot interleave a concurrent link insert.
+  // This pins the issued order instead: recipes lock, chefs lock, recount, delete.
+  it('sends the recipes lock, the chefs lock, the recount and the delete, in that order', async () => {
+    const batch = vi.spyOn(state.db as { batch: (q: unknown[]) => Promise<unknown> }, 'batch');
+
+    await deleteRecipesWithChefRecount(['r1']);
+
+    const sqls = (batch.mock.calls[0][0] as { toSQL: () => { sql: string } }[]).map(
+      (q) => q.toSQL().sql
+    );
+    expect(sqls).toHaveLength(4);
+    expect(sqls[0]).toMatch(
+      /^select .+ from "recipes" where .+ order by "recipes"\."id" asc for update$/
+    );
+    expect(sqls[1]).toMatch(
+      /^select .+ from "chefs" where .+ order by "chefs"\."id" asc for no key update$/
+    );
+    expect(sqls[2]).toMatch(/^update "chefs" set "recipe_count" = \(SELECT count/);
+    expect(sqls[3]).toMatch(/^delete from "recipes" /);
+  });
+});
+
+describe('recountChefRecipes (#174)', () => {
+  it('recounts in one UPDATE, with no separate SELECT', async () => {
+    await client.exec(`UPDATE "chefs" SET recipe_count = 7`);
+    const spied = state.db as { select: () => unknown; update: () => unknown };
+    const select = vi.spyOn(spied, 'select');
+    const update = vi.spyOn(spied, 'update');
+
+    expect(await recountChefRecipes(CHEF)).toEqual({ success: true, recipeCount: 2 });
+
+    expect(select).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(await storedCount()).toBe(2);
   });
 });

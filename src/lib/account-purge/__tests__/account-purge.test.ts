@@ -365,6 +365,21 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
     for (const i of [...ratingDeletes, ...recipeWrites]) expect(i).toBeGreaterThan(lock);
   });
 
+  it('#174: locks and recounts chefs after the recipes lock and before the chef_recipes and recipes deletes', () => {
+    const sqls = purgeSql();
+    const at = (re: RegExp) => sqls.findIndex((s) => re.test(s));
+    const order = [
+      at(LOCK),
+      at(/^select .+ from "chefs" where .+ order by "chefs"\."id" asc for no key update$/),
+      at(/^update "chefs" set "recipe_count" = /),
+      at(/^delete from "chef_recipes" /),
+      at(/^delete from "recipes" /),
+    ];
+
+    for (const i of order) expect(i).toBeGreaterThan(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
   it('locks the own recipes, every recipe naming the user as an actor or favorited by them, and no other', async () => {
     await rows(
       `INSERT INTO recipes (id, user_id, name, deleted_by) VALUES ('c-del', $1, 'D', $2)`,

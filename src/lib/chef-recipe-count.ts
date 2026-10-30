@@ -9,22 +9,28 @@ import { db } from '@/lib/db';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 
-/** Recounts `chef_recipes` rows for a chef and stores it in `chefs.recipe_count`. */
+/**
+ * Why: `linkRecipeToChef`, `unlinkRecipeFromChef` and chef scraping keep
+ * `chefs.recipe_count` in step with `chef_recipes`.
+ * What: recounts the chef's `chef_recipes` rows into `chefs.recipe_count` and
+ * returns `{ success: true, recipeCount }` (0 for an unknown chef), or
+ * `{ success: false, error }`. #174: one UPDATE that counts in place; a SELECT
+ * then a separate UPDATE let a delete committed between them leave a stale count.
+ * Test: `src/app/actions/__tests__/chef-recipe-delete-count.test.ts`
+ */
 export async function recountChefRecipes(chefId: string) {
   try {
-    const count = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(chefRecipes)
-      .where(eq(chefRecipes.chef_id, chefId));
-
-    const recipeCount = Number(count[0]?.count || 0);
-
-    await db
+    const [row] = await db
       .update(chefs)
-      .set({ recipe_count: recipeCount, updated_at: new Date() })
-      .where(eq(chefs.id, chefId));
+      .set({
+        // Raw column names: drizzle renders bare names inside an UPDATE's SET.
+        recipe_count: sql`(SELECT count(*)::int FROM "chef_recipes" cr WHERE cr."chef_id" = "chefs"."id")`,
+        updated_at: new Date(),
+      })
+      .where(eq(chefs.id, chefId))
+      .returning({ recipeCount: chefs.recipe_count });
 
-    return { success: true, recipeCount };
+    return { success: true, recipeCount: Number(row?.recipeCount ?? 0) };
   } catch (error) {
     console.error('Error updating chef recipe count:', error);
     return { success: false, error: 'Failed to update recipe count' };
