@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useState } from 'react';
 import { RecipeImageFlag } from '@/components/admin/RecipeImageFlag';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { swapToFallbackImage } from '@/lib/utils/image-fallback';
 
 interface ImageCarouselProps {
   images: string[];
@@ -50,10 +51,7 @@ export function ImageCarousel({
           alt={`${title || 'Recipe'} - Image ${currentIndex + 1}`}
           className="w-full h-full object-cover cursor-pointer"
           onClick={() => setIsFullscreen(true)}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = '/api/placeholder/800/600';
-          }}
+          onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
         />
 
         {/* Admin Image Flag Button */}
@@ -115,10 +113,7 @@ export function ImageCarousel({
                 src={image}
                 alt={`Thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/api/placeholder/80/80';
-                }}
+                onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
               />
               {index === currentIndex && <div className="absolute inset-0 bg-primary/10" />}
             </button>
@@ -142,10 +137,7 @@ export function ImageCarousel({
                 src={images[currentIndex]}
                 alt={`${title || 'Recipe'} - Image ${currentIndex + 1}`}
                 className="max-w-full max-h-[85vh] object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/api/placeholder/1200/800';
-                }}
+                onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
               />
 
               {/* Fullscreen Navigation */}
@@ -188,10 +180,7 @@ export function ImageCarousel({
                         src={image}
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/api/placeholder/64/64';
-                        }}
+                        onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
                       />
                     </button>
                   ))}
@@ -221,10 +210,7 @@ export function ImageGrid({ images, maxImages = 4 }: { images: string[]; maxImag
           src={displayImages[0]}
           alt="Recipe"
           className="w-full h-full object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = '/api/placeholder/400/300';
-          }}
+          onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
         />
       </div>
     );
@@ -245,10 +231,7 @@ export function ImageGrid({ images, maxImages = 4 }: { images: string[]; maxImag
             src={image}
             alt={`Recipe image ${index + 1}`}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = '/api/placeholder/200/150';
-            }}
+            onError={swapToFallbackImage} // #173: one-shot static fallback, no request loop
           />
           {index === displayImages.length - 1 && remainingCount > 0 && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
