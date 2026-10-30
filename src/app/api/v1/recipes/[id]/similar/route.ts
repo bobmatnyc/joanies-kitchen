@@ -73,7 +73,8 @@ export const GET = requireScopes(
 
       // Fetch the source recipe
       const sourceRecipeResult = await getRecipe(id);
-      // #135: miss path only — an old duplicate's id gets a 308 to the survivor's similar URL.
+      // #135: miss path only — an old duplicate's id or slug redirects to the survivor's
+      // similar URL (307 by default, 308 when RECIPE_REDIRECT_STATUS=308).
       if (sourceRecipeResult.error === 'Recipe not found') {
         const moved = await apiRecipeRedirect(request.url, id, '/similar');
         if (moved) return moved;

@@ -18,6 +18,20 @@ export interface RecipeRedirectTarget {
   slug: string | null;
 }
 
+/** HTTP status for a merged-recipe redirect. */
+export type RecipeRedirectStatus = 307 | 308;
+
+/**
+ * Why: #135 — a 308 is cached permanently by browsers and crawlers, so a bad merge
+ * could not be rolled back. Redirects stay temporary until the post-apply check passes.
+ * What: 308 when `RECIPE_REDIRECT_STATUS` is exactly `308` (whitespace trimmed);
+ * 307 when it is unset, `307`, or any other value. Read on every call.
+ * Test: `src/app/recipes/[slug]/__tests__/recipe-redirects.test.ts`
+ */
+export function recipeRedirectStatus(): RecipeRedirectStatus {
+  return process.env.RECIPE_REDIRECT_STATUS?.trim() === '308' ? 308 : 307;
+}
+
 /** Path segment for a recipe URL: the slug, or the id when there is no slug. */
 export function recipeRedirectSegment(target: RecipeRedirectTarget): string {
   return target.slug || target.id;
@@ -77,8 +91,8 @@ export async function findRecipeRedirect(slugOrId: string): Promise<RecipeRedire
 
 /**
  * Why: #135 — API clients holding an old duplicate's id should land on the survivor
- * the same way browsers do; a 308 keeps the method and is followed automatically.
- * What: on a redirect hit, a 308 to `/api/v1/recipes/<survivor id><suffix>` with the
+ * the same way browsers do; a 307/308 keeps the method and is followed automatically.
+ * What: on a redirect hit, a `recipeRedirectStatus()` redirect (307 by default) to `/api/v1/recipes/<survivor id><suffix>` with the
  * request's query string kept; `null` otherwise. Call only after the lookup missed.
  * The survivor id, not its slug, because the id never changes.
  * Test: `src/app/recipes/[slug]/__tests__/recipe-redirects.test.ts`
@@ -92,5 +106,6 @@ export async function apiRecipeRedirect(
   if (!target) return null;
   const url = new URL(requestUrl);
   url.pathname = `/api/v1/recipes/${encodeURIComponent(target.id)}${suffix}`;
-  return NextResponse.redirect(url, 308);
+  // #135: 307 until RECIPE_REDIRECT_STATUS=308 is set after the post-apply check.
+  return NextResponse.redirect(url, recipeRedirectStatus());
 }

@@ -1,6 +1,7 @@
 // @vitest-environment node
 /**
- * #135: old URLs of recipes soft-deleted by the duplicate merge redirect (308) to
+ * #135: old URLs of recipes soft-deleted by the duplicate merge redirect (307, or 308
+ * when RECIPE_REDIRECT_STATUS=308) to
  * the live survivor, through `recipe_redirects`.
  *
  * The layout, `generateMetadata` and the v1 API routes run against real Postgres
@@ -13,7 +14,7 @@
  */
 
 import type { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const OWNER = 'user_owner';
 const SURVIVOR = 'a0000000-0000-4000-8000-000000000001';
@@ -109,12 +110,12 @@ async function visit(slug: string) {
   };
 }
 
-/** The 308 digest `permanentRedirect(path)` throws. */
-function permanentRedirectTo(path: string) {
+/** The digest `redirect(path)` (307) or `permanentRedirect(path)` (308) throws. */
+function redirectTo(path: string, status: 307 | 308 = 307) {
   const escaped = path.replace(/[/-]/g, '\\$&');
   return {
     kind: 'thrown',
-    digest: expect.stringMatching(new RegExp(`^NEXT_REDIRECT;[a-z]+;${escaped};308;`)),
+    digest: expect.stringMatching(new RegExp(`^NEXT_REDIRECT;[a-z]+;${escaped};${status};`)),
   };
 }
 
@@ -177,7 +178,13 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  // #135: every test starts with the switch truly unset (the 307 default).
+  vi.stubEnv('RECIPE_REDIRECT_STATUS', undefined);
   state.executeCalls = 0;
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 afterAll(async () => {
@@ -185,23 +192,23 @@ afterAll(async () => {
 });
 
 describe('/recipes/[slug] merged-recipe redirects (#135)', () => {
-  it('an old id gets a 308 to the survivor slug; metadata does not throw', async () => {
+  it('an old id redirects to the survivor slug; metadata does not throw', async () => {
     const result = await visit(LOSER);
 
-    expect(result.layout).toMatchObject(permanentRedirectTo('/recipes/survivor-soup'));
+    expect(result.layout).toMatchObject(redirectTo('/recipes/survivor-soup'));
     expect(result.metadata).toEqual({ kind: 'value', value: notFoundMetadata });
   });
 
-  it('an old slug gets a 308 to the survivor slug', async () => {
+  it('an old slug redirects to the survivor slug', async () => {
     const result = await visit('loser-soup');
 
-    expect(result.layout).toMatchObject(permanentRedirectTo('/recipes/survivor-soup'));
+    expect(result.layout).toMatchObject(redirectTo('/recipes/survivor-soup'));
   });
 
   it('a survivor with no slug is reached by its id URL', async () => {
     for (const from of [LOSER_TO_NO_SLUG, 'loser-two']) {
       const result = await visit(from);
-      expect(result.layout).toMatchObject(permanentRedirectTo(`/recipes/${SURVIVOR_NO_SLUG}`));
+      expect(result.layout).toMatchObject(redirectTo(`/recipes/${SURVIVOR_NO_SLUG}`));
     }
   });
 
@@ -218,7 +225,7 @@ describe('/recipes/[slug] merged-recipe redirects (#135)', () => {
     await client.query('UPDATE recipes SET deleted_at = $1 WHERE id = $2', [DELETED_AT, LIVE]);
     try {
       const merged = await visit('live-soup');
-      expect(merged.layout).toMatchObject(permanentRedirectTo('/recipes/survivor-soup'));
+      expect(merged.layout).toMatchObject(redirectTo('/recipes/survivor-soup'));
     } finally {
       await client.query('UPDATE recipes SET deleted_at = NULL WHERE id = $1', [LIVE]);
     }
@@ -232,7 +239,7 @@ describe('/recipes/[slug] merged-recipe redirects (#135)', () => {
     await client.query('UPDATE recipes SET deleted_at = NULL WHERE id = $1', [DEAD_SURVIVOR]);
     try {
       const toRevived = await visit(LOSER_TO_DEAD);
-      expect(toRevived.layout).toMatchObject(permanentRedirectTo('/recipes/dead-survivor'));
+      expect(toRevived.layout).toMatchObject(redirectTo('/recipes/dead-survivor'));
     } finally {
       await client.query('UPDATE recipes SET deleted_at = $1 WHERE id = $2', [
         DELETED_AT,
@@ -248,15 +255,15 @@ describe('/recipes/[slug] merged-recipe redirects (#135)', () => {
     expect(state.executeCalls).toBe(1);
 
     const known = await visit(LOSER);
-    expect(known.layout).toMatchObject(permanentRedirectTo('/recipes/survivor-soup'));
+    expect(known.layout).toMatchObject(redirectTo('/recipes/survivor-soup'));
   });
 });
 
 describe('/api/v1/recipes/[id] merged-recipe redirects (#135)', () => {
-  it('GET on an old id or slug answers 308 to the survivor API URL; unknown stays 404', async () => {
+  it('GET on an old id or slug redirects to the survivor API URL; unknown stays 404', async () => {
     for (const from of [LOSER, 'loser-soup']) {
       const response = await apiCall(recipeApiGET, `/api/v1/recipes/${from}`, from);
-      expect(response.status).toBe(308);
+      expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(`http://localhost/api/v1/recipes/${SURVIVOR}`);
     }
 
@@ -264,13 +271,13 @@ describe('/api/v1/recipes/[id] merged-recipe redirects (#135)', () => {
     expect(unknown.status).toBe(404);
   });
 
-  it('GET similar on an old id answers 308 to the survivor similar URL, query kept', async () => {
+  it('GET similar on an old id redirects to the survivor similar URL, query kept', async () => {
     const response = await apiCall(
       similarApiGET,
       `/api/v1/recipes/${LOSER}/similar?limit=5`,
       LOSER
     );
-    expect(response.status).toBe(308);
+    expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       `http://localhost/api/v1/recipes/${SURVIVOR}/similar?limit=5`
     );
@@ -327,5 +334,45 @@ describe('findRecipeRedirect database errors (#135)', () => {
     ['undefined_column (42703) on cause', { cause: { code: '42703' } }],
   ])('%s rethrows', async (_name, error) => {
     await expect(withExecuteError(error, () => findRecipeRedirect(LOSER))).rejects.toBe(error);
+  });
+});
+
+// #135: RECIPE_REDIRECT_STATUS picks 307 (default) or 308 for the page and the API.
+// Each test also checks the opposite setting, so hard-coding either status fails it.
+describe('RECIPE_REDIRECT_STATUS switch (#135)', () => {
+  async function statuses() {
+    const page = await visit(LOSER);
+    const api = await apiCall(recipeApiGET, `/api/v1/recipes/${LOSER}`, LOSER);
+    const similar = await apiCall(similarApiGET, `/api/v1/recipes/${LOSER}/similar`, LOSER);
+    return { page: page.layout, api: api.status, similar: similar.status };
+  }
+
+  function expectStatus(result: Awaited<ReturnType<typeof statuses>>, status: 307 | 308) {
+    expect(result.page).toMatchObject(redirectTo('/recipes/survivor-soup', status));
+    expect(result.api).toBe(status);
+    expect(result.similar).toBe(status);
+  }
+
+  it('unset gives 307 on the page and the API', async () => {
+    expectStatus(await statuses(), 307);
+
+    vi.stubEnv('RECIPE_REDIRECT_STATUS', '308');
+    expectStatus(await statuses(), 308);
+  });
+
+  it('308 gives 308 on the page and the API; 307 gives 307', async () => {
+    vi.stubEnv('RECIPE_REDIRECT_STATUS', '308');
+    expectStatus(await statuses(), 308);
+
+    vi.stubEnv('RECIPE_REDIRECT_STATUS', '307');
+    expectStatus(await statuses(), 307);
+  });
+
+  it.each(['301', '308x', 'permanent', ''])('invalid value %j gives 307', async (value) => {
+    vi.stubEnv('RECIPE_REDIRECT_STATUS', value);
+    expectStatus(await statuses(), 307);
+
+    vi.stubEnv('RECIPE_REDIRECT_STATUS', '308');
+    expectStatus(await statuses(), 308);
   });
 });

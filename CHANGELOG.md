@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **recipes**: old URLs of recipes merged away by the duplicate-recipe merge redirect to the surviving recipe. `/recipes/<old id or slug>` answers a 308 to the survivor's slug URL (its id URL if it has no slug); `GET /api/v1/recipes/<old id or slug>` and `GET /api/v1/recipes/<old id>/similar` answer a 308 to the survivor's API URL. The lookup reads `recipe_redirects` only when the recipe is missing or soft-deleted, never redirects a live recipe, and skips a survivor that is itself soft-deleted or not public (#135)
+- **recipes**: old URLs of recipes merged away by the duplicate-recipe merge redirect to the surviving recipe. `/recipes/<old id or slug>` redirects to the survivor's slug URL (its id URL if it has no slug); `GET /api/v1/recipes/<old id or slug>` and `GET /api/v1/recipes/<old id or slug>/similar` redirect to the survivor's API URL. The status is 307 by default; `RECIPE_REDIRECT_STATUS=308` switches to 308 (permanent), to be set only after the post-apply check passes. Unset or any other value gives 307. The lookup reads `recipe_redirects` only when the recipe is missing or soft-deleted, never redirects a live recipe, and skips a survivor that is soft-deleted, private or rejected (#135)
 
 ### Fixed
 

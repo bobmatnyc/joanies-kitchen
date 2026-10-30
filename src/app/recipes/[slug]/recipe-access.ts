@@ -1,7 +1,11 @@
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { getRecipe } from '@/app/actions/recipes';
-import { findRecipeRedirect, recipeRedirectSegment } from '@/lib/recipe-redirects';
+import {
+  findRecipeRedirect,
+  recipeRedirectSegment,
+  recipeRedirectStatus,
+} from '@/lib/recipe-redirects';
 
 // #134: getRecipe answers "no such recipe" and "not visible to this viewer" with this one
 // string, so both become the same 404 and the response never shows a private recipe exists.
@@ -33,7 +37,8 @@ export const findVisibleRecipe = cache(async (slugOrId: string) => {
  * for missing and private recipes, and indexable metadata.
  * What: `findVisibleRecipe`, then `notFound()` for a missing or hidden recipe; a
  * visible recipe reached by UUID redirects to its slug. #135: before the 404, a
- * merged-away recipe's id or slug gets a 308 to its live survivor. Layout only — #138: a
+ * merged-away recipe's id or slug redirects to its live survivor (307, or 308
+ * when `RECIPE_REDIRECT_STATUS=308`). Layout only — #138: a
  * `notFound()` from `generateMetadata` strips the 404 page's metadata.
  * Test: `src/app/recipes/[slug]/__tests__/recipe-not-found.test.ts`,
  * `src/app/recipes/[slug]/__tests__/recipe-redirects.test.ts`
@@ -41,9 +46,14 @@ export const findVisibleRecipe = cache(async (slugOrId: string) => {
 export const loadVisibleRecipeOrNotFound = cache(async (slugOrId: string) => {
   const recipe = await findVisibleRecipe(slugOrId);
   if (!recipe) {
-    // #135: miss path only — an old duplicate's URL goes to its survivor (308).
+    // #135: miss path only — an old duplicate's URL goes to its survivor; 307 by
+    // default, 308 (permanentRedirect) only when RECIPE_REDIRECT_STATUS=308.
     const target = await findRecipeRedirect(slugOrId);
-    if (target) permanentRedirect(`/recipes/${recipeRedirectSegment(target)}`);
+    if (target) {
+      const path = `/recipes/${recipeRedirectSegment(target)}`;
+      if (recipeRedirectStatus() === 308) permanentRedirect(path);
+      redirect(path);
+    }
     notFound();
   }
   // #134: redirect only after the visibility check, so a UUID never reveals a hidden slug.
