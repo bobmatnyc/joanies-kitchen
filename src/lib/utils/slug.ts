@@ -237,12 +237,15 @@ export async function slugExists(slug: string, excludeId?: string): Promise<bool
  * @param name Recipe name
  * @param excludeId Optional recipe ID to exclude (for updates)
  * @param maxAttempts Maximum number of attempts (default 100)
+ * @param exists Slug-taken check; defaults to `slugExists` on the app db.
+ *   #135: the merge passes one that reads inside its own transaction.
  * @returns Unique slug
  */
 export async function generateUniqueSlug(
   name: string,
   excludeId?: string,
-  maxAttempts: number = 100
+  maxAttempts: number = 100,
+  exists: (slug: string, excludeId?: string) => Promise<boolean> = slugExists
 ): Promise<string> {
   const baseSlug = generateSlugFromName(name);
 
@@ -253,8 +256,8 @@ export async function generateUniqueSlug(
   }
 
   // Check if base slug is available
-  const exists = await slugExists(baseSlug, excludeId);
-  if (!exists) {
+  const baseTaken = await exists(baseSlug, excludeId);
+  if (!baseTaken) {
     return baseSlug;
   }
 
@@ -268,7 +271,7 @@ export async function generateUniqueSlug(
       continue;
     }
 
-    const candidateExists = await slugExists(candidateSlug, excludeId);
+    const candidateExists = await exists(candidateSlug, excludeId);
     if (!candidateExists) {
       return candidateSlug;
     }

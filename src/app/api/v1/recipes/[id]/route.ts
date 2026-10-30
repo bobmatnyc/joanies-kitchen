@@ -22,6 +22,7 @@ import {
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import type { Recipe } from '@/lib/db/schema';
+import { apiRecipeRedirect } from '@/lib/recipe-redirects';
 import { updateRecipeSchema } from '@/lib/validations/recipe-api';
 
 /**
@@ -46,7 +47,7 @@ import { updateRecipeSchema } from '@/lib/validations/recipe-api';
  */
 export const GET = requireScopes(
   [SCOPES.READ_RECIPES],
-  async (_request: NextRequest, _auth, context: RouteContext) => {
+  async (request: NextRequest, _auth, context: RouteContext) => {
     try {
       // Extract recipe ID from route params
       const idResult = await getRequiredParam(context, 'id');
@@ -56,6 +57,12 @@ export const GET = requireScopes(
 
       // Fetch recipe
       const result = await getRecipe(id);
+      // #135: miss path only — an old duplicate's id or slug redirects to the survivor
+      // (307 by default, 308 when RECIPE_REDIRECT_STATUS=308).
+      if (result.error === 'Recipe not found') {
+        const moved = await apiRecipeRedirect(request.url, id);
+        if (moved) return moved;
+      }
       const handled = handleActionResult(result);
       if ('error' in handled) return handled.error;
 

@@ -9,6 +9,7 @@ import * as apiKeysSchema from '@/lib/db/api-keys-schema';
 import * as authSchema from '@/lib/db/auth-schema';
 import * as scraperSchema from '@/lib/db/autonomous-scraper-schema';
 import * as chefSchema from '@/lib/db/chef-schema';
+import * as dedup135Schema from '@/lib/db/dedup-135-schema';
 import * as ingredientsSchema from '@/lib/db/ingredients-schema';
 import * as inventorySchema from '@/lib/db/inventory-schema';
 import * as mealsSchema from '@/lib/db/meals-schema';
@@ -21,6 +22,7 @@ export const SCHEMA_MODULES: Record<string, Record<string, unknown>> = {
   'auth-schema.ts': authSchema,
   'autonomous-scraper-schema.ts': scraperSchema,
   'chef-schema.ts': chefSchema,
+  'dedup-135-schema.ts': dedup135Schema, // #135: no user-owned columns
   'ingredients-schema.ts': ingredientsSchema,
   'inventory-schema.ts': inventorySchema,
   'meals-schema.ts': mealsSchema,
