@@ -61,6 +61,7 @@ import { GET as similarApiGET } from '@/app/api/v1/recipes/[id]/similar/route';
 import { metadata as notFoundMetadata } from '@/app/not-found';
 import RecipeLayout, { generateMetadata } from '@/app/recipes/[slug]/layout';
 import * as schema from '@/lib/db/schema';
+import { findRecipeRedirect } from '@/lib/recipe-redirects';
 
 let client: PGlite;
 
@@ -273,5 +274,58 @@ describe('/api/v1/recipes/[id] merged-recipe redirects (#135)', () => {
     expect(response.headers.get('location')).toBe(
       `http://localhost/api/v1/recipes/${SURVIVOR}/similar?limit=5`
     );
+  });
+});
+
+// #135: the missing-table arm keeps today's 404 only for SQLSTATE 42P01; every other
+// database error must still throw, so an outage is a 500, not a silent 404.
+describe('findRecipeRedirect database errors (#135)', () => {
+  /** Runs `fn` with `db.execute` replaced by one that rejects with `error`. */
+  async function withExecuteError<T>(error: unknown, fn: () => Promise<T>): Promise<T> {
+    const real = state.db;
+    state.db = {
+      execute: async () => {
+        throw error;
+      },
+    };
+    try {
+      return await fn();
+    } finally {
+      state.db = real;
+    }
+  }
+
+  it('a missing recipe_redirects table in Postgres gives null and a warning', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await client.exec('ALTER TABLE recipe_redirects RENAME TO recipe_redirects_absent');
+    try {
+      await expect(findRecipeRedirect(LOSER)).resolves.toBeNull();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('recipe_redirects'));
+    } finally {
+      await client.exec('ALTER TABLE recipe_redirects_absent RENAME TO recipe_redirects');
+      warn.mockRestore();
+    }
+    // Control: with the table back, the same id resolves.
+    await expect(findRecipeRedirect(LOSER)).resolves.toMatchObject({ id: SURVIVOR });
+  });
+
+  it.each([
+    ['on the error', { code: '42P01' }],
+    ['on drizzle-wrapped cause', { cause: { code: '42P01' } }],
+  ])('undefined_table (42P01) %s gives null', async (_where, error) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await expect(withExecuteError(error, () => findRecipeRedirect(LOSER))).resolves.toBeNull();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it.each([
+    ['query_canceled (57014)', { code: '57014' }],
+    ['a plain Error', new Error('connection reset')],
+    ['undefined_column (42703) on cause', { cause: { code: '42703' } }],
+  ])('%s rethrows', async (_name, error) => {
+    await expect(withExecuteError(error, () => findRecipeRedirect(LOSER))).rejects.toBe(error);
   });
 });
