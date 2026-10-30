@@ -23,9 +23,10 @@ describe('ImageCarousel onError (#173)', () => {
     expect(srcAttr(main)).toBe(IMAGE_ERROR_FALLBACK_SRC);
 
     // Spy on later src writes: a failing fallback must not be reassigned.
-    const setter = vi.spyOn(main, 'src', 'set');
+    const writes: string[] = [];
+    Object.defineProperty(main, 'src', { set: (v: string) => writes.push(v), configurable: true });
     fireEvent.error(main);
-    expect(setter).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
     expect(srcAttr(main)).toBe(IMAGE_ERROR_FALLBACK_SRC);
   });
 
