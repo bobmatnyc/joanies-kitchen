@@ -214,7 +214,10 @@ async function tryEmbedding(
     console.log(`[Store] Successfully generated embedding (${result.embedding.length} dimensions)`);
     return result;
   } catch (error: unknown) {
-    console.error(`[Store] Failed to generate embedding for "${recipe.name}":`, toErrorMessage(error));
+    console.error(
+      `[Store] Failed to generate embedding for "${recipe.name}":`,
+      toErrorMessage(error)
+    );
     console.error(
       `[Store] Error details:`,
       JSON.stringify((error as { details?: unknown }).details || {}).substring(0, 300)

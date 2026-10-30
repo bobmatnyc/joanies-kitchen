@@ -160,7 +160,9 @@ async function runJob(chefId: string) {
   let job: Record<string, unknown> = {};
   await vi.waitFor(
     async () => {
-      job = (await rows<Record<string, unknown>>(`SELECT * FROM "scraping_jobs" WHERE id = '${id}'`))[0];
+      job = (
+        await rows<Record<string, unknown>>(`SELECT * FROM "scraping_jobs" WHERE id = '${id}'`)
+      )[0];
       expect(job.status).not.toMatch(/pending|running/);
     },
     { timeout: 5000, interval: 25 }

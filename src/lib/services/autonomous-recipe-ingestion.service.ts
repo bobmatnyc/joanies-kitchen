@@ -73,6 +73,7 @@ import {
 
 const ZERO_WASTE_TAGS = ['zero-waste', 'scraped'];
 const EXTRACTION_DELAY_MS = 2000; // 2 seconds between URL extractions
+
 export type { IngestionRunResult } from './autonomous-ingestion-store'; // #142: moved
 /** #6: item error for the URL in flight when the deadline hit. */
 export const ABANDONED_IN_FLIGHT_ERROR = 'deadline: abandoned in flight; may have stored late';
