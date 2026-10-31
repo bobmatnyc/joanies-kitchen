@@ -14,6 +14,7 @@
 
 import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
+import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 import {
   assertWithinDailyCap,
@@ -364,14 +365,9 @@ Return ONLY the JSON object, no other text.`;
 
       const responseText = completion.choices[0]?.message?.content ?? '';
 
-      // Extract JSON from response (handle potential markdown code blocks)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.warn('[RecipeExtraction] Claude returned no JSON');
-        return null;
-      }
-
-      const data = JSON.parse(jsonMatch[0]) as {
+      // #216: take the first balanced JSON object; a greedy regex spanned trailing text.
+      // Throws on no / truncated / malformed JSON, logged below as a structuring failure.
+      const data = extractFirstJsonObject(responseText) as {
         title?: string;
         description?: string;
         chef_name?: string;
