@@ -73,14 +73,15 @@ export async function createMeal(data: unknown) {
     const uniqueSlug = ensureUniqueSlug(baseSlug, existingSlugs);
 
     // #217: refused in the insert statement itself for an account pending deletion.
-    const { row: newMeal } = await insertUnlessPendingDeletion(
+    const guarded = await insertUnlessPendingDeletion(
       meals,
       { ...validatedData, user_id: userId, slug: uniqueSlug },
       userId
     );
-    if (!newMeal) {
+    if (!guarded.allowed) {
       return pendingDeletionRefusal('create meals');
     }
+    const newMeal = guarded.row;
 
     revalidatePath('/meals');
     return { success: true, data: newMeal };
@@ -731,8 +732,8 @@ export async function createMealFromTemplate(data: unknown) {
     }
 
     // #217: refused in the insert statement itself for an account pending deletion;
-    // the template counter below moves only after a meal landed.
-    const { row: newMeal } = await insertUnlessPendingDeletion(
+    // the template counter below moves only after the guard allowed the insert.
+    const guarded = await insertUnlessPendingDeletion(
       meals,
       {
         user_id: userId,
@@ -743,9 +744,10 @@ export async function createMealFromTemplate(data: unknown) {
       },
       userId
     );
-    if (!newMeal) {
+    if (!guarded.allowed) {
       return pendingDeletionRefusal('create meals');
     }
+    const newMeal = guarded.row;
 
     // Increment template usage
     await db

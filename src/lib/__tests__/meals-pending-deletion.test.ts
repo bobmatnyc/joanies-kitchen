@@ -27,11 +27,12 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
-// No apiKeyId, so the wrappers skip api_key_usage tracking.
+// A session caller: the v1 meal routes call server actions that read the
+// session user (getSessionUserId), so API-key auth is not covered here.
 vi.mock('@/lib/api-auth/middleware', () => ({
   authenticateRequest: async () =>
     state.userId
-      ? { authenticated: true, userId: state.userId, authType: 'api_key', scopes: ['*'] }
+      ? { authenticated: true, userId: state.userId, authType: 'session', scopes: ['*'] }
       : { authenticated: false, error: 'Authentication required' },
   authHasAllScopes: () => true,
   authHasAnyScope: () => true,
@@ -388,6 +389,25 @@ describe.each(READS)('#217 read: $name', (path) => {
     expect(await path.sees(PENDING)).toBe(true);
     expect(await mealRows()).toEqual(before);
   });
+});
+
+describe('#217 a private meal stays private on the by-id and by-slug lookups', () => {
+  // Pins the `or(user_id = viewer, is_public)` branch the #217 filter was ANDed onto.
+  it.each([
+    ['getMealById', () => getMealById(draftIdOf(NORMAL))],
+    ['getMealBySlug', () => getMealBySlug(`${NORMAL}-draft`)],
+  ])(
+    '%s: another viewer and an anonymous caller get nothing; the owner gets it',
+    async (_n, call) => {
+      for (const v of [VIEWER, null]) {
+        state.userId = v;
+        expect(await call()).toEqual({ success: false, error: 'Meal not found' });
+      }
+
+      state.userId = NORMAL;
+      expect(await call()).toMatchObject({ success: true, data: { id: draftIdOf(NORMAL) } });
+    }
+  );
 });
 
 describe('#217 the owner-only view is unchanged', () => {
