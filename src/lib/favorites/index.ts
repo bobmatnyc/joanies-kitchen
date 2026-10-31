@@ -18,6 +18,8 @@ import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { favorites } from '@/lib/db/user-discovery-schema';
 import { ensureUserProfileStatus, type ProfileIdentity } from '@/lib/ensure-user-profile';
+// #211: removeFavorite opens its batch with the shared recipe-row lock.
+import { lockRecipeForRating } from '@/lib/recipe-rating-aggregates';
 import { type RecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 
 export type Favorite = typeof favorites.$inferSelect;
@@ -116,26 +118,36 @@ export async function addFavorite(
 
 /**
  * Why: a repeat or never-favorited remove must not take someone else's count.
- * What: deletes the favorite and decrements `like_count` in ONE statement; the
- * decrement runs only when the DELETE removed a row. Returns whether it did.
+ * #211: the account purge and recipe deletes (#174) lock the recipe row before
+ * they delete its favorites; locking the favorite first could deadlock (40P01).
+ * What: one `db.batch` (one transaction on neon-http): `lockRecipeForRating`
+ * locks the recipe row, then ONE statement deletes the favorite and decrements
+ * `like_count` only when the DELETE removed a row. Returns whether it did. A
+ * missing recipe locks nothing and the batch goes on, so the result is unchanged.
  * #208: no pending-deletion guard, as for #197's `deleteRating`: it creates no
  * row and removes only the caller's own favorite, which the purge deletes anyway.
- * Test: `decrements once for a real favorite; a repeat call changes nothing`
+ * Test: `decrements once for a real favorite; a repeat call changes nothing`,
+ * `favorites-remove-lock-order.test.ts`
  */
 export async function removeFavorite(userId: string, recipeId: string): Promise<boolean> {
-  const result = await db.execute(sql`
-    WITH removed AS (
-      DELETE FROM ${favorites}
-      WHERE ${favorites.user_id} = ${userId} AND ${favorites.recipe_id} = ${recipeId}
-      RETURNING 1
-    ), dropped AS (
-      UPDATE ${recipes}
-      SET like_count = GREATEST(${recipes.like_count} - 1, 0)
-      WHERE ${recipes.id} = ${recipeId} AND EXISTS (SELECT 1 FROM removed)
-      RETURNING 1
-    )
-    SELECT count(*)::int AS removed FROM removed
-  `);
+  // #211: recipe lock first (FOR NO KEY UPDATE, the mode the like_count UPDATE
+  // takes anyway), then the favorite, the project's recipes-first order.
+  const [, result] = await db.batch([
+    lockRecipeForRating(recipeId),
+    db.execute(sql`
+      WITH removed AS (
+        DELETE FROM ${favorites}
+        WHERE ${favorites.user_id} = ${userId} AND ${favorites.recipe_id} = ${recipeId}
+        RETURNING 1
+      ), dropped AS (
+        UPDATE ${recipes}
+        SET like_count = GREATEST(${recipes.like_count} - 1, 0)
+        WHERE ${recipes.id} = ${recipeId} AND EXISTS (SELECT 1 FROM removed)
+        RETURNING 1
+      )
+      SELECT count(*)::int AS removed FROM removed
+    `),
+  ]);
   const row = (result.rows as unknown as Array<{ removed: number | string }>)[0];
   return Number(row?.removed ?? 0) > 0;
 }
