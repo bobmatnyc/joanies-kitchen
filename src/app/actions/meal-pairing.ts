@@ -11,6 +11,8 @@ import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/me
 import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
+// #218: meal_recipes inserts lock their recipes first.
+import { lockRecipesForMealInsert } from '@/lib/meals/recipe-lock';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { getSessionUserId } from '@/lib/session-user';
@@ -272,7 +274,12 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
 
     // 6. Insert meal recipe records (if any have recipe_ids)
     if (mealRecipeData.length > 0) {
-      await db.insert(mealRecipes).values(mealRecipeData);
+      // #218: one batch, every linked recipe locked in id order first, so the
+      // insert's FK lock on the meal comes after the recipes, as in the account purge.
+      await db.batch([
+        lockRecipesForMealInsert(mealRecipeData.map((r) => r.recipe_id)),
+        db.insert(mealRecipes).values(mealRecipeData),
+      ]);
     }
 
     // 7. Revalidate relevant pages
