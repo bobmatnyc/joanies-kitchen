@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getToolBySlug } from '@/app/actions/tools';
 import { Button } from '@/components/ui/button';
+import { socialImages } from '@/lib/default-og-image';
 import { getBaseUrl } from '@/lib/site-url';
 
 interface ToolPageProps {
@@ -26,6 +27,9 @@ export async function generateMetadata({ params }: ToolPageProps) {
   // #163: normalized base URL (env may carry a trailing newline)
   const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/tools/${slug}`;
+  // #256: the segment's openGraph/twitter replace the root ones, so fall back to the default image.
+  // #164: a page image states no width/height; its real size is unknown.
+  const social = socialImages(tool.imageUrl ? { url: tool.imageUrl, alt: tool.displayName } : null);
 
   return {
     // #138: the root layout's title.template appends the brand.
@@ -42,15 +46,14 @@ export async function generateMetadata({ params }: ToolPageProps) {
         tool.description || `Learn about ${tool.displayName} - alternatives, pricing, and recipes.`,
       url: canonicalUrl,
       type: 'article',
-      images: tool.imageUrl
-        ? [
-            {
-              // #164: no width/height; the tool image's real size is unknown.
-              url: tool.imageUrl,
-              alt: tool.displayName,
-            },
-          ]
-        : undefined,
+      images: social.openGraph,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${tool.displayName} | Kitchen Tools`,
+      description:
+        tool.description || `Learn about ${tool.displayName} - alternatives, pricing, and recipes.`,
+      images: social.twitter,
     },
     keywords: [
       tool.displayName,
