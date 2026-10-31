@@ -136,6 +136,18 @@ The script upserts by id. It fails if the email already belongs to a different i
 
 Local EVO staging has no Google OAuth client. It signs in through a `local-staging` Credentials provider instead, as the single user in `LOCAL_STAGING_AUTH_EMAIL`. The provider, its sign-in button and notice exist only when `src/lib/local-staging-auth.ts` returns active, which needs all of: `LOCAL_STAGING_AUTH_BYPASS=1` exactly, `LOCAL_STAGING_AUTH_EMAIL` set, a `DATABASE_URL` host of exactly `127.0.0.1`, `::1` or `localhost`, and no `VERCEL`, `VERCEL_ENV` or `VERCEL_URL`. `AUTH_SECRET` is still required, and local staging MUST use its own `AUTH_SECRET`, never production's. As a second guard, a session minted by the bypass carries `localStaging: true` in its JWT, and the `jwt` callback ends any such session wherever the bypass is inactive. Seed the user with `pnpm auth:seed-user` and list the same email in `AUTH_ADMIN_EMAILS` for admin. See `.env.example`, LOCAL STAGING ONLY.
 
+## E2E tests (Playwright)
+
+The Playwright auth setup does not sign in with Google, which cannot be scripted. `test/tests/e2e/setup/auth.setup.ts` seeds a fixed `e2e-test-user` row in `users`, mints a signed Auth.js session cookie for it, checks `/api/auth/session` returns that user, and saves the storageState. `auth.teardown.ts` deletes the row. You do not seed an E2E user by hand and no real account or password is involved.
+
+Set these in the Playwright process environment:
+
+- `E2E_TEST_AUTH=1`
+- `AUTH_SECRET` equal to the dev server's `AUTH_SECRET`
+- `DATABASE_URL` for the database the dev server uses
+
+The setup refuses to run when `NODE_ENV` or `VERCEL_ENV` is `production`, or when the target is not a loopback URL. Use `pnpm auth:seed-user` only for people who sign in with Google, not for E2E.
+
 ## Tests
 
 - `src/lib/__tests__/auth-callbacks.test.ts` — sign-in gate and JWT admin refresh.
