@@ -24,6 +24,8 @@ interface ReviewsListProps {
   recipeId: string;
   currentUserId?: string;
   initialReviews?: Review[];
+  // #206: true when the parent already fetched page 0, so an empty list is a real answer
+  initialFetched?: boolean;
 }
 
 /**
@@ -43,7 +45,12 @@ interface ReviewsListProps {
  *   initialReviews={reviews}
  * />
  */
-export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: ReviewsListProps) {
+export function ReviewsList({
+  recipeId,
+  currentUserId,
+  initialReviews = [],
+  initialFetched = false,
+}: ReviewsListProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -80,10 +87,12 @@ export function ReviewsList({ recipeId, currentUserId, initialReviews = [] }: Re
 
   // Load initial reviews on mount if not provided
   useEffect(() => {
+    // #206: skip when the parent already fetched; an empty page would refetch the same read
+    if (initialFetched) return;
     if (initialReviews.length === 0) {
       loadReviews(0);
     }
-  }, [initialReviews.length, loadReviews]);
+  }, [initialFetched, initialReviews.length, loadReviews]);
 
   const handleLoadMore = () => {
     loadReviews(reviews.length);

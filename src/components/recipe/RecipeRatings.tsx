@@ -173,6 +173,8 @@ export function RecipeRatings({
             recipeId={recipeId}
             currentUserId={currentUserId}
             initialReviews={initialReviews}
+            // #206: isLoading is false here, so page 0 was fetched above; don't fetch it again
+            initialFetched
           />
         </div>
       )}
