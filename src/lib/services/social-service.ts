@@ -1,10 +1,59 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
+import {
+  AccountPendingDeletionError,
+  insertUnlessPendingDeletion,
+} from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import type { ProfileIdentity } from '@/lib/ensure-user-profile';
 import * as favoritesCore from '@/lib/favorites';
 import { ANONYMOUS_VIEWER, type RecipeViewer } from '@/lib/recipe-visibility';
+
+type Recipe = typeof recipes.$inferSelect;
+
+/**
+ * Why: #208: a fork by an account with a pending deletion must write nothing.
+ * The server action and `SocialService.forkRecipe` both copied the recipe and
+ * then linked it in two statements, so a refusal could split them.
+ * What: inserts the private copy of `original` and its `recipe_forks` row in
+ * ONE guarded statement (the link reads the copy's RETURNING). Returns the new
+ * recipe, or null when the account has a pending deletion. `fork_count` is not
+ * written, as before. No lock is taken on `original` beyond the FK check.
+ * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`
+ */
+export async function forkRecipeUnlessPendingDeletion(
+  userId: string,
+  original: Recipe
+): Promise<Recipe | null> {
+  const { row } = await insertUnlessPendingDeletion(
+    recipes,
+    {
+      user_id: userId,
+      name: `${original.name} (Forked)`,
+      description: original.description,
+      ingredients: original.ingredients,
+      instructions: original.instructions,
+      prep_time: original.prep_time,
+      cook_time: original.cook_time,
+      servings: original.servings,
+      difficulty: original.difficulty,
+      cuisine: original.cuisine,
+      tags: original.tags,
+      images: original.images,
+      is_ai_generated: false,
+      is_public: false, // Forked recipes are private by default
+      nutrition_info: original.nutrition_info,
+      source: `Forked from: ${original.name}`,
+    },
+    userId,
+    {
+      followedBy: sql`INSERT INTO ${recipeForks} (recipe_id, original_recipe_id, user_id)
+        SELECT id, ${original.id}::text, ${userId}::text FROM inserted`,
+    }
+  );
+  return row;
+}
 
 /**
  * SocialService - Business logic for social features
@@ -173,7 +222,9 @@ export class SocialService {
   }
 
   /**
-   * Add a comment to a recipe
+   * Add a comment to a recipe.
+   * #208: throws `AccountPendingDeletionError` when the account has a pending
+   * deletion; the guard is in the insert statement and nothing is written.
    */
   async addComment(
     userId: string,
@@ -184,14 +235,15 @@ export class SocialService {
       throw new Error('Comment cannot be empty');
     }
 
-    const [comment] = await db
-      .insert(recipeComments)
-      .values({
-        recipe_id: recipeId,
-        user_id: userId,
-        content: content.trim(),
-      })
-      .returning();
+    // #208: refused in the insert statement itself for an account pending deletion.
+    const { allowed, row: comment } = await insertUnlessPendingDeletion(
+      recipeComments,
+      { recipe_id: recipeId, user_id: userId, content: content.trim() },
+      userId
+    );
+    if (!allowed) {
+      throw new AccountPendingDeletionError('comment on recipes');
+    }
 
     if (!comment) {
       throw new Error('Failed to create comment');
@@ -266,7 +318,9 @@ export class SocialService {
   // ==================
 
   /**
-   * Fork a recipe (create a copy)
+   * Fork a recipe (create a copy).
+   * #208: throws `AccountPendingDeletionError` when the account has a pending
+   * deletion; neither the copy nor the fork link is written.
    */
   async forkRecipe(userId: string, originalRecipeId: string): Promise<typeof recipes.$inferSelect> {
     // Get the original recipe
@@ -280,39 +334,11 @@ export class SocialService {
       throw new Error('Recipe not found');
     }
 
-    // Create a copy of the recipe
-    const [newRecipe] = await db
-      .insert(recipes)
-      .values({
-        user_id: userId,
-        name: `${originalRecipe.name} (Forked)`,
-        description: originalRecipe.description,
-        ingredients: originalRecipe.ingredients,
-        instructions: originalRecipe.instructions,
-        prep_time: originalRecipe.prep_time,
-        cook_time: originalRecipe.cook_time,
-        servings: originalRecipe.servings,
-        difficulty: originalRecipe.difficulty,
-        cuisine: originalRecipe.cuisine,
-        tags: originalRecipe.tags,
-        images: originalRecipe.images,
-        is_ai_generated: false,
-        is_public: false, // Forked recipes are private by default
-        nutrition_info: originalRecipe.nutrition_info,
-        source: `Forked from: ${originalRecipe.name}`,
-      })
-      .returning();
-
+    // #208: copy and link in one guarded statement.
+    const newRecipe = await forkRecipeUnlessPendingDeletion(userId, originalRecipe);
     if (!newRecipe) {
-      throw new Error('Failed to fork recipe');
+      throw new AccountPendingDeletionError('fork recipes');
     }
-
-    // Create fork relationship
-    await db.insert(recipeForks).values({
-      recipe_id: newRecipe.id,
-      original_recipe_id: originalRecipeId,
-      user_id: userId,
-    });
 
     return newRecipe;
   }
