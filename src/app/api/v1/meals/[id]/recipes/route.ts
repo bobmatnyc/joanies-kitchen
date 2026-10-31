@@ -173,8 +173,9 @@ export const POST = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner
- * - 404: Meal or meal recipe not found
+ * - 403: Missing the meals:write scope
+ * - 404: Meal not found, or not the caller's own meal (admins included, #222);
+ *        or the meal recipe is not in this meal
  * - 400: Missing mealRecipeId query parameter
  * - 500: Internal server error
  */
@@ -225,24 +226,14 @@ export const DELETE = requireScopes(
         );
       }
 
-      // Check ownership (users can only edit their own meals)
+      // #222: owner only, no admin bypass (the action's DELETE is scoped to the
+      // caller's meals); another user's meal answers as not found.
       if (existingMeal.data.user_id !== auth.userId) {
-        // Check if user is admin
-        const isAdmin = auth.metadata?.isAdmin === true;
-
-        if (!isAdmin) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You do not have permission to edit this meal',
-            },
-            { status: 403 }
-          );
-        }
+        return NextResponse.json({ success: false, error: 'Meal not found' }, { status: 404 });
       }
 
-      // Remove recipe from meal using server action
-      const result = await removeRecipeFromMeal(mealRecipeId);
+      // #222: pass :id so a row of a different meal is never deleted.
+      const result = await removeRecipeFromMeal(mealRecipeId, mealId);
 
       if (!result.success) {
         const statusCode = result.error === 'Recipe not found in meal' ? 404 : 500;
