@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **api keys**: API key scopes are now limited by the owner's role (`users.is_admin`). Creating or updating a key with a scope the role does not allow answers 403 with `reason: 'scope_not_allowed'` and the refused scopes in `disallowedScopes`; nothing is stored. Admin-only scopes are `*`, `admin:*`, `admin:users`, `admin:content`, `admin:system`, `read:analytics`, `analytics:*` and the write, delete and wildcard scopes for chefs and ingredients. When a key is used, a non-admin owner's key keeps only the scopes its role allows, and a key whose owner has no `users` row or a pending account deletion is refused with 401. `admin:*` now matches every `admin:<x>` scope, and an action wildcard (`<action>:*`) matches that action on every resource, the same as `expandWildcard`. Non-admin keys with the user scope group work as before
+- **api auth**: the automation test credential is accepted only outside production. Production is `VERCEL_ENV=production`, or `NODE_ENV=production` when `VERCEL_ENV` is unset; an undetermined environment counts as production. In production the credential is handled as an ordinary unknown API key. Preview, development and test are unchanged (#238)
 
 ### Added
 
