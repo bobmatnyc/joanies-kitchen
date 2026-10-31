@@ -140,6 +140,8 @@ export async function GET(_request: NextRequest) {
  * Errors:
  * - 401: Not authenticated (must use a signed-in session)
  * - 400: Invalid request body
+ * - 403: A requested scope is not allowed for the caller's role
+ *        (`reason: 'scope_not_allowed'`, `disallowedScopes` lists them)
  * - 500: Internal server error
  */
 export async function POST(request: NextRequest) {
@@ -197,6 +199,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      if (result.reason === 'scope_not_allowed') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: result.error,
+            reason: 'scope_not_allowed',
+            disallowedScopes: result.disallowedScopes,
+          },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         {
           success: false,

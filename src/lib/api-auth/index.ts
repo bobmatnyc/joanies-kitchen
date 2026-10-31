@@ -66,11 +66,11 @@ export {
 } from './key-generator';
 // Key service operations
 export {
+  type ApiKeyOwner,
   type ApiKeyUsageParams,
   type ApiKeyUsageStats,
   type CreateApiKeyParams,
   type CreateApiKeyResult,
-  checkApiKeyPermission,
   cleanupExpiredKeys,
   createApiKey,
   deleteApiKey,
@@ -80,6 +80,7 @@ export {
   listUserApiKeys,
   revokeApiKey,
   trackApiUsage,
+  type UpdateApiKeyResult,
   updateApiKey,
   type ValidateApiKeyResult,
   validateApiKey,
@@ -105,15 +106,21 @@ export {
 } from './require-auth';
 // Scope management
 export {
+  ADMIN_ONLY_SCOPES,
+  allowedScopesForRole,
+  classifyScope,
+  disallowedScopesForRole,
   expandWildcard,
   getScopeDescription,
   hasAllScopes,
   hasAnyScope,
   hasScope,
   isValidScopeFormat,
+  NON_ADMIN_SCOPES,
   SCOPE_GROUPS,
   SCOPES,
   type Scope,
+  type ScopeAudience,
   validateScopes,
 } from './scopes';
 // Type definitions

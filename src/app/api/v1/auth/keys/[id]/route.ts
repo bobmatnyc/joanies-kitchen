@@ -201,7 +201,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Not the owner of this key
+ * - 403: Not the owner of this key, or a requested scope is not allowed for
+ *        the caller's role (`reason: 'scope_not_allowed'`)
  * - 404: Key not found
  * - 400: Invalid request body
  * - 500: Internal server error
@@ -259,14 +260,26 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     // Update the API key
-    const success = await updateApiKey(keyId, {
+    const result = await updateApiKey(keyId, {
       name: validatedData.name,
       description: validatedData.description,
       scopes: validatedData.scopes,
       expires_at: validatedData.expiresAt,
     });
 
-    if (!success) {
+    if (result.reason === 'scope_not_allowed') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error,
+          reason: 'scope_not_allowed',
+          disallowedScopes: result.disallowedScopes,
+        },
+        { status: 403 }
+      );
+    }
+
+    if (!result.success) {
       return NextResponse.json(
         {
           success: false,
