@@ -27,8 +27,8 @@ Vercel requires these environment variables to be configured in the dashboard:
 
 **Required Variables:**
 - `DATABASE_URL` - PostgreSQL connection string (Neon)
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk auth public key
-- `CLERK_SECRET_KEY` - Clerk auth secret key
+- `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` - Auth.js sign-in (without them the app runs signed-out)
+- `AUTH_URL` - `https://joanies.kitchen` (Production only)
 
 **Optional but Recommended:**
 - `OPENROUTER_API_KEY` - For AI recipe generation
@@ -70,8 +70,10 @@ The project uses `pnpm` (not npm or yarn). Vercel must be configured to use pnpm
 
 ```env
 DATABASE_URL=postgresql://...
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-CLERK_SECRET_KEY=sk_live_...
+AUTH_SECRET=...
+AUTH_GOOGLE_ID=...
+AUTH_GOOGLE_SECRET=...
+AUTH_URL=https://joanies.kitchen
 NEXT_PUBLIC_APP_URL=https://joanies.kitchen
 ```
 

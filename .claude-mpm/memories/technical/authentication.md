@@ -1,43 +1,33 @@
 # Recipe Manager - Authentication Technical Memory
 
-## Clerk Dual-Environment Implementation
+## Auth.js (NextAuth v5) Implementation
+
+Google is the only provider. Sessions are JWTs. Registration is closed: only a
+Google email that has a `users` row (or is listed in `AUTH_ADMIN_EMAILS`) can
+sign in. Admin comes from `AUTH_ADMIN_EMAILS` plus `users.is_admin`.
+Legacy `users.id` values are Clerk-era ids (#22). Full guide:
+`docs/guides/authentication.md`.
 
 ### Configuration Files
-- `src/middleware.ts` - Dynamic Clerk middleware with environment detection
-- `src/components/auth/AuthProvider.tsx` - Client-side environment switcher
-- `src/lib/auth-config.ts` - Auth configuration logic
-- `src/lib/clerk-proxy.ts` - Clerk API proxy utilities
-- `src/app/api/clerk-config/route.ts` - Configuration endpoint
-- `src/app/api/clerk-proxy/[...path]/route.ts` - API proxy for dual-env
+- `src/auth.config.ts` - Edge-safe config (Google provider, 7-day JWT sessions)
+- `src/auth.ts` - Node-side config (Drizzle adapter, DB-backed signIn/jwt callbacks)
+- `src/middleware.ts` - Session middleware; route rules in `src/lib/auth-routes.ts`
+- `src/lib/session-user.ts` - `getSessionUser()` / `getSessionUserId()` for server code
+- `src/lib/use-session-user.ts` - `useSessionUser()` for client components
+- `src/lib/admin.ts` - `checkAdminAccess`, `requireAdmin` (re-read `users.is_admin`)
+- `src/components/auth/AuthProvider.tsx` - Client SessionProvider
 
-### Environment Detection Logic
-1. Check URL parameter: `?env=prod` or `?env=dev`
-2. Check localStorage: `clerk_environment` key
-3. Default to development environment
-
-### Environment Variables Pattern
-```env
-# Development
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-
-# Production (on localhost)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD=pk_live_...
-CLERK_SECRET_KEY_PROD=sk_live_...
-```
-
-### Middleware Implementation
-- Reads environment from request (query param or cookie)
-- Dynamically sets Clerk configuration
-- Protects routes except: /sign-in, /sign-up, /api/clerk-*, /shared, /discover
-- Validates userId on all protected routes
+### Environment Variables
+`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` (production
+only), `AUTH_ADMIN_EMAILS`. With any of the first three missing, the app runs
+signed-out.
 
 ### Server Action Pattern
 ```typescript
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function serverAction() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
   // All queries scoped to userId
@@ -47,13 +37,10 @@ export async function serverAction() {
 }
 ```
 
-### Validation Commands
-- `pnpm auth:validate` - Validates Clerk configuration
-- `node scripts/validate-auth.js` - Comprehensive auth testing
-- `node scripts/test-production-keys.js` - Tests production keys on localhost
+### Seeding Users
+- `pnpm auth:seed-user --id <users.id> [--email <google-email>] [--admin]`
 
 ## Security Considerations
-- API keys (CLERK_SECRET_KEY) never exposed to client
+- Secrets (`AUTH_SECRET`, `AUTH_GOOGLE_SECRET`) never exposed to client
 - All server actions validate userId before database operations
-- Middleware ensures authentication on protected routes
-- Environment switcher UI only visible in development mode
+- Middleware ensures authentication on protected routes; admin checks re-read the database

@@ -49,19 +49,18 @@ Joanie's Kitchen uses **Next.js Server Actions** as the primary API interface, w
 
 ### Middleware Protection
 
-All authenticated endpoints require a valid Clerk session. The middleware (`src/middleware.ts`) automatically:
+All authenticated endpoints require a valid Auth.js session (or an API key). The middleware (`src/middleware.ts`) automatically:
 
-- Validates Clerk session tokens
-- Extracts `userId` from session
-- Protects routes (except public pages)
-- Supports dual-environment (dev + production)
+- Verifies the Auth.js session JWT
+- Extracts the user id from the session
+- Protects routes (except public pages), using the rules in `src/lib/auth-routes.ts`
 
 **Public routes** (no authentication):
 - `/` (homepage)
 - `/discover` (system recipes)
 - `/shared/*` (shared recipes)
 - `/sign-in`, `/sign-up`
-- `/api/clerk-config`, `/api/security-audit`
+- `/api/auth/*` (Auth.js endpoints)
 
 **Protected routes** (authentication required):
 - `/ingredients` (fridge feature)
@@ -89,10 +88,10 @@ export async function myServerAction() {
 
 **API Routes**:
 ```typescript
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -539,46 +538,11 @@ Get user statistics (recipes created, favorites, etc.).
 
 ### Authentication Routes
 
-#### `GET /api/clerk-config`
+#### `ALL /api/auth/[...nextauth]`
 
-Returns Clerk configuration for current environment (dev/prod).
+The Auth.js route handler (`src/app/api/auth/[...nextauth]/route.ts`). Serves the sign-in, callback (`/api/auth/callback/google`), sign-out and session (`/api/auth/session`) endpoints.
 
-**Response**:
-```json
-{
-  "publishableKey": "pk_test_...",
-  "environment": "development"
-}
-```
-
-**Performance**: <50ms (cached)
-
-#### `ALL /api/clerk-proxy/[...path]`
-
-Proxies Clerk API requests with environment awareness.
-
-**Use case**: Dual-environment setup (dev + prod on localhost)
-
-#### `GET /api/debug-clerk`
-
-Debug endpoint for Clerk configuration (development only).
-
-#### `GET /api/security-audit`
-
-Security validation and environment audit.
-
-**Returns**:
-```json
-{
-  "status": "secure",
-  "checks": {
-    "https": true,
-    "environment": "production",
-    "clerkConfigured": true,
-    "databaseConnected": true
-  }
-}
-```
+See [the authentication guide](../guides/authentication.md).
 
 ---
 
@@ -827,10 +791,6 @@ Retry-After: 60
 
 ### Planned for v0.9.0
 
-#### `POST /api/webhooks/clerk`
-
-Handle Clerk user events (signup, deletion, etc.).
-
 #### `POST /api/webhooks/stripe`
 
 Handle payment events (if premium features added).
@@ -877,10 +837,10 @@ curl https://joanies.kitchen/api/search/semantic?q=pasta
 curl https://joanies.kitchen/api/recipes/recipe-uuid-123
 ```
 
-**Authentication**: Include Clerk session token in `Authorization` header
+**Authentication**: Send an API key in the `Authorization` header (browsers send the Auth.js session cookie automatically)
 
 ```bash
-curl -H "Authorization: Bearer ${CLERK_TOKEN}" \
+curl -H "Authorization: Bearer ${API_KEY}" \
   https://joanies.kitchen/api/recipes
 ```
 

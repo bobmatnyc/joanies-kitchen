@@ -67,21 +67,21 @@ pnpm test:e2e:meals -- -g "delete"
 
 ### 1. Environment Variables
 
-Add test user credentials to `.env.local`:
+Enable the test session in the Playwright environment:
 
 ```env
-# Test User Authentication
-TEST_USER_EMAIL=test@example.com
-TEST_USER_PASSWORD=yourSecurePassword123
+# E2E session minting (loopback targets only; refused in production)
+E2E_TEST_AUTH=1
+AUTH_SECRET=<the dev server's AUTH_SECRET>
 ```
 
-⚠️ **Important**: Create a dedicated test user in Clerk. Do not use your personal account.
+⚠️ **Important**: The setup seeds and deletes its own `e2e-test-user` row. No real account is used, and none should be.
 
 ### 2. Database State
 
 Tests require:
 - ✅ Recipes in database (for searching and adding to meals)
-- ✅ Test user authenticated via Clerk
+- ✅ Test user authenticated via a minted Auth.js session
 - ✅ Clean database or isolated test data
 
 ### 3. Application Running
@@ -106,7 +106,7 @@ pnpm test:e2e:meals
 
 1. **Setup Phase** (`tests/e2e/setup/auth.setup.ts`)
    - Runs before all tests
-   - Authenticates test user via Clerk
+   - Seeds the test user and mints a signed Auth.js session cookie for it
    - Saves auth state to `tests/e2e/.auth/user.json`
    - Reused across all tests (fast)
 
@@ -259,9 +259,9 @@ Tests include helpful console logs:
 **Problem**: Tests can't sign in
 
 **Solution**:
-1. Verify `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` in `.env.local`
-2. Check test user exists in Clerk dashboard
-3. Verify Clerk environment variables are correct
+1. Verify `E2E_TEST_AUTH=1` is set in the Playwright environment
+2. Verify `AUTH_SECRET` matches the dev server's `AUTH_SECRET`
+3. Verify the target is a loopback URL and `NODE_ENV`/`VERCEL_ENV` are not `production`
 4. Delete `tests/e2e/.auth/user.json` and re-run
 
 ```bash

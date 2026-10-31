@@ -51,9 +51,10 @@ OPENROUTER_API_KEY=sk-or-v1-your-key-here
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_your-token
 NEXT_PUBLIC_APP_URL=http://localhost:3002
 
-# Optional (for authentication)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your-key
-CLERK_SECRET_KEY=sk_test_your-key
+# Optional (for sign-in, see docs/guides/authentication.md)
+AUTH_SECRET=your-random-secret
+AUTH_GOOGLE_ID=your-google-client-id
+AUTH_GOOGLE_SECRET=your-google-client-secret
 ```
 
 ### Step 3: Initialize Database (30 seconds)
@@ -101,14 +102,17 @@ Visit **http://localhost:3002** 🎉
 
 If you want to test authentication features:
 
-1. Create a Clerk account at https://clerk.com
-2. Get your development API keys
-3. Add to `.env.local`:
+1. Create a Google OAuth client (Web application) with the redirect URI `http://localhost:3002/api/auth/callback/google`
+2. Add to `.env.local`:
    ```bash
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
+   AUTH_SECRET=...        # openssl rand -base64 32
+   AUTH_GOOGLE_ID=...
+   AUTH_GOOGLE_SECRET=...
    ```
+3. Seed your user (registration is closed): `pnpm auth:seed-user --id <users.id> --email <google-email>`
 4. Restart dev server: `make dev`
+
+See [docs/guides/authentication.md](docs/guides/authentication.md) for the full setup.
 
 ---
 
@@ -220,12 +224,10 @@ pnpm run | grep import
 
 ### Set Up Admin Access
 
-1. Create a user account via the app
-2. Get your user ID from Clerk Dashboard
-3. In Clerk Dashboard → Users → Select User → Public Metadata
-4. Add: `{ "isAdmin": "true" }`
-5. Sign out and sign back in
-6. Access admin: http://localhost:3002/admin
+1. Put your Google email in `AUTH_ADMIN_EMAILS` in `.env.local`
+2. Seed your user: `pnpm auth:seed-user --id <users.id>` (the email is taken from `AUTH_ADMIN_EMAILS`)
+3. Sign in with Google; sign-in sets `users.is_admin = true` for a listed email
+4. Access admin: http://localhost:3002/admin
 
 ---
 

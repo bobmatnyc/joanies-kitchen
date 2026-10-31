@@ -103,7 +103,7 @@ FormData {
 - File count limited by `maxImages` prop
 
 **Server-side:**
-- Authentication required (Clerk session)
+- Authentication required (Auth.js session)
 - File size validation (5MB limit)
 - File type validation
 - Unique filename generation

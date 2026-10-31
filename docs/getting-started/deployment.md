@@ -16,8 +16,10 @@ Complete guide for deploying Joanie's Kitchen to production on Vercel.
 ### 2. Environment Variables Ready
 
 - [ ] `DATABASE_URL` - Neon PostgreSQL pooled connection
-- [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Production key (pk_live_)
-- [ ] `CLERK_SECRET_KEY` - Production key (sk_live_)
+- [ ] `AUTH_SECRET` - Random secret (production-only value)
+- [ ] `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` - Google OAuth client
+- [ ] `AUTH_URL` - `https://joanies.kitchen` (Production only)
+- [ ] `AUTH_ADMIN_EMAILS` - Admin emails (optional)
 - [ ] `OPENROUTER_API_KEY` - API key with sufficient credits
 - [ ] `BRAVE_SEARCH_API_KEY` - API key (optional)
 - [ ] `HUGGINGFACE_API_KEY` - API token (optional)
@@ -32,13 +34,13 @@ Complete guide for deploying Joanie's Kitchen to production on Vercel.
 - [ ] Connection pooling enabled
 - [ ] SSL mode configured (`?sslmode=require`)
 
-### 4. Clerk Authentication Setup
+### 4. Authentication Setup (Auth.js with Google)
 
-- [ ] Clerk application created
-- [ ] Production keys generated (pk_live_, sk_live_)
-- [ ] Production domain added to Clerk Dashboard
-- [ ] Domain verified and active
-- [ ] Sign-in/sign-up flows tested
+- [ ] Google OAuth client created (Web application)
+- [ ] Redirect URI `https://joanies.kitchen/api/auth/callback/google` registered
+- [ ] OAuth consent screen published (In production)
+- [ ] Sign-in users seeded (registration is closed; see the [authentication guide](../guides/authentication.md))
+- [ ] Sign-in flow tested
 
 ## Deployment Steps
 
@@ -60,19 +62,19 @@ Complete guide for deploying Joanie's Kitchen to production on Vercel.
 
 **Add Production Variables:**
 - `DATABASE_URL` → Production, Preview, Development
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → Production (pk_live_), Preview/Dev (pk_test_)
-- `CLERK_SECRET_KEY` → Production (sk_live_), Preview/Dev (sk_test_)
+- `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` → Production (use a different `AUTH_SECRET` per scope)
+- `AUTH_URL` → Production only
+- `AUTH_ADMIN_EMAILS` → where admins sign in (optional)
 - `OPENROUTER_API_KEY` → Production, Preview, Development
 - `NEXT_PUBLIC_APP_URL` → Production only
 
-### Step 3: Clerk Production Configuration
+### Step 3: Google OAuth Production Configuration
 
-1. Open Clerk Dashboard: https://dashboard.clerk.com
-2. Select Recipe Manager application
-3. Navigate to Configure → Domains
-4. Add production domain (e.g., your-app.vercel.app)
-5. Verify domain is active
-6. Test authentication flow on production domain
+1. Open Google Cloud Console → APIs & Services → Credentials
+2. Select the OAuth client
+3. Add `https://joanies.kitchen` to the authorized JavaScript origins
+4. Add `https://joanies.kitchen/api/auth/callback/google` to the authorized redirect URIs
+5. Test the sign-in flow on the production domain (Vercel preview URLs cannot sign in: Google does not accept wildcard redirect URIs)
 
 ### Step 4: Initial Deployment
 
@@ -192,10 +194,10 @@ pnpm build
 - Verify correct scope (Production/Preview/Development)
 - Trigger new deployment after adding variable
 
-**Clerk authentication fails**
-- Verify production domain added in Clerk Dashboard
-- Check using correct keys (pk_live_, sk_live_)
-- Ensure domain is verified
+**Sign-in fails**
+- Verify `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are all set
+- Check the redirect URI is registered on the Google OAuth client
+- Check the email is seeded or listed in `AUTH_ADMIN_EMAILS` (`/sign-in?error=AccessDenied` means it is neither)
 
 **Database connection timeout**
 - Verify Neon database is active (not paused)

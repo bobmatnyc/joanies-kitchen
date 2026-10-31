@@ -32,15 +32,16 @@ DATABASE_URL=your_postgresql_connection_string
 # Required: AI Features
 OPENROUTER_API_KEY=your_openrouter_api_key
 
-# Optional: Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
-CLERK_SECRET_KEY=your_clerk_secret
+# Optional: Authentication (Auth.js with Google)
+AUTH_SECRET=your_random_secret
+AUTH_GOOGLE_ID=your_google_client_id
+AUTH_GOOGLE_SECRET=your_google_client_secret
 ```
 
 > **Don't have API keys yet?**
 > - [Neon DB](https://neon.tech/) - Free PostgreSQL database
 > - [OpenRouter](https://openrouter.ai/) - AI API ($5 credit for new users)
-> - [Clerk](https://clerk.com/) - Authentication (free tier available)
+> - [Google Cloud Console](https://console.cloud.google.com/) - OAuth client for sign-in (see the [authentication guide](../guides/authentication.md))
 
 ## 3. Initialize Database (1 minute)
 

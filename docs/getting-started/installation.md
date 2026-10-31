@@ -92,15 +92,15 @@ Visit [http://localhost:3004](http://localhost:3004) to see your application!
    OPENROUTER_API_KEY=sk-or-v1-your-key-here
    ```
 
-#### Clerk Authentication (Optional)
+#### Authentication (Optional)
 
-1. Sign up at [Clerk](https://dashboard.clerk.com/)
-2. Create a new application
-3. Copy your keys
-4. Add to `.env.local`:
+1. Create a Google OAuth client (Web application) in [Google Cloud Console](https://console.cloud.google.com/)
+2. Add the redirect URI `http://localhost:3002/api/auth/callback/google`
+3. Add to `.env.local`:
    ```env
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
+   AUTH_SECRET=...        # openssl rand -base64 32
+   AUTH_GOOGLE_ID=...
+   AUTH_GOOGLE_SECRET=...
    ```
 
 See [Authentication Guide](../guides/authentication.md) for detailed setup.
@@ -142,7 +142,7 @@ pnpm db:migrate       # Run migrations
 pnpm db:studio        # Open database GUI
 
 # Authentication
-pnpm auth:validate    # Validate Clerk setup
+pnpm auth:seed-user   # Seed a sign-in user (registration is closed)
 
 # Code Quality
 pnpm lint             # Run linter

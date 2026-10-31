@@ -17,7 +17,7 @@ Requires `write:recipes` scope. Two authentication methods supported:
    Authorization: Bearer <YOUR_API_KEY>
    ```
 
-2. **Clerk Admin Session**
+2. **Admin Session (Auth.js)**
    - Logged in as admin user
    - Session-based authentication
 

@@ -24,7 +24,7 @@ Complete guide to authenticating with the Joanie's Kitchen API.
 The Joanie's Kitchen API supports two authentication methods:
 
 1. **API Keys** - For programmatic access (recommended for apps, scripts, integrations)
-2. **Clerk Sessions** - For web applications (automatic session handling)
+2. **Auth.js Sessions** - For web applications (automatic session handling)
 
 ### Authentication Flow
 
@@ -43,7 +43,7 @@ The Joanie's Kitchen API supports two authentication methods:
         │                     │                     │
         ▼                     ▼                     ▼
 ┌───────────────┐   ┌─────────────────┐   ┌──────────────┐
-│ Bearer Token  │   │ Basic Auth      │   │ Clerk        │
+│ Bearer Token  │   │ Basic Auth      │   │ Auth.js      │
 │ (API Key)     │   │ (Not Yet Impl)  │   │ Session      │
 └───────────────┘   └─────────────────┘   └──────────────┘
         │                     │                     │
@@ -83,14 +83,14 @@ Authorization: Bearer jk_live_abc123def456...
 - Track usage per key
 - No session management needed
 
-### 2. Clerk Sessions (Cookies)
+### 2. Auth.js Sessions (Cookies)
 
 **Use For**: Web applications with user login
 
 **Format**: Automatic (cookies)
 
 **Advantages**:
-- Seamless integration with Clerk authentication
+- Seamless integration with Auth.js (Google sign-in)
 - Automatic session management
 - Full user permissions by default
 
@@ -100,7 +100,7 @@ Authorization: Bearer jk_live_abc123def456...
 
 ### Creating API Keys
 
-API keys can **only** be created via Clerk session authentication (web interface). This prevents API keys from creating other API keys (security measure).
+API keys can **only** be created via Auth.js session authentication (web interface). This prevents API keys from creating other API keys (security measure).
 
 #### Via Web Interface
 
@@ -115,11 +115,11 @@ API keys can **only** be created via Clerk session authentication (web interface
 
 5. **Copy the key immediately** - it will only be shown once!
 
-#### Via API (Clerk Session Required)
+#### Via API (Session Required)
 
 **Endpoint**: `POST /api/v1/auth/keys`
 
-**Authentication**: Must use Clerk session (cookies), NOT API key
+**Authentication**: Must use an Auth.js session (cookies), NOT API key
 
 **Request**:
 ```bash
@@ -216,7 +216,7 @@ response = requests.get(
 
 **Endpoint**: `GET /api/v1/auth/keys`
 
-**Authentication**: Clerk session only
+**Authentication**: Auth.js session only
 
 ```bash
 curl -X GET "https://your-domain.com/api/v1/auth/keys" \
@@ -249,7 +249,7 @@ curl -X GET "https://your-domain.com/api/v1/auth/keys" \
 
 **Endpoint**: `GET /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session or API key (can view own details)
+**Authentication**: Auth.js session or API key (can view own details)
 
 ```bash
 curl -X GET "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716-446655440000" \
@@ -260,7 +260,7 @@ curl -X GET "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716-44
 
 **Endpoint**: `PATCH /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session only
+**Authentication**: Auth.js session only
 
 ```bash
 curl -X PATCH "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716-446655440000" \
@@ -276,7 +276,7 @@ curl -X PATCH "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716-
 
 **Endpoint**: `DELETE /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session only
+**Authentication**: Auth.js session only
 
 ```bash
 curl -X DELETE "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716-446655440000" \
@@ -287,7 +287,7 @@ curl -X DELETE "https://your-domain.com/api/v1/auth/keys/550e8400-e29b-41d4-a716
 
 **Endpoint**: `GET /api/v1/auth/keys/:id/usage`
 
-**Authentication**: Clerk session or API key (can view own usage)
+**Authentication**: Auth.js session or API key (can view own usage)
 
 **Query Parameters**:
 - `startDate`: Start date (ISO 8601)
@@ -762,19 +762,19 @@ https://your-domain.com/api/v1/recipes  ✅
 2. Update API key scopes via web interface
 3. Create new key with correct scopes
 
-### API Key Management Requires Clerk Session
+### API Key Management Requires a Session
 
 **Symptom**:
 ```json
 {
   "success": false,
   "error": "Authentication required",
-  "note": "API key management requires Clerk session authentication"
+  "note": "API key management requires session authentication"
 }
 ```
 
 **Solution**:
-API key CRUD operations (create, update, delete) require Clerk session authentication. This is a security measure to prevent API keys from creating other API keys.
+API key CRUD operations (create, update, delete) require Auth.js session authentication. This is a security measure to prevent API keys from creating other API keys.
 
 Use the web interface or authenticate with cookies.
 

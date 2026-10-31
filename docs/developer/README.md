@@ -34,7 +34,7 @@ Version 0.5.2 (In Development) | Last Updated: October 18, 2025
 **Backend & Database**
 - **PostgreSQL** - Neon serverless database (hosted)
 - **Drizzle ORM 0.44.5** - Type-safe database queries with migrations
-- **Clerk Authentication** - User authentication with dual-environment support
+- **Auth.js (NextAuth v5)** - Google sign-in, JWT sessions, closed registration
 
 **AI & ML Integration**
 - **OpenRouter API** - Multi-LLM support (200+ models)
@@ -56,7 +56,7 @@ Version 0.5.2 (In Development) | Last Updated: October 18, 2025
 ### Architecture Highlights
 
 1. **Server-First Design**: Extensive use of Server Actions for data mutations, minimizing client-side JavaScript
-2. **Dual-Environment Auth**: Supports both development and production Clerk environments on localhost
+2. **Closed-Registration Auth**: Google is the only provider; only seeded emails (or `AUTH_ADMIN_EMAILS`) can sign in
 3. **LLM-Powered Features**: AI recipe generation, semantic search, content extraction
 4. **Vector Search**: Semantic recipe discovery using pgvector embeddings
 5. **Mobile-First Responsive**: Touch-optimized UI with 44x44px minimum targets
@@ -79,7 +79,7 @@ recipe-manager/
 │   ├── components/             # React components (ui/, recipe/, meals/, admin/)
 │   ├── lib/                    # Core utilities (db/, ai/, search/, utils/)
 │   ├── types/                  # TypeScript type definitions
-│   └── middleware.ts           # Clerk authentication middleware
+│   └── middleware.ts           # Auth.js session middleware
 ├── scripts/                    # Data acquisition & database utilities
 ├── data/                       # Data processing and synthetic user generation
 ├── docs/                       # Documentation hub
@@ -101,7 +101,7 @@ recipe-manager/
 - **Node.js**: 18.17+ (20+ recommended)
 - **pnpm**: Latest version (`npm install -g pnpm`)
 - **PostgreSQL**: Neon account (free tier available)
-- **Clerk Account**: For authentication (free tier available)
+- **Google OAuth client**: For sign-in (Google Cloud Console)
 - **OpenRouter API Key**: For AI features (free tier available)
 
 ### Installation
@@ -162,7 +162,7 @@ pnpm test:unit             # Unit tests (Vitest)
 
 - **[Project Organization](../reference/PROJECT_ORGANIZATION.md)** - File structure standards and conventions
 - **[Database Schema](../../src/lib/db/schema.ts)** - Drizzle schema definitions (recipes, meals, chefs, users)
-- **[Authentication Architecture](../guides/AUTHENTICATION_REQUIREMENTS.md)** - Clerk dual-environment setup
+- **[Authentication Architecture](../guides/AUTHENTICATION_REQUIREMENTS.md)** - Auth requirements for protected features
 - **[API Routes](../api/)** - REST API documentation
 - **[Server Actions](../../src/app/actions/)** - Next.js server action patterns
 
@@ -186,9 +186,7 @@ pnpm test:unit             # Unit tests (Vitest)
 ### Environment Setup
 
 - **[Environment Setup Guide](../guides/ENVIRONMENT_SETUP.md)** - Complete .env.local configuration
-- **[Clerk Setup](../guides/CLERK_SETUP_GUIDE.md)** - Authentication configuration step-by-step
-- **[Dual Environment Setup](../guides/DUAL_ENVIRONMENT_SETUP.md)** - Dev + production on localhost
-- **[Google OAuth Setup](../guides/GOOGLE_OAUTH_SETUP.md)** - OAuth provider configuration
+- **[Authentication Guide](../guides/authentication.md)** - Auth.js and Google OAuth setup, admin, seeding
 - **[1Password Integration](../reference/1PASSWORD_SETUP.md)** - Secret management
 
 ### Development Workflow
@@ -231,7 +229,7 @@ pnpm test:unit             # Unit tests (Vitest)
 ### Admin Features
 
 - **[Admin Dashboard Guide](../guides/admin-dashboard.md)** - Admin interface overview
-- **[Admin Setup](../guides/admin-setup.md)** - Admin user configuration
+- **[Admin Setup](../guides/authentication.md#admin)** - Admin user configuration (`AUTH_ADMIN_EMAILS`, `users.is_admin`)
 - **[Image Flagging System](../features/ADMIN_IMAGE_FLAGGING_SYSTEM.md)** - Content moderation
 
 ### Data Acquisition
@@ -292,8 +290,7 @@ pnpm test:unit             # Unit tests (Vitest)
 
 - **[Recipe API](../../src/app/api/recipes/)** - Recipe CRUD endpoints
 - **[Semantic Search API](../../src/app/api/search/semantic/)** - Vector search
-- **[Clerk Config API](../../src/app/api/clerk-config/)** - Auth configuration
-- **[Security Audit API](../../src/app/api/security-audit/)** - Security validation
+- **[Auth.js route handler](../../src/app/api/auth/)** - Sign-in, callback, session endpoints
 
 ---
 
@@ -335,7 +332,7 @@ pnpm test:unit             # Unit tests (Vitest)
 
 ### Common Issues
 
-- **[Authentication Issues](../troubleshooting/AUTH_TROUBLESHOOTING.md)** - Clerk auth problems
+- **[Authentication Issues](../troubleshooting/common-issues.md#authentication-issues)** - Sign-in problems
 - **[Database Connection](../troubleshooting/DATABASE_TROUBLESHOOTING.md)** - Neon connection issues
 - **[Build Errors](../troubleshooting/BUILD_TROUBLESHOOTING.md)** - Build and deployment errors
 - **[AI Integration Issues](../troubleshooting/AI_TROUBLESHOOTING.md)** - OpenRouter problems
@@ -424,7 +421,7 @@ git push origin feature/your-feature-name
 ### External Documentation
 
 - **[Next.js Docs](https://nextjs.org/docs)** - Next.js 15 documentation
-- **[Clerk Docs](https://clerk.com/docs)** - Authentication guide
+- **[Auth.js Docs](https://authjs.dev)** - Authentication guide
 - **[Drizzle ORM](https://orm.drizzle.team/docs)** - Database ORM
 - **[OpenRouter](https://openrouter.ai/docs)** - AI/LLM API
 - **[shadcn/ui](https://ui.shadcn.com)** - Component library

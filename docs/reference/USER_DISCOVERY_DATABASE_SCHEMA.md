@@ -31,13 +31,13 @@ This document defines the complete database schema for user discovery features, 
 
 ### 1.1 user_profiles
 
-Extended user profile information beyond Clerk authentication.
+Extended user profile information beyond Auth.js authentication.
 
 ```typescript
 export const userProfiles = pgTable('user_profiles', {
   // Primary Key & Identity
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().unique(), // Clerk user ID
+  userId: text('user_id').notNull().unique(), // users.id (legacy users keep their Clerk-era id)
 
   // Profile Information
   username: varchar('username', { length: 30 })
@@ -45,7 +45,7 @@ export const userProfiles = pgTable('user_profiles', {
     .unique(), // URL-friendly, unique identifier
   displayName: varchar('display_name', { length: 100 }).notNull(),
   bio: text('bio'), // Markdown support, max 500 chars enforced in app
-  avatar: text('avatar'), // Clerk-managed avatar URL
+  avatar: text('avatar'), // Avatar URL (Google profile picture)
 
   // Location & Contact
   location: varchar('location', { length: 100 }), // City, State/Country
@@ -108,7 +108,7 @@ export const selectUserProfileSchema = createSelectSchema(userProfiles);
 **Notes:**
 - `username` is unique, lowercase, URL-friendly identifier
 - Username regex: `/^[a-z0-9_-]+$/` (3-30 chars)
-- `userId` references Clerk user ID (one-to-one relationship)
+- `userId` references `users.id` (one-to-one relationship; legacy users keep their Clerk-era id)
 - Profile is created on first sign-in or when user sets username
 - `socialLinks` JSON field for flexible social media URLs
 - `isBanned` soft-deletes profile (not shown in search/discovery)
