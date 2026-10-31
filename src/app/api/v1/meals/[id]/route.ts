@@ -135,9 +135,9 @@ export const GET = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner, or the account has a
- *   pending deletion (#217)
- * - 404: Meal not found
+ * - 403: Missing the write:meals scope, or the account has a pending
+ *   deletion (#217)
+ * - 404: Meal not found, or not the caller's own meal (admins included, #225)
  * - 400: Invalid request body
  * - 500: Internal server error
  */
@@ -174,20 +174,10 @@ export const PATCH = requireScopes(
         );
       }
 
-      // Check ownership (users can only edit their own meals)
+      // #225: owner only, no admin bypass (updateMeal is scoped to the caller's
+      // meals); another user's meal answers as not found.
       if (existingMeal.data.user_id !== auth.userId) {
-        // Check if user is admin
-        const isAdmin = auth.metadata?.isAdmin === true;
-
-        if (!isAdmin) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You do not have permission to edit this meal',
-            },
-            { status: 403 }
-          );
-        }
+        return NextResponse.json({ success: false, error: 'Meal not found' }, { status: 404 });
       }
 
       // Parse request body
@@ -227,7 +217,14 @@ export const PATCH = requireScopes(
             error: result.error || 'Failed to update meal',
           },
           // #217: the account has a pending deletion; nothing was written.
-          { status: isPendingDeletionRefusal(result) ? 403 : 500 }
+          // #225: a meal the update no longer finds is 404, not 500.
+          {
+            status: isPendingDeletionRefusal(result)
+              ? 403
+              : result.error === 'Meal not found'
+                ? 404
+                : 500,
+          }
         );
       }
 
@@ -263,8 +260,8 @@ export const PATCH = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner
- * - 404: Meal not found
+ * - 403: Missing the delete:meals scope
+ * - 404: Meal not found, or not the caller's own meal (admins included, #225)
  * - 500: Internal server error
  */
 export const DELETE = requireScopes(
@@ -300,20 +297,10 @@ export const DELETE = requireScopes(
         );
       }
 
-      // Check ownership (users can only delete their own meals)
+      // #225: owner only, no admin bypass (deleteMeal is scoped to the caller's
+      // meals, so a bypassed admin deleted nothing and got a false 200).
       if (existingMeal.data.user_id !== auth.userId) {
-        // Check if user is admin
-        const isAdmin = auth.metadata?.isAdmin === true;
-
-        if (!isAdmin) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You do not have permission to delete this meal',
-            },
-            { status: 403 }
-          );
-        }
+        return NextResponse.json({ success: false, error: 'Meal not found' }, { status: 404 });
       }
 
       // Delete meal using server action
@@ -325,7 +312,8 @@ export const DELETE = requireScopes(
             success: false,
             error: result.error || 'Failed to delete meal',
           },
-          { status: 500 }
+          // #225: deleteMeal reports a delete that matched no row as not found.
+          { status: result.error === 'Meal not found' ? 404 : 500 }
         );
       }
 

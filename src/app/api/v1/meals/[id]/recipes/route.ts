@@ -11,6 +11,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { addRecipeToMeal, getMealById, removeRecipeFromMeal } from '@/app/actions/meals';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { type AddRecipeToMealInput, addRecipeToMealSchema } from '@/lib/validations/meal-api';
@@ -40,8 +41,10 @@ import { type AddRecipeToMealInput, addRecipeToMealSchema } from '@/lib/validati
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner
- * - 404: Meal not found
+ * - 403: Missing the write:meals scope, or the account has a pending
+ *   deletion (#225)
+ * - 404: Meal not found, or not the caller's own meal (admins included, #225);
+ *   or the recipe is not found
  * - 400: Invalid request body
  * - 500: Internal server error
  */
@@ -78,20 +81,10 @@ export const POST = requireScopes(
         );
       }
 
-      // Check ownership (users can only edit their own meals)
+      // #225: owner only, no admin bypass (addRecipeToMeal is scoped to the
+      // caller's meals); another user's meal answers as not found, as DELETE does.
       if (existingMeal.data.user_id !== auth.userId) {
-        // Check if user is admin
-        const isAdmin = auth.metadata?.isAdmin === true;
-
-        if (!isAdmin) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You do not have permission to edit this meal',
-            },
-            { status: 403 }
-          );
-        }
+        return NextResponse.json({ success: false, error: 'Meal not found' }, { status: 404 });
       }
 
       // Parse request body
@@ -131,7 +124,15 @@ export const POST = requireScopes(
             success: false,
             error: result.error || 'Failed to add recipe to meal',
           },
-          { status: 500 }
+          // #225: a pending-deletion refusal is 403 (nothing was written); a meal
+          // or recipe the caller cannot reach is 404; anything else stays 500.
+          {
+            status: isPendingDeletionRefusal(result)
+              ? 403
+              : result.error === 'Meal not found' || result.error === 'Recipe not found'
+                ? 404
+                : 500,
+          }
         );
       }
 
