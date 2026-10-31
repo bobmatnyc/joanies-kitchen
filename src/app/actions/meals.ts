@@ -18,6 +18,8 @@ import {
   type ShoppingListItem,
   shoppingLists,
 } from '@/lib/db/schema';
+// #218: meal_recipes inserts lock their recipes first.
+import { lockRecipesForMealInsert } from '@/lib/meals/recipe-lock';
 import {
   addRecipeToMealSchema,
   createMealFromTemplateSchema,
@@ -397,7 +399,12 @@ export async function addRecipeToMeal(data: unknown) {
       return { success: false, error: 'Recipe not found' };
     }
 
-    const [newMealRecipe] = await db.insert(mealRecipes).values(validatedData).returning();
+    // #218: one batch, the recipe lock first, so the insert's FK lock on the meal
+    // is taken after the recipe, as the account purge orders them (no 40P01).
+    const [, [newMealRecipe]] = await db.batch([
+      lockRecipesForMealInsert([validatedData.recipe_id]),
+      db.insert(mealRecipes).values(validatedData).returning(),
+    ]);
 
     // Update meal times
     await updateMealTimes(validatedData.meal_id);
