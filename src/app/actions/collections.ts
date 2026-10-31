@@ -23,6 +23,7 @@ import {
   insertCollectionSchema,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { collectionService } from '@/lib/services/collection-service';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -606,32 +607,8 @@ export async function removeRecipeFromCollection(collectionId: string, recipeId:
       return { success: false, error: 'You can only modify your own collections' };
     }
 
-    // Remove recipe from collection
-    await db
-      .delete(collectionRecipes)
-      .where(
-        and(
-          eq(collectionRecipes.collection_id, collectionId),
-          eq(collectionRecipes.recipe_id, recipeId)
-        )
-      );
-
-    // Update collection recipe count
-    await db
-      .update(collections)
-      .set({
-        recipe_count: sql`GREATEST(${collections.recipe_count} - 1, 0)`,
-        updated_at: new Date(),
-      })
-      .where(eq(collections.id, collectionId));
-
-    // Decrement recipe's collection_count
-    await db
-      .update(recipes)
-      .set({
-        collection_count: sql`GREATEST(${recipes.collection_count} - 1, 0)`,
-      })
-      .where(eq(recipes.id, recipeId));
+    // #231: the counts drop only when the DELETE removed a row, in one statement.
+    await collectionService.removeRecipe(collectionId, recipeId);
 
     revalidatePath(`/collections/${collectionId}`);
     revalidatePath(`/recipes/${recipeId}`);
