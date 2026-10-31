@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **recipes**: `POST /api/ingest-recipe` is admin-only. A caller whose `users.is_admin` is not true, by session or by an API key whose owner is not an admin, gets 403 "Admin access required" before any scrape, LLM call, rate-limit count or insert. A caller with no `users` row, or a failed admin lookup, also gets 403. An admin's ingest is unchanged and still stores a system recipe. `GET /api/ingest-recipe` now reports `adminOnly: true` (#233)
 - **docs**: removed the Clerk-only guides (`CLERK_*`, `VERCEL_CLERK_*`, the dual-environment, production-keys-on-localhost and Google-OAuth-via-Clerk guides, the Clerk admin-metadata setup, flow and quick-reference pages, the Clerk E2E setup) and the `clerk-ops` agent. The live docs (getting-started, environment variables, authentication, API, admin, troubleshooting, the `src/**` READMEs and the project memory notes) now describe Auth.js with Google: `AUTH_*` variables, `getSessionUser`/`getSessionUserId`/`useSessionUser`, and `users.is_admin`. Dated reports, archives and this changelog are unchanged. The `CLERK_*` Vercel variables still exist; removing them is a separate step (#22)
 
 ### Added
