@@ -19,7 +19,7 @@
  *
  * Default Recipe Settings:
  * - is_public: true (shared/public by default)
- * - is_system_recipe: true
+ * - is_system_recipe: true for an admin caller, else false (#233)
  * - license: 'PUBLIC_DOMAIN'
  * - chef_id: null (unless detected)
  */
@@ -38,6 +38,7 @@ import {
 } from '@/lib/ai/recipe-ingestion-parser';
 import { requireScopes } from '@/lib/api-auth/require-auth';
 import { SCOPES } from '@/lib/api-auth/scopes';
+import { getUserAdminFlag } from '@/lib/auth-users';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
@@ -128,6 +129,21 @@ function duplicateResult(
 }
 
 /**
+ * #233: only admins may mark recipes as system recipes. Reads `users.is_admin`
+ * for the caller (a session user or an API key's owner); a missing user or a
+ * failed lookup counts as non-admin.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-system-flag.test.ts`
+ */
+async function isAdminUser(userId: string): Promise<boolean> {
+  try {
+    return (await getUserAdminFlag(userId)) === true;
+  } catch (error: unknown) {
+    console.error('[Ingest API] users.is_admin lookup failed; treating as non-admin:', error);
+    return false;
+  }
+}
+
+/**
  * Ingest a single recipe from a URL
  */
 async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIngestionResult> {
@@ -196,6 +212,9 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     const instructionsJson = JSON.stringify(parsedRecipe.instructions);
     const tagsJson = JSON.stringify(parsedRecipe.tags || []);
 
+    // #233: only admins may mark recipes as system recipes.
+    const isSystemRecipe = await isAdminUser(userId);
+
     // Step 7: Generate embedding (non-blocking)
     let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
@@ -220,7 +239,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         images: imagesJson,
         is_ai_generated: false,
         is_public: true,
-        is_system_recipe: true,
+        is_system_recipe: isSystemRecipe, // #233
         nutrition_info: parsedRecipe.nutritionInfo
           ? JSON.stringify(parsedRecipe.nutritionInfo)
           : null,
@@ -321,7 +340,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           : null,
         is_ai_generated: false,
         is_public: true, // PUBLIC by default
-        is_system_recipe: true, // SYSTEM recipe by default
+        is_system_recipe: isSystemRecipe, // #233: admin callers only
         license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
         source: url,
         slug,
@@ -631,7 +650,7 @@ export async function GET() {
     },
     defaultSettings: {
       is_public: true,
-      is_system_recipe: true,
+      is_system_recipe: 'true for admin callers, else false', // #233
       license: 'PUBLIC_DOMAIN',
       chef_id: null,
     },
