@@ -10,6 +10,7 @@
 
 import type { NextRequest } from 'next/server';
 import { createRecipe, getRecipes, searchRecipes } from '@/app/actions/recipes';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import {
   apiError,
   apiSuccess,
@@ -147,7 +148,8 @@ export const GET = requireScopes([SCOPES.READ_RECIPES], async (request: NextRequ
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions (missing write:recipes scope)
+ * - 403: Insufficient permissions (missing write:recipes scope), or the account
+ *   has a pending deletion (#220)
  * - 400: Invalid request body
  * - 500: Internal server error
  */
@@ -177,7 +179,11 @@ export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request: NextRe
     const result = await createRecipe(recipeInput);
 
     if (!result.success) {
-      return apiError(result.error || 'Failed to create recipe', 500);
+      // #220: the account has a pending deletion; nothing was written.
+      return apiError(
+        result.error || 'Failed to create recipe',
+        isPendingDeletionRefusal(result) ? 403 : 500
+      );
     }
 
     return apiSuccess(result.data, 201);

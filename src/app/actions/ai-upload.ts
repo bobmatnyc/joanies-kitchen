@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { MODELS } from '@/lib/ai/openrouter';
 import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser';
-import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
 import { getSessionUserId } from '@/lib/session-user';
@@ -46,9 +49,11 @@ export async function uploadRecipeWithAI(params: {
     }
 
     // Create recipe in database
-    const recipe = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself for an account pending deletion.
+    // The AI parse above still runs for such an account; `images` were uploaded before this call.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         user_id: userId,
         name: parsed.name,
         description: parsed.description || '',
@@ -72,12 +77,16 @@ export async function uploadRecipeWithAI(params: {
         is_public: false, // User can change this later
         model_used: params.parseFromImage ? MODELS.GPT_4O : MODELS.CLAUDE_SONNET_4_5,
         source: 'AI Upload',
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('upload recipes');
+    }
 
     revalidatePath('/recipes');
 
-    return { success: true, recipe: recipe[0] };
+    return { success: true, recipe: guarded.row as typeof recipes.$inferSelect };
   } catch (error) {
     console.error('Error uploading recipe with AI:', error);
     const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
@@ -132,9 +141,10 @@ export async function uploadRecipeFromUrl(url: string) {
     );
 
     // Create recipe
-    const recipe = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself; the scrape and parse above still run.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         user_id: userId,
         name: parsed.name,
         description: parsed.description || '',
@@ -154,12 +164,16 @@ export async function uploadRecipeFromUrl(url: string) {
         is_public: false,
         model_used: MODELS.CLAUDE_SONNET_4_5,
         source: url,
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('import recipes');
+    }
 
     revalidatePath('/recipes');
 
-    return { success: true, recipe: recipe[0] };
+    return { success: true, recipe: guarded.row as typeof recipes.$inferSelect };
   } catch (error) {
     console.error('Error uploading recipe from URL:', error);
     const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code

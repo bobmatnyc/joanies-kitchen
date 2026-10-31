@@ -33,6 +33,7 @@ vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import { discoverRecipeFromUrl } from '@/app/actions/recipe-discovery';
+import { users } from '@/lib/db/auth-schema';
 import { recipes } from '@/lib/db/schema';
 
 let client: PGlite;
@@ -43,7 +44,8 @@ const count = async () =>
   (await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"')).rows[0].n;
 
 beforeAll(async () => {
-  const built = await createVisibilityDb([recipes], { recipes }, { constraints: true });
+  // #220: the recipe insert reads `users` for a pending deletion.
+  const built = await createVisibilityDb([users, recipes], { recipes }, { constraints: true });
   client = built.client;
   state.db = built.db;
 });
