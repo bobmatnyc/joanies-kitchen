@@ -171,7 +171,7 @@ async function authenticateWithApiKey(
       apiKeyName: validation.apiKey?.name,
       metadata: {
         ...metadata,
-        isAdmin: owner.isAdmin,
+        // Key auth sets no `isAdmin`: an admin's key acts only through its scopes.
         environment: validation.apiKey?.environment as 'production' | 'development' | undefined,
       },
     };

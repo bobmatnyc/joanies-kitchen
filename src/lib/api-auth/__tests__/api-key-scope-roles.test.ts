@@ -42,6 +42,7 @@ import { PATCH as keyPATCH } from '@/app/api/v1/auth/keys/[id]/route';
 import { POST as keysPOST } from '@/app/api/v1/auth/keys/route';
 import { DELETE as chefDELETE, PATCH as chefPATCH } from '@/app/api/v1/chefs/[slug]/route';
 import { POST as chefsPOST } from '@/app/api/v1/chefs/route';
+import { DELETE as inventoryDELETE, GET as inventoryGET } from '@/app/api/v1/inventory/[id]/route';
 import { generateApiKey } from '@/lib/api-auth/key-generator';
 import { createApiKey, updateApiKey } from '@/lib/api-auth/key-service';
 import { requireScopes } from '@/lib/api-auth/require-auth';
@@ -49,6 +50,7 @@ import { SCOPE_GROUPS, SCOPES } from '@/lib/api-auth/scopes';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { apiKeys, apiKeyUsage } from '@/lib/db/api-keys-schema';
 import { users } from '@/lib/db/auth-schema';
+import { inventoryItems } from '@/lib/db/inventory-schema';
 
 const ADMIN = 'user_admin';
 const MEMBER = 'user_member';
@@ -123,14 +125,17 @@ const userRoute = requireScopes([SCOPES.READ_RECIPES], ok);
 const echoScopes = requireScopes([SCOPES.READ_RECIPES], async (_r, auth) =>
   NextResponse.json({ scopes: auth.scopes })
 );
+const echoMetadata = requireScopes([SCOPES.READ_RECIPES], async (_r, auth) =>
+  NextResponse.json({ hasIsAdmin: auth.metadata ? 'isAdmin' in auth.metadata : false })
+);
 
 const callWithKey = (route: typeof adminRoute, apiKey: string) =>
   route(jsonRequest('GET', '/api/v1/test', undefined, apiKey), noParams);
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [users, apiKeys, apiKeyUsage],
-    { users, apiKeys, apiKeyUsage },
+    [users, apiKeys, apiKeyUsage, inventoryItems],
+    { users, apiKeys, apiKeyUsage, inventoryItems },
     { constraints: true }
   );
   client = built.client;
@@ -143,7 +148,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
-  await client.exec('DELETE FROM api_key_usage; DELETE FROM api_keys; DELETE FROM users;');
+  await client.exec(
+    'DELETE FROM inventory_items; DELETE FROM api_key_usage; DELETE FROM api_keys; DELETE FROM users;'
+  );
   await rows(
     `INSERT INTO users (id, email, is_admin, deletion_requested_at) VALUES
       ($1, 'a@example.test', true, NULL),
@@ -355,5 +362,82 @@ describe('chef write routes', () => {
     const key = await createdKey(ADMIN, ['write:chefs', 'delete:chefs']);
 
     expect((await calls[m](key)).status).toBe(status);
+  });
+});
+
+describe('key auth context', () => {
+  it.each([
+    ['an admin owner', ADMIN],
+    ['a non-admin owner', MEMBER],
+  ])('carries no isAdmin flag for %s', async (_who, owner) => {
+    const key = await createdKey(owner, ['read:recipes']);
+
+    const res = await callWithKey(echoMetadata, key);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ hasIsAdmin: false });
+  });
+
+  it('records no use for a key refused because of its owner', async () => {
+    const key = await storeKey(PENDING, ['read:recipes']);
+
+    expect((await callWithKey(userRoute, key)).status).toBe(401);
+
+    expect(await rows('SELECT last_used_at FROM api_keys')).toEqual([{ last_used_at: null }]);
+  });
+});
+
+describe("an admin-owned key with user scopes and another user's inventory", () => {
+  const ITEM = 'dddddddd-0000-4000-8000-00000000000d';
+  const itemParams = () => ({ params: Promise.resolve({ id: ITEM }) }) as RouteContext;
+
+  beforeEach(async () => {
+    await rows(
+      `INSERT INTO inventory_items (id, user_id, ingredient_id, storage_location, quantity, unit)
+       VALUES ($1, $2, 'eeeeeeee-0000-4000-8000-00000000000e', 'fridge', 2, 'pieces')`,
+      [ITEM, MEMBER]
+    );
+  });
+
+  it.each([
+    ['GET', inventoryGET],
+    ['DELETE', inventoryDELETE],
+  ] as const)('%s is refused and leaves the item in place', async (method, route) => {
+    const key = await createdKey(ADMIN, ['read:inventory', 'delete:inventory']);
+
+    const res = await route(
+      jsonRequest(method, `/api/v1/inventory/${ITEM}`, undefined, key),
+      itemParams()
+    );
+
+    expect([403, 404]).toContain(res.status);
+    expect(await rows('SELECT id, user_id FROM inventory_items')).toEqual([
+      { id: ITEM, user_id: MEMBER },
+    ]);
+  });
+
+  it("lets the item's owner read it with the same scopes", async () => {
+    const key = await createdKey(MEMBER, ['read:inventory', 'delete:inventory']);
+
+    const res = await inventoryGET(
+      jsonRequest('GET', `/api/v1/inventory/${ITEM}`, undefined, key),
+      itemParams()
+    );
+
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('creating a key when the role lookup fails', () => {
+  it('answers 500 and stores no key', async () => {
+    const db = state.db as { select: (...args: unknown[]) => unknown };
+    vi.spyOn(db, 'select').mockImplementationOnce(() => {
+      throw new Error('db down');
+    });
+
+    const res = await postKey(ADMIN, ['read:recipes']);
+
+    expect(res.status).toBe(500);
+    expect(await rows('SELECT id FROM api_keys')).toEqual([]);
   });
 });

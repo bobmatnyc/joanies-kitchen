@@ -33,7 +33,7 @@ import {
   hashApiKey,
   validateApiKeyFormat,
 } from './key-generator';
-import { disallowedScopesForRole, hasScope, validateScopes } from './scopes';
+import { disallowedScopesForRole, validateScopes } from './scopes';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -319,6 +319,16 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
       };
     }
 
+    // The key is only as good as its owner's account: no `users` row, or a
+    // pending account deletion, refuses the key before any use is recorded.
+    if (!row.ownerId || row.ownerDeletionRequestedAt !== null) {
+      return {
+        valid: false,
+        reason: 'inactive',
+        error: 'API key owner account is not active',
+      };
+    }
+
     // Step 5: Update last_used_at timestamp (fire and forget)
     db.update(apiKeys)
       .set({
@@ -337,12 +347,7 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
       apiKey: key,
       scopes: key.scopes as string[],
       userId: key.user_id,
-      owner: row.ownerId
-        ? {
-            isAdmin: row.ownerIsAdmin === true,
-            deletionPending: row.ownerDeletionRequestedAt !== null,
-          }
-        : null,
+      owner: { isAdmin: row.ownerIsAdmin === true, deletionPending: false },
     };
   } catch (error) {
     console.error('Error validating API key:', error);
@@ -737,30 +742,6 @@ export async function getRecentUsageLogs(keyId: string, limit: number = 100) {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Check if a user has permission via their API key
- *
- * @param keyId - The API key ID
- * @param requiredScope - The scope to check for
- * @returns true if key has the required scope
- */
-export async function checkApiKeyPermission(
-  keyId: string,
-  requiredScope: string
-): Promise<boolean> {
-  try {
-    const key = await getApiKeyById(keyId);
-    if (!key || !key.is_active) {
-      return false;
-    }
-
-    return hasScope(key.scopes as string[], requiredScope);
-  } catch (error) {
-    console.error('Error checking API key permission:', error);
-    return false;
-  }
-}
 
 /**
  * Clean up expired API keys (for scheduled jobs)

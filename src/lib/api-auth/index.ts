@@ -71,7 +71,6 @@ export {
   type ApiKeyUsageStats,
   type CreateApiKeyParams,
   type CreateApiKeyResult,
-  checkApiKeyPermission,
   cleanupExpiredKeys,
   createApiKey,
   deleteApiKey,
