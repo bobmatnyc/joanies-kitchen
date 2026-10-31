@@ -28,6 +28,7 @@ import { recipes } from '@/lib/db/schema';
  * and with #189's FOR NO KEY UPDATE, so those queue too. It does not conflict
  * with the FOR KEY SHARE an FK check takes, so inserts of rows that reference
  * the recipe (ratings, favorites, chef links) are not blocked by a rating.
+ * #211: `removeFavorite` opens its batch with it too, for the same reasons.
  */
 export function lockRecipeForRating(recipeId: string) {
   return db

@@ -46,8 +46,8 @@ export const GET = requireScopes(
       const collectionId = await getRequiredParam(context, 'id');
       if ('error' in collectionId) return collectionId.error;
 
-      // Find collection
-      const collection = await collectionService.findById(collectionId.data);
+      // #213: 404 for a non-owner while the owner's deletion is pending.
+      const collection = await collectionService.findReadableById(collectionId.data, auth.userId);
 
       if (!collection) {
         return apiNotFound('Collection not found');

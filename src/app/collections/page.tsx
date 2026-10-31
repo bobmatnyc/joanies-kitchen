@@ -1,6 +1,9 @@
 import { getPublicCollections } from '@/app/actions/collections';
 import { CollectionCard } from '@/components/collections/CollectionCard';
 
+// #213: render per request so a pending-deletion owner's collections drop out at once.
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   // #138: the root layout's title.template appends the brand.
   title: 'Collections',

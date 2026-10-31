@@ -37,6 +37,7 @@ vi.mock('@/lib/db', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
+import { revalidatePath } from 'next/cache';
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import { requestAccountDeletion, undoAccountDeletion } from '@/app/actions/account-deletion';
 import { getRecipeCommentCount, getRecipeComments } from '@/app/actions/social';
@@ -374,6 +375,21 @@ describe('undoAccountDeletion', () => {
       Date.now() - 60 * 60 * 1000
     );
     expect((await undoAccountDeletion(old)).success).toBe(false);
+  });
+
+  it('#213: request and undo each revalidate the prerendered /collections listing', async () => {
+    const revalidate = vi.mocked(revalidatePath);
+    revalidate.mockClear();
+
+    expect((await request()).success).toBe(true);
+    expect(revalidate.mock.calls).toEqual([['/collections']]);
+
+    // A revalidation failure after the commit does not report the undo as failed.
+    revalidate.mockImplementationOnce(() => {
+      throw new Error('no static generation store');
+    });
+    expect(await undoAccountDeletion(await undoTokenFromSignIn())).toEqual({ success: true });
+    expect(revalidate.mock.calls).toEqual([['/collections'], ['/collections']]);
   });
 
   it('returns failure and leaves no partial state when the batch fails', async () => {

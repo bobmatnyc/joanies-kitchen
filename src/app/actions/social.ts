@@ -3,11 +3,16 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion } from '@/lib/account-deletion';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionError,
+} from '@/lib/account-deletion/guarded-insert';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { forkRecipeUnlessPendingDeletion } from '@/lib/services/social-service';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -60,37 +65,11 @@ export async function forkRecipe(
       return { success: false, error: 'Recipe not found' };
     }
 
-    const recipe = originalRecipe[0];
-
-    // Create a copy of the recipe
-    const [newRecipe] = await db
-      .insert(recipes)
-      .values({
-        user_id: userId,
-        name: `${recipe.name} (Forked)`,
-        description: recipe.description,
-        ingredients: recipe.ingredients,
-        instructions: recipe.instructions,
-        prep_time: recipe.prep_time,
-        cook_time: recipe.cook_time,
-        servings: recipe.servings,
-        difficulty: recipe.difficulty,
-        cuisine: recipe.cuisine,
-        tags: recipe.tags,
-        images: recipe.images,
-        is_ai_generated: false,
-        is_public: false, // Forked recipes are private by default
-        nutrition_info: recipe.nutrition_info,
-        source: `Forked from: ${recipe.name}`,
-      })
-      .returning();
-
-    // Create fork relationship
-    await db.insert(recipeForks).values({
-      recipe_id: newRecipe.id,
-      original_recipe_id: originalRecipeId,
-      user_id: userId,
-    });
+    // #208: the copy and its fork link are one guarded statement; nothing for a pending account.
+    const newRecipe = await forkRecipeUnlessPendingDeletion(userId, originalRecipe[0]);
+    if (!newRecipe) {
+      return { success: false, error: pendingDeletionError('fork recipes') };
+    }
 
     revalidatePath('/recipes');
     revalidatePath(`/recipes/${originalRecipeId}`);
@@ -207,14 +186,15 @@ export async function addRecipeComment(
       return { success: false, error: 'Comment cannot be empty' };
     }
 
-    const [comment] = await db
-      .insert(recipeComments)
-      .values({
-        recipe_id: recipeId,
-        user_id: userId,
-        content: content.trim(),
-      })
-      .returning();
+    // #208: refused in the insert statement itself for an account pending deletion.
+    const { row: comment } = await insertUnlessPendingDeletion(
+      recipeComments,
+      { recipe_id: recipeId, user_id: userId, content: content.trim() },
+      userId
+    );
+    if (!comment) {
+      return { success: false, error: pendingDeletionError('comment on recipes') };
+    }
 
     revalidatePath(`/recipes/${recipeId}`);
 

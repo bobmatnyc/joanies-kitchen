@@ -9,8 +9,10 @@
  */
 
 import type { NextRequest } from 'next/server';
+import { AccountPendingDeletionError } from '@/lib/account-deletion/guarded-insert';
 import {
   apiError,
+  apiForbidden,
   apiSuccess,
   apiSuccessPaginated,
   applyFilters,
@@ -130,7 +132,8 @@ export const GET = requireScopes([SCOPES.READ_COLLECTIONS], async (request: Next
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions (missing write:collections scope)
+ * - 403: Insufficient permissions (missing write:collections scope), or the
+ *   account has a pending deletion (#208)
  * - 400: Invalid request body
  * - 500: Internal server error
  */
@@ -149,6 +152,10 @@ export const POST = requireScopes(
 
       return apiSuccess(newCollection, 201);
     } catch (error) {
+      // #208: the account has a pending deletion; nothing was written.
+      if (error instanceof AccountPendingDeletionError) {
+        return apiForbidden(error.message);
+      }
       console.error('Error creating collection:', error);
       return apiError('Internal server error');
     }

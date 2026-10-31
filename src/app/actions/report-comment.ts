@@ -2,6 +2,10 @@
 
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionError,
+} from '@/lib/account-deletion/guarded-insert';
 import { hideCommentAtThreshold } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeFlags } from '@/lib/db/schema';
@@ -77,9 +81,11 @@ export async function reportComment(
     }
 
     const now = new Date();
-    const inserted = await db
-      .insert(recipeFlags)
-      .values({
+    // #208: refused in the insert statement itself for an account pending deletion,
+    // so a departing account neither files a report nor counts toward an auto-hide.
+    const { allowed, row: inserted } = await insertUnlessPendingDeletion(
+      recipeFlags,
+      {
         recipe_id: comment.recipe_id,
         comment_id: commentId,
         user_id: userId,
@@ -88,14 +94,16 @@ export async function reportComment(
         status: 'pending',
         created_at: now,
         updated_at: now,
-      })
-      .onConflictDoNothing({
-        target: [recipeFlags.comment_id, recipeFlags.user_id],
-        where: sql`${recipeFlags.comment_id} IS NOT NULL`,
-      })
-      .returning({ id: recipeFlags.id });
+      },
+      userId,
+      // The partial unique index (comment_id, user_id) WHERE comment_id IS NOT NULL.
+      { onConflict: sql`ON CONFLICT (comment_id, user_id) WHERE comment_id IS NOT NULL DO NOTHING` }
+    );
 
-    if (inserted.length === 0) {
+    if (!allowed) {
+      return { success: false, error: pendingDeletionError('report comments') };
+    }
+    if (!inserted) {
       return { success: true, alreadyReported: true };
     }
 

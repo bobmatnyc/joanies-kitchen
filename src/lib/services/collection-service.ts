@@ -1,4 +1,9 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
+import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
+import {
+  AccountPendingDeletionError,
+  insertUnlessPendingDeletion,
+} from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
@@ -68,7 +73,26 @@ export class CollectionService {
   }
 
   /**
-   * Create a new collection
+   * #213: `findById` for a read. Null while the owner's deletion is pending,
+   * unless the viewer is the owner. Write paths keep `findById`.
+   */
+  async findReadableById(
+    id: string,
+    viewerId: string | null | undefined
+  ): Promise<Collection | null> {
+    const [collection] = await db
+      .select()
+      .from(collections)
+      .where(and(eq(collections.id, id), ownerVisibleTo(collections.user_id, viewerId)))
+      .limit(1);
+
+    return collection || null;
+  }
+
+  /**
+   * Create a new collection.
+   * #208: throws `AccountPendingDeletionError` when the account has a pending
+   * deletion; the guard is in the insert statement and nothing is written.
    */
   async create(
     userId: string,
@@ -80,16 +104,21 @@ export class CollectionService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    const [newCollection] = await db
-      .insert(collections)
-      .values({
+    // #208: refused in the insert statement itself for an account pending deletion.
+    const { allowed, row: newCollection } = await insertUnlessPendingDeletion(
+      collections,
+      {
         user_id: userId,
         name: data.name,
         slug,
         description: data.description || null,
         is_public: data.is_public ?? false,
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!allowed) {
+      throw new AccountPendingDeletionError('create collections');
+    }
 
     if (!newCollection) {
       throw new Error('Failed to create collection');
@@ -141,9 +170,13 @@ export class CollectionService {
   }
 
   /**
-   * Add a recipe to a collection
+   * Add a recipe to a collection. `userId` is the caller, already checked to
+   * own the collection.
+   * #208: throws `AccountPendingDeletionError` when the account has a pending
+   * deletion; no row is added and no count changes.
    */
   async addRecipe(
+    userId: string,
     collectionId: string,
     recipeId: string,
     personalNote?: string
@@ -156,13 +189,21 @@ export class CollectionService {
 
     const position = (maxPosition?.max ?? -1) + 1;
 
-    // Add recipe to collection
-    await db.insert(collectionRecipes).values({
-      collection_id: collectionId,
-      recipe_id: recipeId,
-      position,
-      personal_note: personalNote || null,
-    });
+    // #208: refused in the insert statement itself; the counters below run only
+    // after a row landed, each in its own statement as before (no new lock order).
+    const { allowed } = await insertUnlessPendingDeletion(
+      collectionRecipes,
+      {
+        collection_id: collectionId,
+        recipe_id: recipeId,
+        position,
+        personal_note: personalNote || null,
+      },
+      userId
+    );
+    if (!allowed) {
+      throw new AccountPendingDeletionError('add recipes to collections');
+    }
 
     // Update collection recipe count and timestamp
     await db
@@ -243,10 +284,11 @@ export class CollectionService {
    * Get public collections with pagination
    */
   async findPublic(limit = 20, offset = 0): Promise<Collection[]> {
+    // #213: a public listing omits owners whose deletion is pending.
     return db
       .select()
       .from(collections)
-      .where(eq(collections.is_public, true))
+      .where(and(eq(collections.is_public, true), authorNotPendingDeletion(collections.user_id)))
       .orderBy(desc(collections.created_at))
       .limit(limit)
       .offset(offset);

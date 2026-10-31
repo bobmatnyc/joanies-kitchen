@@ -1,8 +1,14 @@
 'use server';
 
-import { and, desc, eq, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
+import { users } from '@/lib/db/auth-schema';
 import {
   ingredients,
   mealRecipes,
@@ -66,14 +72,16 @@ export async function createMeal(data: unknown) {
     const existingSlugs = existingMeals.map((m) => m.slug).filter((s): s is string => !!s);
     const uniqueSlug = ensureUniqueSlug(baseSlug, existingSlugs);
 
-    const [newMeal] = await db
-      .insert(meals)
-      .values({
-        ...validatedData,
-        user_id: userId,
-        slug: uniqueSlug,
-      })
-      .returning();
+    // #217: refused in the insert statement itself for an account pending deletion.
+    const guarded = await insertUnlessPendingDeletion(
+      meals,
+      { ...validatedData, user_id: userId, slug: uniqueSlug },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('create meals');
+    }
+    const newMeal = guarded.row;
 
     revalidatePath('/meals');
     return { success: true, data: newMeal };
@@ -104,17 +112,29 @@ export async function updateMeal(id: unknown, updates: unknown) {
     // Validate updates
     const validatedUpdates = validateInput(updateMealSchema, updates);
 
+    // #217: refused in the same statement while a deletion is pending, so an
+    // edit cannot publish a meal (`is_public`) during the grace period.
     const [updatedMeal] = await db
       .update(meals)
       .set({
         ...validatedUpdates,
         updated_at: new Date(),
       })
-      .where(and(eq(meals.id, validatedId), eq(meals.user_id, userId)))
+      .where(
+        and(eq(meals.id, validatedId), eq(meals.user_id, userId), authorNotPendingDeletion(userId))
+      )
       .returning();
 
     if (!updatedMeal) {
-      return { success: false, error: 'Meal not found' };
+      // #217: the read only picks the message; the guard above decided the write.
+      const [pending] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, userId), isNotNull(users.deletion_requested_at)))
+        .limit(1);
+      return pending
+        ? pendingDeletionRefusal('edit meals')
+        : { success: false, error: 'Meal not found' };
     }
 
     revalidatePath('/meals');
@@ -204,7 +224,11 @@ export async function getPublicMeals(params?: unknown) {
       ? validateInput(getUserMealsSchema, params)
       : { mealType: 'all' as const };
 
-    const conditions = [eq(meals.is_public, true)];
+    // #217: a pending-deletion owner's public meals are listed only to that owner.
+    const conditions = [
+      eq(meals.is_public, true),
+      ownerVisibleTo(meals.user_id, await getSessionUserId()),
+    ];
     if (validatedParams.mealType && validatedParams.mealType !== 'all') {
       conditions.push(eq(meals.meal_type, validatedParams.mealType));
     }
@@ -240,9 +264,13 @@ export async function getMealById(id: unknown) {
     // Build query conditions based on authentication status
     // - Authenticated users: Show their own meals OR public meals
     // - Unauthenticated users: Show only public meals
-    const whereConditions = userId
-      ? and(eq(meals.id, validatedId), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
-      : and(eq(meals.id, validatedId), eq(meals.is_public, true));
+    // #217: plus, for anyone but the owner, the owner has no pending deletion.
+    const whereConditions = and(
+      userId
+        ? and(eq(meals.id, validatedId), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
+        : and(eq(meals.id, validatedId), eq(meals.is_public, true)),
+      ownerVisibleTo(meals.user_id, userId)
+    );
 
     const [meal] = await db.select().from(meals).where(whereConditions);
 
@@ -293,9 +321,14 @@ export async function getMealBySlug(slug: string) {
     // Build query conditions based on authentication status
     // - Authenticated users: Show their own meals OR public meals
     // - Unauthenticated users: Show only public meals
-    const whereConditions = userId
-      ? and(eq(meals.slug, slug), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
-      : and(eq(meals.slug, slug), eq(meals.is_public, true));
+    // #217: plus, for anyone but the owner, the owner has no pending deletion.
+    // generateMetadata on /meals/[slug] reads through here, so the title is hidden too.
+    const whereConditions = and(
+      userId
+        ? and(eq(meals.slug, slug), or(eq(meals.user_id, userId), eq(meals.is_public, true)))
+        : and(eq(meals.slug, slug), eq(meals.is_public, true)),
+      ownerVisibleTo(meals.user_id, userId)
+    );
 
     const [meal] = await db.select().from(meals).where(whereConditions);
 
@@ -383,9 +416,10 @@ export async function addRecipeToMeal(data: unknown) {
  * Remove a recipe from a meal
  *
  * @param id - Meal recipe relationship ID (validated as UUID)
+ * @param mealId - Optional meal ID; when given, the row must belong to this meal (#222)
  * @returns Success response or error message
  */
-export async function removeRecipeFromMeal(id: unknown) {
+export async function removeRecipeFromMeal(id: unknown, mealId?: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
@@ -394,15 +428,22 @@ export async function removeRecipeFromMeal(id: unknown) {
 
     // Validate ID
     const { id: validatedId } = validateInput(mealRecipeIdSchema, { id });
+    // #222: a caller addressing meal A cannot remove a row of meal B.
+    const inMeal =
+      mealId === undefined
+        ? undefined
+        : eq(mealRecipes.meal_id, validateInput(mealIdSchema, { id: mealId }).id);
 
-    // Get the meal_id before deleting
-    const [mealRecipe] = await db.select().from(mealRecipes).where(eq(mealRecipes.id, validatedId));
+    // #222: the ownership check is part of the DELETE itself, so it is race-safe
+    // without a transaction; another user's row answers like a missing one.
+    const [mealRecipe] = await db
+      .delete(mealRecipes)
+      .where(and(eq(mealRecipes.id, validatedId), mealOwnedBy(userId), inMeal))
+      .returning({ meal_id: mealRecipes.meal_id });
 
     if (!mealRecipe) {
       return { success: false, error: 'Recipe not found in meal' };
     }
-
-    await db.delete(mealRecipes).where(eq(mealRecipes.id, validatedId));
 
     // Update meal times
     await updateMealTimes(mealRecipe.meal_id);
@@ -440,7 +481,8 @@ export async function updateMealRecipe(id: unknown, updates: unknown) {
     const [updatedMealRecipe] = await db
       .update(mealRecipes)
       .set(validatedUpdates)
-      .where(eq(mealRecipes.id, validatedId))
+      // #222: ownership is checked in the UPDATE itself; another user's row answers as not found.
+      .where(and(eq(mealRecipes.id, validatedId), mealOwnedBy(userId)))
       .returning();
 
     if (!updatedMealRecipe) {
@@ -698,17 +740,23 @@ export async function createMealFromTemplate(data: unknown) {
       return { success: false, error: 'Template not found' };
     }
 
-    // Create the meal
-    const [newMeal] = await db
-      .insert(meals)
-      .values({
+    // #217: refused in the insert statement itself for an account pending deletion;
+    // the template counter below moves only after the guard allowed the insert.
+    const guarded = await insertUnlessPendingDeletion(
+      meals,
+      {
         user_id: userId,
         name: mealName || template.name,
         description: template.description,
         meal_type: template.meal_type,
         serves: template.default_serves,
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('create meals');
+    }
+    const newMeal = guarded.row;
 
     // Increment template usage
     await db
@@ -728,6 +776,17 @@ export async function createMealFromTemplate(data: unknown) {
 }
 
 // Helper functions
+
+/**
+ * #222: `meal_recipes.meal_id IN (SELECT id FROM meals WHERE user_id = $userId)`.
+ * Used inside a write's WHERE so ownership and the write are one statement.
+ */
+function mealOwnedBy(userId: string) {
+  return inArray(
+    mealRecipes.meal_id,
+    db.select({ id: meals.id }).from(meals).where(eq(meals.user_id, userId))
+  );
+}
 
 /**
  * Update meal's total prep and cook times based on recipes
