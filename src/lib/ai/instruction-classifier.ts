@@ -167,6 +167,10 @@ export async function classifyRecipeInstructions(
     const classifications = extractFirstJsonArray(response) as Array<
       InstructionClassification & { step_index: number }
     >;
+    // #228: a stray leading `[1]` parses as an array of numbers; refuse non-object entries.
+    if (!classifications.every((c) => typeof c === 'object' && c !== null && !Array.isArray(c))) {
+      throw new Error('Batch classification reply holds non-object entries');
+    }
 
     // Convert to metadata array
     const metadata: InstructionMetadata[] = classifications.map((classification) => ({

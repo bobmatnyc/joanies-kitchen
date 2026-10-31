@@ -153,6 +153,15 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
     // #228: a greedy /\[[\s\S]*\]/ ran into trailing citation markers ([1][2]);
     // parse only the first balanced array. A malformed array throws to the catch.
     const recipes = extractFirstJsonArray(jsonStr) as any[];
+    // #228: a stray leading `[1]` parses as an array of numbers; refuse non-object elements.
+    if (!recipes.every((r) => typeof r === 'object' && r !== null && !Array.isArray(r))) {
+      console.error('JSON array holds non-object entries:', jsonStr);
+      return {
+        success: false,
+        recipes: [],
+        error: 'Invalid response format from Perplexity',
+      };
+    }
 
     // Validate and filter results
     const validRecipes = recipes.filter((recipe: any) => {

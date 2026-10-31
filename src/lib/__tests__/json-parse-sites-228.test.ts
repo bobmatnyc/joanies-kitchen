@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   llm: vi.fn(),
   generate: vi.fn(),
   scrape: vi.fn(),
+  dbSet: vi.fn(),
   row: {
     id: 'r1',
     name: 'Soup',
@@ -39,7 +40,10 @@ vi.mock('@/lib/admin', () => ({ requireAdmin: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/db', () => {
   const update = () => ({
-    set: () => ({ where: () => ({ returning: async () => [mocks.row] }) }),
+    set: (values: unknown) => {
+      mocks.dbSet(values);
+      return { where: () => ({ returning: async () => [mocks.row] }) };
+    },
   });
   const select = () => ({
     from: () => ({ where: () => ({ limit: async () => [mocks.row] }) }),
@@ -84,6 +88,7 @@ afterEach(() => {
   mocks.llm.mockReset();
   mocks.generate.mockReset();
   mocks.scrape.mockReset();
+  mocks.dbSet.mockReset();
 });
 
 describe('perplexity-discovery (#228)', () => {
@@ -108,6 +113,17 @@ describe('perplexity-discovery (#228)', () => {
   it('returns the failure result for a malformed array', async () => {
     const result = await run('[{"title": oops}]');
     expect(result).toMatchObject({ success: false, recipes: [] });
+  });
+
+  it.each([
+    ['a stray [1] before the real array', `Sources [1]:\n${json([recipe])}`],
+    ['an array with a non-object element', json([recipe, 'x'])],
+  ])('refuses %s', async (_label, content) => {
+    expect(await run(content)).toEqual({
+      success: false,
+      recipes: [],
+      error: 'Invalid response format from Perplexity',
+    });
   });
 });
 
@@ -134,6 +150,25 @@ describe('admin-edit LLM helpers (#228)', () => {
     mocks.llm.mockResolvedValue(reply('["a", oops]'));
     const result = await fn('r1');
     expect(result.success).toBe(false);
+  });
+
+  it.each([
+    ['a stray [1] before the real array', `See [1].\n${json(['a', 'b'])}`],
+    ['an array with a non-string element', json(['a', 2])],
+  ])('refuses %s and writes nothing', async (_label, content) => {
+    for (const [, fn] of cases) {
+      mocks.llm.mockResolvedValue(reply(content));
+      const result = await fn('r1');
+      expect(result).toEqual({ success: false, error: 'Failed to parse LLM response' });
+    }
+    expect(mocks.dbSet).not.toHaveBeenCalled();
+  });
+
+  it.each(cases)('%s still writes an empty array, as on base', async (_n, fn, key) => {
+    mocks.llm.mockResolvedValue(reply('[]'));
+    const result = await fn('r1');
+    expect(result.success).toBe(true);
+    expect(mocks.dbSet).toHaveBeenCalledWith(expect.objectContaining({ [key]: '[]' }));
   });
 });
 
@@ -271,6 +306,13 @@ describe('instruction-classifier batch (#228)', () => {
 
   it('returns an empty list for malformed JSON', async () => {
     expect(await run('[{step_index: 0}]')).toEqual([]);
+  });
+
+  it.each([
+    ['a stray [1] before the real array', `Steps [1]:\n${json(steps)}`],
+    ['an array with a non-object element', json([steps[0], 3])],
+  ])('returns an empty list for %s', async (_label, content) => {
+    expect(await run(content)).toEqual([]);
   });
 });
 
