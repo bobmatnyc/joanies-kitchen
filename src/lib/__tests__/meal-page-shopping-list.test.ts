@@ -22,6 +22,7 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock('server-only', () => ({}));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
 import MealDetailPage from '@/app/meals/[slug]/page';
@@ -34,6 +35,7 @@ const A = 'user_a';
 const B = 'user_b';
 const NO_LIST = 'user_no_list';
 const MEAL = '11111111-0000-4000-8000-000000000001';
+const OTHER_MEAL = '11111111-0000-4000-8000-000000000002';
 const SLUG = 'shared-feast';
 // Oldest to newest: B's list is the newest row for the meal.
 const LISTS: Array<[string, string, string]> = [
@@ -127,6 +129,21 @@ describe('#223 getViewerShoppingListForMeal', () => {
     expect((await getViewerShoppingListForMeal(MEAL, A))?.id).toBe(
       '33333333-0000-4000-8000-000000000009'
     );
+  });
+
+  it('ignores the viewer’s newer list on another meal', async () => {
+    await client.query(
+      `INSERT INTO meals (id, user_id, name, description, is_public, slug)
+        VALUES ($1, $2, 'Other feast', 'Public', true, 'other-feast')`,
+      [OTHER_MEAL, OWNER]
+    );
+    await client.query(
+      `INSERT INTO shopping_lists (id, user_id, meal_id, name, items, status, created_at)
+        VALUES ('33333333-0000-4000-8000-00000000000a', $1, $2, 'A other meal', '[]', 'draft',
+        '2026-10-05T00:00:00Z')`,
+      [A, OTHER_MEAL]
+    );
+    expect((await getViewerShoppingListForMeal(MEAL, A))?.id).toBe(listIdOf(A));
   });
 
   it('returns null for no viewer without querying', async () => {

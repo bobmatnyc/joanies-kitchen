@@ -1,3 +1,4 @@
+import 'server-only';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { type ShoppingList, shoppingLists } from '@/lib/db/schema';
