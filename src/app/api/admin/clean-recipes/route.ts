@@ -80,7 +80,8 @@ export const POST = requireAuth(async (request: NextRequest, auth: AuthContext) 
     return NextResponse.json(
       {
         success: false,
-        error: message,
+        // #251: fixed text only; the raw detail (can name constraints) is logged above.
+        error: isProviderError ? 'AI provider unavailable' : 'Failed to clean recipes',
         hint: isProviderError
           ? 'Neither OpenRouter API key nor local Ollama is available. Set OPENROUTER_API_KEY in your environment or run Ollama locally.'
           : undefined,
