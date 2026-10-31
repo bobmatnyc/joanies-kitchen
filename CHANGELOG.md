@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **docs**: `docs/operations/error-log-contract.md` pins the structured `app-error` log line: the tag, every field and `source` value, what is redacted, which sources emit it, the Vercel filter string, and the rule that a change to the tag or field names must update the doc in the same PR. `report-error.ts` now points to it (#55)
+
 ### Changed
 
 - **meals**: any signed-in caller may generate a shopping list from a public meal with `POST /api/v1/meals/:id/shopping-list`. The owner may still use their own private meal. Another user's private meal answers 404 for everyone, admins included; the admin bypass is gone. The new list belongs to the caller, never to the meal owner, and the owner's lists are untouched. An account pending deletion gets 403 and nothing is written (#225)
