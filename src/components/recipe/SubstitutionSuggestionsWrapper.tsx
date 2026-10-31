@@ -12,7 +12,7 @@
  * This keeps the SubstitutionSuggestions component pure and testable.
  */
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { useEffect, useState } from 'react';
 import { getUserInventory } from '@/app/actions/inventory';
 import { SubstitutionSuggestions } from './SubstitutionSuggestions';
@@ -172,11 +172,13 @@ export function SubstitutionSuggestionsWrapper({
   ingredients,
   className = '',
 }: SubstitutionSuggestionsWrapperProps) {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, user } = useSessionUser();
+  const signedIn = user !== null;
+  const userId = user?.id ?? null;
   const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
   // #67: the auth identity the inventory check last finished for; stale data is never rendered
-  const authKey = `${isSignedIn ? 'in' : 'out'}:${userId ?? ''}`;
+  const authKey = `${signedIn ? 'in' : 'out'}:${userId ?? ''}`;
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -184,7 +186,7 @@ export function SubstitutionSuggestionsWrapper({
     if (!isLoaded) return;
     async function checkInventory() {
       // Not signed in: show all ingredients as missing
-      if (!isSignedIn || !userId) {
+      if (!signedIn || !userId) {
         setMissingIngredients(ingredients);
         setLoadedKey(authKey);
         return;
@@ -214,7 +216,7 @@ export function SubstitutionSuggestionsWrapper({
     }
 
     checkInventory();
-  }, [isLoaded, isSignedIn, userId, authKey, ingredients]);
+  }, [isLoaded, signedIn, userId, authKey, ingredients]);
 
   // Don't render anything while loading inventory check
   // #67: also wait for auth, or a signed-in user is seeded into click-to-load mode
@@ -230,13 +232,13 @@ export function SubstitutionSuggestionsWrapper({
   return (
     <SubstitutionSuggestions
       // #67: remount on sign-in/out so the click-to-load seed is re-evaluated
-      key={isSignedIn ? 'in' : 'out'}
+      key={signedIn ? 'in' : 'out'}
       missingIngredients={missingIngredients}
       recipeName={recipeName}
       userIngredients={userIngredients}
       className={className}
       // #67: signed-out visitors must click before any paid AI call is made
-      loadOnClick={!isSignedIn}
+      loadOnClick={!signedIn}
     />
   );
 }

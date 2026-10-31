@@ -26,8 +26,9 @@ const state = vi.hoisted(() => ({
   isAdmin: false,
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: async () => ({ userId: state.userId, sessionClaims: null }),
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => state.userId,
+  getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => state.isAdmin }));
 vi.mock('@/lib/db', () => ({
@@ -38,6 +39,7 @@ vi.mock('@/lib/db', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { deleteRating, rateRecipe } from '@/app/actions/rate-recipe';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -75,7 +77,8 @@ async function snapshot(recipeId: string) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.recipeRatings, userProfiles],
+    // #197: rateRecipe's write reads users.deletion_requested_at.
+    [users, schema.recipes, schema.recipeRatings, userProfiles],
     { ...schema, userProfiles },
     { constraints: true }
   );
@@ -168,30 +171,8 @@ describe('#137 admin viewer', () => {
   });
 });
 
-// #141: PGlite is one session, so it cannot interleave two batches. This pins the
-// issued shape instead: each rating batch must lock the recipe row before its write.
-describe('#141 rating batches lock the recipe row first', () => {
-  function firstStatement(batch: { mock: { calls: unknown[][] } }) {
-    const queries = batch.mock.calls[0][0] as { toSQL(): { sql: string; params: unknown[] } }[];
-    return queries[0].toSQL();
-  }
-
-  it.each([
-    ['rateRecipe', () => rateRecipe(RECIPE, 4)],
-    ['deleteRating', () => deleteRating(RECIPE)],
-  ])('%s opens its batch with SELECT … FROM recipes WHERE id = … FOR UPDATE', async (_, act) => {
-    state.userId = A;
-    await rateRecipe(RECIPE, 5);
-    const batch = vi.spyOn(db, 'batch');
-
-    expect(await act()).toMatchObject({ success: true });
-
-    expect(batch).toHaveBeenCalledTimes(1);
-    const { sql, params } = firstStatement(batch);
-    expect(sql).toMatch(/^select .+ from "recipes" where "recipes"\."id" = \$1 for update$/);
-    expect(params).toEqual([RECIPE]);
-  });
-});
+// #141: the batch statement order (recipe lock, rating write, recompute) is
+// pinned in `rate-recipe-lock-order.test.ts`.
 
 describe('#137 atomicity', () => {
   it('a failing recompute rolls back the rating write', async () => {

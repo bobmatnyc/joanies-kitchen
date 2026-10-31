@@ -1,6 +1,6 @@
 # Unified Authentication Middleware
 
-Complete authentication middleware supporting both Clerk (session-based) and API key (Bearer token) authentication for Next.js 15 API routes.
+Complete authentication middleware supporting both Auth.js (session-based) and API key (Bearer token) authentication for Next.js 15 API routes.
 
 ## Files Created
 
@@ -8,7 +8,7 @@ Complete authentication middleware supporting both Clerk (session-based) and API
 
 1. **`middleware.ts`** - Core authentication logic
    - `authenticateRequest()` - Main authentication function
-   - Supports API keys, Basic auth (placeholder), and Clerk sessions
+   - Supports API keys, Basic auth (placeholder), and Auth.js sessions
    - Returns unified `AuthContext`
 
 2. **`require-auth.ts`** - Route wrappers
@@ -100,7 +100,7 @@ curl -u "username:password" \
 
 **Status:** Placeholder implementation (not yet fully functional)
 
-### 3. Clerk Session - Lowest Priority (Fallback)
+### 3. Auth.js Session - Lowest Priority (Fallback)
 
 **Client Request:**
 ```javascript
@@ -119,7 +119,7 @@ fetch('/api/recipes', { credentials: 'include' });
 interface AuthContext {
   authenticated: boolean;
   userId: string | null;
-  authType: 'clerk' | 'api_key' | 'basic' | 'none';
+  authType: 'session' | 'api_key' | 'basic' | 'none';
   scopes: string[];
   apiKeyId?: string;
   apiKeyName?: string;
@@ -140,7 +140,7 @@ interface AuthContext {
 
 ### `requireAuth(handler, options?)`
 
-Requires any valid authentication (API key, Basic auth, or Clerk session).
+Requires any valid authentication (API key, Basic auth, or Auth.js session).
 
 ```typescript
 export const GET = requireAuth(async (request, auth, context) => {
@@ -279,15 +279,15 @@ This data is used for:
 - Security audits
 - Performance monitoring
 
-## Migration from Direct Clerk Auth
+## Migration from Direct Session Checks
 
 **Before:**
 ```typescript
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -321,7 +321,7 @@ export API_KEY="jk_prod_..."
 curl -H "Authorization: Bearer $API_KEY" http://localhost:3002/api/recipes
 ```
 
-### Test with Clerk Session
+### Test with an Auth.js Session
 
 ```javascript
 // In browser (has cookies)
@@ -351,8 +351,8 @@ curl http://localhost:3002/api/recipes
 
 Works seamlessly with existing authentication:
 
-- **Clerk users**: Get `SCOPE_GROUPS.USER` scopes automatically
-- **Admin users**: Get `SCOPE_GROUPS.ADMIN` scopes (based on `isAdmin` claim)
+- **Signed-in users**: Get `SCOPE_GROUPS.USER` scopes automatically
+- **Admin users**: Get `SCOPE_GROUPS.ADMIN` scopes (based on `users.is_admin`)
 - **API keys**: Have custom scopes from their configuration
 
 ## Best Practices
@@ -367,7 +367,7 @@ Works seamlessly with existing authentication:
 
 5. **Use consistent error messages**: Return clear error messages for better API experience
 
-6. **Test all auth methods**: Test your endpoints with API keys, Clerk sessions, and no auth
+6. **Test all auth methods**: Test your endpoints with API keys, Auth.js sessions, and no auth
 
 7. **Track usage**: Leave `trackUsage: true` (default) to monitor API key usage
 
@@ -437,4 +437,4 @@ For issues or questions:
 
 **Version:** 1.0.0
 **Created:** 2025-10-27
-**Supports:** Next.js 15, Clerk, API Keys, Basic Auth (placeholder)
+**Supports:** Next.js 15, Auth.js, API Keys, Basic Auth (placeholder)

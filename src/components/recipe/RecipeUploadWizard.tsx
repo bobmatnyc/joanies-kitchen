@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Save, Upload, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -68,7 +68,7 @@ const INITIAL_FORM_DATA: RecipeFormData = {
 
 export function RecipeUploadWizard({ onComplete, onCancel }: RecipeUploadWizardProps) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user } = useSessionUser();
   const userId = user?.id || null;
 
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic');

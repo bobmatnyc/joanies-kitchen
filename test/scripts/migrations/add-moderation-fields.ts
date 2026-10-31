@@ -11,7 +11,7 @@
  * Schema Changes:
  * - moderation_status: TEXT NOT NULL DEFAULT 'pending' ('pending' | 'approved' | 'rejected' | 'flagged')
  * - moderation_notes: TEXT (admin notes about rejection/flagging)
- * - moderated_by: TEXT (Clerk user ID of moderator)
+ * - moderated_by: TEXT (users.id of the moderator)
  * - moderated_at: TIMESTAMP (when moderation action was taken)
  * - submission_notes: TEXT (user's notes when submitting recipe)
  *

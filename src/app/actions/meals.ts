@@ -2,7 +2,6 @@
 
 import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   ingredients,
@@ -35,6 +34,7 @@ import {
   getRecipeViewer,
   recipeVisibilityCondition,
 } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import {
   consolidateShoppingListItems,
@@ -50,7 +50,7 @@ import { ensureUniqueSlug, generateMealSlug } from '@/lib/utils/meal-slug';
  */
 export async function createMeal(data: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -93,7 +93,7 @@ export async function createMeal(data: unknown) {
  */
 export async function updateMeal(id: unknown, updates: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -135,7 +135,7 @@ export async function updateMeal(id: unknown, updates: unknown) {
  */
 export async function deleteMeal(id: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -162,7 +162,7 @@ export async function deleteMeal(id: unknown) {
  */
 export async function getUserMeals(params?: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -232,7 +232,7 @@ export async function getPublicMeals(params?: unknown) {
  */
 export async function getMealById(id: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Validate ID
     const { id: validatedId } = validateInput(mealIdSchema, { id });
@@ -288,7 +288,7 @@ export async function getMealById(id: unknown) {
  */
 export async function getMealBySlug(slug: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Build query conditions based on authentication status
     // - Authenticated users: Show their own meals OR public meals
@@ -341,7 +341,7 @@ export async function getMealBySlug(slug: string) {
  */
 export async function addRecipeToMeal(data: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -387,7 +387,7 @@ export async function addRecipeToMeal(data: unknown) {
  */
 export async function removeRecipeFromMeal(id: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -426,7 +426,7 @@ export async function removeRecipeFromMeal(id: unknown) {
  */
 export async function updateMealRecipe(id: unknown, updates: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -465,7 +465,7 @@ export async function updateMealRecipe(id: unknown, updates: unknown) {
  */
 export async function generateShoppingList(data: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -574,7 +574,7 @@ export async function generateShoppingList(data: unknown) {
  */
 export async function getShoppingListById(id: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -608,7 +608,7 @@ export async function getShoppingListById(id: unknown) {
  */
 export async function updateShoppingList(id: unknown, updates: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -681,7 +681,7 @@ export async function getMealTemplates(params?: unknown) {
  */
 export async function createMealFromTemplate(data: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -906,7 +906,7 @@ export async function getRecipeRecommendations(mainRecipeId: string) {
  */
 export async function generateShoppingListFromCollection(data: unknown) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }

@@ -18,8 +18,8 @@ export function isLocalStagingSignInEnabled(): boolean {
 /**
  * Returns true when Google sign-in is configured or (#60 D5f) the local-staging
  * bypass is enabled; with the bypass inactive this is exactly the Google check.
- * When false the app runs signed-out: the `@/lib/auth` shim reports no
- * user and middleware treats every request as anonymous, so protected and
+ * When false the app runs signed-out: the `@/lib/session-user` helpers report
+ * no user and middleware treats every request as anonymous, so protected and
  * admin routes stay closed.
  */
 export function isAuthConfigured(): boolean {

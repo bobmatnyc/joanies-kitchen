@@ -9,7 +9,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   queries: [] as string[],
   scrapeRecipePage: vi.fn(),
   crawlChefRecipes: vi.fn(),
@@ -20,10 +21,10 @@ const mocks = vi.hoisted(() => ({
   blobDel: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('@/lib/db', async () => {
   const { drizzle } = await import('drizzle-orm/pg-proxy');
@@ -103,11 +104,12 @@ function didWork() {
 }
 
 function signedOut() {
-  mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+  mocks.sessionUserId.mockResolvedValue(null);
 }
 
 function signedIn(isAdmin: 'true' | 'false') {
-  mocks.auth.mockResolvedValue({ userId: 'user_1', sessionClaims: { metadata: { isAdmin } } });
+  mocks.sessionUserId.mockResolvedValue('user_1');
+  mocks.adminFlag.mockResolvedValue(isAdmin === 'true');
 }
 
 beforeEach(() => {
@@ -188,7 +190,7 @@ describe.each(ADMIN_ACTIONS)('$name (admin-only action)', (action) => {
 
 describe('recipe ingestion paid path (#13)', () => {
   it('fetchRecipeFromUrl denies before Firecrawl when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
+    mocks.sessionUserId.mockRejectedValue(new Error('auth unavailable'));
     expectAdminDenied(await outcome(() => ingestion.fetchRecipeFromUrl(URL_)));
     expectNoWork();
   });

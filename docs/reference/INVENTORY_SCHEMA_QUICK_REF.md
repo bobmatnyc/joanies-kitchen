@@ -234,8 +234,8 @@ where(eq(inventoryItems.user_id, userId))
 // Validate with Zod
 insertInventoryItemSchema.parse(data)
 
-// Check Clerk auth in server actions
-const { userId } = await auth();
+// Check the session in server actions
+const userId = await getSessionUserId(); // from '@/lib/session-user'
 if (!userId) throw new Error('Unauthorized');
 ```
 

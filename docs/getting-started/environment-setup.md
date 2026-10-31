@@ -12,7 +12,7 @@ This guide covers the complete setup of environment variables for the Recipe Man
 2. **Edit `.env.local` with your values:**
    - Set `DATABASE_URL` to your PostgreSQL connection string
    - Add your `OPENROUTER_API_KEY` for AI features
-   - Optionally add Clerk authentication keys
+   - Optionally add the Auth.js (Google) sign-in variables
 
 3. **Run the application:**
    ```bash
@@ -33,18 +33,14 @@ This guide covers the complete setup of environment variables for the Recipe Man
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk authentication (public) | `undefined` (auth disabled) |
-| `CLERK_SECRET_KEY` | Clerk authentication (private) | `undefined` (auth disabled) |
+| `AUTH_SECRET` | Auth.js session signing secret | `undefined` (signed-out mode) |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID | `undefined` (signed-out mode) |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | `undefined` (signed-out mode) |
+| `AUTH_URL` | Canonical site URL (Vercel Production only) | `undefined` |
+| `AUTH_ADMIN_EMAILS` | Comma-separated admin emails | `undefined` (no env-based admin) |
 | `NODE_ENV` | Node.js environment | `development` |
 
-### Clerk Authentication URLs
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Sign-in page URL | `/sign-in` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Sign-up page URL | `/sign-up` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Redirect after sign-in | `/` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Redirect after sign-up | `/` |
+Sign-in uses Auth.js with Google only. See the [authentication guide](../guides/authentication.md).
 
 ## Local Development Setup
 
@@ -69,18 +65,18 @@ This guide covers the complete setup of environment variables for the Recipe Man
 ### 3. Authentication Setup (Optional)
 
 #### Without Authentication
-- Leave Clerk variables empty or commented out
-- All recipes will be public and editable by anyone
-- Suitable for personal use or demos
+- Leave the `AUTH_*` variables empty or commented out
+- The app runs signed-out: nobody can sign in, and protected and admin routes stay closed
+- Suitable for browsing public recipes
 
-#### With Clerk Authentication
-1. Sign up at [Clerk](https://dashboard.clerk.com/)
-2. Create a new application
-3. Copy the publishable key to `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-4. Copy the secret key to `CLERK_SECRET_KEY`
-5. Configure allowed origins in Clerk dashboard:
-   - Add `http://localhost:3004` for development
-   - Add your production domain for deployment
+#### With Google Sign-In (Auth.js)
+1. Create a Google OAuth client (Web application) in [Google Cloud Console](https://console.cloud.google.com/)
+2. Copy the client ID to `AUTH_GOOGLE_ID` and the secret to `AUTH_GOOGLE_SECRET`
+3. Generate `AUTH_SECRET` with `openssl rand -base64 32`
+4. Register the redirect URIs on the OAuth client:
+   - `http://localhost:3002/api/auth/callback/google` for development (use your dev port)
+   - `https://joanies.kitchen/api/auth/callback/google` for production
+5. Seed your user with `pnpm auth:seed-user` (registration is closed)
 
 ### 4. Database Migration
 
@@ -112,9 +108,11 @@ vercel env add DATABASE_URL production
 vercel env add OPENROUTER_API_KEY production
 # Enter your OpenRouter API key
 
-# Add Clerk authentication (if using)
-vercel env add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY production
-vercel env add CLERK_SECRET_KEY production
+# Add Auth.js (Google) sign-in (if using)
+vercel env add AUTH_SECRET production
+vercel env add AUTH_GOOGLE_ID production
+vercel env add AUTH_GOOGLE_SECRET production
+vercel env add AUTH_URL production
 
 # Set production app URL
 vercel env add NEXT_PUBLIC_APP_URL production
@@ -129,9 +127,9 @@ Configure preview deployments (optional but recommended):
 # Add variables for preview environment
 vercel env add DATABASE_URL preview
 vercel env add OPENROUTER_API_KEY preview
-vercel env add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY preview
-vercel env add CLERK_SECRET_KEY preview
 ```
+
+Preview deployments cannot sign in: Google does not accept wildcard redirect URIs.
 
 ### 3. Domain Configuration
 
@@ -139,7 +137,7 @@ For custom domains:
 
 1. Add your domain in Vercel dashboard
 2. Update `NEXT_PUBLIC_APP_URL` to your custom domain
-3. Update Clerk allowed origins if using authentication
+3. Update `AUTH_URL` and the Google OAuth client's origins and redirect URIs if using authentication
 
 ### 4. Deployment Commands
 
@@ -174,11 +172,11 @@ vercel ls
 - Enable SSL connections (`sslmode=require`)
 - Restrict database access to your application's IP ranges
 
-### 4. Clerk Authentication Security
+### 4. Authentication Security
 
-- Configure allowed origins properly
-- Use different Clerk instances for development and production
-- Enable MFA for your Clerk admin account
+- Register only the redirect URIs you use on the Google OAuth client
+- Use a different `AUTH_SECRET` for each environment (rotating it signs everyone out)
+- Keep `AUTH_ADMIN_EMAILS` values out of code, docs and commits
 
 ## Troubleshooting
 
@@ -195,16 +193,16 @@ If connection fails:
 - Check network connectivity
 - Ensure database exists and user has permissions
 
-#### Clerk Authentication Issues
+#### Authentication Issues
 ```bash
-# Debug Clerk configuration
-curl http://localhost:3004/api/debug-clerk
+# Inspect the current session
+curl http://localhost:3002/api/auth/session
 ```
 
 Common solutions:
-- Verify publishable and secret keys match same Clerk instance
-- Check allowed origins in Clerk dashboard
-- Ensure redirect URLs are configured correctly
+- Verify `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are all set; if any is missing the app runs signed-out
+- Check the redirect URI is registered on the Google OAuth client
+- Check the email is seeded in `users` or listed in `AUTH_ADMIN_EMAILS`
 
 #### OpenRouter API Issues
 - Verify API key is correct and active
@@ -260,7 +258,7 @@ For additional help:
 
 1. Check the [Next.js environment variables documentation](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables)
 2. Review [Vercel environment variables guide](https://vercel.com/docs/projects/environment-variables)
-3. Consult [Clerk authentication setup](https://clerk.com/docs/quickstarts/nextjs)
+3. Read the [authentication guide](../guides/authentication.md)
 4. Visit [OpenRouter documentation](https://openrouter.ai/docs)
 
 ---

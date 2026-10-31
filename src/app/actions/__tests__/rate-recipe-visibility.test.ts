@@ -31,8 +31,9 @@ const state = vi.hoisted(() => ({
   userId: null as string | null,
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: async () => ({ userId: state.userId, sessionClaims: null }),
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => state.userId,
+  getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
@@ -48,6 +49,7 @@ import {
   getUserRating,
   rateRecipe,
 } from '@/app/actions/rate-recipe';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -100,7 +102,8 @@ async function snapshot(recipeId: string) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.recipeRatings, userProfiles],
+    // #197: rateRecipe's write reads users.deletion_requested_at.
+    [users, schema.recipes, schema.recipeRatings, userProfiles],
     { ...schema, userProfiles },
     { constraints: true }
   );

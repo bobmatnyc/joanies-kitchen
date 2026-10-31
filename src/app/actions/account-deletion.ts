@@ -3,11 +3,11 @@
 import { eq } from 'drizzle-orm';
 import { isWithinGracePeriod, markAccountDeleted, restoreAccount } from '@/lib/account-deletion';
 import { verifyUndoToken } from '@/lib/account-deletion/undo-token';
-import { auth } from '@/lib/auth';
 import { isEnvAdminEmail } from '@/lib/auth-env';
 import { normalizeEmail } from '@/lib/auth-users';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/auth-schema';
+import { getSessionUserId } from '@/lib/session-user';
 
 /**
  * Account deletion server actions — #103 (D7c S4).
@@ -34,7 +34,7 @@ export async function requestAccountDeletion(input: {
   keepRecipes: boolean;
 }): Promise<AccountDeletionResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) return { success: false, error: 'You must be signed in.' };
 
     const [user] = await db

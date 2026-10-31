@@ -40,10 +40,11 @@ export function isWithinGracePeriod(requestedAt: Date, now = Date.now()): boolea
 
 /**
  * SQL condition: the row's author has no pending account deletion. Authors
- * with no `users` row (legacy ids) pass.
+ * with no `users` row (legacy ids) pass. #197: also takes a user id value, so
+ * a write can carry the check in its own statement.
  */
-export function authorNotPendingDeletion(userIdColumn: AnyColumn): SQL {
-  return sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.id} = ${userIdColumn} AND ${users.deletion_requested_at} IS NOT NULL)`;
+export function authorNotPendingDeletion(userId: AnyColumn | string): SQL {
+  return sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.id} = ${userId} AND ${users.deletion_requested_at} IS NOT NULL)`;
 }
 
 /**

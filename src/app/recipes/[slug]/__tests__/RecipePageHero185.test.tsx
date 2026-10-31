@@ -19,7 +19,9 @@ vi.mock('next/link', () => ({
     <a href={href}>{children}</a>
   ),
 }));
-vi.mock('@/lib/auth-client', () => ({ useUser: () => ({ user: null, isSignedIn: false }) }));
+vi.mock('@/lib/use-session-user', () => ({
+  useSessionUser: () => ({ isLoaded: true, user: null }),
+}));
 vi.mock('@/app/actions/recipes', () => ({ getRecipe, deleteRecipe: vi.fn() }));
 vi.mock('@/app/actions/recipe-cloning', () => ({ getOriginalRecipe: vi.fn(async () => null) }));
 vi.mock('@/app/actions/recipe-export', () => ({

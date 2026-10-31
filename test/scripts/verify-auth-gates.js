@@ -118,7 +118,7 @@ if (fs.existsSync(semanticSearchPath)) {
   const content = fs.readFileSync(semanticSearchPath, 'utf-8');
   if (content.includes('requireAuth')) {
     results.failed.push('❌ Semantic search: Should NOT require auth (public feature)');
-  } else if (content.includes('await auth()')) {
+  } else if (content.includes('getSessionUserId()')) {
     results.passed.push('✅ Semantic search: Correctly uses optional auth');
   } else {
     results.warnings.push('⚠️  Semantic search: No auth check found');

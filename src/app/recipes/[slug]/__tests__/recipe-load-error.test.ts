@@ -13,7 +13,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const NOT_FOUND_DIGEST = 'NEXT_HTTP_ERROR_FALLBACK;404';
 const CHILDREN = 'CHILDREN_SENTINEL';
 
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null, sessionClaims: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
   db: new Proxy(

@@ -21,10 +21,10 @@
  * const chef = await chefService.findBySlug('kenji-lopez-alt');
  *
  * // In server actions with auth
- * import { auth } from '@/lib/auth';
+ * import { getSessionUserId } from '@/lib/session-user';
  * import { collectionService } from '@/lib/services';
  *
- * const { userId } = await auth();
+ * const userId = await getSessionUserId();
  * if (!userId) throw new Error('Unauthorized');
  * const collections = await collectionService.findByUserId(userId);
  * ```

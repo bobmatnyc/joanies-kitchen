@@ -21,7 +21,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import Link from 'next/link';
-import { notFound, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
@@ -29,6 +29,7 @@ import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-
 import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
+import NotFound from '@/app/not-found';
 import { AdminContentActions } from '@/components/admin/AdminContentActions';
 import { AdminEditModeProvider } from '@/components/admin/AdminEditMode';
 import { FlagImageButton } from '@/components/admin/FlagImageButton';
@@ -63,15 +64,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useUser } from '@/lib/auth-client';
 import { getBaseUrl } from '@/lib/site-url';
+import { useSessionUser } from '@/lib/use-session-user';
 import { getRecipeHero } from '@/lib/utils/recipe-image';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
-
-// #22: Auth.js session via the Clerk-shaped client shim.
-function useSessionUser() {
-  return useUser();
-}
 
 interface RecipePageProps {
   params: Promise<{
@@ -109,7 +105,12 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
   const chefSlug = fromParam?.startsWith('chef/') ? fromParam.replace('chef/', '') : null;
 
   // MUST be called unconditionally (React Rules of Hooks)
-  const { user, isSignedIn } = useSessionUser();
+  const { user } = useSessionUser();
+  const signedIn = user !== null;
+  // #22: the fetch effect keys on these primitives, not on `user`: SessionProvider
+  // swaps in an equal new session object on every poll and tab focus.
+  const userId = user?.id ?? null;
+  const userIsAdmin = user?.isAdmin === true;
 
   useEffect(() => {
     params.then((p) => setSlugOrId(p.slug));
@@ -117,28 +118,47 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
 
   useEffect(() => {
     if (!slugOrId) return;
+    let active = true;
 
     async function fetchRecipe() {
+      // #22: the effect reruns when the user changes. Clear the previous user's
+      // owner and admin flags before the fetch: a failed or timed-out fetch
+      // returns before they are set again.
+      setIsOwner(false);
+      setIsUserAdmin(false);
+
       // Add 5-second timeout to recipe fetch
       const recipePromise = getRecipe(slugOrId);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Recipe fetch timeout')), 5000)
       );
 
+      // #202: notFound() thrown from this async effect only rejected its promise, so the
+      // previous recipe stayed on screen (or the skeleton, on a first load). Clear the
+      // recipe instead; render shows the not-found view. A timeout or throw gets the same
+      // view: there was no retry before. #134: a hidden recipe answers as a missing one,
+      // so there is no sign-in prompt branch.
+      const showNotFound = () => {
+        if (!active) return;
+        setRecipe(null);
+        setLoading(false);
+      };
+
       let result;
       try {
         result = await Promise.race([recipePromise, timeoutPromise]) as Awaited<ReturnType<typeof getRecipe>>;
       } catch (error) {
         console.error('Recipe fetch error:', error);
-        notFound();
+        showNotFound();
         return;
       }
 
       if (!result.success || !result.data) {
-        // #134: a hidden recipe answers as a missing one, so there is no sign-in prompt branch.
-        notFound();
+        showNotFound();
         return;
       }
+      // #202: a stale response (slug or user changed since) must not overwrite the current one.
+      if (!active) return;
 
       const parsedRecipe = parseRecipe(result.data);
       setRecipe(parsedRecipe);
@@ -150,25 +170,17 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
         return;
       }
 
-      // Check if current user is the owner
-      // System recipes cannot be edited by anyone
-      if (result.data.is_system_recipe) {
-        setIsOwner(false);
-      } else {
-        // In development mode (no auth), treat all recipes as owned
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        if (isDevelopment && !isSignedIn) {
-          setIsOwner(true);
-        } else if (isSignedIn && user?.id === result.data.user_id) {
-          setIsOwner(true);
-        }
-      }
+      // Owner: system recipes cannot be edited by anyone. In development mode
+      // (no auth), a signed-out visitor is treated as the owner.
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      setIsOwner(
+        !result.data.is_system_recipe &&
+          ((isDevelopment && userId === null) ||
+            (userId !== null && userId === result.data.user_id))
+      );
 
-      // Check if user is admin
-      if (isSignedIn && user?.id) {
-        // #22: JWT admin hint (UI only); admin actions re-check the DB.
-        setIsUserAdmin(user.publicMetadata.isAdmin === 'true');
-      }
+      // #22: JWT admin hint (UI only); admin actions re-check the DB.
+      setIsUserAdmin(userId !== null && userIsAdmin);
 
       // Show page immediately - fetch secondary data in background
       setLoading(false);
@@ -220,7 +232,10 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       }
     }
     fetchRecipe();
-  }, [slugOrId, isSignedIn, user, router]);
+    return () => {
+      active = false;
+    };
+  }, [slugOrId, userId, userIsAdmin, router]);
 
   const handleExportMarkdown = useCallback(async () => {
     if (!recipe) return;
@@ -448,8 +463,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
   }
 
   if (!recipe) {
-    notFound();
-    return null;
+    // #202: rendered from state, not notFound(); the server layout already sent the 404 status.
+    return <NotFound />;
   }
 
   // #185: never empty; a placeholder hero carries the placeholder's own alt text.
@@ -484,8 +499,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         {/* Tool Buttons Row */}
         <div className="flex flex-wrap gap-2 mb-6">
           {/* Engagement Actions */}
-          {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-          {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+          {signedIn && <FavoriteButton recipeId={recipe.id} />}
+          {signedIn && <AddToCollectionButton recipeId={recipe.id} />}
           {!isOwner && (
             <CloneRecipeButton
               recipeId={recipe.id}
@@ -835,7 +850,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
             averageRating={recipe.avg_user_rating}
             totalRatings={recipe.total_user_ratings || 0}
             currentUserId={user?.id}
-            isAuthenticated={isSignedIn || false}
+            isAuthenticated={signedIn}
           />
         </div>
 
@@ -844,7 +859,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           <RecipeComments
             recipeId={recipe.id}
             currentUserId={user?.id}
-            isAuthenticated={isSignedIn || false}
+            isAuthenticated={signedIn}
           />
         </div>
 

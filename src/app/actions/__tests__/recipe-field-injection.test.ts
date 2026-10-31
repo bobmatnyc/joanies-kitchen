@@ -9,14 +9,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
   isAdmin: false,
   inserted: [] as Record<string, unknown>[],
   updated: [] as Record<string, unknown>[],
   existing: [] as Record<string, unknown>[],
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
 // #22: admin is read from users.is_admin; the fixture flag stands in for the row.
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => mocks.isAdmin }));
 vi.mock('@/lib/utils/slug', () => ({ generateUniqueSlug: async () => 'server-slug' }));
@@ -95,7 +95,7 @@ const SERVER_VALUE: Record<string, unknown> = { user_id: OWNER, slug: 'server-sl
 
 function signedIn(isAdmin: boolean) {
   mocks.isAdmin = isAdmin;
-  mocks.auth.mockResolvedValue({ userId: OWNER, sessionClaims: null });
+  mocks.sessionUserId.mockResolvedValue(OWNER);
 }
 
 beforeEach(() => {

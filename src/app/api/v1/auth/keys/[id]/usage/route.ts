@@ -15,7 +15,7 @@
  * - Error rate
  */
 
-import { auth as sessionAuth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
@@ -29,9 +29,9 @@ import { type UsageQueryParams, usageQuerySchema } from '@/lib/validations/api-k
  */
 async function authenticateAndVerifyOwnership(keyId: string) {
   // CRITICAL: Only allow a signed-in session authentication
-  const session = await sessionAuth();
+  const userId = await getSessionUserId();
 
-  if (!session.userId) {
+  if (!userId) {
     return {
       error: NextResponse.json(
         {
@@ -66,7 +66,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
   }
 
   // Verify ownership
-  if (apiKey.user_id !== session.userId) {
+  if (apiKey.user_id !== userId) {
     return {
       error: NextResponse.json(
         {
@@ -81,7 +81,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
   }
 
   return {
-    userId: session.userId,
+    userId,
     apiKey,
   };
 }

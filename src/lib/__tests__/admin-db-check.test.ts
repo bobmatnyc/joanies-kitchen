@@ -5,21 +5,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUser: vi.fn(),
+  sessionUserId: vi.fn(),
   getUserAdminFlag: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUser: mocks.sessionUser,
+  getSessionUserId: mocks.sessionUserId,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: mocks.getUserAdminFlag }));
 
 import { authorizeAdminOrCronSecret, checkAdminAccess, requireAdmin } from '@/lib/admin';
 
 /** A session whose JWT copy says the user IS an admin. */
 function tokenSaysAdmin() {
-  mocks.auth.mockResolvedValue({
-    userId: 'user_1',
-    sessionClaims: { metadata: { isAdmin: 'true' } },
-  });
+  mocks.sessionUser.mockResolvedValue({ id: 'user_1', isAdmin: true });
+  mocks.sessionUserId.mockResolvedValue('user_1');
 }
 
 beforeEach(() => {
@@ -57,13 +59,21 @@ describe('requireAdmin', () => {
   });
 
   it('denies a signed-out caller without a DB read', async () => {
-    mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+    mocks.sessionUser.mockResolvedValue(null);
+    mocks.sessionUserId.mockResolvedValue(null);
     await expect(requireAdmin()).rejects.toThrow('Admin access required');
     expect(mocks.getUserAdminFlag).not.toHaveBeenCalled();
   });
 });
 
 describe('checkAdminAccess', () => {
+  it('reports a signed-out caller as not admin, with no user id and no DB read', async () => {
+    mocks.sessionUser.mockResolvedValue(null);
+    mocks.sessionUserId.mockResolvedValue(null);
+    await expect(checkAdminAccess()).resolves.toEqual({ isAdmin: false, userId: null });
+    expect(mocks.getUserAdminFlag).not.toHaveBeenCalled();
+  });
+
   it('resolves isAdmin false (does not throw) when the lookup fails', async () => {
     tokenSaysAdmin();
     mocks.getUserAdminFlag.mockRejectedValue(new Error('db down'));

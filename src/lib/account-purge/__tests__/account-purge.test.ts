@@ -352,8 +352,9 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
   it('takes one id-ordered FOR UPDATE lock before every recipe_ratings and recipes write', () => {
     const sqls = purgeSql();
     const lock = sqls.findIndex((s) => LOCK.test(s));
+    // #141: the user's own ratings go in a DELETE … RETURNING CTE that recomputes the aggregates.
     const ratingDeletes = sqls.flatMap((s, i) =>
-      /^delete from "recipe_ratings"/.test(s) ? [i] : []
+      /^(with "purged_ratings" as \()?delete from "recipe_ratings"/.test(s) ? [i] : []
     );
     const recipeWrites = sqls.flatMap((s, i) =>
       /^(update|delete from) "recipes"/.test(s) ? [i] : []
@@ -399,6 +400,12 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
       `INSERT INTO favorites (id, user_id, recipe_id) VALUES (gen_random_uuid(), $1, 'c-fav')`,
       [fx.userA]
     );
+    // #141: the rating-aggregate recompute writes recipes the user rated.
+    await rows(`INSERT INTO recipes (id, user_id, name) VALUES ('c-rated', $1, 'R')`, [fx.userB]);
+    await rows(
+      `INSERT INTO recipe_ratings (id, recipe_id, user_id, rating) VALUES (gen_random_uuid(), 'c-rated', $1, 3)`,
+      [fx.userA]
+    );
     const t = { userId: fx.userA, email: null, keepRecipes: true, cutoff: NOW };
     const lock = purgeStatements(t).find((q) => LOCK.test(q.toSQL().sql));
     expect(lock).toBeDefined();
@@ -406,9 +413,67 @@ describe('#158 purge locks recipes rows before deleting ratings', () => {
     const locked = ((await lock) as { id: string }[]).map((r) => r.id);
 
     expect([...locked].sort()).toEqual(
-      [recipeA, 'a-private', 'c-del', 'c-mod', 'c-img', 'c-fav'].sort()
+      [recipeA, 'a-private', 'c-del', 'c-mod', 'c-img', 'c-fav', 'c-rated'].sort()
     );
     expect(locked).not.toContain(recipeB);
+  });
+});
+
+// #141: the purge deletes the user's ratings on recipes that survive it, so it
+// must recompute those recipes' rating aggregates, under the recipes lock.
+describe('#141 purge recomputes the rating aggregates of recipes the user rated', () => {
+  const LOCK = /^select .+ from "recipes" where .+ order by "recipes"\."id" asc for update$/;
+  const DELETE_THEN_RECOMPUTE =
+    /^with "purged_ratings" as \(delete from "recipe_ratings" where "recipe_ratings"\."user_id" = \$\d+ returning "recipe_id"\) update "recipes" set "avg_user_rating" = \(SELECT CAST\(AVG\(rr\."rating"\) .+ AND rr\."user_id" <> \$\d+\), "total_user_ratings" = \(SELECT COUNT\(\*\) .+ AND rr\."user_id" <> \$\d+\) where "recipes"\."id" in \(select "recipe_id" from "purged_ratings"\)$/;
+
+  it('sends the recipes lock, then the rating delete with the recompute in one statement', () => {
+    const t = { userId: fx.userA, email: null, keepRecipes: false, cutoff: NOW };
+    const sqls = purgeStatements(t).map((q) => q.toSQL().sql);
+
+    const lock = sqls.findIndex((s) => LOCK.test(s));
+    const recompute = sqls.findIndex((s) => DELETE_THEN_RECOMPUTE.test(s));
+
+    expect(lock).toBeGreaterThan(-1);
+    expect(recompute).toBeGreaterThan(lock);
+    // No other statement deletes the user's own ratings, so none escapes the recompute.
+    expect(
+      sqls.filter((s) =>
+        /delete from "recipe_ratings" where "recipe_ratings"\."user_id" = /.test(s)
+      )
+    ).toEqual([sqls[recompute]]);
+  });
+
+  it('leaves each rated recipe with the true avg and count of the remaining ratings', async () => {
+    // B's recipe: A rated 4, B rated 2. A second recipe only A rated. Both aggregates drifted.
+    await rows('UPDATE recipe_ratings SET rating = 2 WHERE user_id = $1', [fx.userB]);
+    await rows(
+      `INSERT INTO recipe_ratings (id, recipe_id, user_id, rating) VALUES (gen_random_uuid(), $1, $2, 4)`,
+      [recipeB, fx.userA]
+    );
+    await rows(`INSERT INTO recipes (id, user_id, name) VALUES ('only-a', $1, 'O')`, [fx.userB]);
+    await rows(
+      `INSERT INTO recipe_ratings (id, recipe_id, user_id, rating) VALUES (gen_random_uuid(), 'only-a', $1, 5)`,
+      [fx.userA]
+    );
+    await rows(`UPDATE recipes SET avg_user_rating = 1.0, total_user_ratings = 9`);
+    await requestDeletion(fx.userA, false, 31);
+
+    const result = await purgeDueAccounts(NOW);
+
+    expect(result.purged).toEqual([fx.userA]);
+    const aggregates = await rows(
+      `SELECT r.id, r.avg_user_rating AS avg, r.total_user_ratings AS total,
+         (SELECT CAST(AVG(rating) AS DECIMAL(2,1)) FROM recipe_ratings WHERE recipe_id = r.id)::text AS true_avg,
+         (SELECT count(*)::int FROM recipe_ratings WHERE recipe_id = r.id) AS true_total
+       FROM recipes r WHERE r.id = ANY($1) ORDER BY r.id`,
+      [[recipeB, 'only-a']]
+    );
+    expect(aggregates).toEqual(
+      [
+        { id: recipeB, avg: '2.0', total: 1, true_avg: '2.0', true_total: 1 },
+        { id: 'only-a', avg: null, total: 0, true_avg: null, true_total: 0 },
+      ].sort((x, y) => x.id.localeCompare(y.id))
+    );
   });
 });
 

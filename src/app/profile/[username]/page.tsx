@@ -7,7 +7,7 @@ import { CollectionCard } from '@/components/collections/CollectionCard';
 import { ProfileDisplay } from '@/components/profile/ProfileDisplay';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 interface ChefProfilePageProps {
   params: Promise<{
@@ -18,7 +18,7 @@ interface ChefProfilePageProps {
 export default async function ChefProfilePage({ params }: ChefProfilePageProps) {
   const resolvedParams = await params;
   const { username } = resolvedParams;
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Fetch profile
   const profile = await getProfileByUsername(username);

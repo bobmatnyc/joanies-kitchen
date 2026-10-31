@@ -198,7 +198,7 @@ npx tsx scripts/test-access-control.ts
 1. **Server-side validation is primary defense** - Never rely on client-side checks alone
 2. **Client-side UI improves UX** - Hides options that would fail anyway
 3. **Database constraints** - Recipe schema includes userId and isSystemRecipe flags
-4. **Authentication required** - All modification actions require valid Clerk session
+4. **Authentication required** - All modification actions require a valid Auth.js session
 
 ### Attack Scenarios Prevented
 
@@ -208,7 +208,7 @@ npx tsx scripts/test-access-control.ts
 | Direct API call to delete system recipe | Server blocks all system recipe modifications |
 | Manipulating client state to show edit buttons | Server validation prevents actual modification |
 | SQL injection to modify recipes | Drizzle ORM uses parameterized queries |
-| Session hijacking | Clerk handles secure session management |
+| Session hijacking | Auth.js signs and verifies the session JWT |
 
 ## Database Schema
 
@@ -217,7 +217,7 @@ npx tsx scripts/test-access-control.ts
 ```typescript
 export const recipes = pgTable('recipes', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull(),        // Clerk user ID (ownership)
+  userId: text('user_id').notNull(),        // users.id (ownership)
   isPublic: boolean('is_public').default(false), // Visibility flag
   isSystemRecipe: boolean('is_system_recipe').default(false), // System recipe flag
   // ... other fields

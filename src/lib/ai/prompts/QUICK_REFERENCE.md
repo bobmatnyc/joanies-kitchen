@@ -234,14 +234,14 @@ prompts.forEach((p) => {
 ```typescript
 'use server';
 
-import { auth } from '@clerk/nextjs';
+import { getSessionUserId } from '@/lib/session-user';
 import { generateCompleteMeal } from '@/lib/ai/meal-generator';
 
 export async function createMealPlanAction(params: {
   cuisine: string;
   servings: number;
 }) {
-  const { userId } = auth();
+  const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
   try {

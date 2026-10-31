@@ -6,15 +6,15 @@ import { signOut } from 'next-auth/react';
 import { UserAvatar } from '@/components/auth/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useUser } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 
 const MENU_ITEM =
   'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors';
 
-// #22: Clerk's UserButton is replaced by a small menu with sign-out.
+// #22: the signed-in user gets a small account menu with sign-out.
 // Registration is closed, so there is no Register button.
 export function AuthButtons() {
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isLoaded, user } = useSessionUser();
 
   if (!isLoaded) {
     return (
@@ -24,7 +24,7 @@ export function AuthButtons() {
     );
   }
 
-  if (!isSignedIn || !user) {
+  if (!user) {
     return (
       <Link href="/sign-in">
         <Button variant="ghost" size="sm">
@@ -36,8 +36,11 @@ export function AuthButtons() {
   }
 
   // UI hint only; admin pages re-check users.is_admin on the server.
-  const isAdmin = user.publicMetadata.isAdmin === 'true';
-  const label = user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'Account';
+  const isAdmin = user.isAdmin === true;
+  const name = user.name ?? null;
+  // An empty email string counts as no email, as before.
+  const email = user.email || null;
+  const label = name ?? email ?? 'Account';
 
   return (
     <Popover>
@@ -47,11 +50,7 @@ export function AuthButtons() {
           aria-label="Account menu"
           className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border bg-muted"
         >
-          <UserAvatar
-            image={user.imageUrl}
-            name={user.fullName}
-            email={user.primaryEmailAddress?.emailAddress ?? null}
-          />
+          <UserAvatar image={user.image ?? null} name={name} email={email} />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 p-1">

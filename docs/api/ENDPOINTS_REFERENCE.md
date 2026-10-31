@@ -30,7 +30,7 @@ All endpoints are relative to this base URL.
 
 Manage API keys for programmatic access.
 
-**Important**: API key CRUD operations require Clerk session authentication (not API key auth). This prevents API keys from creating other API keys.
+**Important**: API key CRUD operations require Auth.js session authentication (not API key auth). This prevents API keys from creating other API keys.
 
 ### Create API Key
 
@@ -38,9 +38,9 @@ Create a new API key for the authenticated user.
 
 **Endpoint**: `POST /api/v1/auth/keys`
 
-**Authentication**: Clerk session **ONLY** (API key auth not allowed)
+**Authentication**: Auth.js session **ONLY** (API key auth not allowed)
 
-**Required Scope**: None (Clerk session required)
+**Required Scope**: None (session required)
 
 **Request Body**:
 ```json
@@ -100,7 +100,7 @@ Get all API keys for the authenticated user.
 
 **Endpoint**: `GET /api/v1/auth/keys`
 
-**Authentication**: Clerk session ONLY
+**Authentication**: Auth.js session ONLY
 
 **Required Scope**: None
 
@@ -141,7 +141,7 @@ Get details for a specific API key.
 
 **Endpoint**: `GET /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session or API key (can view own details)
+**Authentication**: Auth.js session or API key (can view own details)
 
 **Required Scope**: None
 
@@ -185,7 +185,7 @@ Update an API key's name, scopes, or description.
 
 **Endpoint**: `PATCH /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session ONLY
+**Authentication**: Auth.js session ONLY
 
 **Required Scope**: None
 
@@ -238,7 +238,7 @@ Revoke (delete) an API key. This action is permanent.
 
 **Endpoint**: `DELETE /api/v1/auth/keys/:id`
 
-**Authentication**: Clerk session ONLY
+**Authentication**: Auth.js session ONLY
 
 **Required Scope**: None
 
@@ -269,7 +269,7 @@ Get usage statistics for an API key.
 
 **Endpoint**: `GET /api/v1/auth/keys/:id/usage`
 
-**Authentication**: Clerk session or API key (can view own usage)
+**Authentication**: Auth.js session or API key (can view own usage)
 
 **Required Scope**: None
 
@@ -321,7 +321,7 @@ Get a paginated list of recipes with optional filtering.
 
 **Endpoint**: `GET /api/v1/recipes`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:recipes`
 
@@ -395,7 +395,7 @@ Create a new recipe.
 
 **Endpoint**: `POST /api/v1/recipes`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:recipes`
 
@@ -506,7 +506,7 @@ Get a single recipe by ID or slug.
 
 **Endpoint**: `GET /api/v1/recipes/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:recipes`
 
@@ -552,7 +552,7 @@ Update a recipe (partial update).
 
 **Endpoint**: `PATCH /api/v1/recipes/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:recipes`
 
@@ -607,7 +607,7 @@ Delete a recipe.
 
 **Endpoint**: `DELETE /api/v1/recipes/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `delete:recipes`
 
@@ -640,7 +640,7 @@ Get recipes similar to a specific recipe.
 
 **Endpoint**: `GET /api/v1/recipes/:id/similar`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:recipes`
 
@@ -689,7 +689,7 @@ Get a paginated list of meals.
 
 **Endpoint**: `GET /api/v1/meals`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:meals`
 
@@ -746,7 +746,7 @@ Create a new meal, optionally with recipes.
 
 **Endpoint**: `POST /api/v1/meals`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -841,7 +841,7 @@ Get a single meal with all recipes.
 
 **Endpoint**: `GET /api/v1/meals/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:meals`
 
@@ -893,7 +893,7 @@ Update a meal (partial update).
 
 **Endpoint**: `PATCH /api/v1/meals/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -946,7 +946,7 @@ Delete a meal.
 
 **Endpoint**: `DELETE /api/v1/meals/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `delete:meals`
 
@@ -979,7 +979,7 @@ Add a recipe to an existing meal.
 
 **Endpoint**: `POST /api/v1/meals/:id/recipes`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -1035,7 +1035,7 @@ Remove a recipe from a meal.
 
 **Endpoint**: `DELETE /api/v1/meals/:id/recipes`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -1083,7 +1083,7 @@ Generate a shopping list from a meal's recipes.
 
 **Endpoint**: `POST /api/v1/meals/:id/shopping-list`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -1152,7 +1152,7 @@ Get the shopping list for a meal.
 
 **Endpoint**: `GET /api/v1/meals/:id/shopping-list`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:meals`
 
@@ -1200,7 +1200,7 @@ Get all shopping lists for the authenticated user.
 
 **Endpoint**: `GET /api/v1/shopping-lists`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:meals`
 
@@ -1252,7 +1252,7 @@ Get a specific shopping list by ID.
 
 **Endpoint**: `GET /api/v1/shopping-lists/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `read:meals`
 
@@ -1290,7 +1290,7 @@ Update a shopping list (mark items as checked, update status, etc.).
 
 **Endpoint**: `PATCH /api/v1/shopping-lists/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 
@@ -1346,7 +1346,7 @@ Delete a shopping list.
 
 **Endpoint**: `DELETE /api/v1/shopping-lists/:id`
 
-**Authentication**: Clerk session or API key
+**Authentication**: Auth.js session or API key
 
 **Required Scope**: `write:meals`
 

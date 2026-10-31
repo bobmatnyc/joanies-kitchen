@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/auth';
 import { isGoogleAuthConfigured, isLocalStagingSignInEnabled } from '@/lib/auth-env';
 import { safeCallbackPath } from '@/lib/auth-routes';
 import { LOCAL_STAGING_PROVIDER_ID } from '@/lib/local-staging-auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // #22: Google is the only sign-in method (issue #22 §9 Q2, Q3).
 const ERROR_MESSAGES: Record<string, string> = {
@@ -27,7 +27,7 @@ export default async function SignInPage({
 
   // #22: Auth.js links a new OAuth login to whoever is already signed in, so a
   // signed-in visitor must never start a second Google sign-in from here.
-  if ((await auth()).userId) redirect(callbackUrl);
+  if (await getSessionUserId()) redirect(callbackUrl);
 
   return (
     <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -44,7 +44,7 @@ export default async function SignInPage({
             data-testid="local-staging-bypass"
             action={async () => {
               'use server';
-              if ((await auth()).userId) redirect(callbackUrl);
+              if (await getSessionUserId()) redirect(callbackUrl);
               await signIn(LOCAL_STAGING_PROVIDER_ID, { redirectTo: callbackUrl });
             }}
           >
@@ -61,7 +61,7 @@ export default async function SignInPage({
             action={async () => {
               'use server';
               // #22: re-check at submit time (the visitor may have signed in elsewhere).
-              if ((await auth()).userId) redirect(callbackUrl);
+              if (await getSessionUserId()) redirect(callbackUrl);
               await signIn('google', { redirectTo: callbackUrl });
             }}
           >

@@ -121,7 +121,7 @@
 │                        CHECK (IN ('pending', 'approved',     │
 │                                   'rejected', 'flagged'))    │
 │ • moderation_notes     TEXT NULL                             │
-│ • moderated_by         TEXT NULL (Clerk user ID)             │
+│ • moderated_by         TEXT NULL (users.id)             │
 │ • moderated_at         TIMESTAMP NULL                         │
 │ • submission_notes     TEXT NULL                             │
 │                                                               │

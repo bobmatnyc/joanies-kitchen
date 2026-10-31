@@ -14,7 +14,7 @@ import type { NextRequest, NextResponse } from 'next/server';
 /**
  * Authentication type detected from the request
  */
-// #22: 'clerk' renamed to 'session' (Auth.js).
+// #22: 'session' is an Auth.js session.
 export type AuthType = 'session' | 'api_key' | 'basic' | 'none';
 
 /**

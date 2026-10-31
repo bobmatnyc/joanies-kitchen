@@ -23,7 +23,10 @@ vi.mock('@/lib/db', () => ({
     return state.db;
   },
 }));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null, sessionClaims: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 // #17: the limiter has its own PGlite tests; allow every call here.

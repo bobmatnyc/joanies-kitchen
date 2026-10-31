@@ -185,7 +185,7 @@ User visits recipe page
          ↓
 Component renders (loading state)
          ↓
-useAuth() checks authentication
+useSessionUser() checks authentication
          ↓
   ┌──────────────┬──────────────┐
   ↓              ↓              ↓
@@ -210,7 +210,7 @@ Show sign-in  getUserInventory()
 ## Dependencies
 
 ### Required Packages
-- `@clerk/nextjs` - Authentication
+- `next-auth` (via `useSessionUser`) - Authentication
 - `lucide-react` - Icons
 - `next` - Link component
 - `react` - Hooks (useState, useEffect)
@@ -334,7 +334,7 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 **Solution**: Check ingredient parsing logic. Some complex ingredient strings may need manual adjustment.
 
 #### "Sign-in redirect not working"
-**Solution**: Verify `NEXT_PUBLIC_CLERK_SIGN_IN_URL` is set correctly in environment variables.
+**Solution**: The sign-in link points to `/sign-in`; verify that page loads and Auth.js is configured (`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`).
 
 #### "Component stuck on loading"
 **Solution**: Check network tab for failed API calls. Ensure `getUserInventory()` server action is working.

@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubstitutionSuggestionsWrapper } from '../SubstitutionSuggestionsWrapper';
 
 const auth = vi.hoisted(() => ({
-  value: { isLoaded: true, isSignedIn: false, userId: null as string | null },
+  value: { isLoaded: true, user: null as { id: string } | null },
 }));
 const subAction = vi.hoisted(() => vi.fn());
 const inventoryAction = vi.hoisted(() => vi.fn());
 
-vi.mock('@/lib/auth-client', () => ({ useAuth: () => auth.value }));
+vi.mock('@/lib/use-session-user', () => ({ useSessionUser: () => auth.value }));
+
+const U1 = { id: 'u1' };
 vi.mock('@/app/actions/substitutions', () => ({
   getMultipleIngredientSubstitutions: subAction,
 }));
@@ -40,7 +42,7 @@ beforeEach(() => {
 
 describe('SubstitutionSuggestionsWrapper', () => {
   it('signed out: zero action calls on mount, exactly one after several clicks', async () => {
-    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    auth.value = { isLoaded: true, user: null };
     renderWrapper();
     const button = await screen.findByRole('button', { name: /show substitutions/i });
     expect(subAction).toHaveBeenCalledTimes(0);
@@ -57,37 +59,37 @@ describe('SubstitutionSuggestionsWrapper', () => {
   });
 
   it('signed in: loads on mount without a click', async () => {
-    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    auth.value = { isLoaded: true, user: U1 };
     renderWrapper();
     await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
   });
 
   it('auth loading then signed in: fetches on mount, never shows the button', async () => {
-    auth.value = { isLoaded: false, isSignedIn: false, userId: null };
+    auth.value = { isLoaded: false, user: null };
     const { rerender } = renderWrapper();
     expect(subAction).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
 
-    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    auth.value = { isLoaded: true, user: U1 };
     rerender(makeUi());
     await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('button', { name: /show substitutions/i })).toBeNull();
   });
 
   it('signed in then signed out: no refetch until a click', async () => {
-    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    auth.value = { isLoaded: true, user: U1 };
     const { rerender } = renderWrapper();
     await waitFor(() => expect(subAction).toHaveBeenCalledTimes(1));
 
-    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    auth.value = { isLoaded: true, user: null };
     rerender(makeUi());
     await screen.findByRole('button', { name: /show substitutions/i });
     expect(subAction).toHaveBeenCalledTimes(1);
   });
 
   it('#95: AI_FAILED shows the error card with Try again, not an empty card', async () => {
-    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    auth.value = { isLoaded: true, user: U1 };
     subAction.mockResolvedValue({
       success: false,
       error: 'Could not generate',
@@ -99,7 +101,7 @@ describe('SubstitutionSuggestionsWrapper', () => {
   });
 
   it('#95: a failed ingredient in a mixed batch renders failed with retry; successes stay', async () => {
-    auth.value = { isLoaded: true, isSignedIn: true, userId: 'u1' };
+    auth.value = { isLoaded: true, user: U1 };
     subAction.mockResolvedValue({
       success: true,
       data: [
@@ -128,7 +130,7 @@ describe('SubstitutionSuggestionsWrapper', () => {
   });
 
   it('error after click: retry control fetches once more', async () => {
-    auth.value = { isLoaded: true, isSignedIn: false, userId: null };
+    auth.value = { isLoaded: true, user: null };
     subAction.mockResolvedValueOnce({ success: false, error: 'boom' });
     renderWrapper();
     fireEvent.click(await screen.findByRole('button', { name: /show substitutions/i }));

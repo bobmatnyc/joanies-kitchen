@@ -174,7 +174,7 @@ Expected: ✅ Match (case insensitive)
 
 ### Data Flow
 - [ ] Uses `getUserInventory()` from `@/app/actions/inventory`
-- [ ] Respects Clerk authentication state
+- [ ] Respects the Auth.js session state (`useSessionUser`)
 - [ ] Reacts to inventory changes (when user adds items)
 - [ ] Handles getUserInventory errors gracefully
 
@@ -300,7 +300,7 @@ test('shows inventory match for authenticated user', async ({ page }) => {
 ## Notes
 
 - Component is client-side only (`'use client'`)
-- Requires Clerk authentication
+- Requires a signed-in user (Auth.js session)
 - Depends on `/app/actions/inventory` server actions
 - Uses fuzzy matching (may need refinement for production)
 - Match percentage thresholds: ≥70% = green, 50-69% = orange, <50% = gray

@@ -7,7 +7,8 @@
  * the batch unless the account is still due, an id-ordered lock on every
  * recipes row the batch writes (#158), the kept-recipe reassignment,
  * the deletes (with a `like_count` recount for recipes the user favorited, #167,
- * and a `recipe_count` recount for chefs linked to the deleted recipes, #174),
+ * a `recipe_count` recount for chefs linked to the deleted recipes, #174, and a
+ * rating-aggregate recompute for recipes the user rated, #141),
  * the actor-column anonymization, and the `users` delete last.
  * `PURGE_COLUMN_PLAN` names how each user/recipe reference column is handled;
  * the inventory test fails when the schema gains a column missing from it.
@@ -56,6 +57,7 @@ import {
   recipeViews,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
 
 /** `recipes.user_id` of recipes kept under the "keep" choice. No `users` row; no FK needs one. */
 export const DELETED_USER_ID = 'deleted-user';
@@ -79,7 +81,7 @@ export const PURGE_COLUMN_PLAN: Readonly<Record<string, string>> = {
   'recipes.moderated_by': 'anonymize',
   'recipes.image_regeneration_requested_by': 'anonymize',
   'recipe_comments.user_id': 'delete',
-  'recipe_ratings.user_id': 'delete',
+  'recipe_ratings.user_id': 'delete; recompute the rated recipes’ rating aggregates',
   'recipe_likes.user_id': 'delete',
   'recipe_forks.user_id': 'delete',
   'recipe_flags.user_id': 'delete',
@@ -162,6 +164,19 @@ export function purgeStatements(t: PurgeTarget) {
     .select({ id: favorites.recipe_id })
     .from(favorites)
     .where(eq(favorites.user_id, uid));
+  // #141: recipes the user rated; their rating aggregates are recomputed when the ratings go.
+  const ratedRecipeIds = db
+    .select({ id: recipeRatings.recipe_id })
+    .from(recipeRatings)
+    .where(eq(recipeRatings.user_id, uid));
+  const purgedRatings = db
+    .$with('purged_ratings')
+    .as(
+      db
+        .delete(recipeRatings)
+        .where(eq(recipeRatings.user_id, uid))
+        .returning({ recipeId: recipeRatings.recipe_id })
+    );
 
   return [
     // Guard: 1/0 aborts the whole batch when the account is no longer due.
@@ -171,6 +186,7 @@ export function purgeStatements(t: PurgeTarget) {
       .where(stillDue(t)),
     // #158: lock every recipes row this batch writes, in id order, before any
     // recipe_ratings delete: rateRecipe/deleteRating lock the recipe row first.
+    // FOR UPDATE (the batch deletes recipes) also queues their FOR NO KEY UPDATE.
     db
       .select({ id: recipes.id })
       .from(recipes)
@@ -181,7 +197,9 @@ export function purgeStatements(t: PurgeTarget) {
           eq(recipes.moderated_by, uid),
           eq(recipes.image_regeneration_requested_by, uid),
           // #167 (D26): the like_count recount below writes these rows too.
-          inArray(recipes.id, favoritedRecipeIds)
+          inArray(recipes.id, favoritedRecipeIds),
+          // #141: so does the rating-aggregate recompute.
+          inArray(recipes.id, ratedRecipeIds)
         )
       )
       .orderBy(asc(recipes.id))
@@ -224,7 +242,14 @@ export function purgeStatements(t: PurgeTarget) {
     db
       .delete(recipeComments)
       .where(eq(recipeComments.user_id, uid)),
-    db.delete(recipeRatings).where(eq(recipeRatings.user_id, uid)),
+    // #141: delete the user's ratings and, in the same statement, recompute the
+    // aggregates of every recipe they rated from the remaining ratings. The
+    // UPDATE shares the DELETE's snapshot, so it leaves the user's rows out itself.
+    db
+      .with(purgedRatings)
+      .update(recipes)
+      .set(ratingAggregateColumns(uid))
+      .where(inArray(recipes.id, db.select({ id: purgedRatings.recipeId }).from(purgedRatings))),
     db.delete(recipeLikes).where(eq(recipeLikes.user_id, uid)),
     db.delete(recipeForks).where(eq(recipeForks.user_id, uid)),
     db.delete(recipeFlags).where(eq(recipeFlags.user_id, uid)),

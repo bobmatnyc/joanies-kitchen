@@ -16,8 +16,8 @@ describe('decideRoute', () => {
     // #56: health probe is public.
     ['/api/health', ANON, 'allow'],
     ['/recipes', USER, 'allow'],
-    // Clerk-era rules for routes that do not exist were removed; the real edit
-    // page /recipes/<slug>/edit guards itself (redirect + ownership check).
+    // No middleware rule covers edit pages; the real edit page
+    // /recipes/<slug>/edit guards itself (redirect + ownership check).
     ['/recipes/some-slug/edit', ANON, 'allow'],
     ['/recipes/edit', ANON, 'allow'],
     ['/meals/new', ANON, 'sign-in'],

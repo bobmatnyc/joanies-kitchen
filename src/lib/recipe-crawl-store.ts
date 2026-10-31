@@ -15,12 +15,12 @@
 
 import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
 import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
+import { getSessionUserId } from '@/lib/session-user';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
 import { pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -259,7 +259,7 @@ export async function storeCrawledRecipe(
   try {
     console.log(`[Store] Storing recipe: ${recipe.name}`);
 
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // #135: never insert a duplicate (same canonical URL, or same title on the same host).
     const duplicate = await findDuplicateRecipe(

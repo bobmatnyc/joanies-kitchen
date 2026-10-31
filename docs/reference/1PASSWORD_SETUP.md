@@ -59,13 +59,11 @@ BRAVE_SEARCH_API_KEY=BSAxxxxxxxxxxxxx
 SERPAPI_KEY=xxxxxxxxxxxxx
 FIRECRAWL_API_KEY=fc-xxxxxxxxxxxxx
 
-# Authentication (Development)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV=pk_test_xxxxxxxxxxxxx
-CLERK_SECRET_KEY_DEV=sk_test_xxxxxxxxxxxxx
-
-# Authentication (Production keys for localhost testing)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD=pk_live_xxxxxxxxxxxxx
-CLERK_SECRET_KEY_PROD=sk_live_xxxxxxxxxxxxx
+# Authentication (Auth.js, Google)
+AUTH_SECRET=xxxxxxxxxxxxx
+AUTH_GOOGLE_ID=xxxxxxxxxxxxx.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=xxxxxxxxxxxxx
+AUTH_ADMIN_EMAILS=admin@example.com
 
 # E2E Testing
 TEST_USER_EMAIL=test-user-1@recipe-manager.test
@@ -74,12 +72,6 @@ TEST_USER_2_EMAIL=test-user-2@recipe-manager.test
 TEST_USER_2_PASSWORD=SecureTestPassword123!
 TEST_ADMIN_EMAIL=test-admin@recipe-manager.test
 TEST_ADMIN_PASSWORD=SecureTestPassword123!
-
-# Clerk URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 ```
 
 **Tags**: `development`, `environment`, `recipe-manager`
@@ -109,15 +101,12 @@ BRAVE_SEARCH_API_KEY=BSAxxxxxxxxxxxxx
 SERPAPI_KEY=xxxxxxxxxxxxx
 FIRECRAWL_API_KEY=fc-xxxxxxxxxxxxx
 
-# Authentication (Production)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxx
-CLERK_SECRET_KEY=sk_live_xxxxxxxxxxxxx
-
-# Clerk URLs (Production)
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+# Authentication (Auth.js, Google)
+AUTH_SECRET=xxxxxxxxxxxxx
+AUTH_GOOGLE_ID=xxxxxxxxxxxxx.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=xxxxxxxxxxxxx
+AUTH_URL=https://joanies.kitchen
+AUTH_ADMIN_EMAILS=admin@example.com
 
 # Vercel Specific
 VERCEL_URL=(set automatically by Vercel)
@@ -137,9 +126,8 @@ VERCEL_ENV=(set automatically by Vercel)
 # Testing Database (separate from dev/prod)
 DATABASE_URL=postgresql://neon_test_user:password@ep-name.region.aws.neon.tech/recipe_manager_test?sslmode=require
 
-# Clerk (Dev instance for CI)
-CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxx
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
+# Auth.js (CI-only secret)
+AUTH_SECRET=xxxxxxxxxxxxx
 
 # E2E Test Users (same as dev)
 TEST_USER_EMAIL=test-user-1@recipe-manager.test
@@ -176,31 +164,19 @@ Create separate items for each service to track limits, renewal dates, and accou
 
 ---
 
-#### Clerk Authentication
+#### Google OAuth (Auth.js)
 
 **Item Type**: API Credential
-**Item Name**: `Clerk - Recipe Manager Dev`
+**Item Name**: `Google OAuth - Joanie's Kitchen`
 
 **Fields**:
-- **Publishable Key (Dev)**: `pk_test_xxxxxxxxxxxxx`
-- **Secret Key (Dev)**: `sk_test_xxxxxxxxxxxxx`
-- **Application ID**: `app_xxxxxxxxxxxxx`
-- **Dashboard URL**: https://dashboard.clerk.com/apps/[app-id]
-- **Instance Type**: Development
-- **Frontend API**: `xxxxx.accounts.dev`
+- **Client ID** (`AUTH_GOOGLE_ID`): `xxxxx.apps.googleusercontent.com`
+- **Client Secret** (`AUTH_GOOGLE_SECRET`): `xxxxxxxxxxxxx`
+- **Auth.js Secret** (`AUTH_SECRET`): `xxxxxxxxxxxxx` (use a different value per environment)
+- **Dashboard URL**: https://console.cloud.google.com/apis/credentials
+- **Redirect URIs**: `https://joanies.kitchen/api/auth/callback/google`, `http://localhost:3002/api/auth/callback/google`
 
-**Tags**: `auth`, `clerk`, `development`
-
-**Item Name**: `Clerk - Recipe Manager Prod`
-
-**Fields**:
-- **Publishable Key (Prod)**: `pk_live_xxxxxxxxxxxxx`
-- **Secret Key (Prod)**: `sk_live_xxxxxxxxxxxxx`
-- **Application ID**: `app_xxxxxxxxxxxxx`
-- **Instance Type**: Production
-- **Frontend API**: `clerk.recipes.help`
-
-**Tags**: `auth`, `clerk`, `production`
+**Tags**: `auth`, `google`, `authjs`
 
 ---
 
@@ -301,7 +277,7 @@ eval $(op inject -i .env.1password)
 # Recipe Manager Environment Variables (loaded from 1Password)
 DATABASE_URL=op://Joanie's Kitchen/Recipe Manager - Development/DATABASE_URL
 OPENROUTER_API_KEY=op://Joanie's Kitchen/Recipe Manager - Development/OPENROUTER_API_KEY
-CLERK_SECRET_KEY_DEV=op://Joanie's Kitchen/Recipe Manager - Development/CLERK_SECRET_KEY_DEV
+AUTH_SECRET=op://Joanie's Kitchen/Recipe Manager - Development/AUTH_SECRET
 # ... (add all variables)
 ```
 
@@ -351,7 +327,7 @@ Set reminders in 1Password for rotating credentials:
 | Database Passwords | Quarterly | Every 3 months |
 | API Keys | Semi-annually | Every 6 months |
 | Test User Passwords | Quarterly | Every 3 months |
-| Clerk Secret Keys | Annually | Yearly |
+| Google OAuth client secret | Annually | Yearly |
 
 ### 2. Access Review
 
@@ -433,8 +409,7 @@ vercel env add < vercel-env.txt
 3. **Secrets Needed for CI/CD**:
    ```
    DATABASE_URL
-   CLERK_SECRET_KEY
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+   AUTH_SECRET
    TEST_USER_EMAIL
    TEST_USER_PASSWORD
    OPENROUTER_API_KEY
@@ -494,8 +469,7 @@ vercel env add < vercel-env.txt
 
 - **Main README**: `/README.md`
 - **Environment Setup**: `/docs/guides/ENVIRONMENT_SETUP.md`
-- **Authentication Guide**: `/docs/guides/AUTHENTICATION_GUIDE.md`
-- **E2E Testing Setup**: `/docs/testing/E2E_TEST_SETUP.md`
+- **Authentication Guide**: `/docs/guides/authentication.md`
 - **Deployment Guide**: `/OPS.md`
 
 ---
@@ -516,7 +490,7 @@ If you lose access to 1Password:
 Keep bookmarked for emergency credential regeneration:
 
 - Neon: https://console.neon.tech
-- Clerk: https://dashboard.clerk.com
+- Google Cloud Console: https://console.cloud.google.com/apis/credentials
 - OpenRouter: https://openrouter.ai
 - Vercel: https://vercel.com
 - GitHub: https://github.com/bobmatnyc/recipe-manager

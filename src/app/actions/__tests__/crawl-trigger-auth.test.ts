@@ -8,7 +8,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   after: vi.fn(),
   reap: vi.fn(),
   runDailyDiscovery: vi.fn(),
@@ -16,10 +17,10 @@ const mocks = vi.hoisted(() => ({
   runningRows: [] as unknown[][],
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('next/server', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/server')>()),
@@ -44,7 +45,8 @@ vi.mock('@/lib/db', async () => {
 import * as actions from '@/app/actions/crawl-trigger';
 
 function signedIn(isAdmin: string) {
-  mocks.auth.mockResolvedValue({ userId: 'user_1', sessionClaims: { metadata: { isAdmin } } });
+  mocks.sessionUserId.mockResolvedValue('user_1');
+  mocks.adminFlag.mockResolvedValue(isAdmin === 'true');
 }
 
 function expectNothingStarted() {
@@ -69,7 +71,7 @@ it('exports only triggerManualCrawl', () => {
 
 describe('triggerManualCrawl', () => {
   it('rejects a signed-out caller before any query or run', async () => {
-    mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+    mocks.sessionUserId.mockResolvedValue(null);
     await expect(actions.triggerManualCrawl()).rejects.toThrow('Admin access required');
     expectNothingStarted();
   });

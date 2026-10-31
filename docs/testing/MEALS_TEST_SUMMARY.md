@@ -1,5 +1,7 @@
 # Meals Feature - E2E Test Suite Summary
 
+> **Historical (pre-#22):** written when auth used Clerk. For current test-user setup see docs/guides/authentication.md.
+
 **Status**: ✅ Complete and Ready for Execution
 **Date**: 2025-10-17
 **Test Count**: 45 core tests (270+ with multi-browser)

@@ -11,14 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 interface PageProps {
   searchParams: Promise<{ type?: string }>;
 }
 
 export default async function MyMealsPage({ searchParams }: PageProps) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     redirect('/sign-in?redirect=/my-meals');

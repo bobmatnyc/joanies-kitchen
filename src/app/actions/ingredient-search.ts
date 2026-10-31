@@ -2,7 +2,6 @@
 
 import { and, asc, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
 import {
   ENABLE_CACHE_STATS,
   generateIngredientSearchKey,
@@ -23,6 +22,7 @@ import { applyConsolidation, getVariantsForCanonical } from '@/lib/ingredients/c
 import { rankAndDedupeSuggestions } from '@/lib/ingredients/suggestion-ranking';
 import { isPublicRecipe, publicRecipe, systemRecipe } from '@/lib/recipe-public';
 import { type RecipeWithSimilarity, rankRecipes } from '@/lib/search';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import type {
   IngredientSearchResult,
@@ -172,7 +172,7 @@ export async function searchRecipesByIngredients(
     }
 
     const validatedOptions = SearchOptionsSchema.parse(options);
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Generate cache key
     const cacheKey = generateIngredientSearchKey(validIngredients, {
@@ -772,7 +772,7 @@ export async function getRecipeIngredients(recipeId: string): Promise<RecipeIngr
       };
     }
 
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Check if user has access to this recipe
     const recipe = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);

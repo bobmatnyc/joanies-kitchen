@@ -16,9 +16,15 @@
  */
 
 import { Lock, Sparkles } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SignInButton, useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
+
+/** Starts Google sign-in and returns to the current page afterwards. */
+function startSignIn() {
+  void signIn('google', { callbackUrl: window.location.href });
+}
 
 interface RequireAuthProps {
   /**
@@ -74,12 +80,10 @@ function CardSignInPrompt({
         )}
       </CardHeader>
       <CardContent className="text-center pb-6">
-        <SignInButton mode="modal">
-          <Button className="bg-jk-tomato hover:bg-jk-tomato/90">
-            <Lock className="h-4 w-4 mr-2" />
-            Sign In to Continue
-          </Button>
-        </SignInButton>
+        <Button className="bg-jk-tomato hover:bg-jk-tomato/90" onClick={startSignIn}>
+          <Lock className="h-4 w-4 mr-2" />
+          Sign In to Continue
+        </Button>
         <p className="text-xs text-jk-charcoal/60 mt-4">
           Don't have an account? Sign up is quick and free.
         </p>
@@ -103,12 +107,10 @@ function InlineSignInPrompt({
       <Lock className="h-8 w-8 text-jk-clay mx-auto mb-3" />
       <h3 className="text-lg font-heading text-jk-olive mb-2">{featureName}</h3>
       {description && <p className="text-sm text-jk-charcoal/70 mb-4">{description}</p>}
-      <SignInButton mode="modal">
-        <Button size="sm" className="bg-jk-tomato hover:bg-jk-tomato/90">
-          <Lock className="h-3 w-3 mr-2" />
-          Sign In
-        </Button>
-      </SignInButton>
+      <Button size="sm" className="bg-jk-tomato hover:bg-jk-tomato/90" onClick={startSignIn}>
+        <Lock className="h-3 w-3 mr-2" />
+        Sign In
+      </Button>
     </div>
   );
 }
@@ -123,7 +125,7 @@ export function RequireAuth({
   icon,
   showAsCard = true,
 }: RequireAuthProps) {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isLoaded, user } = useSessionUser();
 
   // Show loading state while the session loads
   if (!isLoaded) {
@@ -137,7 +139,7 @@ export function RequireAuth({
   }
 
   // Show sign-in prompt if not authenticated
-  if (!isSignedIn) {
+  if (!user) {
     if (showAsCard) {
       return <CardSignInPrompt featureName={featureName} description={description} icon={icon} />;
     } else {

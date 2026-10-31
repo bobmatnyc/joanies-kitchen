@@ -212,11 +212,11 @@ Public chef profiles showcase a user's cooking identity, their best recipes, cur
 ```typescript
 interface UserProfile {
   // Identity
-  userId: string; // Clerk user ID
+  userId: string; // users.id
   username: string; // Unique, URL-friendly
   displayName: string;
   bio: string | null; // Markdown, 500 chars
-  avatar: string | null; // Clerk-managed
+  avatar: string | null; // Google profile picture URL (users.image)
 
   // Location & Details
   location: string | null; // City, State/Country
@@ -384,11 +384,11 @@ interface ProfileStats {
 #### Profile Setup Flow
 
 **First-Time Setup:**
-1. User signs up → Clerk creates account
+1. User signs in with Google (registration is closed; the email must be seeded or listed in `AUTH_ADMIN_EMAILS`)
 2. System checks if `userProfile` exists
 3. If not, show profile setup wizard:
    - Choose username (required)
-   - Add display name (defaults to Clerk name)
+   - Add display name (defaults to the Google account name)
    - Write bio (optional)
    - Add location (optional)
    - Select specialties (optional)

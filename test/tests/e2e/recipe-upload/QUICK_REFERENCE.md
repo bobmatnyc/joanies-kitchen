@@ -55,11 +55,8 @@ npx playwright test tests/e2e/recipe-upload/comprehensive-upload-test.spec.ts
 ### To Configure Auth for Full Testing:
 
 ```bash
-# Create test credentials
-echo "TEST_USER_EMAIL=test@example.com" >> .env.test
-echo "TEST_USER_PASSWORD=test123" >> .env.test
-
-# Create test user in Clerk dashboard
+# Enable the minted E2E session (loopback only), using the dev server's AUTH_SECRET
+export E2E_TEST_AUTH=1
 # Then run full test suite
 ```
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -201,7 +201,7 @@ export async function getOriginalRecipe(recipeId: string): Promise<Recipe | null
  */
 export async function hasUserClonedRecipe(recipeId: string): Promise<boolean> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return false;

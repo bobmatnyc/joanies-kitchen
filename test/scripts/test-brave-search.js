@@ -23,7 +23,7 @@ if (fs.existsSync(routePath)) {
   if (routeContent.includes('NextRequest') && routeContent.includes('NextResponse')) {
     console.log('✓ Next.js types imported');
   }
-  if (routeContent.includes("from '@/lib/auth'")) {
+  if (routeContent.includes("from '@/lib/session-user'")) {
     console.log('✓ Auth helper imported');
   }
 

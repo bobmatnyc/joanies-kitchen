@@ -70,8 +70,6 @@ curl -I http://localhost:3002
 
 # Expected output:
 # HTTP/1.1 200 OK
-# x-clerk-auth-reason: dev-browser-missing
-# x-clerk-auth-status: signed-out
 ```
 
 ### 3. Port Availability Check

@@ -19,12 +19,19 @@ const RECIPE = 'aaaaaaaa-0000-4000-8000-00000000000a';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  sessionUserId: undefined as unknown as ReturnType<typeof vi.fn>,
 }));
 
-vi.mock('@/lib/auth', () => {
-  state.auth = vi.fn();
-  return { auth: (...args: unknown[]) => state.auth(...args) };
+vi.mock('@/lib/session-user', () => {
+  state.sessionUserId = vi.fn();
+  const getSessionUserId = (...args: unknown[]) => state.sessionUserId(...args);
+  return {
+    getSessionUserId,
+    getSessionUser: async () => {
+      const id = await getSessionUserId();
+      return id ? { id } : null;
+    },
+  };
 });
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
@@ -44,6 +51,7 @@ vi.mock('@/app/actions/user-profiles', async (importOriginal) => {
 import { addRecipeToCollection, createCollection } from '@/app/actions/collections';
 import { addFavorite } from '@/app/actions/favorites';
 import { createOrUpdateProfile } from '@/app/actions/user-profiles';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import * as discovery from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -59,6 +67,8 @@ beforeAll(async () => {
       discovery.collectionRecipes,
       discovery.favorites,
       discovery.userProfiles,
+      // #208: addFavorite's pending-deletion guard reads users.
+      users,
     ],
     { ...schema, ...discovery },
     { constraints: true }
@@ -83,7 +93,7 @@ beforeEach(async () => {
     instructions: '[]',
     is_public: true,
   });
-  state.auth.mockResolvedValue({ userId: OWNER, sessionClaims: { metadata: {} } });
+  state.sessionUserId.mockResolvedValue(OWNER);
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -126,7 +136,7 @@ describe('duplicate paths (#44)', () => {
   it('createOrUpdateProfile: a taken username answers "Username already taken"', async () => {
     const profile = { username: 'chef_taken', display_name: 'Chef' };
     expect((await createOrUpdateProfile(profile)).success).toBe(true);
-    state.auth.mockResolvedValue({ userId: OTHER, sessionClaims: { metadata: {} } });
+    state.sessionUserId.mockResolvedValue(OTHER);
     const clash = await createOrUpdateProfile(profile);
 
     expect(clash).toEqual({ success: false, error: 'Username already taken' });

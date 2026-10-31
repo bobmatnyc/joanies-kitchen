@@ -7,16 +7,17 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   crawlWeeklyRecipes: vi.fn(),
   convertUrlToRecipe: vi.fn(),
   dbWrite: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('@/lib/recipe-crawl', () => ({
   crawlWeeklyRecipes: mocks.crawlWeeklyRecipes,
@@ -80,11 +81,12 @@ const SECRET = 'test-secret';
 const fetchSpy = vi.fn();
 
 function signedOut() {
-  mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+  mocks.sessionUserId.mockResolvedValue(null);
 }
 
 function signedIn(isAdmin: string | undefined) {
-  mocks.auth.mockResolvedValue({ userId: 'user_1', sessionClaims: { metadata: { isAdmin } } });
+  mocks.sessionUserId.mockResolvedValue('user_1');
+  mocks.adminFlag.mockResolvedValue(isAdmin === 'true');
 }
 
 function call(route: PaidRoute, headers: Record<string, string> = {}) {
@@ -151,7 +153,7 @@ describe.each(ROUTES)('$name auth', (route) => {
   });
 
   it('rejects with 401 and does no paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
+    mocks.sessionUserId.mockRejectedValue(new Error('auth unavailable'));
     await expectRejected(await call(route), 401);
   });
 

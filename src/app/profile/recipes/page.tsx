@@ -5,7 +5,7 @@ import { getRecipesPaginated, type RecipeFilters } from '@/app/actions/recipes';
 import { RecipeFilters as RecipeFiltersComponent } from '@/components/recipe/RecipeFilters';
 import { RecipeInfiniteList } from '@/components/recipe/RecipeInfiniteList';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
@@ -23,7 +23,7 @@ interface PageProps {
 
 export default async function MyRecipesPage({ searchParams }: PageProps) {
   // Check authentication - redirect if not authenticated
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     redirect('/sign-in?redirect=/profile/recipes');

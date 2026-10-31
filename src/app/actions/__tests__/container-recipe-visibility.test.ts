@@ -30,13 +30,20 @@ const SECRET = 'Secret Stew';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  sessionUserId: undefined as unknown as ReturnType<typeof vi.fn>,
   apiUser: null as string | null,
 }));
 
-vi.mock('@/lib/auth', () => {
-  state.auth = vi.fn();
-  return { auth: (...args: unknown[]) => state.auth(...args) };
+vi.mock('@/lib/session-user', () => {
+  state.sessionUserId = vi.fn();
+  const getSessionUserId = (...args: unknown[]) => state.sessionUserId(...args);
+  return {
+    getSessionUserId,
+    getSessionUser: async () => {
+      const id = await getSessionUserId();
+      return id ? { id } : null;
+    },
+  };
 });
 // #22: admin is read from users.is_admin; here only ADMIN carries the flag.
 vi.mock('@/lib/auth-users', () => ({
@@ -85,6 +92,7 @@ import {
 import { POST as favoritePOST } from '@/app/api/v1/favorites/[recipeId]/route';
 import { GET as favoritesGET } from '@/app/api/v1/favorites/route';
 import { POST as likePOST } from '@/app/api/v1/recipes/[id]/like/route';
+import { users } from '@/lib/db/auth-schema';
 import * as chefSchema from '@/lib/db/chef-schema';
 import * as schema from '@/lib/db/schema';
 import * as discovery from '@/lib/db/user-discovery-schema';
@@ -110,9 +118,7 @@ const API_ALLOWED: Record<Role, boolean> = { ...ALLOWED, admin: false };
 function signInAs(role: Role) {
   const userId = USER_OF[role];
   state.apiUser = userId;
-  state.auth.mockResolvedValue(
-    userId ? { userId, sessionClaims: { metadata: {} } } : { userId: null, sessionClaims: null }
-  );
+  state.sessionUserId.mockResolvedValue(userId || null);
 }
 
 let client: PGlite;
@@ -457,6 +463,8 @@ beforeAll(async () => {
     schema.mealRecipes,
     chefSchema.chefs,
     chefSchema.chefRecipes,
+    // #208: addFavorite's pending-deletion guard reads users.
+    users,
   ];
   const built = await createVisibilityDb(tables, { ...schema, ...discovery, ...chefSchema });
   client = built.client;

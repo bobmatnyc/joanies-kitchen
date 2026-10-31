@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import {
   CheckCircle2,
   ChefHat,
@@ -198,7 +198,9 @@ export function InventoryMatchSection({
   ingredients,
   className = '',
 }: InventoryMatchSectionProps) {
-  const { isSignedIn, userId } = useAuth();
+  const { user } = useSessionUser();
+  const signedIn = user !== null;
+  const userId = user?.id ?? null;
   const [matches, setMatches] = useState<IngredientMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasInventory, setHasInventory] = useState(false);
@@ -207,7 +209,7 @@ export function InventoryMatchSection({
 
   useEffect(() => {
     async function checkInventory() {
-      if (!isSignedIn || !userId) {
+      if (!signedIn || !userId) {
         setLoading(false);
         return;
       }
@@ -236,7 +238,7 @@ export function InventoryMatchSection({
     checkInventory();
     // The matcher is module-scope, so it is not a dep. As a component-body
     // function it changed every render and looped getUserInventory POSTs.
-  }, [isSignedIn, userId, ingredients]);
+  }, [signedIn, userId, ingredients]);
 
   // Calculate match statistics
   const haveCount = matches.filter((m) => m.hasIt).length;
@@ -256,7 +258,7 @@ export function InventoryMatchSection({
   }
 
   // Not signed in state
-  if (!isSignedIn) {
+  if (!signedIn) {
     return (
       <Card className={`border-2 border-jk-sage ${className}`}>
         <CardHeader>

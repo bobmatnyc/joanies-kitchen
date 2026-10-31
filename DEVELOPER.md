@@ -150,18 +150,18 @@ await db.transaction(async (tx) => {
 });
 ```
 
-**Authentication: Clerk 6.33.7**
+**Authentication: Auth.js v5 (`next-auth`), Google only**
 ```typescript
 // Server-side auth
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
-const { userId } = await auth();
+const userId = await getSessionUserId();
 if (!userId) throw new Error('Unauthorized');
 
 // Client-side auth
-import { useUser } from '@clerk/nextjs';
+import { useSessionUser } from '@/lib/use-session-user';
 
-const { user, isLoaded } = useUser();
+const { user, isLoaded } = useSessionUser();
 ```
 
 ### AI/ML Stack
@@ -237,7 +237,7 @@ drizzle.config.ts references:
 ```sql
 CREATE TABLE recipes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id VARCHAR(255),          -- Clerk user ID
+  user_id VARCHAR(255),          -- users.id (legacy users keep their Clerk-era id)
   title VARCHAR(200) NOT NULL,
   description TEXT,
   image_url TEXT,
@@ -348,7 +348,7 @@ LIMIT 10;
 ### Data Relationships
 
 ```
-User (Clerk)
+User (Auth.js, users table)
   ├── Recipes (owned)
   │   ├── RecipeIngredients
   │   │   └── Ingredients
@@ -373,108 +373,72 @@ User (Clerk)
 
 ## Authentication System
 
-### Clerk Integration
+### Auth.js Integration
 
-**Configuration** (`src/config/auth.config.ts`)
+Google is the only provider, sessions are JWTs, registration is closed, and admin comes from `AUTH_ADMIN_EMAILS` plus `users.is_admin`. Full setup, env vars and the seed script: [docs/guides/authentication.md](docs/guides/authentication.md).
+
+**Configuration** (`src/auth.config.ts` edge-safe, `src/auth.ts` Node-side with the Drizzle adapter)
+
+Env vars: `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` (production), `AUTH_ADMIN_EMAILS`.
+
+**Middleware** (`src/middleware.ts`, rules in `src/lib/auth-routes.ts`)
 ```typescript
-export const authConfig = {
-  // Auto-select keys based on environment
-  publishableKey: isProduction
-    ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD
-    : process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV,
-
-  secretKey: isProduction
-    ? process.env.CLERK_SECRET_KEY_PROD
-    : process.env.CLERK_SECRET_KEY_DEV,
-};
-```
-
-**Middleware** (`src/middleware.ts`)
-```typescript
-import { authMiddleware } from '@clerk/nextjs/server';
-
-export default authMiddleware({
-  publicRoutes: [
-    '/',
-    '/recipes',
-    '/recipes/(.*)',
-    '/discover',
-    '/chef/(.*)',
-    '/tools',
-    '/learn',
-  ],
-  ignoredRoutes: [
-    '/api/webhooks/(.*)',
-    '/api/public/(.*)',
-  ],
-});
-
-export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
-};
+// decideRoute(path, { userId, isAdmin }) returns 'allow' | 'sign-in' | 'home'.
+// Signed-out users are redirected from /recipes/new, /meals/new and /admin;
+// signed-in non-admins are redirected from /admin to /.
 ```
 
 **Server-Side Auth**
 ```typescript
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { getSessionUser, getSessionUserId } from '@/lib/session-user';
+import { requireAdmin } from '@/lib/admin';
 
-// Get user ID
-export async function getAuthUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error('Unauthorized');
-  return userId;
-}
+// Get user ID (null when signed out)
+const userId = await getSessionUserId();
 
-// Get full user object
-export async function getAuthUser() {
-  const user = await currentUser();
-  if (!user) throw new Error('Unauthorized');
-  return user;
-}
+// Get the session user: { id, name, email, image, isAdmin }
+const user = await getSessionUser();
 
-// Check admin access
-export async function requireAdmin() {
-  const user = await currentUser();
-  const isAdmin = user?.publicMetadata?.isAdmin === 'true';
-  if (!isAdmin) throw new Error('Admin access required');
-  return user;
-}
+// Admin-only server actions: re-reads users.is_admin on every call
+const { userId: adminId } = await requireAdmin(); // throws unless admin
 ```
 
 **Client-Side Auth**
 ```typescript
 'use client';
 
-import { useUser, useAuth } from '@clerk/nextjs';
+import { signOut } from 'next-auth/react';
+import { useSessionUser } from '@/lib/use-session-user';
 
 export function ProfileButton() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
+  const { user, isLoaded } = useSessionUser();
 
   if (!isLoaded) return <div>Loading...</div>;
-  if (!user) return <SignInButton />;
+  if (!user) return <a href="/sign-in">Sign in</a>;
 
   return (
     <div>
-      <p>Welcome, {user.firstName}</p>
+      <p>Welcome, {user.name}</p>
       <button onClick={() => signOut()}>Sign Out</button>
     </div>
   );
 }
 ```
 
+`useSessionUser()` needs `<AuthProvider>` (`src/components/auth/AuthProvider.tsx`) above it. `user.isAdmin` is a UI hint only; server code must re-check the database.
+
 ### Protected Routes Pattern
 
 ```typescript
 // src/app/recipes/new/page.tsx
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { getSessionUserId } from '@/lib/session-user';
 
 export default async function NewRecipePage() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
-    redirect('/sign-in?redirect=/recipes/new');
+    redirect('/sign-in?returnUrl=/recipes/new');
   }
 
   return <RecipeForm userId={userId} />;
@@ -485,12 +449,12 @@ export default async function NewRecipePage() {
 
 ```typescript
 // src/app/admin/layout.tsx
-import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { checkAdminAccess } from '@/lib/admin';
 
 export default async function AdminLayout({ children }) {
-  const user = await currentUser();
-  const isAdmin = user?.publicMetadata?.isAdmin === 'true';
+  // Re-reads users.is_admin from the database (not the JWT claim)
+  const { isAdmin } = await checkAdminAccess();
 
   if (!isAdmin) {
     redirect('/');
@@ -712,10 +676,10 @@ LIMIT 10;
 'use server';
 
 import { put } from '@vercel/blob';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function uploadRecipeImage(formData: FormData) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
   const file = formData.get('file') as File;
@@ -874,11 +838,11 @@ function SubmitButton() {
 ```typescript
 // src/app/api/recipes/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -1107,8 +1071,11 @@ test.describe('Recipe Management', () => {
 DATABASE_URL=postgresql://...
 OPENROUTER_API_KEY=sk-or-v1-...
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD=pk_live_...
-CLERK_SECRET_KEY_PROD=sk_live_...
+AUTH_SECRET=...
+AUTH_GOOGLE_ID=...
+AUTH_GOOGLE_SECRET=...
+AUTH_URL=https://joanies.kitchen
+AUTH_ADMIN_EMAILS=...
 
 # Auto-set by Vercel
 VERCEL_URL=joanies-kitchen.vercel.app

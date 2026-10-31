@@ -7,7 +7,7 @@ pnpm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local with DATABASE_URL, OPENROUTER_API_KEY, Clerk keys
+# Edit .env.local with DATABASE_URL, OPENROUTER_API_KEY, AUTH_* keys (see docs/guides/authentication.md)
 
 # 3. Initialize database
 pnpm db:push

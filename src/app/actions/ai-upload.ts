@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { MODELS } from '@/lib/ai/openrouter';
 import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -21,7 +21,7 @@ export async function uploadRecipeWithAI(params: {
   images?: string[]; // URLs to uploaded images
   parseFromImage?: boolean; // Use vision model for image-only parsing
 }) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return { success: false, error: 'Authentication required' };
@@ -94,7 +94,7 @@ export async function uploadRecipeWithAI(params: {
  * Fetches and parses the recipe page
  */
 export async function uploadRecipeFromUrl(url: string) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return { success: false, error: 'Authentication required' };
@@ -181,7 +181,7 @@ export async function previewRecipeParse(params: {
   images?: string[];
   parseFromImage?: boolean;
 }) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return { success: false, error: 'Authentication required' };

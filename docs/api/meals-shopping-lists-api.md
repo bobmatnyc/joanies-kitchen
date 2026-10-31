@@ -5,7 +5,7 @@ Comprehensive REST API endpoints for meal planning and shopping list operations 
 ## Authentication
 
 All endpoints require authentication via:
-- **Clerk Session**: Browser-based authentication
+- **Auth.js Session**: Browser-based authentication
 - **API Key**: Machine-to-machine authentication via `Authorization: Bearer <api-key>`
 
 ## Scopes Required
@@ -114,7 +114,7 @@ Create a new meal for the authenticated user.
   "success": true,
   "data": {
     "id": "uuid",
-    "user_id": "clerk_user_id",
+    "user_id": "users_id",
     "name": "Sunday Dinner",
     "description": "Family meal with roast chicken and sides",
     "meal_type": "dinner",
@@ -347,7 +347,7 @@ Generate a shopping list from a meal's recipes with smart consolidation.
   "success": true,
   "data": {
     "id": "shopping-list-uuid",
-    "user_id": "clerk_user_id",
+    "user_id": "users_id",
     "meal_id": "meal-uuid",
     "name": "Sunday Dinner - Shopping List",
     "items": [
@@ -480,7 +480,7 @@ Get a single shopping list by ID.
   "success": true,
   "data": {
     "id": "uuid",
-    "user_id": "clerk_user_id",
+    "user_id": "users_id",
     "meal_id": "meal-uuid",
     "name": "Sunday Dinner - Shopping List",
     "notes": "Don't forget to check pantry first",
@@ -677,7 +677,7 @@ All routes reuse existing server actions from `/src/app/actions/meals.ts`:
 
 Uses unified authentication from `/src/lib/api-auth`:
 - `requireScopes()` - Enforces scope-based permissions
-- Supports both Clerk sessions and API keys
+- Supports both Auth.js sessions and API keys
 - Automatic ownership verification for protected resources
 
 ### Scopes

@@ -8,14 +8,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   queries: [] as string[],
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('@/lib/db', async () => {
   const { drizzle } = await import('drizzle-orm/pg-proxy');
@@ -56,25 +57,21 @@ it('covers every exported action', () => {
 
 describe.each(ACTIONS)('$name (admin-only read action)', (action) => {
   it('rejects a signed-out caller before any query', async () => {
-    mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+    mocks.sessionUserId.mockResolvedValue(null);
     await expect(action.run()).rejects.toThrow('Admin access required');
     expect(mocks.queries).toHaveLength(0);
   });
 
   it('rejects a signed-in non-admin before any query', async () => {
-    mocks.auth.mockResolvedValue({
-      userId: 'user_1',
-      sessionClaims: { metadata: { isAdmin: 'false' } },
-    });
+    mocks.sessionUserId.mockResolvedValue('user_1');
+    mocks.adminFlag.mockResolvedValue(false);
     await expect(action.run()).rejects.toThrow('Admin access required');
     expect(mocks.queries).toHaveLength(0);
   });
 
   it('runs the query for an admin', async () => {
-    mocks.auth.mockResolvedValue({
-      userId: 'user_1',
-      sessionClaims: { metadata: { isAdmin: 'true' } },
-    });
+    mocks.sessionUserId.mockResolvedValue('user_1');
+    mocks.adminFlag.mockResolvedValue(true);
     await action.run();
     expect(mocks.queries.length).toBeGreaterThan(0);
   });

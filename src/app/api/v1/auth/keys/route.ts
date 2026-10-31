@@ -14,7 +14,7 @@
  * - After creation, only key prefix is visible
  */
 
-import { auth as sessionAuth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { createApiKey, listUserApiKeys } from '@/lib/api-auth';
@@ -53,9 +53,9 @@ import { type CreateApiKeyInput, createApiKeySchema } from '@/lib/validations/ap
 export async function GET(_request: NextRequest) {
   try {
     // CRITICAL: Only allow a signed-in session authentication (not API keys)
-    const session = await sessionAuth();
+    const userId = await getSessionUserId();
 
-    if (!session.userId) {
+    if (!userId) {
       return NextResponse.json(
         {
           success: false,
@@ -73,7 +73,7 @@ export async function GET(_request: NextRequest) {
     }
 
     // Fetch user's API keys (returns keys with prefix only, never full key)
-    const apiKeys = await listUserApiKeys(session.userId);
+    const apiKeys = await listUserApiKeys(userId);
 
     // Transform to response format
     const responseData = apiKeys.map((key) => ({
@@ -145,9 +145,9 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // CRITICAL: Only allow a signed-in session authentication (not API keys)
-    const session = await sessionAuth();
+    const userId = await getSessionUserId();
 
-    if (!session.userId) {
+    if (!userId) {
       return NextResponse.json(
         {
           success: false,
@@ -187,13 +187,13 @@ export async function POST(request: NextRequest) {
 
     // Create the API key
     const result = await createApiKey({
-      userId: session.userId,
+      userId,
       name: validatedData.name,
       scopes: validatedData.scopes,
       description: validatedData.description,
       expiresAt: validatedData.expiresAt,
       environment: 'production',
-      createdBy: session.userId,
+      createdBy: userId,
     });
 
     if (!result.success) {

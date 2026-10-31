@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { CheckCircle, Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -27,7 +27,8 @@ import {
  * Shows a dialog when user signs in and has guest data in localStorage
  */
 export function GuestDataMigration() {
-  const { userId, isLoaded } = useAuth();
+  const { isLoaded, user } = useSessionUser();
+  const userId = user?.id ?? null;
   const router = useRouter();
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);

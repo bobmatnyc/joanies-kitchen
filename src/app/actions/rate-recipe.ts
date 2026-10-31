@@ -11,51 +11,99 @@
 
 'use server';
 
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
+import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { recipeRatings, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { lockRecipeForRating, ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
-
-/**
- * #141: first statement of every rating batch. Locks the recipe row so a
- * concurrent rating batch on the same recipe waits here, before its write and
- * recompute, instead of at the recompute's UPDATE with a subquery snapshot that
- * misses the other batch's rating. Under READ COMMITTED each later statement
- * takes a fresh snapshot, so it sees the committed rating.
- * Test: `rate-recipe-aggregates.test.ts`
- */
-function lockRecipeRow(recipeId: string) {
-  return db.select({ id: recipes.id }).from(recipes).where(eq(recipes.id, recipeId)).for('update');
-}
 
 /**
  * #137: one statement derives the recipe's aggregates from `recipe_ratings`. It
  * always rides in the same `db.batch` as the rating write (neon-http has no
  * `db.transaction`; a batch is one HTTP transaction), so the write and the
  * recompute succeed or fail together.
- * #141: atomicity alone does not stop drift. Two concurrent batches can each
- * compute the subqueries without the other's uncommitted rating, so the batch
- * must start with `lockRecipeRow` to serialize writers on the recipe.
- * An average over zero ratings is NULL; an average of 0 stays 0.
- * Test: `rate-recipe-aggregates.test.ts`
+ * #141: the batch opens with `lockRecipeForRating`, so concurrent rating writes
+ * on one recipe run one after the other and each recompute sees every committed
+ * rating. The stored aggregates then match `recipe_ratings` after every rating
+ * write, and a write also repairs an aggregate that was stale before it.
+ * #197: `writtenAt` limits the recompute to a batch whose rating write landed:
+ * it runs only when the caller's rating row carries this batch's `updated_at`.
+ * Test: `rate-recipe-aggregates.test.ts`, `rate-recipe-lock-order.test.ts`,
+ * `rate-recipe-pending-deletion.test.ts`
  */
-function recomputeRatingAggregates(recipeId: string) {
+function recomputeRatingAggregates(recipeId: string, writtenAt?: { userId: string; at: Date }) {
+  // #197: tied to the write itself, not to a second read of the deletion flag,
+  // so a flag change between the batch's statements cannot split write and recompute.
+  const written = writtenAt
+    ? exists(
+        db
+          .select({ one: sql`1` })
+          .from(recipeRatings)
+          .where(
+            and(
+              eq(recipeRatings.recipe_id, recipeId),
+              eq(recipeRatings.user_id, writtenAt.userId),
+              eq(recipeRatings.updated_at, writtenAt.at)
+            )
+          )
+      )
+    : undefined;
   return db
     .update(recipes)
-    .set({
-      avg_user_rating: sql`(SELECT CAST(AVG(${recipeRatings.rating}) AS DECIMAL(2,1)) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
-      total_user_ratings: sql`(SELECT COUNT(*) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
-    })
-    .where(eq(recipes.id, recipeId))
+    .set(ratingAggregateColumns())
+    .where(and(eq(recipes.id, recipeId), written))
     .returning({
       avgUserRating: recipes.avg_user_rating,
       totalUserRatings: recipes.total_user_ratings,
     });
 }
+
+/**
+ * #197: the rating upsert, refused in its own statement when the rater's
+ * account has a pending deletion. `INSERT … SELECT … FROM recipes WHERE id = $r
+ * AND NOT EXISTS (pending deletion)`: a refused write selects no row, so it
+ * inserts and updates nothing, takes no row lock and RETURNING is empty.
+ * The parameters carry casts because a SELECT list gives them no column type.
+ */
+function upsertRatingUnlessPendingDeletion(
+  recipeId: string,
+  userId: string,
+  rating: number,
+  review: string | null,
+  now: Date
+) {
+  const at = sql`${sql.param(now, recipeRatings.updated_at)}::timestamp`;
+  return db
+    .insert(recipeRatings)
+    .select(
+      db
+        .select({
+          id: sql`gen_random_uuid()`.as('id'),
+          recipe_id: recipes.id,
+          user_id: sql`${userId}::text`.as('user_id'),
+          rating: sql`${rating}::integer`.as('rating'),
+          review: sql`${review}::text`.as('review'),
+          created_at: at.as('created_at'),
+          updated_at: at.as('updated_at'),
+        })
+        .from(recipes)
+        .where(and(eq(recipes.id, recipeId), authorNotPendingDeletion(userId)))
+    )
+    .onConflictDoUpdate({
+      target: [recipeRatings.recipe_id, recipeRatings.user_id],
+      set: { rating, review, updated_at: now },
+    })
+    .returning({ id: recipeRatings.id });
+}
+
+/** #197: the refusal `rateRecipe` returns for an account with a pending deletion. */
+const PENDING_DELETION_ERROR =
+  'Your account is scheduled for deletion, so you cannot rate recipes. Cancel the deletion to rate again.';
 
 /** Postgres returns DECIMAL as a string; NULL (no ratings) stays null, "0.0" becomes 0. */
 function toNullableNumber(value: string | number | null | undefined): number | null {
@@ -84,7 +132,7 @@ export async function rateRecipe(
   review?: string
 ): Promise<RateRecipeResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return {
@@ -112,25 +160,22 @@ export async function rateRecipe(
 
     // #137: upsert and aggregate recompute in one atomic batch.
     const now = new Date();
-    const [, , recomputed] = await db.batch([
-      // #141: lock the recipe row first so concurrent raters cannot compute stale aggregates.
-      lockRecipeRow(recipeId),
-      db
-        .insert(recipeRatings)
-        .values({
-          recipe_id: recipeId,
-          user_id: userId,
-          rating,
-          review: review || null,
-          created_at: now,
-          updated_at: now,
-        })
-        .onConflictDoUpdate({
-          target: [recipeRatings.recipe_id, recipeRatings.user_id],
-          set: { rating, review: review || null, updated_at: now },
-        }),
-      recomputeRatingAggregates(recipeId),
+    const [locked, written, recomputed] = await db.batch([
+      // #141: lock the recipe row (FOR NO KEY UPDATE) first, so concurrent raters queue.
+      lockRecipeForRating(recipeId),
+      // #197: the pending-deletion check rides in the write statement, not a prior query.
+      upsertRatingUnlessPendingDeletion(recipeId, userId, rating, review || null, now),
+      // #197: a no-op unless the write above landed.
+      recomputeRatingAggregates(recipeId, { userId, at: now }),
     ]);
+
+    if (locked.length === 0) {
+      return { success: false, error: 'Recipe not found' };
+    }
+    // #197: an empty RETURNING on an existing recipe means the guard refused the write.
+    if (written.length === 0) {
+      return { success: false, error: PENDING_DELETION_ERROR };
+    }
 
     console.log(`[Rate Recipe] User ${userId} rated recipe ${recipeId}: ${rating}/5`);
 
@@ -177,7 +222,7 @@ export async function getUserRating(recipeId: string): Promise<{
   updatedAt?: Date;
 } | null> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return null;
@@ -287,7 +332,7 @@ export async function deleteRating(
   targetUserId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return {
@@ -318,9 +363,11 @@ export async function deleteRating(
     }
 
     // Delete and recompute in one atomic batch (a concurrent delete only makes the delete a no-op).
+    // #197: no pending-deletion guard here. A delete creates no row and only
+    // removes the caller's own rating, which the purge would delete anyway.
     await db.batch([
-      // #141: lock the recipe row first so a concurrent rate/delete cannot leave stale aggregates.
-      lockRecipeRow(recipeId),
+      // #141: lock the recipe row (FOR NO KEY UPDATE) first, so a concurrent rate/delete queues.
+      lockRecipeForRating(recipeId),
       db
         .delete(recipeRatings)
         .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete))),

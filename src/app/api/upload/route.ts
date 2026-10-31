@@ -15,7 +15,7 @@
 import { put } from '@vercel/blob';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -73,7 +73,7 @@ function validateFile(file: File): { valid: boolean; error?: string } {
 export async function POST(request: NextRequest) {
   try {
     // Step 1: Check authentication
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return NextResponse.json(

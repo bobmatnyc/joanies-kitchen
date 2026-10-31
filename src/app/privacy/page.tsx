@@ -43,6 +43,19 @@ export default function PrivacyPage() {
           <li>the date your account was created and whether it has administrator access.</li>
         </ul>
         <p>We do not receive or store your Google password.</p>
+        <p>
+          Joanie&apos;s Kitchen&apos;s use and transfer to any other app of information received
+          from Google APIs will adhere to the{' '}
+          <a
+            href="https://developers.google.com/terms/api-services-user-data-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-jk-tomato underline hover:no-underline"
+          >
+            Google API Services User Data Policy
+          </a>
+          , including the Limited Use requirements.
+        </p>
       </LegalSection>
 
       <LegalSection title="Content you create">

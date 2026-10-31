@@ -1,7 +1,6 @@
 'use server';
 
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import { recipeViews } from '@/lib/db/user-discovery-schema';
@@ -10,6 +9,7 @@ import {
   getRecipeViewer,
   recipeVisibilityCondition,
 } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 
 /**
  * Recipe Views Server Actions
@@ -28,7 +28,7 @@ import {
  */
 export async function trackRecipeView(recipeId: string): Promise<void> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // #41: record views only of recipes the caller may read.
     const recipe = await findViewableRecipe(recipeId, await getRecipeViewer());
@@ -69,7 +69,7 @@ export async function trackRecipeView(recipeId: string): Promise<void> {
  */
 export async function getRecentlyViewedRecipes(limit: number = 10): Promise<Recipe[]> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return [];
@@ -194,7 +194,7 @@ export async function getUserViewHistory(
   offset: number = 0
 ): Promise<{ recipes: Recipe[]; total: number }> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { recipes: [], total: 0 };

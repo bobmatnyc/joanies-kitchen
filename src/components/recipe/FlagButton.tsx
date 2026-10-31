@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { hasUserFlagged } from '@/app/actions/flag-recipe';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUser } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { FlagDialog } from './FlagDialog';
 
 interface FlagButtonProps {
@@ -16,11 +16,6 @@ interface FlagButtonProps {
   size?: 'sm' | 'default';
 }
 
-// #22: Auth.js session via the Clerk-shaped client shim.
-function useSessionUser() {
-  return useUser();
-}
-
 export function FlagButton({
   recipeId,
   recipeName,
@@ -28,7 +23,8 @@ export function FlagButton({
   size = 'sm',
 }: FlagButtonProps) {
   const router = useRouter();
-  const { isSignedIn, isLoaded } = useSessionUser();
+  const { isLoaded, user } = useSessionUser();
+  const signedIn = user !== null;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [alreadyFlagged, setAlreadyFlagged] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -38,7 +34,7 @@ export function FlagButton({
     const checkFlagStatus = async () => {
       if (!isLoaded) return;
 
-      if (!isSignedIn) {
+      if (!signedIn) {
         setIsChecking(false);
         return;
       }
@@ -49,10 +45,10 @@ export function FlagButton({
     };
 
     checkFlagStatus();
-  }, [recipeId, isSignedIn, isLoaded]);
+  }, [recipeId, signedIn, isLoaded]);
 
   const handleClick = () => {
-    if (!isSignedIn) {
+    if (!signedIn) {
       // Redirect to sign-in page
       router.push(`/sign-in?redirect=/recipes/${recipeId}`);
       return;
@@ -83,7 +79,7 @@ export function FlagButton({
     );
   }
 
-  const tooltipText = !isSignedIn
+  const tooltipText = !signedIn
     ? 'Sign in to report this recipe'
     : alreadyFlagged
       ? "You've already reported this recipe"

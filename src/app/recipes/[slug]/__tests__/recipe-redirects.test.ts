@@ -34,7 +34,10 @@ const state = vi.hoisted(() => ({
   executeCalls: 0,
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null, sessionClaims: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
   get db() {
