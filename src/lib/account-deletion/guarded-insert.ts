@@ -139,7 +139,8 @@ export function insertUnlessPendingDeletionSql<TTable extends PgTable>(
  * Why: see the file header.
  * What: inserts `values` into `table` unless `userId` has a pending deletion,
  * in one statement. Throws on any DB error (a unique violation stays 23505).
- * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`
+ * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`,
+ * `src/lib/__tests__/recipe-creation-pending-deletion.test.ts`
  */
 export async function insertUnlessPendingDeletion<TTable extends PgTable>(
   table: TTable,

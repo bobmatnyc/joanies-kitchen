@@ -20,6 +20,7 @@ const state = vi.hoisted(() => ({
   db: undefined as unknown,
   client: undefined as unknown,
   userId: null as string | null,
+  discoverUrls: [{ url: 'https://example.test/stew', title: 'Stew' }],
 }));
 const addFavorite = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 
@@ -36,6 +37,21 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/rate-limit', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
   enforceRateLimit: async () => ({ allowed: true, count: 1, limit: 20 }),
+  checkRateLimit: async () => ({ allowed: true, count: 1, limit: 20 }),
+}));
+vi.mock('@/lib/ai/recipe-ingestion-parser', () => ({
+  parseRecipeForIngestion: async () => ({
+    name: 'Ingested Stew',
+    description: 'From the ingest parser',
+    ingredients: [{ quantity: '1', unit: '', name: 'turnip', notes: '', preparation: '' }],
+    instructions: ['Stew it'],
+    prep_time: 10,
+    cook_time: 20,
+    servings: 2,
+    difficulty: 'easy',
+    cuisine: 'Irish',
+    tags: ['winter'],
+  }),
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 // A session caller with every scope; no apiKeyId, so no api_key_usage tracking.
@@ -67,7 +83,7 @@ vi.mock('@/lib/firecrawl', () => ({
   scrapeRecipePage: async () => ({ success: true, markdown: '# Stew', html: '', metadata: {} }),
 }));
 vi.mock('@/lib/recipe-discovery-steps', () => ({
-  discoverRecipeUrls: async () => [{ url: 'https://example.test/stew', title: 'Stew' }],
+  discoverRecipeUrls: async () => state.discoverUrls,
   extractAndValidateRecipe: async () => ({
     success: true,
     confidenceScore: 0.9,
@@ -113,6 +129,7 @@ import { discoverRecipeFromUrl, discoverRecipes } from '@/app/actions/recipe-dis
 import { importRecipeFromMarkdown, importRecipesFromMarkdown } from '@/app/actions/recipe-import';
 import { bulkImportRecipes, importWebRecipe } from '@/app/actions/recipe-search';
 import { copyRecipeToCollection, createRecipe } from '@/app/actions/recipes';
+import { POST as ingestPOST } from '@/app/api/ingest-recipe/route';
 import { POST as recipesPOST } from '@/app/api/v1/recipes/route';
 import {
   insertUnlessPendingDeletion,
@@ -163,13 +180,23 @@ async function snapshot() {
   };
 }
 
-async function api(path: string, body: unknown): Promise<{ status: number; body: any }> {
+async function api(
+  path: string,
+  body: unknown,
+  handler: (req: NextRequest, ctx: RouteContext) => Promise<Response> = recipesPOST
+): Promise<{ status: number; body: any }> {
   const req = new NextRequest(`http://localhost${path}`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
-  const res = await recipesPOST(req, { params: Promise.resolve({}) } as RouteContext);
+  const res = await handler(req, { params: Promise.resolve({}) } as RouteContext);
   return { status: res.status, body: await res.json() };
+}
+
+/** A route call: success, or its error text and status. */
+async function route(call: () => Promise<{ status: number; body: any }>): Promise<Outcome> {
+  const r = await call();
+  return r.status < 300 ? { ok: true } : { refused: r.body.error, status: r.status };
 }
 
 type Outcome = { ok: true } | { refused: string; status?: number };
@@ -203,14 +230,23 @@ const PATHS: Array<{
     name: 'POST /api/v1/recipes',
     action: 'create recipes',
     status: 403,
-    run: async () => {
-      const r = await api('/api/v1/recipes', {
-        name: 'Api Soup',
-        ingredients: ['1 leek'],
-        instructions: ['Simmer'],
-      });
-      return r.status < 300 ? { ok: true } : { refused: r.body.error, status: r.status };
-    },
+    run: () =>
+      route(() =>
+        api('/api/v1/recipes', {
+          name: 'Api Soup',
+          ingredients: ['1 leek'],
+          instructions: ['Simmer'],
+        })
+      ),
+  },
+  {
+    name: 'POST /api/ingest-recipe (single url)',
+    action: 'import recipes',
+    status: 403,
+    run: () =>
+      route(() =>
+        api('/api/ingest-recipe', { url: 'https://example.test/stew' }, ingestPOST as never)
+      ),
   },
   {
     name: 'importWebRecipe (server action, via createRecipe)',
@@ -332,6 +368,7 @@ beforeEach(async () => {
 afterEach(() => {
   vi.restoreAllMocks();
   state.userId = null;
+  state.discoverUrls = [{ url: 'https://example.test/stew', title: 'Stew' }];
 });
 
 describe('#220 recipe creation refuses an account with a pending deletion', () => {
@@ -465,6 +502,57 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
       await createRecipe({ name: 'Back', ingredients: '["a"]', instructions: '["b"]' })
     ).toMatchObject({ success: true });
   });
+});
+
+describe('#220 batches stop at the first refusal', () => {
+  it('POST /api/ingest-recipe with urls: 403 and nothing written for a pending account', async () => {
+    state.userId = PENDING;
+    const before = await snapshot();
+
+    const r = await api(
+      '/api/ingest-recipe',
+      { urls: ['https://example.test/a', 'https://example.test/b'] },
+      ingestPOST as never
+    );
+
+    expect(r).toEqual({
+      status: 403,
+      body: {
+        success: false,
+        error: pendingDeletionError('import recipes'),
+        errorCode: 'ACCOUNT_PENDING_DELETION',
+      },
+    });
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it('discoverRecipes returns the recipes saved before a mid-batch refusal', async () => {
+    state.discoverUrls = [
+      { url: 'https://example.test/a', title: 'A' },
+      { url: 'https://example.test/b', title: 'B' },
+    ];
+    // The deletion is requested inside the second recipe insert.
+    const original = client.query.bind(client);
+    let inserts = 0;
+    vi.spyOn(client, 'query').mockImplementation((async (t: string, ...rest: unknown[]) => {
+      if (insertsRecipe(String(t)) && ++inserts === 2) {
+        await original('UPDATE users SET deletion_requested_at = now() WHERE id = $1', [NORMAL]);
+      }
+      return (original as (...a: unknown[]) => unknown)(t, ...rest);
+    }) as typeof client.query);
+    state.userId = NORMAL;
+
+    const result = await discoverRecipes('stew', { maxResults: 2 });
+
+    const stored = await rows('SELECT id FROM recipes WHERE user_id = $1', [NORMAL]);
+    expect(stored).toHaveLength(1);
+    expect(result).toMatchObject({
+      success: false,
+      error: pendingDeletionError('save discovered recipes'),
+      stats: { saved: 1 },
+    });
+    expect(result.recipes.map((r) => r.id)).toEqual([stored[0].id]);
+  }, 15_000);
 });
 
 describe('#220 insertUnlessPendingDeletion matches drizzle .values().returning()', () => {

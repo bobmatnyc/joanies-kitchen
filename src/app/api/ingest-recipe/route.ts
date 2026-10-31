@@ -25,6 +25,11 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
+import {
+  insertUnlessPendingDeletion,
+  isPendingDeletionRefusal,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import {
   type IngestedRecipe,
@@ -33,7 +38,6 @@ import {
 } from '@/lib/ai/recipe-ingestion-parser';
 import { requireScopes } from '@/lib/api-auth/require-auth';
 import { SCOPES } from '@/lib/api-auth/scopes';
-import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
@@ -290,9 +294,11 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 
     // Step 8: Save to database
     console.log(`[Ingest API] Saving recipe to database`);
-    const [savedRecipe] = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself for an account pending deletion;
+    // the embedding below is saved only when the recipe landed.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         user_id: userId,
         chef_id: null,
         source_id: null,
@@ -324,8 +330,13 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         embedding_model: embeddingResult?.modelName ?? null,
         created_at: new Date(),
         updated_at: new Date(),
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return { url, ...pendingDeletionRefusal('import recipes') };
+    }
+    const savedRecipe = guarded.row as typeof recipes.$inferSelect; // allowed: the row is set
 
     // Step 9: Save embedding if generated
     if (embeddingResult) {
@@ -416,6 +427,13 @@ export const POST = requireScopes(
         if (refusal) return refusalResponse(refusal);
 
         const result = await ingestSingleRecipe(body.url, auth.userId!);
+        if (isPendingDeletionRefusal(result)) {
+          // #220: the account has a pending deletion; nothing was written.
+          return NextResponse.json(
+            { success: false, error: result.error, errorCode: result.errorCode },
+            { status: 403 }
+          );
+        }
         if (result.errorCode) {
           return NextResponse.json(
             { success: false, error: result.error, errorCode: result.errorCode },
@@ -489,6 +507,14 @@ export const POST = requireScopes(
           }
 
           const result = await ingestSingleRecipe(url, auth.userId!);
+          // #220: every later URL would be refused too. Nothing ran yet: answer 403 like a
+          // single request; else stop and report (the `break` below).
+          if (isPendingDeletionRefusal(result) && results.length === 0) {
+            return NextResponse.json(
+              { success: false, error: result.error, errorCode: result.errorCode },
+              { status: 403 }
+            );
+          }
           results.push(result);
           if (result.errorCode) break; // #57: the cost ceiling refuses every later URL too
 

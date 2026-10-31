@@ -233,6 +233,8 @@ export async function discoverRecipes(
   let saved = 0;
   let failed = 0;
   let skipped = 0;
+  // #220: declared outside the try, so a mid-batch refusal still returns earlier saves.
+  const discoveredRecipes: Recipe[] = [];
 
   try {
     // Step 1: Search for recipe URLs
@@ -248,7 +250,6 @@ export async function discoverRecipes(
       };
     }
 
-    const discoveredRecipes: Recipe[] = [];
     // #135: a skipped duplicate is counted, reported, and linked when the caller may see it.
     const skipAsDuplicate = (url: string, dup: StoredDuplicate) => {
       skipped++;
@@ -349,10 +350,10 @@ export async function discoverRecipes(
   } catch (error) {
     console.error('Discovery pipeline error:', error);
     if (error instanceof AccountPendingDeletionError) {
-      // #220: the loop stops at the first refused save; `stats.saved` counts earlier saves.
+      // #220: the loop stops at the first refused save; earlier saves are returned.
       return {
         ...pendingDeletionRefusal(SAVE_ACTION),
-        recipes: [],
+        recipes: discoveredRecipes,
         stats: { searched, validated, saved, failed, skipped },
       };
     }
