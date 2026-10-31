@@ -185,7 +185,7 @@ User visits recipe page
          ↓
 Component renders (loading state)
          ↓
-useAuth() checks authentication
+useSessionUser() checks authentication
          ↓
   ┌──────────────┬──────────────┐
   ↓              ↓              ↓

@@ -106,6 +106,10 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
   // MUST be called unconditionally (React Rules of Hooks)
   const { user } = useSessionUser();
   const signedIn = user !== null;
+  // #22: the fetch effect keys on these primitives, not on `user`: SessionProvider
+  // swaps in an equal new session object on every poll and tab focus.
+  const userId = user?.id ?? null;
+  const userIsAdmin = user?.isAdmin === true;
 
   useEffect(() => {
     params.then((p) => setSlugOrId(p.slug));
@@ -153,17 +157,17 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       } else {
         // In development mode (no auth), treat all recipes as owned
         const isDevelopment = process.env.NODE_ENV === 'development';
-        if (isDevelopment && !signedIn) {
+        if (isDevelopment && userId === null) {
           setIsOwner(true);
-        } else if (signedIn && user?.id === result.data.user_id) {
+        } else if (userId !== null && userId === result.data.user_id) {
           setIsOwner(true);
         }
       }
 
       // Check if user is admin
-      if (signedIn && user?.id) {
+      if (userId) {
         // #22: JWT admin hint (UI only); admin actions re-check the DB.
-        setIsUserAdmin(user.isAdmin === true);
+        setIsUserAdmin(userIsAdmin);
       }
 
       // Show page immediately - fetch secondary data in background
@@ -216,7 +220,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       }
     }
     fetchRecipe();
-  }, [slugOrId, signedIn, user, router]);
+  }, [slugOrId, userId, userIsAdmin, router]);
 
   const handleExportMarkdown = useCallback(async () => {
     if (!recipe) return;

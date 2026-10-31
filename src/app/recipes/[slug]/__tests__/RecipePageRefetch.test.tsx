@@ -1,11 +1,12 @@
 /**
  * #22: the removed client auth shim built a new user object on every render, and the
  * recipe fetch effect depends on `user`, so a signed-in visitor refetched the recipe
- * and re-tracked a view on every render. The session user must keep its reference.
- * The real useSessionUser runs here over a mocked useSession that, like
- * SessionProvider, returns the same session object on every render.
+ * and re-tracked a view on every render. SessionProvider also replaces the session with
+ * a freshly parsed, equal object on its 5-minute poll and on tab focus, so the effect
+ * must key on the user's id and admin flag, not on the object.
+ * The real useSessionUser runs here over a mocked useSession.
  */
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RecipePageClient from '@/app/recipes/[slug]/RecipePageClient';
@@ -13,13 +14,15 @@ import RecipePageClient from '@/app/recipes/[slug]/RecipePageClient';
 const getRecipe = vi.hoisted(() => vi.fn());
 const trackRecipeView = vi.hoisted(() => vi.fn(async () => undefined));
 const ROUTER = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
-const SESSION = vi.hoisted(() => ({
+/** A new session object equal to every other, as SessionProvider's refetch produces. */
+const freshSession = vi.hoisted(() => () => ({
   data: {
     user: { id: 'u1', name: 'Ada Lovelace', email: 'ada@x.test', image: null, isAdmin: false },
     expires: '2099-01-01',
   },
   status: 'authenticated',
 }));
+const session = vi.hoisted(() => ({ current: freshSession() }));
 
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(),
@@ -32,7 +35,7 @@ vi.mock('next/link', () => ({
     <a href={href}>{children}</a>
   ),
 }));
-vi.mock('next-auth/react', () => ({ useSession: () => SESSION, signIn: vi.fn() }));
+vi.mock('next-auth/react', () => ({ useSession: () => session.current, signIn: vi.fn() }));
 vi.mock('@/app/actions/recipes', () => ({ getRecipe, deleteRecipe: vi.fn() }));
 vi.mock('@/app/actions/recipe-cloning', () => ({ getOriginalRecipe: vi.fn(async () => null) }));
 vi.mock('@/app/actions/recipe-export', () => ({
@@ -98,20 +101,41 @@ const ROW = {
   image_url: null,
 };
 
+const PARAMS = Promise.resolve({ slug: 'plain-soup' });
+const settle = (ms: number) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
+
+function expectBoundedFetches() {
+  expect(getRecipe.mock.calls.length).toBeLessThanOrEqual(2);
+  expect(trackRecipeView.mock.calls.length).toBeLessThanOrEqual(2);
+}
+
 beforeEach(() => {
   getRecipe.mockReset();
   trackRecipeView.mockClear();
+  session.current = freshSession();
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
 describe('recipe page fetch (#22)', () => {
   it('signed in: fetches the recipe and tracks the view a bounded number of times', async () => {
     getRecipe.mockResolvedValue({ success: true, data: ROW });
-    render(<RecipePageClient params={Promise.resolve({ slug: 'plain-soup' })} />);
+    render(<RecipePageClient params={PARAMS} />);
     await screen.findByAltText('Recipe placeholder');
     // Let effects and the background fetches settle; a per-render refetch keeps going.
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    expect(getRecipe.mock.calls.length).toBeLessThanOrEqual(2);
-    expect(trackRecipeView.mock.calls.length).toBeLessThanOrEqual(2);
+    await settle(300);
+    expectBoundedFetches();
+  });
+
+  it('an equal but new session object (poll, tab focus) does not refetch', async () => {
+    getRecipe.mockResolvedValue({ success: true, data: ROW });
+    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+    await screen.findByAltText('Recipe placeholder');
+    await settle(50);
+    for (let i = 0; i < 3; i++) {
+      session.current = freshSession();
+      rerender(<RecipePageClient params={PARAMS} />);
+      await settle(50);
+    }
+    expectBoundedFetches();
   });
 });
