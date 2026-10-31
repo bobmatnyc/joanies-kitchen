@@ -606,19 +606,29 @@ export async function copyRecipeToCollection(recipeId: string) {
     }
 
     const originalRecipe = recipeToCopy[0];
+    // #234: copy only the #33 owner-writable content columns. id, slug, counters, ratings,
+    // moderation, QA, admin flags, chef/source ids and license take their column defaults.
+    // submission_notes is the original author's note to moderators, so it is not copied.
+    const { submission_notes: _notes, ...content } = pickRecipeWriteFields(originalRecipe, false);
+    const name = `${originalRecipe.name} (Copy)`;
+    // #234: generated the same way createRecipe does.
+    const slug = await generateUniqueSlug(name);
 
     // Create a copy for the user
     // #220: refused in the insert statement itself for an account pending deletion.
     const guarded = await insertUnlessPendingDeletion(
       recipes,
       {
-        ...originalRecipe,
+        ...content,
+        name,
+        ingredients: originalRecipe.ingredients,
+        instructions: originalRecipe.instructions,
+        slug,
         user_id: userId,
         is_public: false, // Make it private by default
         is_system_recipe: false, // User copies are never system recipes
         created_at: new Date(),
         updated_at: new Date(),
-        name: `${originalRecipe.name} (Copy)`,
       },
       userId
     );
