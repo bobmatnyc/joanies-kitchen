@@ -126,7 +126,8 @@ export default function MarkdownImporter({ onImportComplete }: MarkdownImporterP
           if (onImportComplete) onImportComplete(result.summary.successful);
           router.refresh();
         } else {
-          toast.error('Failed to import recipes');
+          // #220: a pending-deletion refusal carries its own message.
+          toast.error(('error' in result && result.error) || 'Failed to import recipes');
         }
       }
 

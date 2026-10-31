@@ -2,6 +2,10 @@
 
 import { and, asc, desc, eq, gte, isNull, like, or, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { checkAdminAccess } from '@/lib/admin';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { deleteRecipesWithChefRecount } from '@/lib/chef-recipe-count';
@@ -280,7 +284,11 @@ export async function createRecipe(
       servings: toRecipeInt(data.servings),
     };
 
-    const result = await db.insert(recipes).values(recipeData).returning();
+    // #220: refused in the insert statement itself for an account pending deletion.
+    const guarded = await insertUnlessPendingDeletion(recipes, recipeData, userId);
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('create recipes');
+    }
 
     // Invalidate all recipe-related caches
     invalidateRecipeCaches();
@@ -291,7 +299,8 @@ export async function createRecipe(
     revalidatePath('/'); // Homepage with shared recipes carousel
     revalidatePath('/recipes/top-50'); // Top 50 page if recipe is highly rated
 
-    return { success: true, data: result[0] };
+    // #220: allowed with no onConflict, so the row is set.
+    return { success: true, data: guarded.row as Recipe };
   } catch (error) {
     console.error('Failed to create recipe:', error);
     return { success: false, error: 'Failed to create recipe' };
@@ -599,9 +608,10 @@ export async function copyRecipeToCollection(recipeId: string) {
     const originalRecipe = recipeToCopy[0];
 
     // Create a copy for the user
-    const copiedRecipe = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself for an account pending deletion.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         ...originalRecipe,
         user_id: userId,
         is_public: false, // Make it private by default
@@ -609,11 +619,15 @@ export async function copyRecipeToCollection(recipeId: string) {
         created_at: new Date(),
         updated_at: new Date(),
         name: `${originalRecipe.name} (Copy)`,
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('copy recipes');
+    }
 
     revalidatePath('/recipes');
-    return { success: true, data: copiedRecipe[0] };
+    return { success: true, data: guarded.row as Recipe };
   } catch (error) {
     console.error('Failed to copy recipe:', error);
     return { success: false, error: 'Failed to copy recipe to collection' };
