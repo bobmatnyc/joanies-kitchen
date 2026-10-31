@@ -6,14 +6,21 @@
  * every viewer of a public meal receives those ids. Runs against real Postgres
  * (PGlite) with the production FKs between meals, meal_recipes and recipes.
  * A non-owner gets exactly the answer a missing id gets, and nothing changes.
+ * `DELETE /api/v1/meals/:id/recipes` is owner-only (no admin bypass) and only
+ * deletes a row of the meal named by `:id`.
  */
 
 import type { PGlite } from '@electric-sql/pglite';
+import { NextRequest } from 'next/server';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const OWNER = 'user_owner';
 const OTHER = 'user_other';
+const ADMIN = 'user_admin';
 const MEAL = '22222222-0000-4000-8000-000000000002';
+// A second meal of OWNER, holding MR3.
+const MEAL_B = '33333333-0000-4000-8000-000000000003';
+const MR3 = 'ffffffff-0000-4000-8000-00000000000f';
 const R1 = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const R2 = 'bbbbbbbb-0000-4000-8000-00000000000b';
 const MR1 = 'cccccccc-0000-4000-8000-00000000000c';
@@ -35,9 +42,30 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+// #22: admin is read from users.is_admin; here only ADMIN carries the flag.
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async (userId: string) => userId === ADMIN,
+}));
+// v1 API: a session-authenticated caller with every scope; ADMIN is an admin.
+vi.mock('@/lib/api-auth/middleware', () => ({
+  authenticateRequest: async () =>
+    state.userId
+      ? {
+          authenticated: true,
+          userId: state.userId,
+          authType: 'session',
+          scopes: ['*'],
+          metadata: { isAdmin: state.userId === ADMIN },
+        }
+      : { authenticated: false, error: 'Authentication required' },
+  authHasAllScopes: () => true,
+  authHasAnyScope: () => true,
+}));
 
 import { revalidatePath } from 'next/cache';
 import { removeRecipeFromMeal, updateMealRecipe } from '@/app/actions/meals';
+import { DELETE as mealRecipesDELETE } from '@/app/api/v1/meals/[id]/recipes/route';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { createVisibilityDb } from './recipe-visibility-db';
 
@@ -64,21 +92,36 @@ async function seed() {
   await client.exec('DELETE FROM "meal_recipes"; DELETE FROM "meals"; DELETE FROM "recipes";');
   await db.insert(schema.recipes).values([recipeRow(R1, 10, 20), recipeRow(R2, 5, 7)]);
   // A public meal: every viewer receives MR1 / MR2 in getMealById results.
-  await db.insert(schema.meals).values({
-    id: MEAL,
-    user_id: OWNER,
-    name: 'Owner meal',
-    slug: 'owner-meal',
-    meal_type: 'dinner',
-    is_public: true,
-    total_prep_time: 15,
-    total_cook_time: 27,
-    created_at: T0,
-    updated_at: T0,
-  });
+  await db.insert(schema.meals).values([
+    {
+      id: MEAL,
+      user_id: OWNER,
+      name: 'Owner meal',
+      slug: 'owner-meal',
+      meal_type: 'dinner',
+      is_public: true,
+      total_prep_time: 15,
+      total_cook_time: 27,
+      created_at: T0,
+      updated_at: T0,
+    },
+    {
+      id: MEAL_B,
+      user_id: OWNER,
+      name: 'Owner meal B',
+      slug: 'owner-meal-b',
+      meal_type: 'lunch',
+      is_public: false,
+      total_prep_time: 10,
+      total_cook_time: 20,
+      created_at: T0,
+      updated_at: T0,
+    },
+  ]);
   await db.insert(schema.mealRecipes).values([
     { id: MR1, meal_id: MEAL, recipe_id: R1, display_order: 0, serving_multiplier: '1.00' },
     { id: MR2, meal_id: MEAL, recipe_id: R2, display_order: 1, serving_multiplier: '1.00' },
+    { id: MR3, meal_id: MEAL_B, recipe_id: R1, display_order: 0, serving_multiplier: '1.00' },
   ]);
 }
 
@@ -91,7 +134,8 @@ async function snapshot() {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.meals, schema.mealRecipes],
+    // users: #217's pending-deletion filter in getMealById reads it.
+    [schema.recipes, schema.meals, schema.mealRecipes, users],
     schema,
     { constraints: true }
   );
@@ -149,10 +193,71 @@ describe('#222 removeRecipeFromMeal', () => {
 
     expect(result).toEqual({ success: true });
     const after = await snapshot();
-    expect(after.mealRecipes.map((r: any) => r.id)).toEqual([MR2]);
+    expect(after.mealRecipes.map((r: any) => r.id)).toEqual([MR2, MR3]);
     expect(after.meals[0]).toMatchObject({ total_prep_time: 5, total_cook_time: 7 });
     expect(revalidatePath).toHaveBeenCalledWith('/meals');
     expect(revalidatePath).toHaveBeenCalledWith(`/meals/${MEAL}`);
+  });
+
+  it('with a meal id, refuses a row of a different meal of the same owner', async () => {
+    const before = await snapshot();
+    state.userId = OWNER;
+
+    const result = await removeRecipeFromMeal(MR3, MEAL);
+
+    expect(result).toEqual({ success: false, error: 'Recipe not found in meal' });
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it('with the matching meal id, removes the row', async () => {
+    state.userId = OWNER;
+    expect(await removeRecipeFromMeal(MR3, MEAL_B)).toEqual({ success: true });
+    const after = await snapshot();
+    expect(after.mealRecipes.map((r: any) => r.id)).toEqual([MR1, MR2]);
+  });
+});
+
+describe('#222 DELETE /api/v1/meals/:id/recipes', () => {
+  async function del(mealId: string, mealRecipeId: string) {
+    const response = await mealRecipesDELETE(
+      new NextRequest(
+        `http://localhost/api/v1/meals/${mealId}/recipes?mealRecipeId=${mealRecipeId}`,
+        { method: 'DELETE' }
+      ),
+      { params: Promise.resolve({ id: mealId }) } as any
+    );
+    return { status: response.status, body: await response.json() };
+  }
+  const NOT_FOUND = { status: 404, body: { success: false, error: 'Meal not found' } };
+
+  it.each([
+    ['another user', OTHER],
+    ['an admin', ADMIN],
+  ])("answers %s on someone else's meal as not found and deletes nothing", async (_, user) => {
+    const before = await snapshot();
+    state.userId = user;
+
+    expect(await del(MEAL, MR1)).toEqual(NOT_FOUND);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it('lets the owner delete a recipe of the addressed meal', async () => {
+    state.userId = OWNER;
+
+    expect(await del(MEAL, MR1)).toEqual({ status: 200, body: { success: true } });
+    const after = await snapshot();
+    expect(after.mealRecipes.map((r: any) => r.id)).toEqual([MR2, MR3]);
+  });
+
+  it("deletes nothing when mealRecipeId belongs to another of the owner's meals", async () => {
+    const before = await snapshot();
+    state.userId = OWNER;
+
+    expect(await del(MEAL, MR3)).toEqual({
+      status: 404,
+      body: { success: false, error: 'Recipe not found in meal' },
+    });
+    expect(await snapshot()).toEqual(before);
   });
 });
 
