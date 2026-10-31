@@ -54,7 +54,10 @@ const PENDING = 'user_pending';
 const NORMAL = 'user_normal';
 const LEGACY = 'user_legacy_no_users_row';
 const VIEWER = 'user_viewer';
-const OWNERS = [PENDING, NORMAL, LEGACY];
+// Not pending, private profile, public collection: pins that the filter is the
+// deletion state, not user_profiles.is_public (which would hide this collection).
+const PRIVATE_PROFILE = 'user_private_profile';
+const OWNERS = [PENDING, NORMAL, LEGACY, PRIVATE_PROFILE];
 const RECIPE = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const REQUESTED_AT = new Date('2026-10-01T00:00:00.000Z');
 const collectionIdOf = (owner: string) =>
@@ -157,8 +160,9 @@ beforeEach(async () => {
   // LEGACY has no users row (pre-Auth.js id).
   await rows(
     `INSERT INTO users (id, name, email) VALUES
-      ($1, 'Pending', 'p@example.test'), ($2, 'Normal', 'n@example.test'), ($3, 'Viewer', 'v@example.test')`,
-    [PENDING, NORMAL, VIEWER]
+      ($1, 'Pending', 'p@example.test'), ($2, 'Normal', 'n@example.test'),
+      ($3, 'Viewer', 'v@example.test'), ($4, 'Private', 'pp@example.test')`,
+    [PENDING, NORMAL, VIEWER, PRIVATE_PROFILE]
   );
   await client.exec(`INSERT INTO recipes (id, user_id, name, ingredients, instructions,
       is_public, moderation_status) VALUES
@@ -166,8 +170,8 @@ beforeEach(async () => {
   for (const owner of OWNERS) {
     await rows(
       `INSERT INTO user_profiles (user_id, username, display_name, is_public)
-        VALUES ($1, $2, $2, true)`,
-      [owner, `${owner}-name`]
+        VALUES ($1, $2, $2, $3)`,
+      [owner, `${owner}-name`, owner !== PRIVATE_PROFILE]
     );
     await rows(
       `INSERT INTO collections (id, user_id, name, slug, is_public, recipe_count)
@@ -198,6 +202,15 @@ describe.each(PATHS)('#213 $name', (path) => {
       expect(await path.sees(PENDING)).toBe(false);
       expect(await path.sees(NORMAL)).toBe(true);
       expect(await path.sees(LEGACY)).toBe(true);
+    }
+  );
+
+  it.each(viewers)(
+    'viewer %s: a normal owner with a private profile keeps their public collection listed',
+    async (v) => {
+      state.userId = v;
+
+      expect(await path.sees(PRIVATE_PROFILE)).toBe(true);
     }
   );
 

@@ -31,9 +31,10 @@ export interface AccountDeletionResult {
 const GENERIC_ERROR = 'Something went wrong. Nothing was changed. Please try again.';
 
 /**
- * #213: /collections is prerendered, so its HTML would keep a pending owner's
- * collections until the next revalidation. Runs after the commit; a failure is
- * logged and never turns a committed change into a reported failure.
+ * #213: drops any cached /collections HTML that still lists a pending owner's
+ * collections. The page is force-dynamic; this is a second safeguard. Runs
+ * after the commit; a failure is logged and never turns a committed change
+ * into a reported failure.
  */
 function refreshCollectionsListing(): void {
   try {
