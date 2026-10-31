@@ -3,10 +3,11 @@
  * mount whenever the first page was empty. A recipe page load must call getRecipeRatings once.
  * The real RecipeRatings and ReviewsList run here over a mocked server-action module.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecipeRatings } from '@/components/recipe/RecipeRatings';
+import { ReviewsList } from '@/components/recipe/ReviewsList';
 
 const getRecipeRatings = vi.hoisted(() => vi.fn(async () => [] as unknown[]));
 
@@ -53,5 +54,36 @@ describe('RecipeRatings ratings fetch (#206)', () => {
     await waitFor(() => expect(getRecipeRatings).toHaveBeenCalledTimes(1));
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(getRecipeRatings).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ReviewsList initialFetched (#206)', () => {
+  beforeEach(() => {
+    getRecipeRatings.mockClear();
+  });
+
+  it('without initialFetched, an empty initialReviews still fetches page 0 once', async () => {
+    render(<ReviewsList recipeId="r-206" initialReviews={[]} />);
+    await screen.findByText('No reviews yet. Be the first to review this recipe!');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(getRecipeRatings).toHaveBeenCalledTimes(1);
+    expect(getRecipeRatings).toHaveBeenCalledWith('r-206', 10, 0);
+  });
+
+  it('with initialFetched, Load More Reviews still fetches the next page', async () => {
+    const reviews = Array.from({ length: 10 }, (_, i) => ({
+      id: `rev-${i}`,
+      userId: `u-${i}`,
+      rating: 4,
+      review: `review ${i}`,
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-01'),
+      userName: `User ${i}`,
+    }));
+    render(<ReviewsList recipeId="r-206" initialReviews={reviews} initialFetched />);
+    expect(getRecipeRatings).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Load More Reviews' }));
+    await waitFor(() => expect(getRecipeRatings).toHaveBeenCalledTimes(1));
+    expect(getRecipeRatings).toHaveBeenCalledWith('r-206', 10, 10);
   });
 });
