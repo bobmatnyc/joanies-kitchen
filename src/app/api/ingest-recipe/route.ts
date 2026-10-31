@@ -19,12 +19,17 @@
  *
  * Default Recipe Settings:
  * - is_public: true (shared/public by default)
- * - is_system_recipe: true
+ * - is_system_recipe: true for an admin caller, else false (#233)
  * - license: 'PUBLIC_DOMAIN'
  * - chef_id: null (unless detected)
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
+import {
+  insertUnlessPendingDeletion,
+  isPendingDeletionRefusal,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import {
   type IngestedRecipe,
@@ -33,7 +38,7 @@ import {
 } from '@/lib/ai/recipe-ingestion-parser';
 import { requireScopes } from '@/lib/api-auth/require-auth';
 import { SCOPES } from '@/lib/api-auth/scopes';
-import { db } from '@/lib/db';
+import { getUserAdminFlag } from '@/lib/auth-users';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
@@ -124,6 +129,21 @@ function duplicateResult(
 }
 
 /**
+ * #233: only admins may mark recipes as system recipes. Reads `users.is_admin`
+ * for the caller (a session user or an API key's owner); a missing user or a
+ * failed lookup counts as non-admin.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-system-flag.test.ts`
+ */
+async function isAdminUser(userId: string): Promise<boolean> {
+  try {
+    return (await getUserAdminFlag(userId)) === true;
+  } catch (error: unknown) {
+    console.error('[Ingest API] users.is_admin lookup failed; treating as non-admin:', error);
+    return false;
+  }
+}
+
+/**
  * Ingest a single recipe from a URL
  */
 async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIngestionResult> {
@@ -192,6 +212,9 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     const instructionsJson = JSON.stringify(parsedRecipe.instructions);
     const tagsJson = JSON.stringify(parsedRecipe.tags || []);
 
+    // #233: only admins may mark recipes as system recipes.
+    const isSystemRecipe = await isAdminUser(userId);
+
     // Step 7: Generate embedding (non-blocking)
     let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
@@ -216,7 +239,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         images: imagesJson,
         is_ai_generated: false,
         is_public: true,
-        is_system_recipe: true,
+        is_system_recipe: isSystemRecipe, // #233
         nutrition_info: parsedRecipe.nutritionInfo
           ? JSON.stringify(parsedRecipe.nutritionInfo)
           : null,
@@ -290,9 +313,11 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 
     // Step 8: Save to database
     console.log(`[Ingest API] Saving recipe to database`);
-    const [savedRecipe] = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself for an account pending deletion;
+    // the embedding below is saved only when the recipe landed.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         user_id: userId,
         chef_id: null,
         source_id: null,
@@ -315,7 +340,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           : null,
         is_ai_generated: false,
         is_public: true, // PUBLIC by default
-        is_system_recipe: true, // SYSTEM recipe by default
+        is_system_recipe: isSystemRecipe, // #233: admin callers only
         license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
         source: url,
         slug,
@@ -324,8 +349,13 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         embedding_model: embeddingResult?.modelName ?? null,
         created_at: new Date(),
         updated_at: new Date(),
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return { url, ...pendingDeletionRefusal('import recipes') };
+    }
+    const savedRecipe = guarded.row as typeof recipes.$inferSelect; // allowed: the row is set
 
     // Step 9: Save embedding if generated
     if (embeddingResult) {
@@ -416,6 +446,13 @@ export const POST = requireScopes(
         if (refusal) return refusalResponse(refusal);
 
         const result = await ingestSingleRecipe(body.url, auth.userId!);
+        if (isPendingDeletionRefusal(result)) {
+          // #220: the account has a pending deletion; nothing was written.
+          return NextResponse.json(
+            { success: false, error: result.error, errorCode: result.errorCode },
+            { status: 403 }
+          );
+        }
         if (result.errorCode) {
           return NextResponse.json(
             { success: false, error: result.error, errorCode: result.errorCode },
@@ -489,6 +526,14 @@ export const POST = requireScopes(
           }
 
           const result = await ingestSingleRecipe(url, auth.userId!);
+          // #220: every later URL would be refused too. Nothing ran yet: answer 403 like a
+          // single request; else stop and report (the `break` below).
+          if (isPendingDeletionRefusal(result) && results.length === 0) {
+            return NextResponse.json(
+              { success: false, error: result.error, errorCode: result.errorCode },
+              { status: 403 }
+            );
+          }
           results.push(result);
           if (result.errorCode) break; // #57: the cost ceiling refuses every later URL too
 
@@ -605,7 +650,7 @@ export async function GET() {
     },
     defaultSettings: {
       is_public: true,
-      is_system_recipe: true,
+      is_system_recipe: 'true for admin callers, else false', // #233
       license: 'PUBLIC_DOMAIN',
       chef_id: null,
     },

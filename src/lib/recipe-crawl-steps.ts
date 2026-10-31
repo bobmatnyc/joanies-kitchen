@@ -8,6 +8,7 @@
  * wrappers in `src/app/actions/recipe-crawl.ts`.
  */
 
+import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { filterRecipeSites, searchRecipesWithSerpAPI } from '@/lib/serpapi';
 import { toErrorMessage } from '@/lib/utils/error-handling';
@@ -209,13 +210,8 @@ Important:
 
     const aiResponse = completion.choices[0].message.content || '{}';
 
-    // Remove markdown code blocks if present
-    const cleanContent = aiResponse
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-
-    const extracted: ExtractedRecipe = JSON.parse(cleanContent);
+    // #228: fence-strip-then-parse broke on trailing prose; parse the first balanced object.
+    const extracted = extractFirstJsonObject(aiResponse) as ExtractedRecipe;
 
     if (!extracted.isValid) {
       console.log(`[Convert] Invalid recipe extracted from ${url}`);

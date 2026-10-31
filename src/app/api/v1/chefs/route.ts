@@ -5,7 +5,9 @@
  * POST   /api/v1/chefs - Create new chef (admin only)
  *
  * Authentication: Requires a signed-in session or API key
- * Authorization: Scope-based permissions
+ * Authorization: Scope-based permissions. `write:chefs` is an admin-only scope
+ * (`ADMIN_ONLY_SCOPES`): only an admin can put it on a key, and a key whose
+ * owner is not an admin loses it at authentication. So POST admits admins only.
  */
 
 import type { NextRequest } from 'next/server';

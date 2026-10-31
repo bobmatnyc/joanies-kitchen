@@ -4,6 +4,8 @@
 // Sophistication: Simple → Intermediate (Flavor Science + Practical Heuristics)
 // ============================================================================
 
+import { extractFirstJsonObject } from './extract-first-json';
+
 // System context for OpenRouter API calls
 const MEAL_PAIRING_SYSTEM_PROMPT = `You are Joanie's Kitchen meal planning assistant. You create balanced, delicious multi-course meals using flavor science, cultural traditions, and practical cooking wisdom.
 
@@ -413,13 +415,8 @@ async function generateMealWithSemanticSearch(input: MealPairingInput): Promise<
   const data = await response.json();
   const responseText = data.content[0].text;
 
-  // Handle potential markdown wrapping
-  const cleanedJson = responseText
-    .replace(/```json\n?/g, '')
-    .replace(/```\n?/g, '')
-    .trim();
-
-  const mealPlan: MealPlan = JSON.parse(cleanedJson);
+  // #228: fence-strip-then-parse broke on trailing prose; parse the first balanced object.
+  const mealPlan = extractFirstJsonObject(responseText) as MealPlan;
 
   // Step 6: Link to actual recipe IDs where matches exist
   return enrichWithRecipeLinks(mealPlan, {

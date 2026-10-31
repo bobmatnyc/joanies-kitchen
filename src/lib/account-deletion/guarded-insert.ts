@@ -1,7 +1,7 @@
 /**
  * #208: the guarded INSERT for user-content writes that an account with a
- * pending deletion must not make (comments, forks, collections, reports, and
- * meals since #217).
+ * pending deletion must not make (comments, forks, collections, reports,
+ * meals since #217, recipe creation since #220, and a meal's recipes since #225).
  *
  * Why: the account purge reads its lock set once. A row the departing user
  * writes while the purge runs can lock a row the purge never locked (40P01),
@@ -14,8 +14,10 @@
  * (INSERT … SELECT … FROM allowed RETURNING *) SELECT …`. It answers whether
  * the guard allowed the write and the inserted row, typed like `.returning()`.
  * Ids with no `users` row pass. A refused write inserts nothing and takes no
- * row lock.
- * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`
+ * row lock. `guardedInsertResult` reads the same answer from a batched statement.
+ * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`,
+ * `src/lib/__tests__/recipe-creation-pending-deletion.test.ts`,
+ * `src/app/actions/__tests__/meal-routes-owner-and-pending-deletion.test.ts`
  */
 
 import { getTableColumns, is, SQL, sql } from 'drizzle-orm';
@@ -77,6 +79,20 @@ function columnsOf(table: PgTable): Array<[string, PgColumn]> {
   return Object.entries(getTableColumns(table) as Record<string, PgColumn>);
 }
 
+/**
+ * #220: the cast for `column`'s value. A pgEnum type is a quoted, optionally
+ * schema-qualified identifier (`recipes.license` is the `recipe_license` enum);
+ * any other type keeps its SQL name, less a length: a cast to varchar(n) truncates.
+ */
+function castTypeOf(column: PgColumn): SQL {
+  const pgEnum = (column as { enum?: { enumName?: string; schema?: string } }).enum;
+  if (pgEnum?.enumName) {
+    const name = sql.identifier(pgEnum.enumName);
+    return pgEnum.schema ? sql`${sql.identifier(pgEnum.schema)}.${name}` : sql`${name}`;
+  }
+  return sql.raw(column.getSQLType().replace(/\(\d+\)$/, ''));
+}
+
 /** The statement `insertUnlessPendingDeletion` runs. */
 export function insertUnlessPendingDeletionSql<TTable extends PgTable>(
   table: TTable,
@@ -87,6 +103,8 @@ export function insertUnlessPendingDeletionSql<TTable extends PgTable>(
   const names: SQL[] = [];
   const cells: SQL[] = [];
   for (const [key, column] of columnsOf(table)) {
+    // #220: as `.values()` does, a generated-always column is never written.
+    if (column.generated && column.generated.type !== 'byDefault') continue;
     let value = (values as Record<string, unknown>)[key];
     // As `.values()` does: a JS default is computed here; a database default applies by omission.
     if (value === undefined && column.defaultFn) value = column.defaultFn();
@@ -95,9 +113,8 @@ export function insertUnlessPendingDeletionSql<TTable extends PgTable>(
     }
     if (value === undefined) continue;
     names.push(sql`${sql.identifier(column.name)}`);
-    // A SELECT list gives a parameter no type, so each value is cast to its
-    // column's type. The length is dropped: a cast to varchar(n) truncates.
-    const type = sql.raw(column.getSQLType().replace(/\(\d+\)$/, ''));
+    // A SELECT list gives a parameter no type, so each value is cast to its column's type.
+    const type = castTypeOf(column);
     cells.push(
       is(value, SQL) ? sql`(${value})::${type}` : sql`${sql.param(value, column)}::${type}`
     );
@@ -123,7 +140,8 @@ export function insertUnlessPendingDeletionSql<TTable extends PgTable>(
  * Why: see the file header.
  * What: inserts `values` into `table` unless `userId` has a pending deletion,
  * in one statement. Throws on any DB error (a unique violation stays 23505).
- * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`
+ * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`,
+ * `src/lib/__tests__/recipe-creation-pending-deletion.test.ts`
  */
 export async function insertUnlessPendingDeletion<TTable extends PgTable>(
   table: TTable,
@@ -132,6 +150,17 @@ export async function insertUnlessPendingDeletion<TTable extends PgTable>(
   options: GuardedInsertOptions = {}
 ): Promise<GuardedInsertResult<TTable['$inferSelect']>> {
   const result = await db.execute(insertUnlessPendingDeletionSql(table, values, userId, options));
+  return guardedInsertResult(table, result);
+}
+
+/**
+ * #225: reads the result of `insertUnlessPendingDeletionSql` run through
+ * `db.execute`, so a caller can send the statement inside a `db.batch`.
+ */
+export function guardedInsertResult<TTable extends PgTable>(
+  table: TTable,
+  result: { rows: unknown[] }
+): GuardedInsertResult<TTable['$inferSelect']> {
   const raw = (result.rows as Record<string, unknown>[])[0];
   if (!raw?.[ALLOWED]) return { allowed: false, row: null };
   if (!raw[ADDED]) return { allowed: true, row: null };

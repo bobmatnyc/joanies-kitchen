@@ -1,7 +1,11 @@
 'use server';
 
+import {
+  insertUnlessPendingDeletion,
+  isPendingDeletionRefusal,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { requireAuth } from '@/lib/auth-guard';
-import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -30,9 +34,10 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
     }
 
     // Create the recipe
-    const [newRecipe] = await db
-      .insert(recipes)
-      .values({
+    // #220: refused in the insert statement itself for an account pending deletion.
+    const guarded = await insertUnlessPendingDeletion(
+      recipes,
+      {
         user_id: userId,
         chef_id: null,
         name: parsedRecipe.title,
@@ -51,12 +56,16 @@ export async function importRecipeFromMarkdown(markdownContent: string) {
           ? JSON.stringify(parsedRecipe.nutritionInfo)
           : null,
         is_ai_generated: false,
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('import recipes');
+    }
 
     return {
       success: true,
-      recipe: newRecipe,
+      recipe: guarded.row as typeof recipes.$inferSelect, // allowed: the row is set
     };
   } catch (error) {
     console.error('Import error:', error);
@@ -81,6 +90,19 @@ export async function importRecipesFromMarkdown(
   for (const file of markdownFiles) {
     try {
       const result = await importRecipeFromMarkdown(file.content);
+      // #220: every later file would be refused too; stop and answer the refusal.
+      if (isPendingDeletionRefusal(result)) {
+        return {
+          ...pendingDeletionRefusal('import recipes'),
+          imported: results,
+          failed: errors,
+          summary: {
+            total: markdownFiles.length,
+            successful: results.length,
+            failed: errors.length,
+          },
+        };
+      }
       if (result.success) {
         results.push({
           filename: file.name,

@@ -50,6 +50,16 @@ vi.mock('@/lib/db', () => {
   };
 });
 
+// #220: createRecipe inserts through the pending-deletion guard; the fake db
+// captures its values the same way (the guard has its own PGlite tests).
+vi.mock('@/lib/account-deletion/guarded-insert', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/account-deletion/guarded-insert')>()),
+  insertUnlessPendingDeletion: async (_table: unknown, values: Record<string, unknown>) => {
+    mocks.inserted.push(values);
+    return { allowed: true, row: values };
+  },
+}));
+
 import { createRecipe, updateRecipe } from '@/app/actions/recipes';
 
 const OWNER = 'user_1';

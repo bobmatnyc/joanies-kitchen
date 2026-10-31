@@ -18,6 +18,7 @@ import 'server-only';
 import { and, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 import { isOllamaAvailable, ollamaGenerate, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
 import {
   isOpenRouterAvailable,
@@ -90,18 +91,11 @@ ${instructionsText}`;
  * Parse the Ollama JSON response, handling common formatting issues
  */
 function parseCleanedRecipe(rawResponse: string): CleanedRecipeFields | null {
-  // Strip markdown code fences if present
-  let cleaned = rawResponse.trim();
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  if (!rawResponse.includes('{') || !rawResponse.includes('}')) return null;
 
-  // Find the first { and last } to extract JSON object
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) return null;
-
-  const jsonStr = cleaned.slice(start, end + 1);
-
-  const parsed = JSON.parse(jsonStr) as unknown;
+  // #228: first `{` to LAST `}` swallowed trailing prose or a second object;
+  // parse only the first balanced object. Malformed JSON still throws to the caller.
+  const parsed = extractFirstJsonObject(rawResponse);
 
   if (typeof parsed !== 'object' || parsed === null) return null;
 
