@@ -14,6 +14,11 @@
  * #142: steps 1-3 live in `src/lib/recipe-discovery-steps.ts`.
  */
 
+import {
+  AccountPendingDeletionError,
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { generateRecipeEmbedding } from '@/lib/ai/embeddings';
 import { checkAuth, requireAuth } from '@/lib/auth-guard';
 import { isPaidCallBlocked } from '@/lib/costs';
@@ -69,6 +74,9 @@ export interface DiscoveryResult {
 /** One discovery call pays per URL, so the caller's `maxResults` is capped. */
 const MAX_DISCOVERY_RESULTS = 10;
 
+/** #220: the refused action for a discovered recipe's save. */
+const SAVE_ACTION = 'save discovered recipes';
+
 // ============================================================================
 // Steps 4 & 5: Generate Embedding & Save with Provenance
 // ============================================================================
@@ -89,7 +97,8 @@ async function saveDiscoveredRecipe(
   // Check authentication (required for saving discovered recipes)
   const { userId, isAuthenticated } = await checkAuth();
 
-  if (!isAuthenticated) {
+  // #220: `!userId` is the same test; it narrows the id the guarded insert takes.
+  if (!isAuthenticated || !userId) {
     throw new Error('Authentication required to save discovered recipes');
   }
 
@@ -115,10 +124,12 @@ async function saveDiscoveredRecipe(
   }
 
   // Step 5: Save recipe with provenance
-  const [savedRecipe] = await db
-    .insert(recipes)
-    .values({
-      user_id: userId!, // userId is guaranteed to exist due to auth check above
+  // #220: refused in the insert statement itself for an account pending deletion; the
+  // embedding row below is written only when the recipe landed.
+  const guarded = await insertUnlessPendingDeletion(
+    recipes,
+    {
+      user_id: userId,
       chef_id: null,
       name: recipe.name,
       description: recipe.description,
@@ -144,8 +155,11 @@ async function saveDiscoveredRecipe(
       nutrition_info: null,
       image_url: null,
       images: null,
-    })
-    .returning();
+    },
+    userId
+  );
+  if (!guarded.allowed) throw new AccountPendingDeletionError(SAVE_ACTION);
+  const savedRecipe = guarded.row as Recipe; // allowed with no onConflict: the row is set
 
   // Save embedding if generation succeeded
   if (embeddingResult && savedRecipe.id) {
@@ -219,6 +233,8 @@ export async function discoverRecipes(
   let saved = 0;
   let failed = 0;
   let skipped = 0;
+  // #220: declared outside the try, so a mid-batch refusal still returns earlier saves.
+  const discoveredRecipes: Recipe[] = [];
 
   try {
     // Step 1: Search for recipe URLs
@@ -234,7 +250,6 @@ export async function discoverRecipes(
       };
     }
 
-    const discoveredRecipes: Recipe[] = [];
     // #135: a skipped duplicate is counted, reported, and linked when the caller may see it.
     const skipAsDuplicate = (url: string, dup: StoredDuplicate) => {
       skipped++;
@@ -315,6 +330,7 @@ export async function discoverRecipes(
         }
       } catch (error) {
         if (isPaidCallBlocked(error)) throw error; // #57: stop the loop; the outer catch maps it
+        if (error instanceof AccountPendingDeletionError) throw error; // #220: as above
         failed++;
         errors.push({
           url: result.url,
@@ -333,6 +349,14 @@ export async function discoverRecipes(
     };
   } catch (error) {
     console.error('Discovery pipeline error:', error);
+    if (error instanceof AccountPendingDeletionError) {
+      // #220: the loop stops at the first refused save; earlier saves are returned.
+      return {
+        ...pendingDeletionRefusal(SAVE_ACTION),
+        recipes: discoveredRecipes,
+        stats: { searched, validated, saved, failed, skipped },
+      };
+    }
     const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
     return {
       ...blocked,
@@ -411,6 +435,7 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
     };
   } catch (error) {
     console.error('Single URL discovery error:', error);
+    if (error instanceof AccountPendingDeletionError) return pendingDeletionRefusal(SAVE_ACTION); // #220
     const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code
     if (blocked) return blocked;
     return {

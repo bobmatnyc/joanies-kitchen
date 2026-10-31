@@ -4,6 +4,10 @@ import { randomUUID } from 'node:crypto';
 import { getSessionUserId } from '@/lib/session-user';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import {
@@ -127,7 +131,13 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
     };
 
     // 3. Insert cloned recipe
-    const [clonedRecipe] = await db.insert(recipes).values(clonedRecipeData).returning();
+    // #220: refused in the insert statement itself for an account pending deletion;
+    // the fork_count bump and the favorite below run only when the copy landed.
+    const guarded = await insertUnlessPendingDeletion(recipes, clonedRecipeData, userId);
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('clone recipes');
+    }
+    const clonedRecipe = guarded.row as Recipe; // allowed with no onConflict: the row is set
 
     // 4. Increment original recipe's fork_count
     await db

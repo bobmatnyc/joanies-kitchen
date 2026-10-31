@@ -70,6 +70,7 @@ vi.mock('@/lib/api-auth/require-auth', () => ({
 }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
+import { users } from '@/lib/db/auth-schema';
 import { recipes } from '@/lib/db/schema';
 import { usageCounters } from '@/lib/db/usage-counters-schema';
 import { POST } from '../route';
@@ -99,8 +100,9 @@ const count = async () =>
   (await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"')).rows[0].n;
 
 beforeAll(async () => {
+  // #220: the recipe insert reads `users` for a pending deletion.
   const built = await createVisibilityDb(
-    [recipes, usageCounters],
+    [users, recipes, usageCounters],
     { recipes, usageCounters },
     { constraints: true }
   );

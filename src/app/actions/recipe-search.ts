@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { requireAuth } from '@/lib/auth-guard';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
@@ -292,11 +293,17 @@ export async function bulkImportRecipes(recipes: WebRecipe[]) {
 
   const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   const failed = results.length - successful;
+  // #220: an account pending deletion is told why, not only how many failed.
+  const refused = results.find(
+    (r) => r.status === 'fulfilled' && isPendingDeletionRefusal(r.value)
+  ) as PromiseFulfilledResult<{ error?: string }> | undefined;
 
   return {
     success: failed === 0,
     imported: successful,
     failed: failed,
-    message: `Imported ${successful} recipes${failed > 0 ? `, ${failed} failed` : ''}`,
+    message:
+      refused?.value.error ??
+      `Imported ${successful} recipes${failed > 0 ? `, ${failed} failed` : ''}`,
   };
 }

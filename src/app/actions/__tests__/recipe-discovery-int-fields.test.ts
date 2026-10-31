@@ -48,6 +48,16 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// #220: the save inserts through the pending-deletion guard; the fake db
+// captures its values the same way (the guard has its own PGlite tests).
+vi.mock('@/lib/account-deletion/guarded-insert', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/account-deletion/guarded-insert')>()),
+  insertUnlessPendingDeletion: async (_table: unknown, values: Record<string, unknown>) => {
+    mocks.insertValues(values);
+    return { allowed: true, row: { id: 'recipe_1' } };
+  },
+}));
+
 import { discoverRecipeFromUrl } from '@/app/actions/recipe-discovery';
 
 function llmReply(body: Record<string, unknown>) {
