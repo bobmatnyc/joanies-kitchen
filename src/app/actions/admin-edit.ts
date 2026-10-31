@@ -3,6 +3,7 @@
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { extractFirstJsonArray } from '@/lib/ai/extract-first-json';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -11,6 +12,14 @@ import { recipes } from '@/lib/db/schema';
  * Admin Recipe Editing Actions
  * Provides inline editing capabilities for recipe content with AI assistance
  */
+
+/**
+ * #228: the first balanced array can be a stray `[1]` ahead of the real list,
+ * so only an array of strings may be written. An empty array passes, as before.
+ */
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
 
 // ==================== Ingredient Management ====================
 
@@ -101,12 +110,15 @@ Return ONLY the JSON array, no additional text.`;
     }
 
     // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
+    if (!/\[[\s\S]*\]/.test(content)) {
       return { success: false, error: 'Failed to parse LLM response' };
     }
 
-    const parsedIngredients = JSON.parse(jsonMatch[0]);
+    // #228: parse only the first balanced array; a greedy match ran into trailing text.
+    const parsedIngredients = extractFirstJsonArray(content);
+    if (!isStringArray(parsedIngredients)) {
+      return { success: false, error: 'Failed to parse LLM response' };
+    }
 
     // Update recipe with parsed ingredients
     const result = await db
@@ -219,12 +231,15 @@ Return ONLY the JSON array, no additional text.`;
     }
 
     // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
+    if (!/\[[\s\S]*\]/.test(content)) {
       return { success: false, error: 'Failed to parse LLM response' };
     }
 
-    const formattedInstructions = JSON.parse(jsonMatch[0]);
+    // #228: parse only the first balanced array; a greedy match ran into trailing text.
+    const formattedInstructions = extractFirstJsonArray(content);
+    if (!isStringArray(formattedInstructions)) {
+      return { success: false, error: 'Failed to parse LLM response' };
+    }
 
     // Update recipe with formatted instructions
     const result = await db

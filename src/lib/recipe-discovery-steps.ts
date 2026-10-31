@@ -10,6 +10,7 @@
  * `src/app/actions/__tests__/recipe-discovery-int-fields.test.ts`
  */
 
+import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 import { getOpenRouterClient, MODELS } from '@/lib/ai/openrouter-server';
 import { searchRecipes as braveSearchRecipes } from '@/lib/brave-search';
 import { isPaidCallBlocked } from '@/lib/costs';
@@ -210,10 +211,9 @@ Set confidenceScore (0.0-1.0) based on:
     // Parse JSON response
     let extracted: ExtractedRecipe;
     try {
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : content;
-      extracted = JSON.parse(jsonStr);
+      // #228: take the first balanced object, fenced or not; a greedy match broke
+      // on trailing prose or a second block.
+      extracted = extractFirstJsonObject(content) as ExtractedRecipe;
     } catch (_parseError) {
       return {
         success: false,
@@ -302,9 +302,8 @@ Only include dietaryInfo categories that clearly apply based on ingredients.`,
     }
 
     // Parse JSON response
-    const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-    const jsonStr = jsonMatch ? jsonMatch[1] : content;
-    const metadata = JSON.parse(jsonStr);
+    // #228: take the first balanced object; a malformed reply still falls to the defaults below.
+    const metadata = extractFirstJsonObject(content) as Record<string, any>;
 
     // Validate and provide defaults
     return {

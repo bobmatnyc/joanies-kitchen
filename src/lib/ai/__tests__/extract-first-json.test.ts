@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
+import { extractFirstJsonArray, extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 
 const OBJ = { title: 'Soup', ingredients: ['1 onion'], servings: 4 };
 const JSON_TEXT = JSON.stringify(OBJ);
@@ -45,5 +45,27 @@ describe('extractFirstJsonObject (#216)', () => {
 
   it('throws on a balanced but malformed object', () => {
     expect(() => extractFirstJsonObject('{title: Soup}')).toThrow(SyntaxError);
+  });
+});
+
+describe('extractFirstJsonArray (#228)', () => {
+  const ARR = [{ title: 'Soup', tags: ['a]b'] }, 'x'];
+  const ARR_TEXT = JSON.stringify(ARR);
+
+  it.each([
+    ['pure JSON', ARR_TEXT],
+    ['trailing citation markers', `${ARR_TEXT}\n\n[1][2]`],
+    ['a ```json fenced block with prose', `Here:\n\`\`\`json\n${ARR_TEXT}\n\`\`\`\nDone [ok].`],
+    ['two arrays (first wins)', `${ARR_TEXT}\n["other"]`],
+  ])('parses %s', (_label, reply) => {
+    expect(extractFirstJsonArray(reply)).toEqual(ARR);
+  });
+
+  it.each([
+    ['no array', 'No results.', /no JSON array/],
+    ['a truncated array', '["a", "b', /incomplete JSON array/],
+    ['a malformed array', '[a, b]', SyntaxError],
+  ])('throws on %s', (_label, reply, expected) => {
+    expect(() => extractFirstJsonArray(reply)).toThrow(expected);
   });
 });

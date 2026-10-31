@@ -16,6 +16,7 @@ import type {
   SkillLevelEnum,
 } from '@/types/instruction-metadata';
 import { withChatCostTracking } from '../costs';
+import { extractFirstJsonArray } from './extract-first-json';
 import {
   buildBatchClassificationPrompt,
   buildInstructionClassifierPrompt,
@@ -162,15 +163,14 @@ export async function classifyRecipeInstructions(
       temperature: CLASSIFICATION_TEMPERATURE,
     });
 
-    // Parse batch response (remove markdown code blocks if present)
-    const cleanedResponse = response
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-
-    const classifications = JSON.parse(cleanedResponse) as Array<
+    // #228: fence-strip-then-parse broke on trailing prose; parse the first balanced array.
+    const classifications = extractFirstJsonArray(response) as Array<
       InstructionClassification & { step_index: number }
     >;
+    // #228: a stray leading `[1]` parses as an array of numbers; refuse non-object entries.
+    if (!classifications.every((c) => typeof c === 'object' && c !== null && !Array.isArray(c))) {
+      throw new Error('Batch classification reply holds non-object entries');
+    }
 
     // Convert to metadata array
     const metadata: InstructionMetadata[] = classifications.map((classification) => ({
