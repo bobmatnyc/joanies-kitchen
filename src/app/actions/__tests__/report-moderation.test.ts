@@ -89,6 +89,21 @@ beforeAll(async () => {
     { ...schema, userProfiles, users }
   );
   client = made.client;
+  // #194: the comment unhide runs in db.batch (one neon-http transaction); mirror that on PGlite.
+  Object.assign(made.db, {
+    batch: async (queries: Promise<unknown>[]) => {
+      await client.exec('BEGIN');
+      try {
+        const out: unknown[] = [];
+        for (const q of queries) out.push(await q);
+        await client.exec('COMMIT');
+        return out;
+      } catch (error) {
+        await client.exec('ROLLBACK');
+        throw error;
+      }
+    },
+  });
   state.db = made.db;
 });
 
@@ -122,12 +137,23 @@ describe('flagRecipe', () => {
 });
 
 describe('setCommentHidden', () => {
-  it('refuses a non-admin and changes nothing', async () => {
-    const result = await setCommentHidden(C1, true);
-    expect(result.success).toBe(false);
-    const saved = await rows(`SELECT is_flagged FROM recipe_comments WHERE id = '${C1}'`);
-    expect(saved[0].is_flagged).toBe(false);
-  });
+  // #194: the unhide (false) path also writes reports, so both directions are checked.
+  it.each([true, false])(
+    'refuses a non-admin setting hidden=%s and changes nothing',
+    async (hidden) => {
+      await client.exec(`UPDATE recipe_comments SET is_flagged = ${!hidden} WHERE id = '${C1}'`);
+      await client.exec(
+        `INSERT INTO recipe_flags (id, recipe_id, comment_id, user_id, reason, status) VALUES ('eeeeeeee-0000-4000-8000-0000000000f1', '${R1}', '${C1}', 'z', 'spam', 'pending')`
+      );
+      const result = await setCommentHidden(C1, hidden);
+      expect(result.success).toBe(false);
+      const saved = await rows(`SELECT is_flagged FROM recipe_comments WHERE id = '${C1}'`);
+      expect(saved[0].is_flagged).toBe(!hidden);
+      expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
+        { status: 'pending' },
+      ]);
+    }
+  );
 
   it('hides a comment from the list and the count, and unhides it', async () => {
     state.userId = ADMIN;
