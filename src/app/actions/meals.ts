@@ -1,6 +1,6 @@
 'use server';
 
-import { and, desc, eq, isNotNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
 import {
@@ -416,9 +416,10 @@ export async function addRecipeToMeal(data: unknown) {
  * Remove a recipe from a meal
  *
  * @param id - Meal recipe relationship ID (validated as UUID)
+ * @param mealId - Optional meal ID; when given, the row must belong to this meal (#222)
  * @returns Success response or error message
  */
-export async function removeRecipeFromMeal(id: unknown) {
+export async function removeRecipeFromMeal(id: unknown, mealId?: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
@@ -427,15 +428,22 @@ export async function removeRecipeFromMeal(id: unknown) {
 
     // Validate ID
     const { id: validatedId } = validateInput(mealRecipeIdSchema, { id });
+    // #222: a caller addressing meal A cannot remove a row of meal B.
+    const inMeal =
+      mealId === undefined
+        ? undefined
+        : eq(mealRecipes.meal_id, validateInput(mealIdSchema, { id: mealId }).id);
 
-    // Get the meal_id before deleting
-    const [mealRecipe] = await db.select().from(mealRecipes).where(eq(mealRecipes.id, validatedId));
+    // #222: the ownership check is part of the DELETE itself, so it is race-safe
+    // without a transaction; another user's row answers like a missing one.
+    const [mealRecipe] = await db
+      .delete(mealRecipes)
+      .where(and(eq(mealRecipes.id, validatedId), mealOwnedBy(userId), inMeal))
+      .returning({ meal_id: mealRecipes.meal_id });
 
     if (!mealRecipe) {
       return { success: false, error: 'Recipe not found in meal' };
     }
-
-    await db.delete(mealRecipes).where(eq(mealRecipes.id, validatedId));
 
     // Update meal times
     await updateMealTimes(mealRecipe.meal_id);
@@ -473,7 +481,8 @@ export async function updateMealRecipe(id: unknown, updates: unknown) {
     const [updatedMealRecipe] = await db
       .update(mealRecipes)
       .set(validatedUpdates)
-      .where(eq(mealRecipes.id, validatedId))
+      // #222: ownership is checked in the UPDATE itself; another user's row answers as not found.
+      .where(and(eq(mealRecipes.id, validatedId), mealOwnedBy(userId)))
       .returning();
 
     if (!updatedMealRecipe) {
@@ -767,6 +776,17 @@ export async function createMealFromTemplate(data: unknown) {
 }
 
 // Helper functions
+
+/**
+ * #222: `meal_recipes.meal_id IN (SELECT id FROM meals WHERE user_id = $userId)`.
+ * Used inside a write's WHERE so ownership and the write are one statement.
+ */
+function mealOwnedBy(userId: string) {
+  return inArray(
+    mealRecipes.meal_id,
+    db.select({ id: meals.id }).from(meals).where(eq(meals.user_id, userId))
+  );
+}
 
 /**
  * Update meal's total prep and cook times based on recipes
