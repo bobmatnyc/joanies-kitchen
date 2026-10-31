@@ -8,7 +8,8 @@
  * recipes row the batch writes (#158), the kept-recipe reassignment,
  * the deletes (with a `like_count` recount for recipes the user favorited, #167,
  * a `recipe_count` recount for chefs linked to the deleted recipes, #174, and a
- * rating-aggregate recompute for recipes the user rated, #141),
+ * rating-aggregate recompute for recipes the user rated, #141, and a
+ * `collection_count` recount for recipes in the user's collections, #219),
  * the actor-column anonymization, and the `users` delete last.
  * `PURGE_COLUMN_PLAN` names how each user/recipe reference column is handled;
  * the inventory test fails when the schema gains a column missing from it.
@@ -73,7 +74,8 @@ export const PURGE_COLUMN_PLAN: Readonly<Record<string, string>> = {
   'api_keys.created_by': 'anonymize',
   'api_keys.revoked_by': 'anonymize',
   'user_profiles.user_id': 'delete',
-  'collections.user_id': 'delete (with collection_recipes)',
+  'collections.user_id':
+    'delete (with collection_recipes); recount their recipes’ collection_count',
   'favorites.user_id': 'delete',
   'recipe_views.user_id': 'delete',
   'recipes.user_id': 'reassign kept public recipes to deleted-user; delete the rest',
@@ -177,6 +179,20 @@ export function purgeStatements(t: PurgeTarget) {
         .where(eq(recipeRatings.user_id, uid))
         .returning({ recipeId: recipeRatings.recipe_id })
     );
+  // #219: recipes in the user's collections; their collection_count is recounted
+  // when the collection rows go, so they join the recipes lock set.
+  const collectedRecipeIds = db
+    .select({ id: collectionRecipes.recipe_id })
+    .from(collectionRecipes)
+    .where(inArray(collectionRecipes.collection_id, ownCollectionIds));
+  const purgedCollectionRecipes = db
+    .$with('purged_collection_recipes')
+    .as(
+      db
+        .delete(collectionRecipes)
+        .where(inArray(collectionRecipes.collection_id, ownCollectionIds))
+        .returning({ recipeId: collectionRecipes.recipe_id })
+    );
 
   return [
     // Guard: 1/0 aborts the whole batch when the account is no longer due.
@@ -199,7 +215,9 @@ export function purgeStatements(t: PurgeTarget) {
           // #167 (D26): the like_count recount below writes these rows too.
           inArray(recipes.id, favoritedRecipeIds),
           // #141: so does the rating-aggregate recompute.
-          inArray(recipes.id, ratedRecipeIds)
+          inArray(recipes.id, ratedRecipeIds),
+          // #219: and the collection_count recount.
+          inArray(recipes.id, collectedRecipeIds)
         )
       )
       .orderBy(asc(recipes.id))
@@ -269,7 +287,22 @@ export function purgeStatements(t: PurgeTarget) {
           or(eq(mealTemplates.is_system, false), isNull(mealTemplates.is_system))
         )
       ),
-    db.delete(collectionRecipes).where(inArray(collectionRecipes.collection_id, ownCollectionIds)),
+    // #219: delete the rows of the user's collections and, in the same statement,
+    // recount collection_count for the recipes they held (as #141 does for ratings).
+    // The UPDATE shares the DELETE's snapshot, so it leaves the user's collections
+    // out itself; they are deleted by the next statement. Own recipes are gone by now.
+    db
+      .with(purgedCollectionRecipes)
+      .update(recipes)
+      .set({
+        collection_count: sql`(SELECT count(*)::int FROM "collection_recipes" cr WHERE cr."recipe_id" = "recipes"."id" AND NOT EXISTS (SELECT 1 FROM "collections" c WHERE c."id" = cr."collection_id" AND c."user_id" = ${uid}))`,
+      })
+      .where(
+        inArray(
+          recipes.id,
+          db.select({ id: purgedCollectionRecipes.recipeId }).from(purgedCollectionRecipes)
+        )
+      ),
     db.delete(collections).where(eq(collections.user_id, uid)),
     // #167 (D26): recount like_count for every recipe the user favorited, as it
     // will be once their favorites are deleted (the next statement). Runs first

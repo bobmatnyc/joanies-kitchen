@@ -477,6 +477,80 @@ describe('#141 purge recomputes the rating aggregates of recipes the user rated'
   });
 });
 
+// #219: the purge deletes the user's collection_recipes, so it must recount
+// collection_count for the recipes those rows pointed at, under the recipes lock.
+describe('#219 purge recounts collection_count of recipes in the user’s collections', () => {
+  const LOCK = /^select .+ from "recipes" where .+ order by "recipes"\."id" asc for update$/;
+  const DELETE_THEN_RECOUNT =
+    /^with "purged_collection_recipes" as \(delete from "collection_recipes" where "collection_recipes"\."collection_id" in \(select .+\) returning "recipe_id"\) update "recipes" set "collection_count" = .+ where "recipes"\."id" in \(select "recipe_id" from "purged_collection_recipes"\)$/;
+
+  /** R1 and R2 (B's) sit in two of A's collections; R1 is also in B's. Counts drifted to 7. */
+  async function seedCollections() {
+    await rows(
+      `INSERT INTO recipes (id, user_id, name) VALUES ('r1', $1, 'R1'), ('r2', $1, 'R2')`,
+      [fx.userB]
+    );
+    const [{ id: boxA }] = await rows('SELECT id FROM collections WHERE user_id = $1', [fx.userA]);
+    const [{ id: boxB }] = await rows('SELECT id FROM collections WHERE user_id = $1', [fx.userB]);
+    const [{ id: boxA2 }] = await rows(
+      `INSERT INTO collections (id, user_id, name) VALUES (gen_random_uuid(), $1, 'A2') RETURNING id`,
+      [fx.userA]
+    );
+    await rows(
+      `INSERT INTO collection_recipes (id, collection_id, recipe_id) VALUES
+       (gen_random_uuid(), $1, 'r1'), (gen_random_uuid(), $1, 'r2'),
+       (gen_random_uuid(), $2, 'r2'), (gen_random_uuid(), $3, 'r1')`,
+      [boxA, boxA2, boxB]
+    );
+    await rows(`UPDATE recipes SET collection_count = 7 WHERE id IN ('r1', 'r2')`);
+  }
+
+  it('leaves each collected recipe with the true count of its remaining collection rows', async () => {
+    await seedCollections();
+    await requestDeletion(fx.userA, false, 31);
+
+    const result = await purgeDueAccounts(NOW);
+
+    expect(result.purged).toEqual([fx.userA]);
+    expect(
+      await rows(
+        `SELECT r.id, r.collection_count,
+           (SELECT count(*)::int FROM collection_recipes cr WHERE cr.recipe_id = r.id) AS true_count
+         FROM recipes r WHERE r.id IN ('r1', 'r2') ORDER BY r.id`
+      )
+    ).toEqual([
+      { id: 'r1', collection_count: 1, true_count: 1 },
+      { id: 'r2', collection_count: 0, true_count: 0 },
+    ]);
+  });
+
+  it('locks the collected recipes and recounts in the collection_recipes delete, after the recipes delete', async () => {
+    await seedCollections();
+    const t = { userId: fx.userA, email: null, keepRecipes: false, cutoff: NOW };
+    const statements = purgeStatements(t);
+    const sqls = statements.map((q) => q.toSQL().sql);
+    const at = (re: RegExp) => sqls.findIndex((s) => re.test(s));
+
+    const order = [
+      at(LOCK),
+      at(/^delete from "recipes" /),
+      at(DELETE_THEN_RECOUNT),
+      at(/^delete from "collections" /),
+    ];
+    for (const i of order) expect(i).toBeGreaterThan(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // No other statement deletes rows of the user's collections, so none escapes the recount.
+    expect(
+      sqls.filter((s) =>
+        /delete from "collection_recipes" where "collection_recipes"\."collection_id"/.test(s)
+      )
+    ).toEqual([sqls[order[2]]]);
+
+    const locked = ((await statements[order[0]]) as { id: string }[]).map((r) => r.id);
+    expect(locked).toEqual(expect.arrayContaining(['r1', 'r2']));
+  });
+});
+
 describe('purge column inventory', () => {
   const REFERENCE = /^(user_id|recipe_id|original_recipe_id)$|_by$/;
 
