@@ -13,13 +13,14 @@ import { ZodError } from 'zod';
 import { addRecipeToMeal, createMeal, getUserMeals } from '@/app/actions/meals';
 import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
+import { isSessionRequiredRefusal } from '@/lib/meals/session-required';
 import {
   type CreateMealInput,
   createMealSchema,
   type ListMealsQuery,
   listMealsQuerySchema,
 } from '@/lib/validations/meal-api';
-import { mealErrorMessage } from './error-body';
+import { mealErrorMessage, mealSessionRequiredResponse } from './error-body';
 
 /**
  * GET /api/v1/meals
@@ -91,6 +92,8 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
     });
 
     if (!result.success) {
+      // #253: no session user (API-key-only caller) is 401, not 500.
+      if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
       return NextResponse.json(
         {
           success: false,
@@ -227,6 +230,8 @@ export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequ
     const result = await createMeal(mealCreateData);
 
     if (!result.success) {
+      // #253: no session user (API-key-only caller) is 401, not 500.
+      if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
       // #217: the account has a pending deletion; nothing was written.
       const status = isPendingDeletionRefusal(result) ? 403 : 500;
       return NextResponse.json(
