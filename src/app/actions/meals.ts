@@ -4,7 +4,9 @@ import { and, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
 import {
+  guardedInsertResult,
   insertUnlessPendingDeletion,
+  insertUnlessPendingDeletionSql,
   pendingDeletionRefusal,
 } from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
@@ -165,7 +167,15 @@ export async function deleteMeal(id: unknown) {
     // Validate ID
     const { id: validatedId } = validateInput(mealIdSchema, { id });
 
-    await db.delete(meals).where(and(eq(meals.id, validatedId), eq(meals.user_id, userId)));
+    // #225: a delete of a meal the caller does not own matches no row; report it
+    // as not found instead of a false success.
+    const [deleted] = await db
+      .delete(meals)
+      .where(and(eq(meals.id, validatedId), eq(meals.user_id, userId)))
+      .returning({ id: meals.id });
+    if (!deleted) {
+      return { success: false, error: 'Meal not found' };
+    }
 
     revalidatePath('/meals');
     return { success: true };
@@ -401,10 +411,17 @@ export async function addRecipeToMeal(data: unknown) {
 
     // #218: one batch, the recipe lock first, so the insert's FK lock on the meal
     // is taken after the recipe, as the account purge orders them (no 40P01).
-    const [, [newMealRecipe]] = await db.batch([
+    // #225: the insert carries the pending-deletion guard in its own statement,
+    // so a deletion requested after the reads above still refuses the write.
+    const [, inserted] = await db.batch([
       lockRecipesForMealInsert([validatedData.recipe_id]),
-      db.insert(mealRecipes).values(validatedData).returning(),
+      db.execute(insertUnlessPendingDeletionSql(mealRecipes, validatedData, userId)),
     ]);
+    const guarded = guardedInsertResult(mealRecipes, inserted);
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('add recipes to meals');
+    }
+    const newMealRecipe = guarded.row;
 
     // Update meal times
     await updateMealTimes(validatedData.meal_id);

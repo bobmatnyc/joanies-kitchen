@@ -1,7 +1,7 @@
 /**
  * #208: the guarded INSERT for user-content writes that an account with a
  * pending deletion must not make (comments, forks, collections, reports,
- * meals since #217, and recipe creation since #220).
+ * meals since #217, recipe creation since #220, and a meal's recipes since #225).
  *
  * Why: the account purge reads its lock set once. A row the departing user
  * writes while the purge runs can lock a row the purge never locked (40P01),
@@ -14,9 +14,10 @@
  * (INSERT … SELECT … FROM allowed RETURNING *) SELECT …`. It answers whether
  * the guard allowed the write and the inserted row, typed like `.returning()`.
  * Ids with no `users` row pass. A refused write inserts nothing and takes no
- * row lock.
+ * row lock. `guardedInsertResult` reads the same answer from a batched statement.
  * Test: `src/lib/__tests__/user-writes-pending-deletion.test.ts`,
- * `src/lib/__tests__/recipe-creation-pending-deletion.test.ts`
+ * `src/lib/__tests__/recipe-creation-pending-deletion.test.ts`,
+ * `src/app/actions/__tests__/meal-routes-owner-and-pending-deletion.test.ts`
  */
 
 import { getTableColumns, is, SQL, sql } from 'drizzle-orm';
@@ -149,6 +150,17 @@ export async function insertUnlessPendingDeletion<TTable extends PgTable>(
   options: GuardedInsertOptions = {}
 ): Promise<GuardedInsertResult<TTable['$inferSelect']>> {
   const result = await db.execute(insertUnlessPendingDeletionSql(table, values, userId, options));
+  return guardedInsertResult(table, result);
+}
+
+/**
+ * #225: reads the result of `insertUnlessPendingDeletionSql` run through
+ * `db.execute`, so a caller can send the statement inside a `db.batch`.
+ */
+export function guardedInsertResult<TTable extends PgTable>(
+  table: TTable,
+  result: { rows: unknown[] }
+): GuardedInsertResult<TTable['$inferSelect']> {
   const raw = (result.rows as Record<string, unknown>[])[0];
   if (!raw?.[ALLOWED]) return { allowed: false, row: null };
   if (!raw[ADDED]) return { allowed: true, row: null };

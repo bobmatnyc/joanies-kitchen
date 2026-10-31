@@ -58,8 +58,11 @@ const mealRecipeRows = () =>
 const mealTimes = async (id: string) =>
   (await rows('SELECT total_prep_time, total_cook_time FROM meals WHERE id = $1', [id]))[0];
 
-type Item = { toSQL: () => { sql: string; params: unknown[] } };
-const sqlOf = (q: Item) => q.toSQL().sql.replace(/\s+/g, ' ').trim();
+type Query = { sql: string; params: unknown[] };
+// #225: addRecipeToMeal's insert is a raw guarded statement (`db.execute`), read via getQuery().
+type Item = { toSQL?: () => Query; getQuery?: () => Query };
+const queryOf = (q: Item) => (q.toSQL ? q.toSQL() : (q.getQuery as () => Query)());
+const sqlOf = (q: Item) => queryOf(q).sql.replace(/\s+/g, ' ').trim();
 const LOCK = (n: number) =>
   new RegExp(
     `^select "id" from "recipes" where "recipes"\\."id" in \\(${Array.from(
@@ -68,6 +71,9 @@ const LOCK = (n: number) =>
     ).join(', ')}\\) order by "recipes"\\."id" asc for key share$`
   );
 const INSERT = /^insert into "meal_recipes" /;
+// #225: the pending-deletion guard rides in the insert statement.
+const GUARDED_INSERT =
+  /^WITH allowed AS \( SELECT 1 AS ok WHERE NOT EXISTS .* INSERT INTO "meal_recipes" /;
 
 function spyBatch() {
   return vi.spyOn(state.db as { batch: (q: unknown[]) => Promise<unknown> }, 'batch');
@@ -143,10 +149,10 @@ describe('#218 addRecipeToMeal statement order', () => {
     const items = batch.mock.calls[0][0] as Item[];
     expect(items.map(sqlOf)).toHaveLength(2);
     expect(sqlOf(items[0])).toMatch(LOCK(1));
-    expect(sqlOf(items[1])).toMatch(INSERT);
+    expect(sqlOf(items[1])).toMatch(GUARDED_INSERT);
     // A lock on any other id matches no row and changes no result, so only the
     // bound parameter shows the batch locks this recipe.
-    expect(items[0].toSQL().params).toEqual([R_B]);
+    expect(queryOf(items[0]).params).toEqual([R_B]);
   });
 });
 
@@ -231,7 +237,7 @@ describe('#218 saveMealPlanFromPairing statement order', () => {
     expect(items.map(sqlOf)).toHaveLength(2);
     expect(sqlOf(items[0])).toMatch(LOCK(3));
     expect(sqlOf(items[1])).toMatch(INSERT);
-    expect(items[0].toSQL().params).toEqual([R_C, R_A, R_B]);
+    expect(queryOf(items[0]).params).toEqual([R_C, R_A, R_B]);
   });
 });
 
