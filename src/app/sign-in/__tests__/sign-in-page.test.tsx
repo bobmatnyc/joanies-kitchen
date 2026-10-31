@@ -87,6 +87,27 @@ describe('SignInPage', () => {
   });
 });
 
+describe('SignInPage on preview deployments (#154)', () => {
+  async function html(vercelEnv: string) {
+    vi.stubEnv('VERCEL_ENV', vercelEnv);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    return renderToStaticMarkup(await render('/favorites'));
+  }
+
+  it('shows no Google button on a preview, even with all AUTH vars set', async () => {
+    const out = await html('preview');
+    expect(out).not.toContain('Continue with Google');
+    expect(out).toContain('Sign-in is not configured');
+  });
+
+  it('still shows the Google button in production', async () => {
+    const out = await html('production');
+    expect(out).toContain('Continue with Google');
+    expect(out).not.toContain('Sign-in is not configured');
+  });
+});
+
 describe('SignInPage local-staging bypass (#60 D5f)', () => {
   const EMAIL = 'staging@example.test';
   function stubBypass(extra: Record<string, string | undefined> = {}) {
