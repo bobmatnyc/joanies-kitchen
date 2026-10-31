@@ -5,14 +5,18 @@
  * recipe. The account purge locks recipes FOR UPDATE first and deletes the meal
  * (FOR UPDATE) later, so an insert holding the meal and waiting on the recipe
  * deadlocked with it (40P01). Locking the recipes first gives the insert the
- * project's recipes-first order (#158, #174, #189, #141, #211).
- * What: `SELECT id FROM recipes WHERE id IN (…) ORDER BY id FOR NO KEY UPDATE`.
- * FOR NO KEY UPDATE, as `lockRecipeForRating` (#141, #211): it queues behind the
- * purge's and #174's FOR UPDATE and beside #141/#189/#211's FOR NO KEY UPDATE,
- * none of which lock a meal afterwards. It does not conflict with the FOR KEY
- * SHARE other FK inserts take on the recipe. Id order keeps two multi-recipe
- * inserts from locking the same recipes in opposite orders. A missing id locks
- * nothing, so the insert then fails its FK check as before.
+ * project's recipes-first order (#158, #174).
+ * What: `SELECT id FROM recipes WHERE id IN (…) ORDER BY id FOR KEY SHARE`.
+ * FOR KEY SHARE is the lock the FK check takes anyway, taken earlier; the insert
+ * never updates the recipe, so nothing stronger is needed. It conflicts only
+ * with FOR UPDATE, which the purge (`account-purge/statements.ts`) and #174's
+ * recipe deletes hold, so the insert queues there before it touches the meal.
+ * It does not conflict with FOR NO KEY UPDATE or a plain recipe UPDATE (#141
+ * ratings, #189, #211, the purge's later recipe UPDATEs), so an add never waits
+ * on those and holds nothing they wait on: a stronger mode could hold a recipe
+ * the purge UPDATEs after deleting the meal, while waiting on that meal. Id
+ * order keeps two multi-recipe batches from locking recipes in opposite orders.
+ * A missing id locks nothing, so the insert then fails its FK check as before.
  * Test: `src/app/actions/__tests__/meal-recipes-lock-order.test.ts`
  */
 
@@ -27,5 +31,5 @@ export function lockRecipesForMealInsert(recipeIds: string[]) {
     .from(recipes)
     .where(inArray(recipes.id, recipeIds))
     .orderBy(asc(recipes.id))
-    .for('no key update');
+    .for('key share');
 }

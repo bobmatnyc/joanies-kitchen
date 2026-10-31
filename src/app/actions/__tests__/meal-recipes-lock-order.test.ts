@@ -4,7 +4,7 @@
  * the meal. The insert's FK checks take FOR KEY SHARE on the meal, then on the
  * recipe; the account purge locks recipes FOR UPDATE first and deletes the
  * meal later, so the two could deadlock (40P01). Now one `db.batch` per insert:
- * `lockRecipesForMealInsert` (id order, FOR NO KEY UPDATE), then the insert.
+ * `lockRecipesForMealInsert` (id order, FOR KEY SHARE), then the insert.
  * Real server actions against PGlite tables carrying the production
  * `meal_recipes` FKs and unique key.
  */
@@ -65,7 +65,7 @@ const LOCK = (n: number) =>
     `^select "id" from "recipes" where "recipes"\\."id" in \\(${Array.from(
       { length: n },
       (_, i) => `\\$${i + 1}`
-    ).join(', ')}\\) order by "recipes"\\."id" asc for no key update$`
+    ).join(', ')}\\) order by "recipes"\\."id" asc for key share$`
   );
 const INSERT = /^insert into "meal_recipes" /;
 
@@ -182,16 +182,15 @@ describe('#218 addRecipeToMeal behaviour is unchanged', () => {
     expect(await mealTimes(MEAL)).toEqual({ total_prep_time: 10, total_cook_time: 20 });
   });
 
-  it('a duplicate answers the unique-key error and adds nothing', async () => {
+  // The message is the driver's: neon-http's batch passes the database error
+  // through unwrapped, the PGlite shim wraps it, so only the outcome is pinned.
+  it('a duplicate fails and adds nothing', async () => {
     await addRecipeToMeal({ meal_id: MEAL, recipe_id: R_A });
     const before = await mealRecipeRows();
 
     const result = await addRecipeToMeal({ meal_id: MEAL, recipe_id: R_A });
 
     expect(result.success).toBe(false);
-    expect((result as { error: string }).error).toMatch(
-      /^Failed query: insert into "meal_recipes"/
-    );
     expect(await mealRecipeRows()).toEqual(before);
   });
 
@@ -260,13 +259,10 @@ describe('#218 saveMealPlanFromPairing behaviour is unchanged', () => {
     ]);
   });
 
-  it('a recipe linked twice answers the unique-key error; the meal stays, with no rows', async () => {
+  it('a recipe linked twice fails; the meal stays, with no rows', async () => {
     const result = await saveMealPlanFromPairing(plan({ main: R_A, side: R_A }), 'Plan');
 
     expect(result.success).toBe(false);
-    expect((result as { error: string }).error).toMatch(
-      /^Failed query: insert into "meal_recipes"/
-    );
     expect(await rows('SELECT name FROM meals WHERE user_id = $1', [OWNER])).toEqual([
       { name: 'Dinner' },
       { name: 'Plan' },
