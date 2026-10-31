@@ -22,6 +22,7 @@ import {
 } from '@/lib/db/schema';
 // #218: meal_recipes inserts lock their recipes first.
 import { lockRecipesForMealInsert } from '@/lib/meals/recipe-lock';
+import { sessionRequiredRefusal } from '@/lib/meals/session-required';
 import {
   addRecipeToMealSchema,
   createMealFromTemplateSchema,
@@ -62,7 +63,8 @@ export async function createMeal(data: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate input with Zod schema
@@ -107,7 +109,8 @@ export async function updateMeal(id: unknown, updates: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate ID
@@ -161,7 +164,8 @@ export async function deleteMeal(id: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate ID
@@ -196,7 +200,8 @@ export async function getUserMeals(params?: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate query parameters (optional)
@@ -388,7 +393,8 @@ export async function addRecipeToMeal(data: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate input
@@ -447,7 +453,8 @@ export async function removeRecipeFromMeal(id: unknown, mealId?: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate ID
@@ -536,7 +543,8 @@ export async function generateShoppingList(data: unknown) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      // #253: typed so a v1 route answers an API-key-only caller with 401.
+      return sessionRequiredRefusal();
     }
 
     // Validate input
