@@ -3,6 +3,7 @@
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { extractFirstJsonArray } from '@/lib/ai/extract-first-json';
 import { getOpenRouterClient } from '@/lib/ai/openrouter-server';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -101,12 +102,12 @@ Return ONLY the JSON array, no additional text.`;
     }
 
     // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
+    if (!/\[[\s\S]*\]/.test(content)) {
       return { success: false, error: 'Failed to parse LLM response' };
     }
 
-    const parsedIngredients = JSON.parse(jsonMatch[0]);
+    // #228: parse only the first balanced array; a greedy match ran into trailing text.
+    const parsedIngredients = extractFirstJsonArray(content) as string[];
 
     // Update recipe with parsed ingredients
     const result = await db
@@ -219,12 +220,12 @@ Return ONLY the JSON array, no additional text.`;
     }
 
     // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
+    if (!/\[[\s\S]*\]/.test(content)) {
       return { success: false, error: 'Failed to parse LLM response' };
     }
 
-    const formattedInstructions = JSON.parse(jsonMatch[0]);
+    // #228: parse only the first balanced array; a greedy match ran into trailing text.
+    const formattedInstructions = extractFirstJsonArray(content) as string[];
 
     // Update recipe with formatted instructions
     const result = await db

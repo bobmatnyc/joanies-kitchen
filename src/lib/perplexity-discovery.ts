@@ -10,6 +10,7 @@
  */
 
 import OpenAI from 'openai';
+import { extractFirstJsonArray } from '@/lib/ai/extract-first-json';
 import { withChatCostTracking } from '@/lib/costs';
 import type { WeekInfo } from '@/lib/week-utils';
 
@@ -140,8 +141,7 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
     jsonStr = jsonStr.replace(/```\s*/g, '');
 
     // Find the JSON array
-    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
-    if (!arrayMatch) {
+    if (!/\[[\s\S]*\]/.test(jsonStr)) {
       console.error('No JSON array found in response:', jsonStr);
       return {
         success: false,
@@ -150,7 +150,9 @@ Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
       };
     }
 
-    const recipes = JSON.parse(arrayMatch[0]);
+    // #228: a greedy /\[[\s\S]*\]/ ran into trailing citation markers ([1][2]);
+    // parse only the first balanced array. A malformed array throws to the catch.
+    const recipes = extractFirstJsonArray(jsonStr) as any[];
 
     // Validate and filter results
     const validRecipes = recipes.filter((recipe: any) => {
