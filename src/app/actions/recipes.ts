@@ -3,13 +3,13 @@
 import { and, asc, desc, eq, gte, isNull, like, or, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { checkAdminAccess } from '@/lib/admin';
-import { auth } from '@/lib/auth';
 import { invalidateRecipeById, invalidateRecipeCaches } from '@/lib/cache';
 import { deleteRecipesWithChefRecount } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { hasAdminRecipeFields, pickRecipeWriteFields } from '@/lib/utils/recipe-write-fields'; // #33
@@ -18,7 +18,7 @@ import { generateUniqueSlug } from '@/lib/utils/slug';
 // Get all unique tags from recipes
 export async function getAllTags() {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Get recipes based on user authentication
     // For authenticated users: their recipes + all public recipes
@@ -80,7 +80,7 @@ export async function getAllTags() {
 // Get all recipes for the current user with optional tag filtering
 export async function getRecipes(selectedTags?: string[]) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Build conditions array
     const conditions = [];
@@ -144,7 +144,7 @@ export async function getRecipes(selectedTags?: string[]) {
 // Get a single recipe by ID or slug
 export async function getRecipe(idOrSlug: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Try to fetch by slug first (SEO-friendly)
     let recipe = await db
@@ -183,7 +183,7 @@ export async function getRecipe(idOrSlug: string) {
 // Get a recipe by slug (SEO-friendly lookup)
 export async function getRecipeBySlug(slug: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     const recipe = await db
       .select()
       .from(recipes)
@@ -211,7 +211,7 @@ export async function getRecipeBySlug(slug: string) {
 // Search recipes
 export async function searchRecipes(query: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     const searchPattern = `%${query}%`;
 
     // Build search conditions
@@ -244,7 +244,7 @@ export async function createRecipe(
   data: Omit<NewRecipe, 'id' | 'created_at' | 'updated_at' | 'user_id'>
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -304,7 +304,7 @@ export async function updateRecipe(
   data: Partial<Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -385,7 +385,7 @@ export async function updateRecipe(
 // Delete a recipe
 export async function deleteRecipe(id: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -458,7 +458,7 @@ export const toggleRecipeSharing = toggleRecipeVisibility;
 // Toggle recipe public/private status
 export async function toggleRecipeVisibility(id: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -579,7 +579,7 @@ export async function getSystemRecipes() {
 // Copy a shared recipe to user's collection
 export async function copyRecipeToCollection(recipeId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };

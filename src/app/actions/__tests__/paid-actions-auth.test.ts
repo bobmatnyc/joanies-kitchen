@@ -9,7 +9,8 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   discoverWeeklyRecipes: vi.fn(),
   searchRecipesWithSerpAPI: vi.fn(),
   scrapeRecipePage: vi.fn(),
@@ -18,15 +19,15 @@ const mocks = vi.hoisted(() => ({
   dbWrite: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
 // The limiter has its own PGlite tests (paid-paths-rate-limit); allow every call here.
 vi.mock('@/lib/rate-limit', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
   enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
 }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('@/lib/perplexity-discovery', () => ({
   discoverWeeklyRecipes: mocks.discoverWeeklyRecipes,
@@ -59,11 +60,12 @@ const ROOT = path.resolve(__dirname, '../../../..');
 const fetchSpy = vi.fn();
 
 function signedOut() {
-  mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+  mocks.sessionUserId.mockResolvedValue(null);
 }
 
 function signedIn(isAdmin: string | undefined) {
-  mocks.auth.mockResolvedValue({ userId: 'user_1', sessionClaims: { metadata: { isAdmin } } });
+  mocks.sessionUserId.mockResolvedValue('user_1');
+  mocks.adminFlag.mockResolvedValue(isAdmin === 'true');
 }
 
 function expectNoPaidWork() {
@@ -139,7 +141,7 @@ describe.each(ADMIN_ACTIONS)('$name (admin-only action)', (action) => {
   });
 
   it('rejects before any paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
+    mocks.sessionUserId.mockRejectedValue(new Error('auth unavailable'));
     await expect(action.run()).rejects.toThrow();
     expectNoPaidWork();
   });
@@ -183,7 +185,7 @@ describe.each(SIGNED_IN_ACTIONS)('$name (signed-in action)', (action) => {
   });
 
   it('returns an error and does no paid work when the auth check throws', async () => {
-    mocks.auth.mockRejectedValue(new Error('auth unavailable'));
+    mocks.sessionUserId.mockRejectedValue(new Error('auth unavailable'));
     const result = await action.run();
     expect(result.success).toBe(false);
     expectNoPaidWork();

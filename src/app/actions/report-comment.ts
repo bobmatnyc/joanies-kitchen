@@ -2,12 +2,12 @@
 
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
 import { hideCommentAtThreshold } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeFlags } from '@/lib/db/schema';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import type { FlagReason } from './flag-recipe';
 
@@ -48,7 +48,7 @@ export async function reportComment(
   description?: string
 ): Promise<ReportCommentResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'You must be logged in to report comments' };
     }

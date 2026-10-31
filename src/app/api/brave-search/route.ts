@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { assertWithinDailyCap, isPaidCallBlocked, trackCost } from '@/lib/costs';
 import { rateLimitRefusal, refusalResponse } from '@/lib/rate-limit/refusal';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Type definitions for request/response
 interface BraveSearchRequest {
@@ -39,7 +39,7 @@ interface BraveSearchResponse {
 export async function POST(request: NextRequest) {
   try {
     // 1. Check authentication
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return NextResponse.json<BraveSearchError>(

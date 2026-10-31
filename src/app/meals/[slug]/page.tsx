@@ -3,9 +3,9 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getMealBySlug } from '@/app/actions/meals';
 import { MealDetailContent } from '@/components/meals/MealDetailContent';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
+import { getSessionUserId } from '@/lib/session-user';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,7 +13,7 @@ interface PageProps {
 
 export default async function MealDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // For authenticated users, fetch meal and shopping list from database
   let initialMeal: any = null;

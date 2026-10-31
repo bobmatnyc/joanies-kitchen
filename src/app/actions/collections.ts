@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -40,7 +40,7 @@ export async function createCollection(data: {
   isPublic?: boolean;
 }) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized - Please sign in' };
@@ -102,7 +102,7 @@ export async function updateCollection(
   }
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -166,7 +166,7 @@ export async function updateCollection(
  */
 export async function deleteCollection(collectionId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -217,7 +217,7 @@ export async function deleteCollection(collectionId: string) {
  */
 export async function getUserCollections(targetUserId?: string) {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
     const userId = targetUserId || currentUserId;
 
     if (!userId) {
@@ -275,7 +275,7 @@ export async function getUserCollections(targetUserId?: string) {
  */
 export async function getCollectionById(collectionId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     const [collection] = await db
       .select()
@@ -329,7 +329,7 @@ export async function getCollectionById(collectionId: string) {
  */
 export async function getCollectionBySlug(username: string, slug: string) {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
 
     // Find user profile
     const [profile] = await db
@@ -456,7 +456,7 @@ export async function addRecipeToCollection(
   personalNote?: string
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -546,7 +546,7 @@ export async function addRecipeToCollection(
  */
 export async function removeRecipeFromCollection(collectionId: string, recipeId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -609,7 +609,7 @@ export async function removeRecipeFromCollection(collectionId: string, recipeId:
  */
 export async function reorderCollectionRecipes(collectionId: string, recipeIds: string[]) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -668,7 +668,7 @@ export async function reorderCollectionRecipes(collectionId: string, recipeIds: 
  */
 export async function getRecipeCollections(recipeId: string): Promise<Collection[]> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return [];
@@ -728,7 +728,7 @@ export async function isRecipeInCollection(
  */
 export async function getRecipeCollectionIds(recipeId: string): Promise<string[]> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return [];

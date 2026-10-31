@@ -15,7 +15,10 @@ const state = vi.hoisted(() => ({
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: 'user-meal-1' })) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => 'user-meal-1',
+  getSessionUser: async () => ({ id: 'user-meal-1' }),
+}));
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-real-ip': '203.0.113.9' }),
 }));

@@ -1,7 +1,7 @@
 import type { NextResponse } from 'next/server';
 import { apiForbidden, apiUnauthorized } from '@/lib/api/responses';
-import { auth } from '@/lib/auth';
 import { getUserAdminFlag } from '@/lib/auth-users';
+import { getSessionUserId } from '@/lib/session-user';
 
 /**
  * Admin Access Control Utilities
@@ -15,7 +15,6 @@ import { getUserAdminFlag } from '@/lib/auth-users';
 export interface AdminCheckResult {
   isAdmin: boolean;
   userId: string | null;
-  sessionClaims: any;
 }
 
 /**
@@ -27,8 +26,8 @@ export interface AdminCheckResult {
  * Test: `src/lib/__tests__/admin-db-check.test.ts`
  */
 export async function checkAdminAccess(): Promise<AdminCheckResult> {
-  const { sessionClaims, userId } = await auth();
-  if (!userId) return { isAdmin: false, userId: null, sessionClaims };
+  const userId = await getSessionUserId();
+  if (!userId) return { isAdmin: false, userId: null };
 
   let isAdmin = false;
   try {
@@ -40,7 +39,7 @@ export async function checkAdminAccess(): Promise<AdminCheckResult> {
     isAdmin = false;
   }
 
-  return { isAdmin, userId, sessionClaims };
+  return { isAdmin, userId };
 }
 
 /**

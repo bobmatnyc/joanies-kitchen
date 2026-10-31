@@ -3,17 +3,17 @@
 import { and, eq, inArray, or } from 'drizzle-orm';
 import { jsPDF } from 'jspdf';
 import JSZip from 'jszip';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { publicRecipe } from '@/lib/recipe-public';
+import { getSessionUserId } from '@/lib/session-user';
 import { generateRecipeFilename, recipeToMarkdown } from '@/lib/utils/markdown-formatter';
 
 /**
  * Export a single recipe as markdown
  */
 export async function exportRecipeAsMarkdown(recipeId: string) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Fetch the recipe - allow public recipes or user's own recipes
   const recipe = await db.query.recipes.findFirst({
@@ -44,7 +44,7 @@ export async function exportRecipeAsMarkdown(recipeId: string) {
  * Export multiple recipes as a zip file
  */
 export async function exportRecipesAsZip(recipeIds: string[]) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     throw new Error('Unauthorized');
@@ -86,7 +86,7 @@ export async function exportRecipesAsZip(recipeIds: string[]) {
  * Export all user recipes as a zip file
  */
 export async function exportAllRecipesAsZip() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     throw new Error('Unauthorized');
@@ -125,7 +125,7 @@ export async function exportAllRecipesAsZip() {
  * Export a single recipe as PDF
  */
 export async function exportRecipeAsPDF(recipeId: string) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Fetch the recipe - allow public recipes or user's own recipes
   const recipe = await db.query.recipes.findFirst({

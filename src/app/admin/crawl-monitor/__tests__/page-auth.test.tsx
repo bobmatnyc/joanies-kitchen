@@ -7,7 +7,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
@@ -15,10 +16,10 @@ const mocks = vi.hoisted(() => ({
   getUnifiedCrawlRuns: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('@/app/actions/crawl-monitor', () => ({
@@ -38,10 +39,11 @@ beforeEach(() => {
 
 describe('CrawlMonitorPage', () => {
   it.each([
-    ['signed out', { userId: null, sessionClaims: null }],
-    ['signed-in non-admin', { userId: 'u1', sessionClaims: { metadata: { isAdmin: 'false' } } }],
-  ])('redirects a %s caller to / before loading data', async (_label, session) => {
-    mocks.auth.mockResolvedValue(session);
+    ['signed out', null, false],
+    ['signed-in non-admin', 'u1', false],
+  ])('redirects a %s caller to / before loading data', async (_label, userId, isAdmin) => {
+    mocks.sessionUserId.mockResolvedValue(userId);
+    mocks.adminFlag.mockResolvedValue(isAdmin);
     await expect(CrawlMonitorPage()).rejects.toThrow('NEXT_REDIRECT:/');
     expect(mocks.redirect).toHaveBeenCalledWith('/');
     expect(mocks.getCrawlCostSummary).not.toHaveBeenCalled();
@@ -49,10 +51,8 @@ describe('CrawlMonitorPage', () => {
   });
 
   it('loads spend and page 1 of runs for an admin', async () => {
-    mocks.auth.mockResolvedValue({
-      userId: 'u1',
-      sessionClaims: { metadata: { isAdmin: 'true' } },
-    });
+    mocks.sessionUserId.mockResolvedValue('u1');
+    mocks.adminFlag.mockResolvedValue(true);
     await CrawlMonitorPage();
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.getUnifiedCrawlRuns).toHaveBeenCalledWith({ page: 1, pageSize: 25 });

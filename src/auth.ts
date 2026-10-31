@@ -19,8 +19,8 @@ import {
  * What: extends the edge-safe `authConfig` with the Drizzle adapter (users
  * and accounts only — sessions are JWTs) and the DB-backed `signIn` and
  * `jwt` callbacks. Exports the route `handlers`, `auth`, `signIn` and
- * `signOut`. Application code should call `@/lib/auth` (the compatibility
- * shim) or `@/lib/admin`, not this module directly.
+ * `signOut`. Application code should call `@/lib/session-user` or
+ * `@/lib/admin`, not this module directly.
  * The config is a function so the adapter (and the lazy `db`) is built per
  * request, not at import, which keeps `next build` free of DATABASE_URL.
  * Test: `src/lib/__tests__/auth-callbacks.test.ts`

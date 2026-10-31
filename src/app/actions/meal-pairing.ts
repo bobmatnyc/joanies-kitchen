@@ -4,12 +4,12 @@ import { desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/meal-pairing-engine';
-import { auth } from '@/lib/auth';
 import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { mealRecipes, meals, type NewMeal, type NewMealRecipe } from '@/lib/db/schema';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
@@ -84,7 +84,7 @@ const saveMealPlanSchema = z.object({
 export async function generateBalancedMeal(request: SimpleMealRequest) {
   try {
     // 1. Authentication check
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return {
         success: false,
@@ -183,7 +183,7 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
 export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, occasion?: string) {
   try {
     // 1. Authentication check
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return {
         success: false,
@@ -313,7 +313,7 @@ export async function getMealPairingHistory(
 ) {
   try {
     // 1. Authentication check
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
     if (!currentUserId) {
       return {
         success: false,
@@ -379,7 +379,7 @@ export async function getMealPairingHistory(
 export async function deleteMealPlan(mealId: string) {
   try {
     // 1. Authentication check
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return {
         success: false,

@@ -15,7 +15,7 @@
  * - Key hash and user_id cannot be modified
  */
 
-import { auth as sessionAuth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getApiKeyById, revokeApiKey, updateApiKey } from '@/lib/api-auth';
@@ -26,9 +26,9 @@ import { type UpdateApiKeyInput, updateApiKeySchema } from '@/lib/validations/ap
  */
 async function authenticateAndVerifyOwnership(keyId: string) {
   // CRITICAL: Only allow a signed-in session authentication
-  const session = await sessionAuth();
+  const userId = await getSessionUserId();
 
-  if (!session.userId) {
+  if (!userId) {
     return {
       error: NextResponse.json(
         {
@@ -63,7 +63,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
   }
 
   // Verify ownership
-  if (apiKey.user_id !== session.userId) {
+  if (apiKey.user_id !== userId) {
     return {
       error: NextResponse.json(
         {
@@ -78,7 +78,7 @@ async function authenticateAndVerifyOwnership(keyId: string) {
   }
 
   return {
-    userId: session.userId,
+    userId,
     apiKey,
   };
 }

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { NextResponse } from 'next/server';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
 
@@ -12,7 +12,7 @@ import { getCurrentUserProfile } from '@/app/actions/user-profiles';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return NextResponse.json({ hasProfile: false }, { status: 401 });

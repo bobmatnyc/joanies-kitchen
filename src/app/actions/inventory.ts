@@ -16,7 +16,6 @@ import {
 } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
 import {
   ENABLE_CACHE_STATS,
   generateUserInventoryKey,
@@ -41,6 +40,7 @@ import {
 import { recipeIngredients, recipes } from '@/lib/db/schema';
 import { publicRecipe } from '@/lib/recipe-public';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // ============================================================================
@@ -112,7 +112,7 @@ const markAsWastedSchema = z.object({
  */
 export async function addInventoryItem(data: z.infer<typeof addInventoryItemSchema>) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -196,7 +196,7 @@ export async function updateInventoryItem(
   updates: z.infer<typeof updateInventoryItemSchema>
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -259,7 +259,7 @@ export async function updateInventoryItem(
  */
 export async function deleteInventoryItem(id: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -312,7 +312,7 @@ export async function getUserInventory(filters?: {
   expiringWithinDays?: number;
 }) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -404,7 +404,7 @@ export async function getUserInventory(filters?: {
  */
 export async function getInventoryItem(id: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -465,7 +465,7 @@ export async function matchRecipesToInventory(options?: {
   limit?: number;
 }) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -633,7 +633,7 @@ export async function markItemAsUsed(
   notes?: string
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -743,7 +743,7 @@ export async function markItemAsWasted(
   weightOz?: number
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -827,7 +827,7 @@ export async function markItemAsWasted(
  */
 export async function markRecipeIngredientsAsUsed(recipeId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };

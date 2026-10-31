@@ -18,7 +18,10 @@ const runRecordedWeeklyCrawl = vi.hoisted(() =>
 );
 vi.mock('@/lib/services/recorded-weekly-crawl', () => ({ runRecordedWeeklyCrawl }));
 // No session in tests; the bearer path never reaches it.
-vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: null, sessionClaims: null })) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 // #22: @/lib/admin reads users.is_admin through this module; keep the real db out.
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: vi.fn() }));
 

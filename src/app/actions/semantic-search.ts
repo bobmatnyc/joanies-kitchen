@@ -2,7 +2,6 @@
 
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { generateQueryEmbedding, generateRecipeEmbedding } from '@/lib/ai/embeddings';
-import { auth } from '@/lib/auth';
 import {
   ENABLE_CACHE_STATS,
   generateSemanticSearchKey,
@@ -29,6 +28,7 @@ import {
   SEARCH_MIN_SIMILARITY,
   SEARCH_RELATIVE_DELTA,
 } from '@/lib/search/similarity-cutoffs';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -153,7 +153,7 @@ async function semanticSearchInternal(
       };
     }
 
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Default options
     const limit = options.limit || 20;
@@ -462,7 +462,7 @@ export async function hybridSearchRecipes(
       };
     }
 
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     const limit = options.limit || 20;
 
     // Generate cache key (use semantic cache with 'hybrid' prefix)
@@ -608,7 +608,7 @@ export async function getSearchSuggestions(
     }
 
     const pattern = `%${partial}%`;
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     // Build visibility conditions
     const visibilityConditions = userId

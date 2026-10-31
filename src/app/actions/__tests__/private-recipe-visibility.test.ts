@@ -29,7 +29,7 @@ const SECRET = 'Secret Stew';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  sessionUserId: undefined as unknown as ReturnType<typeof vi.fn>,
   embeddingStored: true,
 }));
 
@@ -43,9 +43,16 @@ vi.mock('@/lib/rate-limit', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
   enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
 }));
-vi.mock('@/lib/auth', () => {
-  state.auth = vi.fn();
-  return { auth: (...args: unknown[]) => state.auth(...args) };
+vi.mock('@/lib/session-user', () => {
+  state.sessionUserId = vi.fn();
+  const getSessionUserId = (...args: unknown[]) => state.sessionUserId(...args);
+  return {
+    getSessionUserId,
+    getSessionUser: async () => {
+      const id = await getSessionUserId();
+      return id ? { id } : null;
+    },
+  };
 });
 // #22: admin is read from users.is_admin; here only ADMIN carries the flag.
 vi.mock('@/lib/auth-users', () => ({
@@ -118,14 +125,7 @@ const ALLOWED: Record<Role, boolean> = {
 
 function signInAs(role: Role) {
   const userId = USER_OF[role];
-  state.auth.mockResolvedValue(
-    userId
-      ? {
-          userId,
-          sessionClaims: { metadata: { isAdmin: role === 'admin' ? 'true' : 'false' } },
-        }
-      : { userId: null, sessionClaims: null }
-  );
+  state.sessionUserId.mockResolvedValue(userId || null);
 }
 
 let client: PGlite;

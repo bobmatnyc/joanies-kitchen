@@ -4,11 +4,11 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { requireAdmin } from '@/lib/admin';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { canViewRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 // #167 (D26): the recipe_likes actions (toggleRecipeLike, getRecipeLikesCount,
@@ -197,7 +197,7 @@ export async function addRecipeComment(
   content: string
 ): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -311,7 +311,7 @@ export async function updateRecipeComment(
   content: string
 ): Promise<DataResult<typeof recipeComments.$inferSelect> | SuccessResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };
@@ -366,7 +366,7 @@ export async function updateRecipeComment(
  */
 export async function deleteRecipeComment(commentId: string): Promise<SuccessResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Authentication required' };

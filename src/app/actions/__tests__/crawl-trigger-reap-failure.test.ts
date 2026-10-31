@@ -12,16 +12,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const RUN_ID = '33333333-3333-4333-8333-333333333333';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
+  adminFlag: vi.fn(),
   after: vi.fn(),
   queries: [] as { sql: string; params: unknown[] }[],
   runningRows: [] as unknown[][],
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
-// #22: admin is read from users.is_admin; here the DB row mirrors the fixture's flag.
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
+// #22: admin is read from users.is_admin; `mocks.adminFlag` stands in for that row.
 vi.mock('@/lib/auth-users', () => ({
-  getUserAdminFlag: async () => (await mocks.auth())?.sessionClaims?.metadata?.isAdmin === 'true',
+  getUserAdminFlag: mocks.adminFlag,
 }));
 vi.mock('next/server', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/server')>()),
@@ -69,10 +70,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.queries = [];
   mocks.runningRows = [];
-  mocks.auth.mockResolvedValue({
-    userId: 'admin_1',
-    sessionClaims: { metadata: { isAdmin: 'true' } },
-  });
+  mocks.sessionUserId.mockResolvedValue('admin_1');
+  mocks.adminFlag.mockResolvedValue(true);
   vi.stubEnv('CRON_RUN_BUDGET_USD', '');
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
