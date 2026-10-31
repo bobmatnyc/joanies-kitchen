@@ -505,6 +505,73 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
     expect(await rows('SELECT * FROM recipes WHERE id = $1', [ORIGINAL])).toEqual(original);
   });
 
+  // #234: a copy keeps content only; server-managed columns take their column defaults.
+  it('copyRecipeToCollection resets moderation, QA, admin and attribution columns', async () => {
+    state.userId = NORMAL;
+    const managed = [
+      'moderation_status',
+      'moderation_notes',
+      'moderated_by',
+      'moderated_at',
+      'submission_notes',
+      'qa_status',
+      'qa_timestamp',
+      'qa_method',
+      'qa_confidence',
+      'qa_notes',
+      'qa_issues_found',
+      'qa_fixes_applied',
+      'image_flagged_for_regeneration',
+      'image_regeneration_requested_at',
+      'image_regeneration_requested_by',
+      'content_flagged_for_cleanup',
+      'ingredients_need_cleanup',
+      'instructions_need_cleanup',
+      'system_rating',
+      'system_rating_reason',
+      'chef_id',
+      'source_id',
+      'license',
+    ];
+    await rows(
+      `UPDATE recipes SET moderation_status = 'approved', moderation_notes = 'ok', moderated_by = 'admin',
+        moderated_at = now(), submission_notes = 'please review', is_system_recipe = true,
+        chef_id = 'cccccccc-0000-4000-8000-00000000000c', source_id = 'dddddddd-0000-4000-8000-00000000000d',
+        qa_status = 'flagged', qa_timestamp = now(), qa_method = 'human', qa_confidence = 0.9,
+        qa_notes = 'n', qa_issues_found = '["x"]', qa_fixes_applied = '["y"]',
+        image_flagged_for_regeneration = true, image_regeneration_requested_at = now(),
+        image_regeneration_requested_by = 'admin', content_flagged_for_cleanup = true,
+        ingredients_need_cleanup = true, instructions_need_cleanup = true,
+        system_rating = 4.5, system_rating_reason = 'good', license = 'PUBLIC_DOMAIN',
+        cuisine = 'French', prep_time = 10
+      WHERE id = $1`,
+      [ORIGINAL]
+    );
+    // A row given only the required columns holds every column default.
+    const [defaults] = await rows(
+      `INSERT INTO recipes (id, user_id, name, ingredients, instructions)
+       VALUES ('dddddddd-0000-4000-8000-0000000000de', $1, 'Defaults', '[]', '[]') RETURNING *`,
+      [OWNER]
+    );
+    await rows('DELETE FROM recipes WHERE id = $1', [defaults.id]);
+
+    const result = await copyRecipeToCollection(ORIGINAL);
+
+    expect(result).toMatchObject({ success: true });
+    const [copy] = await rows('SELECT * FROM recipes WHERE id = $1', [
+      (result as { data: { id: string } }).data.id,
+    ]);
+    const pick = (r: Record<string, unknown>) => Object.fromEntries(managed.map((k) => [k, r[k]]));
+    expect(pick(copy)).toEqual(pick(defaults));
+    expect(copy).toMatchObject({
+      user_id: NORMAL,
+      is_system_recipe: false,
+      is_public: false,
+      cuisine: 'French',
+      prep_time: 10,
+    });
+  });
+
   it('discoverRecipeFromUrl writes the embedding row for the saved recipe', async () => {
     state.userId = NORMAL;
 
