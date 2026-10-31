@@ -55,7 +55,10 @@ import { GET as shoppingListGET } from '@/app/api/v1/meals/[id]/shopping-list/ro
 import { POST as mealsPOST } from '@/app/api/v1/meals/route';
 import { generateMetadata } from '@/app/meals/[slug]/page';
 import { markAccountDeleted, restoreAccount } from '@/lib/account-deletion';
-import { pendingDeletionError } from '@/lib/account-deletion/guarded-insert';
+import {
+  isPendingDeletionRefusal,
+  pendingDeletionError,
+} from '@/lib/account-deletion/guarded-insert';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
@@ -142,7 +145,11 @@ const READS: Array<{ name: string; sees: (owner: string) => Promise<boolean> }> 
   },
   {
     name: 'generateShoppingList (reads the meal and its recipes)',
-    sees: async (owner) => (await generateShoppingList({ mealId: mealIdOf(owner) })).success,
+    sees: async (owner) => {
+      const r = await generateShoppingList({ mealId: mealIdOf(owner) });
+      // #225: a pending-deletion caller's write is refused only after the meal was read.
+      return r.success || isPendingDeletionRefusal(r);
+    },
   },
   {
     name: 'GET /api/v1/meals/:id',
