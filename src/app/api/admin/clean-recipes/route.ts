@@ -11,19 +11,47 @@
  * Query params:
  * - limit: number of recipes to clean (default 5, max 20)
  *
- * Authentication: requires admin:system scope
+ * Authentication: the caller's `users.is_admin` must be true (see `isAdminCaller`).
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { requireScopes } from '@/lib/api-auth/require-auth';
+import { apiForbidden } from '@/lib/api/responses';
+import { authHasScope } from '@/lib/api-auth/middleware';
+import { requireAuth } from '@/lib/api-auth/require-auth';
 import { SCOPES } from '@/lib/api-auth/scopes';
+import type { AuthContext } from '@/lib/api-auth/types';
+import { getUserAdminFlag } from '@/lib/auth-users';
 import { cleanRecipesWithOllama } from '@/lib/services/recipe-cleaner.service';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 20;
 
-export const POST = requireScopes([SCOPES.ADMIN_SYSTEM], async (request: NextRequest) => {
+/**
+ * Why: #239 — signed-in admins hold no `admin:system` scope, so a scope-only
+ * gate shut them out of this operation.
+ * What: true only when `users.is_admin` is true for `auth.userId` (the session
+ * user, or an API key's owner). A missing row, null or a failed lookup is
+ * false. Every non-session caller (an API key) must also hold `admin:system`:
+ * a key acts only through its scopes, so an admin's narrowly scoped key cannot
+ * run a system operation.
+ * Test: `src/app/api/admin/clean-recipes/__tests__/route-admin-access.test.ts`
+ */
+async function isAdminCaller(auth: AuthContext): Promise<boolean> {
+  if (!auth.userId) return false;
+  if (auth.authType !== 'session' && !authHasScope(auth, SCOPES.ADMIN_SYSTEM)) return false;
+  try {
+    return (await getUserAdminFlag(auth.userId)) === true;
+  } catch (error: unknown) {
+    console.error('[api/admin/clean-recipes] users.is_admin lookup failed; denying:', error);
+    return false;
+  }
+}
+
+// #239: gate on the caller's users.is_admin, not on the admin:system scope alone.
+export const POST = requireAuth(async (request: NextRequest, auth: AuthContext) => {
+  if (!(await isAdminCaller(auth))) return apiForbidden('Admin access required');
+
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get('limit');
   const limit = Math.min(
