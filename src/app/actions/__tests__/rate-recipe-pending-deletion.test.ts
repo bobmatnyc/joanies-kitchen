@@ -144,7 +144,9 @@ describe('#197 rateRecipe refuses an account with a pending deletion', () => {
     expect(sqls[1]).toMatch(
       /^insert into "recipe_ratings" .+ select .+ from "recipes" where \("recipes"\."id" = \$\d+ and NOT EXISTS \(SELECT 1 FROM "users" WHERE "users"\."id" = \$\d+ AND "users"\."deletion_requested_at" IS NOT NULL\)\) on conflict /
     );
-    expect(sqls[2]).toMatch(/^update "recipes" set .+ and exists \(select 1 from "recipe_ratings" /);
+    expect(sqls[2]).toMatch(
+      /^update "recipes" set .+ and exists \(select 1 from "recipe_ratings" /
+    );
   });
 });
 
@@ -167,13 +169,15 @@ describe('#197 rateRecipe is unchanged for other accounts', () => {
       'SELECT avg_user_rating::text AS avg, total_user_ratings AS total FROM recipes ORDER BY id'
     );
     // RATED holds PENDING's 4 plus this rater's 5 (NORMAL's 2 is overwritten when the rater is NORMAL).
-    expect(recipes[0]).toEqual(userId === NORMAL ? { avg: '4.5', total: 2 } : { avg: '3.7', total: 3 });
+    expect(recipes[0]).toEqual(
+      userId === NORMAL ? { avg: '4.5', total: 2 } : { avg: '3.7', total: 3 }
+    );
     expect(recipes[1]).toEqual({ avg: '3.0', total: 1 });
     expect(
-      await rows('SELECT rating, review FROM recipe_ratings WHERE user_id = $1 AND recipe_id = $2', [
-        userId,
-        UNRATED,
-      ])
+      await rows(
+        'SELECT rating, review FROM recipe_ratings WHERE user_id = $1 AND recipe_id = $2',
+        [userId, UNRATED]
+      )
     ).toEqual([{ rating: 3, review: 'fine' }]);
   });
 });
