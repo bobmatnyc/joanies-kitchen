@@ -1,9 +1,5 @@
 import type { Metadata } from 'next';
-import {
-  DEFAULT_OG_IMAGE_ALT,
-  DEFAULT_OG_IMAGE_PATH,
-  DEFAULT_OG_IMAGE_SIZE,
-} from '@/lib/default-og-image';
+import { socialImages } from '@/lib/default-og-image';
 import { NOT_FOUND_METADATA } from '@/lib/not-found-metadata';
 import { getBaseUrl } from '@/lib/site-url';
 import { parseRecipeTags } from '@/lib/types/parsers';
@@ -48,11 +44,9 @@ export async function generateMetadata({
   const firstImage = toUsableImageUrl(images.length > 0 ? images[0] : recipe.image_url);
   // #171: this segment's `openGraph` replaces the root one whole, so the root
   // opengraph-image never reaches it. Without a recipe image, name the generated one.
-  const ogImage = firstImage
-    ? // #164: no width/height. The image is an arbitrary external or Blob file whose
-      // real size we do not store; the Open Graph spec lets us omit the dimensions.
-      { url: firstImage, alt: recipe.name }
-    : { url: DEFAULT_OG_IMAGE_PATH, ...DEFAULT_OG_IMAGE_SIZE, alt: DEFAULT_OG_IMAGE_ALT };
+  // #256: via the shared helper. #164: a page image states no width/height; it is an
+  // arbitrary external or Blob file whose real size we do not store.
+  const social = socialImages(firstImage ? { url: firstImage, alt: recipe.name } : null);
 
   return {
     // #138: the root layout's title.template appends the brand.
@@ -68,14 +62,14 @@ export async function generateMetadata({
       description: recipe.description || `Delicious ${recipe.name} recipe`,
       url: canonicalUrl,
       type: 'article',
-      images: [ogImage],
+      images: social.openGraph,
       siteName: "Joanie's Kitchen",
     },
     twitter: {
       card: 'summary_large_image',
       title: recipe.name,
       description: recipe.description || `Delicious ${recipe.name} recipe`,
-      images: [ogImage.url], // #171: same fallback as openGraph
+      images: social.twitter, // #171: same fallback as openGraph
     },
     // #138: tags is a JSON string; spreading it emitted one keyword per character.
     keywords: [
