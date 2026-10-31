@@ -21,15 +21,23 @@ const state = vi.hoisted(() => ({
   client: undefined as unknown,
   userId: null as string | null,
   discoverUrls: [{ url: 'https://example.test/stew', title: 'Stew' }],
+  /** #233: true only while an admin-only route runs; every other path is a non-admin. */
+  isAdmin: false,
 }));
+/** The id with no `users` row; its admin lookup finds nothing, as in production. */
+const LEGACY = 'user_legacy_no_users_row';
 const addFavorite = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 
 vi.mock('@/lib/session-user', () => ({
   getSessionUserId: async () => state.userId,
   getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
-// #233: POST /api/ingest-recipe is admin-only, so every caller here is an admin.
-vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => true }));
+// #233: admin only inside the POST /api/ingest-recipe entries; an id with no users row is
+// never an admin (`getUserAdminFlag` answers null for it).
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async (userId: string) =>
+    userId === 'user_legacy_no_users_row' ? null : state.isAdmin,
+}));
 vi.mock('@/lib/db', () => ({
   get db() {
     return state.db;
@@ -142,7 +150,6 @@ import * as schema from '@/lib/db/schema';
 
 const PENDING = 'user_pending';
 const NORMAL = 'user_normal';
-const LEGACY = 'user_legacy_no_users_row';
 const OWNER = 'user_owner';
 const ORIGINAL = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const REQUESTED_AT = new Date('2026-10-01T00:00:00.000Z');
@@ -202,6 +209,16 @@ async function route(call: () => Promise<{ status: number; body: any }>): Promis
 
 type Outcome = { ok: true } | { refused: string; status?: number };
 
+/** #233: runs `call` with the caller an admin, then back to a non-admin. */
+async function asAdmin<T>(call: () => Promise<T>): Promise<T> {
+  state.isAdmin = true;
+  try {
+    return await call();
+  } finally {
+    state.isAdmin = false;
+  }
+}
+
 async function action(call: () => Promise<{ success: boolean; error?: string }>): Promise<Outcome> {
   const result = await call();
   return result.success ? { ok: true } : { refused: result.error ?? '' };
@@ -215,6 +232,8 @@ const PATHS: Array<{
   name: string;
   action: string;
   status?: number;
+  /** #233: an admin-only route; it runs as an admin, and a legacy id gets 403. */
+  adminOnly?: true;
   run: () => Promise<Outcome>;
 }> = [
   {
@@ -242,9 +261,12 @@ const PATHS: Array<{
     name: 'POST /api/ingest-recipe (single url)',
     action: 'import recipes',
     status: 403,
+    adminOnly: true,
     run: () =>
-      route(() =>
-        api('/api/ingest-recipe', { url: 'https://example.test/stew' }, ingestPOST as never)
+      asAdmin(() =>
+        route(() =>
+          api('/api/ingest-recipe', { url: 'https://example.test/stew' }, ingestPOST as never)
+        )
       ),
   },
   {
@@ -425,6 +447,12 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
     const added = await rows('SELECT * FROM recipes WHERE NOT (id = ANY($1))', [
       before.map((r) => r.id),
     ]);
+    if (p.adminOnly && p.userId === LEGACY) {
+      // #233: an id with no users row is not an admin, so the admin-only route refuses it.
+      expect(outcome).toEqual({ refused: 'Admin access required', status: 403 });
+      expect(added).toHaveLength(0);
+      return;
+    }
     expect(outcome).toEqual({ ok: true });
     expect(added).toHaveLength(1);
     expect(added[0].user_id).toBe(p.userId);
@@ -600,10 +628,12 @@ describe('#220 batches stop at the first refusal', () => {
     state.userId = PENDING;
     const before = await snapshot();
 
-    const r = await api(
-      '/api/ingest-recipe',
-      { urls: ['https://example.test/a', 'https://example.test/b'] },
-      ingestPOST as never
+    const r = await asAdmin(() =>
+      api(
+        '/api/ingest-recipe',
+        { urls: ['https://example.test/a', 'https://example.test/b'] },
+        ingestPOST as never
+      )
     );
 
     expect(r).toEqual({

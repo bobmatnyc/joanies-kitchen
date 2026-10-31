@@ -161,6 +161,15 @@ describe('POST /api/ingest-recipe is admin-only (#233)', () => {
     await expectRefused(await post({ urls: [oneUrl().url, oneUrl().url] }));
   });
 
+  it('refuses a non-admin non-JSON body with 403, so the gate runs before body parsing', async () => {
+    state.auth = { authenticated: true, userId: 'member-1' };
+    const res = await call(
+      new NextRequest('http://localhost/api/ingest-recipe', { method: 'POST', body: 'not json{' }),
+      { params: Promise.resolve({}) }
+    );
+    await expectRefused(res);
+  });
+
   it("refuses an API key whose owner's users row is not admin", async () => {
     state.auth = { authenticated: true, userId: 'member-1', apiKeyId: 'key-m' };
     await expectRefused(await post(oneUrl()));

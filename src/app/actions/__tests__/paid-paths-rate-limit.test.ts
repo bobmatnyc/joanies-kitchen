@@ -18,6 +18,8 @@ const state = vi.hoisted(() => ({
   dbDown: false,
   capReached: false,
   calls: [] as string[],
+  /** #233: true only while the admin-only ingest route runs; every other path is a non-admin. */
+  isAdmin: false,
 }));
 
 /** Records a provider call; with the daily cap reached it throws as the real guard does. */
@@ -38,8 +40,8 @@ vi.mock('@/lib/session-user', () => ({
   getSessionUserId: async () => 'user-paid-1',
   getSessionUser: async () => ({ id: 'user-paid-1' }),
 }));
-// #233: POST /api/ingest-recipe is admin-only, so the caller is an admin.
-vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => true }));
+// #233: admin only inside the POST /api/ingest-recipe entry.
+vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => state.isAdmin }));
 vi.mock('@/lib/db', () => ({
   get db() {
     return state.db;
@@ -210,11 +212,17 @@ const ENTRY_POINTS: EntryPoint[] = [
     name: 'POST /api/ingest-recipe',
     bucket: 'recipe-ingest-api',
     provider: 'firecrawl',
-    run: () =>
-      (ingestRecipePost as (r: NextRequest, c: unknown) => Promise<Response>)(
-        post('http://localhost/api/ingest-recipe', { url: 'https://example.com/soup' }),
-        { params: Promise.resolve({}) }
-      ),
+    run: async () => {
+      state.isAdmin = true; // #233: admin-only route
+      try {
+        return await (ingestRecipePost as (r: NextRequest, c: unknown) => Promise<Response>)(
+          post('http://localhost/api/ingest-recipe', { url: 'https://example.com/soup' }),
+          { params: Promise.resolve({}) }
+        );
+      } finally {
+        state.isAdmin = false;
+      }
+    },
   },
 ];
 
