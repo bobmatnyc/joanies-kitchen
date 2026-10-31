@@ -21,7 +21,7 @@ Real-world integration examples for the Recipe Manager application.
 // src/app/actions/meal-planning.ts
 'use server';
 
-import { auth } from '@clerk/nextjs';
+import { getSessionUserId } from '@/lib/session-user';
 import { generateCompleteMeal } from '@/lib/ai/meal-generator';
 import { db } from '@/lib/db';
 import { mealPlans, mealPlanRecipes, recipes } from '@/lib/db/schema';
@@ -34,7 +34,7 @@ export async function generateMealPlanFromAI(params: {
   occasion?: string;
   saveToDB?: boolean;
 }) {
-  const { userId } = auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     throw new Error('Unauthorized');
   }
@@ -113,7 +113,7 @@ export async function generateMealPlanFromAI(params: {
 // src/app/actions/recipe-enhancement.ts
 'use server';
 
-import { auth } from '@clerk/nextjs';
+import { getSessionUserId } from '@/lib/session-user';
 import { callPrompt } from '@/lib/ai/meal-generator';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -146,7 +146,7 @@ const ImprovementSchema = z.object({
 });
 
 export async function analyzeAndImproveRecipe(recipeId: string) {
-  const { userId } = auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     throw new Error('Unauthorized');
   }
@@ -310,7 +310,7 @@ export function ComplementarySidesRecommendation({ recipe }: { recipe: Recipe })
 // src/app/actions/nutrition.ts
 'use server';
 
-import { auth } from '@clerk/nextjs';
+import { getSessionUserId } from '@/lib/session-user';
 import { callPrompt } from '@/lib/ai/meal-generator';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
@@ -345,7 +345,7 @@ const NutritionSchema = z.object({
 });
 
 export async function calculateRecipeNutrition(recipeId: string) {
-  const { userId } = auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     throw new Error('Unauthorized');
   }

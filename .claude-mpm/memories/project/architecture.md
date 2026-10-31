@@ -3,7 +3,7 @@
 ## Core Stack
 - **Framework**: Next.js 15.5.3 (App Router, Server Actions, Turbopack)
 - **Language**: TypeScript 5 (strict mode)
-- **Authentication**: Clerk (dual-environment: dev + prod on localhost)
+- **Authentication**: Auth.js v5 (Google only, JWT sessions, closed registration)
 - **Database**: Neon PostgreSQL (serverless) + Drizzle ORM 0.44.5
 - **AI**: OpenRouter API (primary: Gemini 2.0 Flash)
 - **UI**: Tailwind CSS v4 + shadcn/ui
@@ -12,12 +12,11 @@
 
 ## Key Architectural Decisions
 
-### Dual-Environment Clerk Setup
-The application uniquely supports TWO Clerk environments on localhost simultaneously:
-- Development environment (pk_test_*, sk_test_*)
-- Production environment (pk_live_*, sk_live_*)
-- Environment switching via URL parameter (?env=prod) or local storage
-- Enables testing production auth flows in development
+### Auth.js Setup
+- Google is the only provider; sessions are JWTs; the Drizzle adapter stores `users` and `accounts`
+- Registration is closed: only seeded emails or `AUTH_ADMIN_EMAILS` can sign in
+- Admin comes from `AUTH_ADMIN_EMAILS` plus `users.is_admin`
+- Legacy `users.id` values are Clerk-era ids (#22)
 
 ### Server Actions Over API Routes
 - Preferred pattern for mutations and data operations
@@ -26,7 +25,7 @@ The application uniquely supports TWO Clerk environments on localhost simultaneo
 - Automatic request deduplication
 
 ### Database Schema Design
-- User-scoped data model (all queries filtered by userId from Clerk)
+- User-scoped data model (all queries filtered by userId from the Auth.js session)
 - Support for public and system recipes (isPublic, isSystemRecipe flags)
 - JSON fields for flexible data (ingredients, instructions, tags, images)
 - Multi-image support (up to 6 images per recipe)
@@ -47,7 +46,7 @@ The application uniquely supports TWO Clerk environments on localhost simultaneo
 - `/scripts/` - Database and utility scripts
 
 ## Critical Files
-- `src/middleware.ts` - Clerk auth middleware with dynamic configuration
+- `src/middleware.ts` - Auth.js session middleware (rules in `src/lib/auth-routes.ts`)
 - `src/lib/db/schema.ts` - Drizzle schema (source of truth)
 - `src/app/actions/` - Server actions for all data operations
 - `drizzle.config.ts` - Drizzle Kit configuration

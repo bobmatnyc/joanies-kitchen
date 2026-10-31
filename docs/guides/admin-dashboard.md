@@ -2,19 +2,19 @@
 
 ## Overview
 
-A comprehensive admin dashboard with multi-layer security using Clerk's `isAdmin` metadata for role-based access control. Provides full database management capabilities for recipes, users, and system settings.
+A comprehensive admin dashboard with multi-layer security using the `users.is_admin` flag for role-based access control. Provides full database management capabilities for recipes, users, and system settings.
 
 ## Access Control Architecture
 
 ### Multi-Layer Security
 
 1. **Middleware Layer** (`src/middleware.ts`)
-   - Checks admin routes `/admin(.*)`
-   - Validates `sessionClaims.metadata.isAdmin === 'true'`
-   - Redirects non-admin users to homepage
+   - Checks admin routes `/admin(.*)` (rules in `src/lib/auth-routes.ts`)
+   - Reads the JWT copy of `users.is_admin` (`session.user.isAdmin`, up to 5 minutes stale)
+   - Redirects signed-out users to `/sign-in` and non-admin users to the homepage
 
 2. **Server Component Layer** (`src/app/admin/layout.tsx`)
-   - Server-side auth check on every admin page
+   - `checkAdminAccess()` re-reads `users.is_admin` from the database on every admin page
    - Redirects non-admin users before rendering
 
 3. **Server Actions Layer** (`src/app/actions/admin.ts`)
@@ -23,24 +23,12 @@ A comprehensive admin dashboard with multi-layer security using Clerk's `isAdmin
 
 ## Setting Admin Users
 
-To grant admin access to a user in Clerk:
+Admin rights live in `users.is_admin`. To grant admin access:
 
-```javascript
-// In Clerk Dashboard → Users → Select User → Metadata → Public Metadata
-{
-  "isAdmin": "true"
-}
-```
+- List the user's Google email in `AUTH_ADMIN_EMAILS`; sign-in then sets `users.is_admin = true`, or
+- Run `pnpm auth:seed-user --id <users.id> --email <google-email> --admin`.
 
-Or programmatically via Clerk API:
-
-```javascript
-await clerkClient.users.updateUserMetadata(userId, {
-  publicMetadata: {
-    isAdmin: "true"
-  }
-});
-```
+See [authentication.md](./authentication.md) for the details, including how to revoke admin.
 
 ## File Structure
 
@@ -237,7 +225,7 @@ isUserAdmin(checkUserId: string): Promise<boolean>
 ### Accessing Admin Dashboard
 
 1. Sign in to your account
-2. Ensure your user has `isAdmin: "true"` in Clerk metadata
+2. Ensure your user has `users.is_admin = true` (see "Setting Admin Users")
 3. Navigate to `/admin`
 4. If not admin, you'll be redirected to homepage
 
@@ -303,35 +291,17 @@ interface UserWithRecipes {
 interface AdminCheckResult {
   isAdmin: boolean;
   userId: string | null;
-  sessionClaims: any;
 }
 ```
 
-## Middleware Updates
+## Middleware
 
-The middleware now includes admin route protection:
+The middleware protects admin routes through `decideRoute` in `src/lib/auth-routes.ts`:
 
 ```typescript
-const isAdminRoute = createRouteMatcher(['/admin(.*)']);
-
-// In clerkMiddleware callback:
-if (isAdminRoute(req)) {
-  if (!userId) {
-    // Redirect to sign-in
-    const signInUrl = new URL('/sign-in', req.url);
-    signInUrl.searchParams.set('redirect_url', req.url);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  // Check admin role
-  const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-  const isAdmin = metadata?.isAdmin === 'true';
-  if (!isAdmin) {
-    // Redirect to home
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  return NextResponse.next();
+if (/^\/admin/.test(path)) {
+  if (!session.userId) return 'sign-in'; // redirect to /sign-in?callbackUrl=...
+  return session.isAdmin ? 'allow' : 'home'; // JWT copy of users.is_admin
 }
 ```
 
@@ -341,7 +311,7 @@ The admin dashboard works with the existing `recipes` table:
 
 ```sql
 - id (text, primary key)
-- userId (text, Clerk user ID)
+- userId (text, users.id)
 - name (text)
 - description (text)
 - ingredients (text, JSON)
@@ -429,10 +399,7 @@ Potential features to add:
 ### Common Issues
 
 **Issue: Cannot access /admin**
-- Solution: Check that your user has `isAdmin: "true"` in Clerk public metadata
-
-**Issue: TypeScript errors about metadata.isAdmin**
-- Solution: Use type assertion: `const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined`
+- Solution: Check that `users.is_admin` is true for your user. A newly granted admin may need to sign out and in, or wait up to 5 minutes for the JWT copy to refresh
 
 **Issue: Build fails on global-error.tsx**
 - Solution: This is a pre-existing issue. Fix global-error.tsx to use proper Next.js error boundary syntax
@@ -443,9 +410,9 @@ Potential features to add:
 ## Support
 
 For issues or questions:
-- Check Clerk documentation for metadata setup
+- Read [authentication.md](./authentication.md) for admin setup
 - Review Next.js App Router authentication patterns
-- Ensure all admin users have correct metadata in Clerk Dashboard
+- Ensure all admin users have `users.is_admin = true`
 
 ## License
 

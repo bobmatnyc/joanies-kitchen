@@ -309,17 +309,18 @@ export async function myAction() {
 'use client';
 
 import { toast } from 'sonner';
-import { useAuth } from '@clerk/nextjs';
+import { signIn } from 'next-auth/react';
+import { useSessionUser } from '@/lib/use-session-user';
 
 export function MyComponent() {
-  const { isSignedIn } = useAuth();
+  const { user } = useSessionUser();
 
   const handleAction = async () => {
-    if (!isSignedIn) {
+    if (!user) {
       toast.error('Please sign in to continue', {
         action: {
           label: 'Sign In',
-          onClick: () => {/* Open sign-in modal */}
+          onClick: () => void signIn('google', { callbackUrl: window.location.href })
         }
       });
       return;
@@ -345,7 +346,7 @@ Shows sign-in prompt with feature description
     ↓
 User clicks "Sign In to Continue"
     ↓
-Clerk modal opens
+Google sign-in starts
     ↓
 User signs in or signs up
     ↓
@@ -361,7 +362,7 @@ User triggers action (e.g., generate recipe)
     ↓
 Client calls server action
     ↓
-requireAuth() checks Clerk session
+requireAuth() checks the Auth.js session
     ↓
 ✅ Session valid → Continue with userId
     ↓
@@ -375,7 +376,7 @@ Result returned to client
 ```
 User triggers action
     ↓
-requireAuth() checks Clerk session
+requireAuth() checks the Auth.js session
     ↓
 ❌ Session expired → Throw error
     ↓
@@ -399,19 +400,19 @@ Prompt user to sign in again
 
 ### Test Auth Gates
 
-1. **Sign out** (use Clerk UserButton or `/sign-out`)
+1. **Sign out** (use the user menu)
 2. Navigate to protected feature
 3. Verify sign-in prompt displays
 4. Verify feature content is hidden
 5. Click "Sign In to Continue"
-6. Verify Clerk modal opens
+6. Verify Google sign-in starts
 
 ### Test Error Handling
 
 1. Sign in
 2. Start a long-running action (e.g., recipe discovery)
 3. Open browser DevTools → Application → Cookies
-4. Delete Clerk session cookies
+4. Delete the Auth.js session cookie (`authjs.session-token`, or `__Secure-authjs.session-token` over HTTPS)
 5. Wait for action to complete
 6. Verify error message shows correctly
 
@@ -423,7 +424,7 @@ Prompt user to sign in again
 
 - Always use `requireAuth()` for LLM-powered server actions
 - Validate `userId` is present before database operations
-- Use Clerk middleware in `src/middleware.ts` to protect routes
+- Use the Auth.js middleware in `src/middleware.ts` (rules in `src/lib/auth-routes.ts`) to protect routes
 - Return user-friendly error messages
 - Log authentication failures for monitoring
 
@@ -508,7 +509,7 @@ export async function discoverRecipe(options) {
 **Cause:** User not signed in or session expired
 
 **Solution:**
-1. Check Clerk session in browser DevTools
+1. Check the session at `/api/auth/session`
 2. Try signing in again
 3. Clear browser cookies and retry
 
@@ -536,16 +537,15 @@ try {
 **Cause:** Client auth state not synchronized
 
 **Solution:**
-1. Verify `<ClerkProvider>` wraps app in `src/app/layout.tsx`
-2. Check `useAuth()` hook returns `isSignedIn: true`
+1. Verify `<AuthProvider>` wraps the app in `src/app/layout.tsx`
+2. Check `useSessionUser()` returns a `user`
 3. Refresh page to sync state
 
 ---
 
 ## Related Documentation
 
-- **Authentication Setup:** `docs/guides/AUTHENTICATION_GUIDE.md`
-- **Clerk Configuration:** `docs/guides/CLERK_SETUP_GUIDE.md`
+- **Authentication Setup:** `docs/guides/authentication.md`
 - **Auth Guard Utilities:** `src/lib/auth-guard.ts`
 - **RequireAuth Component:** `src/components/auth/RequireAuth.tsx`
 

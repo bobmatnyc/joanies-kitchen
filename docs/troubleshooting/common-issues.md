@@ -93,30 +93,30 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ## Authentication Issues
 
-### Clerk Authentication Not Working
+### Sign-In Not Working
 
 **Problem:** Users cannot sign in
 
 **Solutions:**
 
-1. **Validate Clerk configuration:**
+1. **Check the session endpoint:**
 ```bash
-pnpm auth:validate
+curl http://localhost:3002/api/auth/session
 ```
 
-2. **Check environment variables:**
+2. **Check environment variables are set (names only, never print values):**
 ```bash
-cat .env.local | grep CLERK
+grep -c '^AUTH_' .env.local
 ```
+`AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` must all be set. If any is missing the app runs signed-out.
 
-3. **Verify keys match:**
-- Publishable and secret keys must be from same Clerk instance
-- Check for `pk_test_` and `sk_test_` pairing
-- Or `pk_live_` and `sk_live_` for production
+3. **Check the redirect URI:**
+- Google Cloud Console → APIs & Services → Credentials → the OAuth client
+- `http://localhost:3002/api/auth/callback/google` (your dev port) must be listed
 
-4. **Check allowed origins:**
-- Go to Clerk Dashboard → Configure → Domains
-- Ensure `http://localhost:3004` is added for development
+4. **Check the email is allowed:**
+- Registration is closed. `/sign-in?error=AccessDenied` means the Google email is neither seeded in `users` nor listed in `AUTH_ADMIN_EMAILS`
+- Seed it with `pnpm auth:seed-user` (see [authentication guide](../guides/authentication.md))
 
 ### Session Issues
 

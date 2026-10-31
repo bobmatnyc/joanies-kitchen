@@ -6,7 +6,7 @@ This document describes the Brave Search API integration for the Recipe Manager 
 ## API Route
 **Endpoint:** `/api/brave-search`
 **Method:** `POST`
-**Authentication:** Required (Clerk)
+**Authentication:** Required (Auth.js session)
 
 ## Setup
 
@@ -37,7 +37,7 @@ To get an API key:
 ```bash
 curl -X POST http://localhost:3004/api/brave-search \
   -H "Content-Type: application/json" \
-  -H "Cookie: __session=your_clerk_session_token" \
+  -H "Cookie: authjs.session-token=your_session_token" \
   -d '{
     "query": "chocolate chip cookie recipe",
     "count": 10
@@ -114,7 +114,7 @@ curl -X POST http://localhost:3004/api/brave-search \
 ## Security Features
 
 ### Authentication
-- All requests must include a valid Clerk session
+- All requests must include a valid Auth.js session
 - Unauthenticated requests return 401
 - User ID is logged for audit purposes
 
@@ -178,7 +178,7 @@ async function searchRecipes(query: string) {
 
 ### Dependencies
 - `next` - Next.js framework
-- `@clerk/nextjs/server` - Authentication via `auth()` helper
+- `@/lib/session-user` - Authentication via `getSessionUserId()`
 
 ### HTTP Methods
 - `POST` - Execute search (implemented)
@@ -194,7 +194,7 @@ async function searchRecipes(query: string) {
 
 ### Manual Testing
 1. Start the development server: `npm run dev`
-2. Sign in to the application (Clerk)
+2. Sign in to the application (Google)
 3. Use the example cURL command above (update cookie)
 4. Or integrate into a React component
 
@@ -239,7 +239,7 @@ Monitor your usage in the Brave Search dashboard to avoid rate limit errors.
 - Restart the development server after adding the key
 
 ### "Unauthorized" error
-- Ensure user is signed in via Clerk
+- Ensure user is signed in
 - Check that authentication is properly configured
 
 ### "Rate limit exceeded" error

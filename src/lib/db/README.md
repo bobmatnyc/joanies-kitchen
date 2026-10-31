@@ -202,10 +202,10 @@ import { parseRecipe, type ParsedRecipe } from '@/lib/db';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function getRecipeById(id: string): Promise<ParsedRecipe | null> {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     throw new Error('Unauthorized');

@@ -1,6 +1,6 @@
 # Environment Variables Quick Reference
 
-> **Authentication changed in #22.** Clerk is gone. The app reads `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` and (production only) `AUTH_URL`; see [the authentication guide](../guides/authentication.md). Every `CLERK_*` / `NEXT_PUBLIC_CLERK_*` and `ADMIN_USER_IDS` entry below is obsolete and is kept only until this page is rewritten.
+> **Authentication is Auth.js with Google (#22).** The app reads `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_ADMIN_EMAILS` and (production only) `AUTH_URL`; see [the authentication guide](../guides/authentication.md). The former Clerk variables are not read by the code.
 
 ## Overview
 
@@ -13,8 +13,9 @@ This document provides a quick reference for all environment variables used in t
 | Variable | Type | Purpose | Where to Get |
 |----------|------|---------|--------------|
 | `DATABASE_URL` | Secret | PostgreSQL connection (pooled) | [Neon Console](https://console.neon.tech) → Connection Details → Pooled |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public | Clerk authentication (client) | [Clerk Dashboard](https://dashboard.clerk.com) → API Keys |
-| `CLERK_SECRET_KEY` | Secret | Clerk authentication (server) | [Clerk Dashboard](https://dashboard.clerk.com) → API Keys |
+| `AUTH_SECRET` | Secret | Auth.js session signing | `npx auth secret` or `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID` | Secret | Google OAuth client ID | [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials |
+| `AUTH_GOOGLE_SECRET` | Secret | Google OAuth client secret | Same OAuth client |
 | `OPENROUTER_API_KEY` | Secret | AI recipe generation | [OpenRouter](https://openrouter.ai) → API Keys |
 | `BRAVE_SEARCH_API_KEY` | Secret | Web recipe search | [Brave Search API](https://brave.com/search/api) → API Keys |
 | `HUGGINGFACE_API_KEY` | Secret | Semantic search embeddings | [Hugging Face](https://huggingface.co) → Settings → Access Tokens |
@@ -27,10 +28,8 @@ This document provides a quick reference for all environment variables used in t
 | Variable | Type | Purpose | Default |
 |----------|------|---------|---------|
 | `DATABASE_URL_UNPOOLED` | Secret | Direct database connection | N/A |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Public | Custom sign-in page | `/sign-in` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Public | Custom sign-up page | `/sign-up` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | Public | Redirect after sign-in | `/` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | Public | Redirect after sign-up | `/` |
+| `AUTH_URL` | Config | Canonical site URL for Auth.js (set in Vercel Production only) | `https://joanies.kitchen` |
+| `AUTH_ADMIN_EMAILS` | Secret | Comma-separated admin emails; grants `users.is_admin` at sign-in | Unset: no env-based admin |
 
 ---
 
@@ -48,18 +47,14 @@ postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech/database?sslmode=requ
 postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech/database?sslmode=require
 ```
 
-### Clerk Keys
+### Auth.js Keys
 
-**Production (Live):**
 ```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-CLERK_SECRET_KEY=sk_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
-
-**Development (Test):**
-```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-CLERK_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+AUTH_SECRET=<random string from `openssl rand -base64 32`>
+AUTH_GOOGLE_ID=<client id>.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=<google client secret>
+AUTH_URL=https://joanies.kitchen                  # Vercel Production only
+AUTH_ADMIN_EMAILS=<comma-separated admin emails>  # optional
 ```
 
 ### API Keys
@@ -92,8 +87,11 @@ Use **production/live keys** for:
 **Variables:**
 ```bash
 DATABASE_URL=postgresql://...                          # Production database
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...         # Live Clerk key
-CLERK_SECRET_KEY=sk_live_...                          # Live Clerk secret
+AUTH_SECRET=...                                       # Production-only secret
+AUTH_GOOGLE_ID=...                                    # Google OAuth client
+AUTH_GOOGLE_SECRET=...
+AUTH_URL=https://joanies.kitchen                      # Production only
+AUTH_ADMIN_EMAILS=...                                 # Optional
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same across environments
 BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same across environments
 HUGGINGFACE_API_KEY=hf_...                            # Same across environments
@@ -109,8 +107,8 @@ Use **test/development keys** for:
 **Variables:**
 ```bash
 DATABASE_URL=postgresql://...                          # Can use same or separate database
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...         # Test Clerk key
-CLERK_SECRET_KEY=sk_test_...                          # Test Clerk secret
+AUTH_SECRET=...                                       # Not the production secret
+# Google does not accept wildcard redirect URIs, so preview deployments cannot sign in.
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same as production
 BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same as production
 HUGGINGFACE_API_KEY=hf_...                            # Same as production
@@ -126,8 +124,9 @@ Use **test/development keys** for:
 **Variables:**
 ```bash
 DATABASE_URL=postgresql://...                          # Local or dev database
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...         # Test Clerk key
-CLERK_SECRET_KEY=sk_test_...                          # Test Clerk secret
+AUTH_SECRET=...                                       # Local-only secret
+AUTH_GOOGLE_ID=...                                    # Redirect URI: http://localhost:3002/api/auth/callback/google
+AUTH_GOOGLE_SECRET=...
 OPENROUTER_API_KEY=sk-or-v1-...                       # Same as production
 BRAVE_SEARCH_API_KEY=your-brave-search-api-key  # Same as production
 HUGGINGFACE_API_KEY=hf_...                            # Same as production
@@ -156,19 +155,20 @@ NEXT_PUBLIC_APP_URL=http://localhost:3004             # Local URL
 
 ---
 
-### 2. Clerk Authentication
+### 2. Google OAuth (Auth.js)
 
-**URL:** https://dashboard.clerk.com
+**URL:** https://console.cloud.google.com
 
 **Steps:**
-1. Create account
-2. Create new application
-3. Go to **API Keys**
-4. Copy **Publishable Key** and **Secret Key**
-5. Note: Get both **test** and **live** keys
-6. Configure production domain in **Domains** section
+1. Open **APIs & Services** → **Credentials**
+2. Create an OAuth client ID of type **Web application**
+3. Add the redirect URIs `https://joanies.kitchen/api/auth/callback/google` and `http://localhost:3002/api/auth/callback/google`
+4. Copy the client ID and secret into `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`
+5. Generate `AUTH_SECRET` with `openssl rand -base64 32`
 
-**Cost:** Free tier available (10,000 MAUs)
+Full setup: [the authentication guide](../guides/authentication.md).
+
+**Cost:** Free
 
 ---
 
@@ -250,7 +250,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3004             # Local URL
 cp .env.example .env.local
 
 # 2. Fill in your development values
-# Use pk_test_ and sk_test_ keys for Clerk
+# Set AUTH_SECRET, AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET for sign-in
 
 # 3. Test configuration
 pnpm dev
@@ -265,7 +265,7 @@ pnpm dev
 # 2. Deploy to Vercel
 # 3. Test each integration:
 #    - Database connectivity
-#    - Authentication (Clerk)
+#    - Authentication (Auth.js with Google)
 #    - AI recipe generation (OpenRouter)
 #    - Web search (Brave)
 #    - Semantic search (Hugging Face)
@@ -287,13 +287,13 @@ pnpm dev
 
 ### Authentication Fails
 
-**Error:** Clerk authentication not working
+**Error:** Sign-in not working, or every request is signed out
 
 **Solutions:**
-1. Verify using correct keys (pk_live_ for production, pk_test_ for dev)
-2. Check production domain added in Clerk Dashboard
-3. Ensure domain is verified and active
-4. Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is public (has prefix)
+1. Verify `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are all set; when any is missing the app runs signed-out
+2. Check the redirect URI `<site>/api/auth/callback/google` is registered on the Google OAuth client
+3. Check the email is seeded in `users` or listed in `AUTH_ADMIN_EMAILS` (registration is closed; a denied login lands on `/sign-in?error=AccessDenied`)
+4. In production, verify `AUTH_URL` is `https://joanies.kitchen`
 
 ### Database Connection Timeout
 
@@ -337,7 +337,7 @@ pnpm dev
 
 - Uses Production scope variables
 - Must use live/production keys
-- Requires custom domain for Clerk production
+- Requires `AUTH_URL=https://joanies.kitchen`
 - Monitor costs and usage closely
 
 ---
@@ -350,8 +350,11 @@ DATABASE_URL=
 DATABASE_URL_UNPOOLED=
 
 # Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+AUTH_URL=
+AUTH_ADMIN_EMAILS=
 
 # AI Services
 OPENROUTER_API_KEY=

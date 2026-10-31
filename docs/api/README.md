@@ -25,7 +25,7 @@ Welcome to the Joanie's Kitchen REST API documentation. This API enables program
 
 ### 1. Get Your API Key
 
-API keys can only be created through the web interface using your Clerk session:
+API keys can only be created through the web interface using your Auth.js session (signed in with Google):
 
 ```bash
 # Login to https://your-domain.com
@@ -91,21 +91,21 @@ Authorization: Bearer jk_live_abc123...
 - Development: `jk_test_` + random string
 
 **Creating API Keys**:
-- Must be created via Clerk session (web interface)
+- Must be created via an Auth.js session (web interface)
 - Cannot create API keys using another API key (security)
 - Keys are shown only once at creation
 - Each key has specific scopes (permissions)
 
 See [AUTHENTICATION.md](./AUTHENTICATION.md) for detailed examples.
 
-### 2. Clerk Session (Web Interface)
+### 2. Auth.js Session (Web Interface)
 
-For web applications, use Clerk's session-based authentication. The API will automatically detect and use the Clerk session if no `Authorization` header is provided.
+For web applications, use the Auth.js session cookie. The API will automatically detect and use the Auth.js session if no `Authorization` header is provided.
 
 **Authentication Priority**:
 1. `Authorization: Bearer <api_key>` (highest priority)
 2. `Authorization: Basic <credentials>` (not yet implemented)
-3. Clerk session cookies (web apps)
+3. Auth.js session cookie (web apps)
 4. Unauthenticated (will return 401)
 
 ---
@@ -251,14 +251,14 @@ Rate limiting will be added in a future release. For now, please:
 
 Manage API keys for programmatic access:
 
-- `POST /api/v1/auth/keys` - Create API key (Clerk session only)
+- `POST /api/v1/auth/keys` - Create API key (session only)
 - `GET /api/v1/auth/keys` - List your API keys
 - `GET /api/v1/auth/keys/:id` - Get key details
 - `PATCH /api/v1/auth/keys/:id` - Update key
 - `DELETE /api/v1/auth/keys/:id` - Revoke key
 - `GET /api/v1/auth/keys/:id/usage` - Get usage statistics
 
-**Required Scope**: None (Clerk session required)
+**Required Scope**: None (session required)
 
 [Learn more about authentication →](./AUTHENTICATION.md)
 

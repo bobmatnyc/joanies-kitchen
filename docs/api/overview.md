@@ -214,34 +214,22 @@ Body: { recipeId: string }
 ### Auth & Debug Endpoints
 
 ```typescript
-// GET /api/debug-clerk
-// Debug Clerk configuration
-GET /api/debug-clerk
-
-// GET /api/clerk-config
-// Get current Clerk config
-GET /api/clerk-config
-
-// GET /api/security-audit
-// Security validation
-GET /api/security-audit
-
-// GET /api/debug-session
-// Debug user session
-GET /api/debug-session
+// GET /api/auth/session
+// Current Auth.js session (user id, name, email, image, isAdmin)
+GET /api/auth/session
 ```
 
 ## Authentication
 
-All API endpoints and server actions use Clerk authentication.
+All API endpoints and server actions use Auth.js authentication (Google sign-in, JWT sessions).
 
 ### Protected Routes
 
 ```typescript
-import { auth } from '@clerk/nextjs';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function protectedAction() {
-  const { userId } = auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     throw new Error('Unauthorized');

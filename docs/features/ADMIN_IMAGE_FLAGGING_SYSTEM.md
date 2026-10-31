@@ -201,10 +201,9 @@ export const revalidate = 3600; // 1 hour
 
 ### Admin Definition
 
-Admins configured via:
-- **Environment Variable**: `ADMIN_USER_IDS=user_xxxxx,user_yyyyy`
-- **Clerk Metadata**: `sessionClaims.metadata.isAdmin === 'true'`
-- **Multi-Layer Checks**: Both methods supported
+Admins are configured via:
+- **Database flag**: `users.is_admin`, re-read from the database on every admin check
+- **`AUTH_ADMIN_EMAILS`**: a listed email gets `users.is_admin = true` at sign-in (see [authentication.md](../guides/authentication.md))
 
 ### Audit Trail
 
@@ -299,8 +298,7 @@ DROP INDEX IF EXISTS idx_recipes_flagged_images;
 ### Common Issues
 
 **Flag button not appearing:**
-- Check user has admin role in Clerk metadata
-- Verify `ADMIN_USER_IDS` environment variable includes user ID
+- Check `users.is_admin` is true for the user
 - Ensure client-side hydration completed
 
 **Image regeneration fails:**
@@ -421,7 +419,7 @@ For issues or questions:
 1. Check server logs: `npm run dev` output
 2. Review OpenRouter API usage: https://openrouter.ai/account
 3. Inspect browser console for client-side errors
-4. Verify admin permissions in Clerk dashboard
+4. Verify `users.is_admin` for the admin user
 
 ---
 

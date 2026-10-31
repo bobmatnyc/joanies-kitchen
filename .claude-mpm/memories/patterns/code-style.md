@@ -54,7 +54,7 @@ export const recipeFormSchema = insertRecipeSchema.extend({
 ```typescript
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -62,7 +62,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function createRecipe(data: NewRecipe) {
   // 1. Authenticate
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
   // 2. Validate input

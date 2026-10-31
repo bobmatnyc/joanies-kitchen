@@ -173,7 +173,7 @@ This ensures flexible matching while maintaining accuracy.
 ```sql
 CREATE TABLE collections (
   id UUID PRIMARY KEY,
-  user_id TEXT NOT NULL,           -- Clerk user ID (persona)
+  user_id TEXT NOT NULL,           -- users.id (persona)
   name VARCHAR(100) NOT NULL,
   slug VARCHAR(100) NOT NULL,       -- URL-friendly
   description TEXT,

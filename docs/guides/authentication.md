@@ -11,11 +11,11 @@ Joanie's Kitchen signs users in with **Auth.js (NextAuth v5)** and **Google** on
 | Callbacks | `src/lib/auth-callbacks.ts` | `authorizeSignIn` (closed registration) and `refreshAdminClaim` (admin flag in the JWT). |
 | Route handler | `src/app/api/auth/[...nextauth]/route.ts` | `/api/auth/*` endpoints. |
 | Middleware | `src/middleware.ts`, `src/lib/auth-routes.ts` | Redirects signed-out users away from protected and admin routes. |
-| Server shim | `src/lib/auth.ts` | Clerk-shaped `auth()` → `{ userId, sessionClaims, user, … }`. |
-| Client shim | `src/lib/auth-client.tsx` | Clerk-shaped `useAuth`, `useUser`, `SignInButton` over `useSession`. |
+| Server helpers | `src/lib/session-user.ts` | `getSessionUser()` and `getSessionUserId()`: the signed-in user (or `null`) for server code. |
+| Client hook | `src/lib/use-session-user.ts` | `useSessionUser()` → `{ isLoaded, user }`, for client components under `<AuthProvider>`. |
 | Admin checks | `src/lib/admin.ts` | `checkAdminAccess`, `requireAdmin`, `authorizeAdminOrCronSecret`. |
 
-The two shims let existing callers keep their call sites. A follow-up PR replaces them with direct Auth.js calls.
+Application code reads the session through the two helpers above, not through `src/auth.ts` directly.
 
 ### Closed registration
 
@@ -64,9 +64,9 @@ Google does not accept wildcard redirect URIs, so Vercel preview deployments can
 | `AUTH_URL` | Vercel Production only | `https://joanies.kitchen` |
 | `AUTH_ADMIN_EMAILS` | where admins sign in | Comma-separated admin emails. Optional; unset grants no admin. |
 
-When any of the first three is missing, the app runs signed-out: `auth()` returns no user, and middleware sends protected routes to `/sign-in`.
+When any of the first three is missing, the app runs signed-out: `getSessionUser()` returns `null`, and middleware sends protected routes to `/sign-in`.
 
-The `CLERK_*`, `NEXT_PUBLIC_CLERK_*`, `ADMIN_USER_IDS` and `NEXT_PUBLIC_ADMIN_USER_IDS` variables are no longer read. Remove them from Vercel after the rollback window.
+The former Clerk variables (`CLERK_*`, `NEXT_PUBLIC_CLERK_*`) and the admin id lists (`ADMIN_USER_IDS`, `NEXT_PUBLIC_ADMIN_USER_IDS`) are not read by the code. Do not set them for local development. Copies may still exist in the Vercel project until they are removed there.
 
 ### 3. Apply migration 0023
 
@@ -136,9 +136,21 @@ The script upserts by id. It fails if the email already belongs to a different i
 
 Local EVO staging has no Google OAuth client. It signs in through a `local-staging` Credentials provider instead, as the single user in `LOCAL_STAGING_AUTH_EMAIL`. The provider, its sign-in button and notice exist only when `src/lib/local-staging-auth.ts` returns active, which needs all of: `LOCAL_STAGING_AUTH_BYPASS=1` exactly, `LOCAL_STAGING_AUTH_EMAIL` set, a `DATABASE_URL` host of exactly `127.0.0.1`, `::1` or `localhost`, and no `VERCEL`, `VERCEL_ENV` or `VERCEL_URL`. `AUTH_SECRET` is still required, and local staging MUST use its own `AUTH_SECRET`, never production's. As a second guard, a session minted by the bypass carries `localStaging: true` in its JWT, and the `jwt` callback ends any such session wherever the bypass is inactive. Seed the user with `pnpm auth:seed-user` and list the same email in `AUTH_ADMIN_EMAILS` for admin. See `.env.example`, LOCAL STAGING ONLY.
 
+## E2E tests (Playwright)
+
+The Playwright auth setup does not sign in with Google, which cannot be scripted. `test/tests/e2e/setup/auth.setup.ts` seeds a fixed `e2e-test-user` row in `users`, mints a signed Auth.js session cookie for it, checks `/api/auth/session` returns that user, and saves the storageState. `auth.teardown.ts` deletes the row. You do not seed an E2E user by hand and no real account or password is involved.
+
+Set these in the Playwright process environment:
+
+- `E2E_TEST_AUTH=1`
+- `AUTH_SECRET` equal to the dev server's `AUTH_SECRET`
+- `DATABASE_URL` for the database the dev server uses
+
+The setup refuses to run when `NODE_ENV` or `VERCEL_ENV` is `production`, or when the target is not a loopback URL. Use `pnpm auth:seed-user` only for people who sign in with Google, not for E2E.
+
 ## Tests
 
 - `src/lib/__tests__/auth-callbacks.test.ts` — sign-in gate and JWT admin refresh.
 - `src/lib/__tests__/admin-db-check.test.ts` — `requireAdmin` and `checkAdminAccess` read the database every call and deny on failure.
-- `src/lib/__tests__/auth-shim.test.ts`, `auth-client.test.tsx`, `auth-config.test.ts`, `auth-routes.test.ts`, `auth-seed.test.ts`.
+- `src/lib/__tests__/session-user.test.ts`, `use-session-user.test.tsx`, `auth-config.test.ts`, `auth-routes.test.ts`, `auth-seed.test.ts`.
 - `src/lib/__tests__/local-staging-auth.test.ts`, `local-staging-auth-provider.test.ts` — the #60 D5f bypass stays off outside local staging.

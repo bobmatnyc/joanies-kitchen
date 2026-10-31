@@ -2,7 +2,7 @@
 
 ## Overview
 
-This schema provides a complete infrastructure for API key authentication and management to support dual authentication (Clerk for users + API keys for programmatic access).
+This schema provides a complete infrastructure for API key authentication and management to support dual authentication (Auth.js sessions for users + API keys for programmatic access).
 
 ## Database Tables
 
@@ -21,7 +21,7 @@ Secure storage and management of API authentication keys.
 ```typescript
 {
   id: uuid,                    // Primary key
-  user_id: text,              // Owner (Clerk user_id or local user)
+  user_id: text,              // Owner (users.id or local user)
   name: varchar(100),         // Human-readable name (e.g., "Mobile App")
   key_hash: varchar(64),      // SHA-256 hash (never plaintext!)
   key_prefix: varchar(12),    // First 8-12 chars for display (e.g., "jk_live_abc1")

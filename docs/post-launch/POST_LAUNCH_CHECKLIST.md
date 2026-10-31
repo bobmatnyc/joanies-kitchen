@@ -19,7 +19,7 @@
   - [ ] Recipe pages load correctly
 - [ ] Verify environment variables are set correctly
 - [ ] Check database connection (Neon PostgreSQL)
-- [ ] Verify Clerk authentication (both dev and prod environments)
+- [ ] Verify Google sign-in (Auth.js) works in production
 - [ ] Test OpenRouter AI (generate 1 test recipe)
 
 ### Launch (Deployment)

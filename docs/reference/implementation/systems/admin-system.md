@@ -31,7 +31,7 @@ Visit `/admin` after signing in with an authorized account.
 
 ## Security
 
-- Admin access controlled by Clerk user IDs
+- Admin access controlled by `users.is_admin` (set from `AUTH_ADMIN_EMAILS` at sign-in)
 - All admin operations logged
 - Server-side validation of admin status
 - Protected API routes

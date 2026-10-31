@@ -295,7 +295,7 @@ Before starting post-launch execution, ensure:
 1. **Environment Variables**:
    - `OPENAI_API_KEY` (for DALL-E 3 image generation)
    - `DATABASE_URL` (Neon PostgreSQL)
-   - All Clerk auth keys configured
+   - AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, AUTH_URL and AUTH_ADMIN_EMAILS set
 
 2. **Dependencies**:
    - Python 3.8+ with `sentence-transformers` installed

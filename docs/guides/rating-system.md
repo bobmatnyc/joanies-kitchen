@@ -48,7 +48,7 @@ ADD COLUMN total_user_ratings INTEGER DEFAULT 0; -- Rating count
 CREATE TABLE recipe_ratings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipe_id TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL,  -- Clerk user ID
+  user_id TEXT NOT NULL,  -- users.id
   rating INTEGER NOT NULL CHECK (rating >= 0 AND rating <= 5),
   review TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
@@ -134,7 +134,7 @@ npx tsx scripts/run-rating-migration.ts
 
 ## Security
 
-- All rating operations require Clerk authentication
+- All rating operations require a signed-in user
 - User ID stored with each rating for accountability
 - Server-side validation of all rating submissions
 - Rating constrained to 0-5 (database CHECK constraint)

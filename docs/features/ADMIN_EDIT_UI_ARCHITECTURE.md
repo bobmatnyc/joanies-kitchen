@@ -328,7 +328,7 @@ RecipePage
 │  Layer 3: Server-Side Enforcement                               │
 │  ├─ requireAdmin(): All server actions check admin status      │
 │  ├─ Throws error if not admin (401 Unauthorized)               │
-│  └─ Uses Clerk session to validate user role                   │
+│  └─ Reads users.is_admin for the session user                  │
 │                                                                 │
 │  Layer 4: Database Constraints                                  │
 │  ├─ All updates scoped to specific recipe ID                   │
