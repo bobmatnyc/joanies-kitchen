@@ -17,7 +17,7 @@ import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { favorites } from '@/lib/db/user-discovery-schema';
-import { ensureUserProfileFor, type ProfileIdentity } from '@/lib/ensure-user-profile';
+import { ensureUserProfileStatus, type ProfileIdentity } from '@/lib/ensure-user-profile';
 import { type RecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 
 export type Favorite = typeof favorites.$inferSelect;
@@ -69,7 +69,10 @@ export async function addFavorite(
   recipeId: string,
   identity: ProfileIdentity | null = null
 ): Promise<AddFavoriteResult> {
-  if (!(await ensureUserProfileFor(userId, identity))) return { status: 'no-profile' };
+  // #210: a pending account with no profile gets none; answer its refusal, not no-profile.
+  const profile = await ensureUserProfileStatus(userId, identity);
+  if (profile.status === 'pending-deletion') return { status: 'pending-deletion' };
+  if (profile.status === 'failed') return { status: 'no-profile' };
 
   // Targetless ON CONFLICT: matches favorites_unique without naming it.
   // #208: `allowed` is the pending-deletion guard, read in this statement's

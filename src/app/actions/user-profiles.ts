@@ -1,15 +1,21 @@
 'use server';
 
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
+import { users } from '@/lib/db/auth-schema';
 import {
   insertUserProfileSchema,
   type NewUserProfile,
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
-import { ensureUserProfileFor } from '@/lib/ensure-user-profile';
+import {
+  ensureUserProfileFor,
+  insertProfileUnlessPendingDeletion,
+  PENDING_DELETION_PROFILE_ERROR,
+} from '@/lib/ensure-user-profile';
 import { publicRecipe } from '@/lib/recipe-public';
 import { getSessionUser, getSessionUserId } from '@/lib/session-user';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
@@ -52,14 +58,20 @@ export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
 
     if (existingProfile.length > 0) {
       // Update existing profile
+      // #210: refused in the same statement while a deletion is pending, so an
+      // edit cannot re-publish the profile `markAccountDeleted` hid.
       const [updatedProfile] = await db
         .update(userProfiles)
         .set({
           ...validatedData,
           updated_at: new Date(),
         })
-        .where(eq(userProfiles.user_id, userId))
+        .where(and(eq(userProfiles.user_id, userId), authorNotPendingDeletion(userId)))
         .returning();
+
+      if (!updatedProfile) {
+        return { success: false, error: PENDING_DELETION_PROFILE_ERROR };
+      }
 
       revalidatePath('/profile/edit');
       revalidatePath(`/profile/${updatedProfile.username}`);
@@ -67,7 +79,18 @@ export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
       return { success: true, profile: updatedProfile };
     } else {
       // Create new profile
-      const [newProfile] = await db.insert(userProfiles).values(validatedData).returning();
+      // #210: the pending-deletion guard is in the insert's own statement.
+      const outcome = await insertProfileUnlessPendingDeletion(validatedData, {
+        ignoreUserIdConflict: false,
+      });
+      if (outcome === 'pending-deletion') {
+        return { success: false, error: PENDING_DELETION_PROFILE_ERROR };
+      }
+      const [newProfile] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.user_id, userId))
+        .limit(1);
 
       revalidatePath('/profile/edit');
       revalidatePath(`/profile/${newProfile.username}`);
@@ -218,17 +241,25 @@ export async function updateProfileSettings(settings: { isPublic?: boolean }) {
       return { success: false, error: 'Unauthorized' };
     }
 
+    // #210: refused in the same statement while a deletion is pending, so this
+    // cannot re-publish the profile `markAccountDeleted` hid.
     const [updatedProfile] = await db
       .update(userProfiles)
       .set({
         ...settings,
         updated_at: new Date(),
       })
-      .where(eq(userProfiles.user_id, userId))
+      .where(and(eq(userProfiles.user_id, userId), authorNotPendingDeletion(userId)))
       .returning();
 
     if (!updatedProfile) {
-      return { success: false, error: 'Profile not found' };
+      // #210: the read only picks the message; the guard above decided the write.
+      const [pending] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, userId), isNotNull(users.deletion_requested_at)))
+        .limit(1);
+      return { success: false, error: pending ? PENDING_DELETION_PROFILE_ERROR : 'Profile not found' };
     }
 
     revalidatePath('/profile/edit');

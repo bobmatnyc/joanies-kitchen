@@ -13,19 +13,94 @@
  * `ON CONFLICT (user_id) DO NOTHING`, then re-select); a username taken by a
  * concurrent new user is retried with the next suffix. Returns null on any
  * other failure (logged), as the action always has.
- * Test: `src/lib/favorites/__tests__/favorites-core.test.ts`
+ * #210: an account with a pending deletion gets no new profile; the guard is in
+ * the INSERT statement itself (`insertProfileUnlessPendingDeletion`).
+ * Test: `src/lib/favorites/__tests__/favorites-core.test.ts`,
+ * `src/lib/__tests__/profile-pending-deletion.test.ts`
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { eq, getTableColumns, type SQL, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/auth-schema';
 import {
   insertUserProfileSchema,
+  type NewUserProfile,
   type UserProfile,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
 import { isUniqueViolation } from '@/lib/utils/error-handling';
+
+/** #210: the error profile writers return when the account has a pending deletion. */
+export const PENDING_DELETION_PROFILE_ERROR =
+  'Your account is scheduled for deletion, so you cannot change your profile. Cancel the deletion to change it again.';
+
+/** #210: what `insertProfileUnlessPendingDeletion` did. */
+export type GuardedProfileInsert = 'inserted' | 'conflict' | 'pending-deletion';
+
+/**
+ * #210: the guarded INSERT as one statement. A `user_id` conflict is ignored
+ * when `ignoreUserIdConflict` is set, and raises 23505 otherwise.
+ */
+function guardedProfileInsertSql(
+  values: NewUserProfile,
+  ignoreUserIdConflict: boolean
+): SQL {
+  const columns = getTableColumns(userProfiles);
+  const keys = (Object.keys(values) as Array<keyof NewUserProfile>).filter(
+    (key) => values[key] !== undefined
+  );
+  const names = sql.join(
+    keys.map((key) => sql.identifier(columns[key].name)),
+    sql`, `
+  );
+  // INSERT ... SELECT gives a parameter no type, so each value is cast to its
+  // column's type. The length is dropped: a cast to varchar(n) truncates.
+  const cells = sql.join(
+    keys.map((key) => {
+      const column = columns[key];
+      const type = column.getSQLType().replace(/\(\d+\)$/, '');
+      return sql`${sql.param(values[key], column)}::${sql.raw(type)}`;
+    }),
+    sql`, `
+  );
+  const onConflict = ignoreUserIdConflict
+    ? sql`ON CONFLICT (${sql.identifier(columns.user_id.name)}) DO NOTHING`
+    : sql``;
+  return sql`
+    WITH allowed AS (
+      SELECT 1 AS ok WHERE ${authorNotPendingDeletion(values.user_id)}
+    ), inserted AS (
+      INSERT INTO ${userProfiles} (${names})
+      SELECT ${cells} FROM allowed
+      ${onConflict}
+      RETURNING 1
+    )
+    SELECT EXISTS (SELECT 1 FROM allowed) AS allowed, EXISTS (SELECT 1 FROM inserted) AS added
+  `;
+}
+
+/**
+ * Why: #210: a profile created during the deletion grace period is public and
+ * undoes `markAccountDeleted`. A separate pre-check can pass just before the
+ * request lands, so the check rides in the INSERT's own statement, as in #197
+ * and #208.
+ * What: inserts `values` unless `users.deletion_requested_at` is set for
+ * `values.user_id` (ids with no `users` row pass). Answers `pending-deletion`
+ * when refused, `inserted`, or `conflict` when an ignored `user_id` conflict
+ * wrote nothing. Throws on any other DB error, including 23505.
+ * Test: `src/lib/__tests__/profile-pending-deletion.test.ts`
+ */
+export async function insertProfileUnlessPendingDeletion(
+  values: NewUserProfile,
+  { ignoreUserIdConflict }: { ignoreUserIdConflict: boolean }
+): Promise<GuardedProfileInsert> {
+  const result = await db.execute(guardedProfileInsertSql(values, ignoreUserIdConflict));
+  const row = (result.rows as unknown as Array<{ allowed: boolean; added: boolean }>)[0];
+  if (!row?.allowed) return 'pending-deletion';
+  return row.added ? 'inserted' : 'conflict';
+}
 
 /** Inserts tried before giving up when concurrent new users keep taking the chosen username. */
 const USERNAME_ATTEMPTS = 5;
@@ -69,10 +144,33 @@ async function loadUserIdentity(userId: string): Promise<ProfileIdentity | null>
   }
 }
 
+/**
+ * #210: what `ensureUserProfileStatus` found or did. `pending-deletion` means
+ * the account has no profile and gets none until the deletion is cancelled.
+ */
+export type EnsureProfileResult =
+  | { status: 'ready'; profile: UserProfile }
+  | { status: 'pending-deletion' }
+  | { status: 'failed' };
+
+/** The profile, or null when there is none (pending deletion or failure). */
 export async function ensureUserProfileFor(
   userId: string,
   identity: ProfileIdentity | null = null
 ): Promise<UserProfile | null> {
+  const result = await ensureUserProfileStatus(userId, identity);
+  return result.status === 'ready' ? result.profile : null;
+}
+
+/**
+ * #210: `ensureUserProfileFor` with the reason when no profile comes back. An
+ * existing profile is returned unchanged, so a pending account's hidden
+ * profile stays as `markAccountDeleted` left it.
+ */
+export async function ensureUserProfileStatus(
+  userId: string,
+  identity: ProfileIdentity | null = null
+): Promise<EnsureProfileResult> {
   try {
     const existingProfile = await db
       .select()
@@ -81,7 +179,7 @@ export async function ensureUserProfileFor(
       .limit(1);
 
     if (existingProfile.length > 0) {
-      return existingProfile[0];
+      return { status: 'ready', profile: existingProfile[0] };
     }
 
     // #181: an API-key caller passes no identity; read it from the Auth.js `users`
@@ -122,35 +220,38 @@ export async function ensureUserProfileFor(
         is_public: true, // Default to public
       });
 
-      let inserted: UserProfile | undefined;
+      // #210: the pending-deletion guard is in this insert's own statement.
+      let outcome: GuardedProfileInsert;
       try {
-        [inserted] = await db
-          .insert(userProfiles)
-          .values(profileData)
-          .onConflictDoNothing({ target: userProfiles.user_id })
-          .returning();
+        outcome = await insertProfileUnlessPendingDeletion(profileData, {
+          ignoreUserIdConflict: true,
+        });
       } catch (error) {
         if (isUniqueViolation(error)) continue; // username taken meanwhile
         throw error;
       }
 
-      if (!inserted) {
-        const [winner] = await db
-          .select()
-          .from(userProfiles)
-          .where(eq(userProfiles.user_id, userId))
-          .limit(1);
-        if (winner) return winner;
-        throw new Error(`user_profiles conflict for ${userId} but no row on re-select`);
+      if (outcome === 'pending-deletion') return { status: 'pending-deletion' };
+
+      // The new row, or the concurrent winner's on a user_id conflict.
+      const [profile] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.user_id, userId))
+        .limit(1);
+      if (!profile) {
+        throw new Error(`user_profiles ${outcome} for ${userId} but no row on re-select`);
       }
 
-      revalidatePath('/profile/edit');
-      revalidatePath(`/profile/${inserted.username}`);
-      return inserted;
+      if (outcome === 'inserted') {
+        revalidatePath('/profile/edit');
+        revalidatePath(`/profile/${profile.username}`);
+      }
+      return { status: 'ready', profile };
     }
     throw new Error(`no free username for ${userId} after ${USERNAME_ATTEMPTS} attempts`);
   } catch (error) {
     console.error('Error ensuring user profile:', error);
-    return null;
+    return { status: 'failed' };
   }
 }
