@@ -100,6 +100,7 @@ import { getToolBySlug } from '@/app/actions/tools';
 import { GET as paginatedGET } from '@/app/api/recipes/paginated/route';
 import { SimilarRecipesSection } from '@/components/recipe/SimilarRecipesSection';
 import { searchCaches } from '@/lib/cache';
+import { users } from '@/lib/db/auth-schema';
 import { findSimilarRecipes } from '@/lib/db/embeddings';
 import { recipeIngredients } from '@/lib/db/ingredients-schema';
 import * as schema from '@/lib/db/schema';
@@ -339,7 +340,15 @@ const PATHS: ReadPath[] = [
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.recipeForks, recipeIngredients, schema.tools, schema.recipeTools],
+    // #208: `users` too; the fork's pending-deletion guard reads it.
+    [
+      users,
+      schema.recipes,
+      schema.recipeForks,
+      recipeIngredients,
+      schema.tools,
+      schema.recipeTools,
+    ],
     { ...schema, recipeIngredients }
   );
   client = built.client;

@@ -133,7 +133,7 @@ const collection = await collectionService.create(userId, {
 });
 
 // Manage recipes
-await collectionService.addRecipe(collection.id, recipeId);
+await collectionService.addRecipe(userId, collection.id, recipeId);
 const recipes = await collectionService.getRecipes(collection.id);
 await collectionService.removeRecipe(collection.id, recipeId);
 ```

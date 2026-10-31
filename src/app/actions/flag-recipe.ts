@@ -11,6 +11,10 @@
 
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionError,
+} from '@/lib/account-deletion/guarded-insert';
 import { checkAdminAccess, requireAdmin } from '@/lib/admin';
 import { applyCommentFlagAction } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
@@ -104,10 +108,10 @@ export async function flagRecipe(
       };
     }
 
-    // Create flag
-    const [newFlag] = await db
-      .insert(recipeFlags)
-      .values({
+    // #208: refused in the insert statement itself for an account pending deletion.
+    const { row: newFlag } = await insertUnlessPendingDeletion(
+      recipeFlags,
+      {
         recipe_id: recipeId,
         user_id: userId,
         reason,
@@ -115,8 +119,12 @@ export async function flagRecipe(
         status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
-      })
-      .returning({ id: recipeFlags.id });
+      },
+      userId
+    );
+    if (!newFlag) {
+      return { success: false, error: pendingDeletionError('report recipes') };
+    }
 
     console.log(`[Flag Recipe] User ${userId} flagged recipe ${recipeId} for ${reason}`);
 

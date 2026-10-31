@@ -4,6 +4,10 @@ import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionError,
+} from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
@@ -71,8 +75,15 @@ export async function createCollection(data: {
       is_public: data.isPublic ?? false,
     });
 
-    // Create collection
-    const [newCollection] = await db.insert(collections).values(validatedData).returning();
+    // #208: refused in the insert statement itself for an account pending deletion.
+    const { row: newCollection } = await insertUnlessPendingDeletion(
+      collections,
+      validatedData,
+      userId
+    );
+    if (!newCollection) {
+      return { success: false, error: pendingDeletionError('create collections') };
+    }
 
     revalidatePath('/collections');
     revalidatePath(`/profile/${profile.username}`);
@@ -522,10 +533,17 @@ export async function addRecipeToCollection(
       personal_note: personalNote || null,
     });
 
-    const [newCollectionRecipe] = await db
-      .insert(collectionRecipes)
-      .values(validatedData)
-      .returning();
+    // #208: refused in the insert statement itself for an account pending deletion.
+    // The counters below run only after a row landed, each in its own statement as
+    // before, so the refusal changes no count and no new lock order is added.
+    const { row: newCollectionRecipe } = await insertUnlessPendingDeletion(
+      collectionRecipes,
+      validatedData,
+      userId
+    );
+    if (!newCollectionRecipe) {
+      return { success: false, error: pendingDeletionError('add recipes to collections') };
+    }
 
     // Update collection recipe count and last added timestamp
     await db

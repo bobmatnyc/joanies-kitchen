@@ -45,6 +45,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 vi.mock('@/app/actions/user-profiles', () => ({ ensureUserProfile: vi.fn(async () => ({})) }));
 
 import { addRecipeToCollection } from '@/app/actions/collections';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import * as discovery from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -66,7 +67,8 @@ const db = () => state.db as any;
 
 beforeAll(async () => {
   const created = await createVisibilityDb(
-    [schema.recipes, discovery.collections, discovery.collectionRecipes],
+    // #208: `users` too; the add's pending-deletion guard reads it.
+    [users, schema.recipes, discovery.collections, discovery.collectionRecipes],
     { ...schema, ...discovery },
     { constraints: true }
   );

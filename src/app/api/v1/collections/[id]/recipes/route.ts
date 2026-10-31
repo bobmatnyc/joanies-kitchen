@@ -9,6 +9,7 @@
  */
 
 import type { NextRequest } from 'next/server';
+import { AccountPendingDeletionError } from '@/lib/account-deletion/guarded-insert';
 import {
   apiError,
   apiForbidden,
@@ -124,7 +125,7 @@ export const GET = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Not the owner
+ * - 403: Not the owner, or the account has a pending deletion (#208)
  * - 404: Collection not found
  * - 400: Invalid request body or recipe already in collection
  * - 500: Internal server error
@@ -171,6 +172,7 @@ export const POST = requireScopes(
 
       // Add recipe to collection
       await collectionService.addRecipe(
+        auth.userId!,
         collectionId.data,
         validatedData.recipeId,
         validatedData.personalNote
@@ -178,6 +180,10 @@ export const POST = requireScopes(
 
       return apiSuccess({ added: true }, 201);
     } catch (error) {
+      // #208: the account has a pending deletion; nothing was written.
+      if (error instanceof AccountPendingDeletionError) {
+        return apiForbidden(error.message);
+      }
       console.error('Error adding recipe to collection:', error);
       return apiError('Internal server error');
     }
