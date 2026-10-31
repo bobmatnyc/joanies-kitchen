@@ -11,45 +11,31 @@
 
 'use server';
 
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeRatings, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { lockRecipeForRating, ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
-
-/**
- * #141: first statement of every rating batch. Locks the recipe row so a
- * concurrent rating batch on the same recipe waits here, before its write and
- * recompute, instead of at the recompute's UPDATE with a subquery snapshot that
- * misses the other batch's rating. Under READ COMMITTED each later statement
- * takes a fresh snapshot, so it sees the committed rating.
- * Test: `rate-recipe-aggregates.test.ts`
- */
-function lockRecipeRow(recipeId: string) {
-  return db.select({ id: recipes.id }).from(recipes).where(eq(recipes.id, recipeId)).for('update');
-}
 
 /**
  * #137: one statement derives the recipe's aggregates from `recipe_ratings`. It
  * always rides in the same `db.batch` as the rating write (neon-http has no
  * `db.transaction`; a batch is one HTTP transaction), so the write and the
  * recompute succeed or fail together.
- * #141: atomicity alone does not stop drift. Two concurrent batches can each
- * compute the subqueries without the other's uncommitted rating, so the batch
- * must start with `lockRecipeRow` to serialize writers on the recipe.
- * An average over zero ratings is NULL; an average of 0 stays 0.
- * Test: `rate-recipe-aggregates.test.ts`
+ * #141: the batch opens with `lockRecipeForRating`, so concurrent rating writes
+ * on one recipe run one after the other and each recompute sees every committed
+ * rating. The stored aggregates then match `recipe_ratings` after every rating
+ * write, and a write also repairs an aggregate that was stale before it.
+ * Test: `rate-recipe-aggregates.test.ts`, `rate-recipe-lock-order.test.ts`
  */
 function recomputeRatingAggregates(recipeId: string) {
   return db
     .update(recipes)
-    .set({
-      avg_user_rating: sql`(SELECT CAST(AVG(${recipeRatings.rating}) AS DECIMAL(2,1)) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
-      total_user_ratings: sql`(SELECT COUNT(*) FROM ${recipeRatings} WHERE ${recipeRatings.recipe_id} = ${recipeId})`,
-    })
+    .set(ratingAggregateColumns())
     .where(eq(recipes.id, recipeId))
     .returning({
       avgUserRating: recipes.avg_user_rating,
@@ -113,8 +99,8 @@ export async function rateRecipe(
     // #137: upsert and aggregate recompute in one atomic batch.
     const now = new Date();
     const [, , recomputed] = await db.batch([
-      // #141: lock the recipe row first so concurrent raters cannot compute stale aggregates.
-      lockRecipeRow(recipeId),
+      // #141: lock the recipe row (FOR NO KEY UPDATE) first, so concurrent raters queue.
+      lockRecipeForRating(recipeId),
       db
         .insert(recipeRatings)
         .values({
@@ -319,8 +305,8 @@ export async function deleteRating(
 
     // Delete and recompute in one atomic batch (a concurrent delete only makes the delete a no-op).
     await db.batch([
-      // #141: lock the recipe row first so a concurrent rate/delete cannot leave stale aggregates.
-      lockRecipeRow(recipeId),
+      // #141: lock the recipe row (FOR NO KEY UPDATE) first, so a concurrent rate/delete queues.
+      lockRecipeForRating(recipeId),
       db
         .delete(recipeRatings)
         .where(and(eq(recipeRatings.recipe_id, recipeId), eq(recipeRatings.user_id, userToDelete))),
