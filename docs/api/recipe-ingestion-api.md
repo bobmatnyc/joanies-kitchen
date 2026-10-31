@@ -10,9 +10,13 @@ POST /api/ingest-recipe
 
 ## Authentication
 
-Requires `write:recipes` scope. Two authentication methods supported:
+Admin-only (#233). Requires `write:recipes` scope and an admin caller: the
+signed-in user's, or the API key owner's, `users.is_admin` must be true. Any
+other caller, or a failed admin lookup, gets `403 {"success": false, "error":
+"Admin access required"}` before any scrape, LLM call, rate-limit count or insert.
+Two authentication methods supported:
 
-1. **API Key (Recommended for automation)**
+1. **API Key owned by an admin (Recommended for automation)**
    ```bash
    Authorization: Bearer <YOUR_API_KEY>
    ```
