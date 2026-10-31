@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { Clock, DollarSign, Edit, ShoppingCart, Users, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -71,7 +71,7 @@ export function MealDetailContent({
   initialMeal,
   initialShoppingList,
 }: MealDetailContentProps) {
-  const { userId } = useAuth();
+  const userId = useSessionUser().user?.id ?? null;
   const [meal, setMeal] = useState<MealWithRecipes | GuestMealWithRecipes | null>(
     initialMeal || null
   );

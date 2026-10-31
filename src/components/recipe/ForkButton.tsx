@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { GitFork } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -26,13 +26,13 @@ export function ForkButton({
   showCount = true,
   variant = 'ghost',
 }: ForkButtonProps) {
-  const { isSignedIn } = useAuth();
+  const signedIn = useSessionUser().user !== null;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [forkCount, setForkCount] = useState(initialForkCount);
 
   const handleFork = async () => {
-    if (!isSignedIn) {
+    if (!signedIn) {
       router.push('/sign-in');
       return;
     }

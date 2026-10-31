@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { UserCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -16,13 +16,14 @@ import { Button } from '@/components/ui/button';
  * - User hasn't dismissed the banner (stored in localStorage)
  */
 export function ProfileCompletionBanner() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isLoaded, user } = useSessionUser();
+  const signedIn = user !== null;
   const [isDismissed, setIsDismissed] = useState(true); // Start as dismissed
   const [hasProfile, setHasProfile] = useState(true); // Start as having profile
 
   useEffect(() => {
     // Only check after auth is loaded
-    if (!isLoaded || !isSignedIn) {
+    if (!isLoaded || !signedIn) {
       return;
     }
 
@@ -48,7 +49,7 @@ export function ProfileCompletionBanner() {
     }
 
     checkProfile();
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, signedIn]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -56,7 +57,7 @@ export function ProfileCompletionBanner() {
   };
 
   // Don't show if: not loaded, not signed in, dismissed, or has profile
-  if (!isLoaded || !isSignedIn || isDismissed || hasProfile) {
+  if (!isLoaded || !signedIn || isDismissed || hasProfile) {
     return null;
   }
 

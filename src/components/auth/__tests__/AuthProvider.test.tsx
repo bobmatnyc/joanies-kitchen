@@ -6,15 +6,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { useAuth } from '@/lib/auth-client';
 import { isAuthConfigured } from '@/lib/auth-env';
+import { useSessionUser } from '@/lib/use-session-user';
 
 const fetchMock = vi.fn();
 
 function Probe() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, user } = useSessionUser();
   if (!isLoaded) return <p>loading</p>;
-  return <p>{isSignedIn ? `signed-in:${userId}` : 'signed-out'}</p>;
+  return <p>{user ? `signed-in:${user.id}` : 'signed-out'}</p>;
 }
 
 function setEnv(vercelEnv: 'preview' | 'production', configured: boolean) {
