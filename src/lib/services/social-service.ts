@@ -40,6 +40,8 @@ export class SocialService {
    * Add a recipe to user's favorites. Idempotent: a repeat call is a no-op.
    * Creates the user's profile first when missing (`favorites` FK).
    * Throws when the profile cannot be created.
+   * #208: throws `FavoritePendingDeletionError` when the account has a pending
+   * deletion; nothing is written.
    */
   async addFavorite(
     userId: string,
@@ -49,6 +51,10 @@ export class SocialService {
     const result = await favoritesCore.addFavorite(userId, recipeId, identity);
     if (result.status === 'no-profile') {
       throw new Error('Failed to create user profile');
+    }
+    // #208: follows the server action, which answers this with an error.
+    if (result.status === 'pending-deletion') {
+      throw new favoritesCore.FavoritePendingDeletionError();
     }
   }
 

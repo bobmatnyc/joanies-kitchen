@@ -20,9 +20,17 @@
 
 import type { NextRequest, NextResponse } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
-import { apiError, apiNotFound, apiSuccess, getRequiredParam, handleActionResult } from '@/lib/api';
+import {
+  apiError,
+  apiForbidden,
+  apiNotFound,
+  apiSuccess,
+  getRequiredParam,
+  handleActionResult,
+} from '@/lib/api';
 import { optionalAuth, requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { FavoritePendingDeletionError } from '@/lib/favorites';
 import { findViewableRecipe } from '@/lib/recipe-visibility';
 import { socialService } from '@/lib/services';
 
@@ -125,7 +133,8 @@ export const GET = deprecated(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions (missing write:favorites scope)
+ * - 403: Insufficient permissions (missing write:favorites scope), or the
+ *   account has a pending deletion (#208, reason `forbidden`)
  * - 404: Recipe not found
  * - 500: Internal server error
  */
@@ -162,6 +171,10 @@ export const POST = deprecated(
           201
         );
       } catch (error) {
+        // #208: an account with a pending deletion may not like recipes.
+        if (error instanceof FavoritePendingDeletionError) {
+          return apiForbidden(error.message);
+        }
         console.error('Error liking recipe:', error);
         return apiError('Internal server error');
       }

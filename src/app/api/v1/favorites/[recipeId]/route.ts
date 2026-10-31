@@ -13,6 +13,7 @@ import type { NextRequest } from 'next/server';
 import { getRecipe } from '@/app/actions/recipes';
 import {
   apiError,
+  apiForbidden,
   apiNotFound,
   apiSuccess,
   getRequiredParam,
@@ -20,6 +21,7 @@ import {
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { FavoritePendingDeletionError } from '@/lib/favorites';
 import { findViewableRecipe } from '@/lib/recipe-visibility';
 import { socialService } from '@/lib/services';
 
@@ -89,7 +91,8 @@ export const GET = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions (missing write:favorites scope)
+ * - 403: Insufficient permissions (missing write:favorites scope), or the
+ *   account has a pending deletion (#208, reason `forbidden`)
  * - 404: Recipe not found
  * - 500: Internal server error
  */
@@ -121,6 +124,10 @@ export const POST = requireScopes(
         201
       );
     } catch (error) {
+      // #208: an account with a pending deletion may not add favorites.
+      if (error instanceof FavoritePendingDeletionError) {
+        return apiForbidden(error.message);
+      }
       console.error('Error adding favorite:', error);
       return apiError('Internal server error');
     }

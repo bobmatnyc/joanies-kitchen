@@ -92,6 +92,7 @@ import {
 import { POST as favoritePOST } from '@/app/api/v1/favorites/[recipeId]/route';
 import { GET as favoritesGET } from '@/app/api/v1/favorites/route';
 import { POST as likePOST } from '@/app/api/v1/recipes/[id]/like/route';
+import { users } from '@/lib/db/auth-schema';
 import * as chefSchema from '@/lib/db/chef-schema';
 import * as schema from '@/lib/db/schema';
 import * as discovery from '@/lib/db/user-discovery-schema';
@@ -462,6 +463,8 @@ beforeAll(async () => {
     schema.mealRecipes,
     chefSchema.chefs,
     chefSchema.chefRecipes,
+    // #208: addFavorite's pending-deletion guard reads users.
+    users,
   ];
   const built = await createVisibilityDb(tables, { ...schema, ...discovery, ...chefSchema });
   client = built.client;

@@ -13,6 +13,7 @@
  */
 
 import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { authorNotPendingDeletion } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import { favorites } from '@/lib/db/user-discovery-schema';
@@ -25,23 +26,43 @@ export type Recipe = typeof recipes.$inferSelect;
 export type AddFavoriteResult =
   | { status: 'added'; favorite: Favorite }
   | { status: 'exists' }
-  | { status: 'no-profile' };
+  | { status: 'no-profile' }
+  // #208: the caller's account has a pending deletion; nothing was written.
+  | { status: 'pending-deletion' };
+
+/** #208: the message every caller shows for a `pending-deletion` refusal. */
+export const PENDING_DELETION_FAVORITE_ERROR =
+  'Your account is scheduled for deletion, so you cannot favorite recipes. Cancel the deletion to favorite again.';
+
+/** #208: thrown by `socialService` when the core answers `pending-deletion`. */
+export class FavoritePendingDeletionError extends Error {
+  constructor() {
+    super(PENDING_DELETION_FAVORITE_ERROR);
+    this.name = 'FavoritePendingDeletionError';
+  }
+}
 
 interface InsertedRow {
   id: string;
   user_id: string;
   recipe_id: string;
   created_at: Date | string | null;
+  allowed: boolean;
+  added: boolean;
 }
 
 /**
  * Why: a favorite needs its owner's profile row (FK), and a repeat add must not
- * count twice.
+ * count twice. #208: an account with a pending deletion must not add one; the
+ * purge locks only the recipes its user had favorited when it started.
  * What: ensures the profile, then inserts the favorite and increments
  * `like_count` in ONE statement; the increment runs only when the insert added
  * a row (`ON CONFLICT DO NOTHING` + EXISTS on its RETURNING). Atomic on
  * neon-http, which cannot branch on an earlier statement inside `db.batch`.
- * Test: `addFavorite twice increments like_count once`
+ * #208: the same statement refuses a caller whose `users.deletion_requested_at`
+ * is set (ids with no `users` row pass): no row, no `like_count` change.
+ * Test: `addFavorite twice increments like_count once`,
+ * `favorites-pending-deletion.test.ts`
  */
 export async function addFavorite(
   userId: string,
@@ -51,10 +72,17 @@ export async function addFavorite(
   if (!(await ensureUserProfileFor(userId, identity))) return { status: 'no-profile' };
 
   // Targetless ON CONFLICT: matches favorites_unique without naming it.
+  // #208: `allowed` is the pending-deletion guard, read in this statement's
+  // snapshot, never in a query of its own. It is a plain read of `users` (no row
+  // lock), and a refused insert writes nothing, so the FK checks and the
+  // like_count UPDATE take no row lock either. The SELECT list needs casts.
+  // The final LEFT JOIN always returns one row, so a refusal is told from a repeat.
   const result = await db.execute(sql`
-    WITH inserted AS (
+    WITH allowed AS (
+      SELECT 1 AS ok WHERE ${authorNotPendingDeletion(userId)}
+    ), inserted AS (
       INSERT INTO ${favorites} (user_id, recipe_id)
-      VALUES (${userId}, ${recipeId})
+      SELECT ${userId}::text, ${recipeId}::text FROM allowed
       ON CONFLICT DO NOTHING
       RETURNING id, user_id, recipe_id, created_at
     ), bumped AS (
@@ -63,11 +91,15 @@ export async function addFavorite(
       WHERE ${recipes.id} = ${recipeId} AND EXISTS (SELECT 1 FROM inserted)
       RETURNING 1
     )
-    SELECT id, user_id, recipe_id, created_at FROM inserted
+    SELECT i.id, i.user_id, i.recipe_id, i.created_at,
+      EXISTS (SELECT 1 FROM allowed) AS allowed, EXISTS (SELECT 1 FROM inserted) AS added
+    FROM (SELECT 1) AS one LEFT JOIN inserted i ON true
   `);
 
   const row = (result.rows as unknown as InsertedRow[])[0];
-  if (!row) return { status: 'exists' };
+  // #208: refused by the guard, told apart from an existing favorite.
+  if (!row?.allowed) return { status: 'pending-deletion' };
+  if (!row.added) return { status: 'exists' };
   return {
     status: 'added',
     favorite: {
@@ -83,6 +115,8 @@ export async function addFavorite(
  * Why: a repeat or never-favorited remove must not take someone else's count.
  * What: deletes the favorite and decrements `like_count` in ONE statement; the
  * decrement runs only when the DELETE removed a row. Returns whether it did.
+ * #208: no pending-deletion guard, as for #197's `deleteRating`: it creates no
+ * row and removes only the caller's own favorite, which the purge deletes anyway.
  * Test: `decrements once for a real favorite; a repeat call changes nothing`
  */
 export async function removeFavorite(userId: string, recipeId: string): Promise<boolean> {
