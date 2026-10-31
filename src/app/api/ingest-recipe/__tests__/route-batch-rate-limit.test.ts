@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/db', () => ({ db: {} }));
+// #233: the route is admin-only; the admin gate has its own PGlite test (route-admin-only).
+vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => true }));
 vi.mock('@/lib/rate-limit/counter', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit/counter')>()),
   defaultUsageDb: async () => state.usageDb,
