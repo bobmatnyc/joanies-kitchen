@@ -11,11 +11,11 @@ Joanie's Kitchen signs users in with **Auth.js (NextAuth v5)** and **Google** on
 | Callbacks | `src/lib/auth-callbacks.ts` | `authorizeSignIn` (closed registration) and `refreshAdminClaim` (admin flag in the JWT). |
 | Route handler | `src/app/api/auth/[...nextauth]/route.ts` | `/api/auth/*` endpoints. |
 | Middleware | `src/middleware.ts`, `src/lib/auth-routes.ts` | Redirects signed-out users away from protected and admin routes. |
-| Server shim | `src/lib/auth.ts` | Clerk-shaped `auth()` → `{ userId, sessionClaims, user, … }`. |
-| Client shim | `src/lib/auth-client.tsx` | Clerk-shaped `useAuth`, `useUser`, `SignInButton` over `useSession`. |
+| Server helpers | `src/lib/session-user.ts` | `getSessionUser()` and `getSessionUserId()`: the signed-in user (or `null`) for server code. |
+| Client hook | `src/lib/use-session-user.ts` | `useSessionUser()` → `{ isLoaded, user }`, for client components under `<AuthProvider>`. |
 | Admin checks | `src/lib/admin.ts` | `checkAdminAccess`, `requireAdmin`, `authorizeAdminOrCronSecret`. |
 
-The two shims let existing callers keep their call sites. A follow-up PR replaces them with direct Auth.js calls.
+Application code reads the session through the two helpers above, not through `src/auth.ts` directly.
 
 ### Closed registration
 
@@ -64,9 +64,9 @@ Google does not accept wildcard redirect URIs, so Vercel preview deployments can
 | `AUTH_URL` | Vercel Production only | `https://joanies.kitchen` |
 | `AUTH_ADMIN_EMAILS` | where admins sign in | Comma-separated admin emails. Optional; unset grants no admin. |
 
-When any of the first three is missing, the app runs signed-out: `auth()` returns no user, and middleware sends protected routes to `/sign-in`.
+When any of the first three is missing, the app runs signed-out: `getSessionUser()` returns `null`, and middleware sends protected routes to `/sign-in`.
 
-The `CLERK_*`, `NEXT_PUBLIC_CLERK_*`, `ADMIN_USER_IDS` and `NEXT_PUBLIC_ADMIN_USER_IDS` variables are no longer read. Remove them from Vercel after the rollback window.
+The former Clerk variables (`CLERK_*`, `NEXT_PUBLIC_CLERK_*`) and the admin id lists (`ADMIN_USER_IDS`, `NEXT_PUBLIC_ADMIN_USER_IDS`) are not read by the code. Do not set them for local development. Copies may still exist in the Vercel project until they are removed there.
 
 ### 3. Apply migration 0023
 
@@ -140,5 +140,5 @@ Local EVO staging has no Google OAuth client. It signs in through a `local-stagi
 
 - `src/lib/__tests__/auth-callbacks.test.ts` — sign-in gate and JWT admin refresh.
 - `src/lib/__tests__/admin-db-check.test.ts` — `requireAdmin` and `checkAdminAccess` read the database every call and deny on failure.
-- `src/lib/__tests__/auth-shim.test.ts`, `auth-client.test.tsx`, `auth-config.test.ts`, `auth-routes.test.ts`, `auth-seed.test.ts`.
+- `src/lib/__tests__/session-user.test.ts`, `use-session-user.test.tsx`, `auth-config.test.ts`, `auth-routes.test.ts`, `auth-seed.test.ts`.
 - `src/lib/__tests__/local-staging-auth.test.ts`, `local-staging-auth-provider.test.ts` — the #60 D5f bypass stays off outside local staging.

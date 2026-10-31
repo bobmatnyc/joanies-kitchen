@@ -293,7 +293,7 @@ refactor/database-optimization
 - UI components (shadcn/ui pattern)
 - Utilities (lodash, date-fns)
 - Database (Drizzle ORM)
-- Authentication (Clerk)
+- Authentication (Auth.js)
 - AI APIs (OpenRouter)
 
 ## Pull Request Checklist

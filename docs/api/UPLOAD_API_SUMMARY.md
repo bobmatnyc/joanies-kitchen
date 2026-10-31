@@ -11,7 +11,7 @@ Implemented a production-ready Vercel Blob upload API endpoint at `/api/upload` 
 
 **Features**:
 - POST endpoint accepting multipart/form-data
-- Authentication via Clerk session
+- Authentication via Auth.js session
 - File size validation (max 5MB)
 - File type validation (JPEG, PNG, WebP only)
 - Unique filename generation
@@ -209,7 +209,7 @@ Potential improvements for future versions:
 ## Dependencies
 
 - `@vercel/blob` v2.0.0 (already installed)
-- `@clerk/nextjs` for authentication (already installed)
+- `next-auth` (Auth.js v5) for authentication (already installed)
 - Next.js 15.5.3 App Router
 
 ## Code Quality
@@ -245,7 +245,7 @@ Potential improvements for future versions:
 
 - [Vercel Blob Documentation](https://vercel.com/docs/storage/vercel-blob)
 - [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
-- [Clerk Authentication](https://clerk.com/docs)
+- [Auth.js](https://authjs.dev)
 
 ---
 

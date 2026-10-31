@@ -8,7 +8,7 @@ The `apply-api-keys-migration.ts` script creates the API keys infrastructure tab
 
 ### 1. `api_keys` (19 columns)
 - **Primary Key**: UUID with auto-generation
-- **User Association**: `user_id` (text) for Clerk integration
+- **User Association**: `user_id` (text) referencing `users.id`
 - **Key Storage**: SHA-256 hash + prefix for security
 - **Permissions**: JSON scopes array for fine-grained access control
 - **Lifecycle**: Active/inactive flag, expiration dates, revocation tracking

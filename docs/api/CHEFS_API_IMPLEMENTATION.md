@@ -66,7 +66,7 @@ The following scopes were already present in `src/lib/api-auth/scopes.ts`:
 ## Features
 
 ### Authentication & Authorization
-- Clerk session or API key authentication via `requireScopes`
+- Auth.js session or API key authentication via `requireScopes`
 - Fine-grained permission control using scope-based authorization
 - Admin-only endpoints for create/update/delete operations
 

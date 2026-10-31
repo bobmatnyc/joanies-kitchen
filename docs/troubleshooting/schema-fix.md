@@ -62,7 +62,7 @@ Current recipes table schema (22 columns total):
 - `images` (text) - JSON array of multiple image URLs (NEW ✅)
 
 ✅ **Authentication & Sharing Columns:**
-- `user_id` (text, not null) - Clerk user ID (NEW ✅)
+- `user_id` (text, not null) - `users.id` (NEW ✅)
 - `is_public` (boolean, default false) - Recipe visibility (NEW ✅)
 - `is_system_recipe` (boolean, default false) - Curated recipes (NEW ✅)
 

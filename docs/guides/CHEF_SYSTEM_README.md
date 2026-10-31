@@ -103,7 +103,7 @@ console.log(chef.recipes); // Array of Kenji's recipes
   - Claude Sonnet 4.5 (text parsing)
   - GPT-4o (image parsing)
 - **Scraping**: Firecrawl.dev
-- **Auth**: Clerk (admin access control)
+- **Auth**: Auth.js (admin access control via `users.is_admin`)
 
 ---
 
@@ -270,7 +270,7 @@ SELECT * FROM scraping_jobs ORDER BY created_at DESC;
 | Chef Actions | ✅ Complete | Full CRUD |
 | Scraping Actions | ✅ Complete | Background jobs |
 | AI Upload | ✅ Complete | Text/Image/URL |
-| Admin Security | ✅ Complete | Clerk integration |
+| Admin Security | ✅ Complete | Auth.js integration |
 | Documentation | ✅ Complete | 2 guides created |
 | UI Components | ⏳ Phase 2 | Not started |
 | Pages | ⏳ Phase 2 | Not started |

@@ -117,9 +117,9 @@ User recipe collections (themed groupings).
 
 ```typescript
 import { collectionService } from '@/lib/services';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
-const { userId } = await auth();
+const userId = await getSessionUserId();
 if (!userId) throw new Error('Unauthorized');
 
 // Get user's collections
@@ -143,9 +143,9 @@ Kitchen inventory management and recipe matching.
 
 ```typescript
 import { inventoryService } from '@/lib/services';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
-const { userId } = await auth();
+const userId = await getSessionUserId();
 if (!userId) throw new Error('Unauthorized');
 
 // Get inventory
@@ -205,9 +205,9 @@ Social features: likes, comments, forks.
 
 ```typescript
 import { socialService } from '@/lib/services';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
-const { userId } = await auth();
+const userId = await getSessionUserId();
 if (!userId) throw new Error('Unauthorized');
 
 // Favorites (likes)
@@ -287,13 +287,13 @@ export const POST = requireScopes([SCOPES.ADMIN], async (request) => {
 // src/app/actions/collections.ts
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { collectionService } from '@/lib/services';
 import { revalidatePath } from 'next/cache';
 
 export async function createCollection(data: { name: string; description?: string }) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) return { success: false, error: 'Unauthorized' };
 
     const collection = await collectionService.create(userId, data);

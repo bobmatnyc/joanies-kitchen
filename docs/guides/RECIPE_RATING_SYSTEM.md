@@ -37,7 +37,7 @@ Already existed in schema. Used for storing individual user ratings.
 {
   id: uuid (primary key)
   recipeId: text (foreign key → recipes.id)
-  userId: text (Clerk user ID)
+  userId: text (users.id)
   rating: integer (0-5)
   review: text (optional)
   createdAt: timestamp
@@ -63,7 +63,7 @@ Newly created for content moderation.
 {
   id: uuid (primary key)
   recipeId: text (foreign key → recipes.id)
-  userId: text (Clerk user ID - reporter)
+  userId: text (users.id - reporter)
   reason: enum ['inappropriate', 'spam', 'copyright', 'quality', 'other']
   description: text (optional detailed explanation)
   status: enum ['pending', 'reviewed', 'resolved', 'dismissed']
@@ -357,14 +357,14 @@ Admin dashboard for content moderation.
 ### Recipe Detail Page Integration
 
 ```tsx
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { getUserRating } from '@/app/actions/rate-recipe';
 import { hasUserFlagged } from '@/app/actions/flag-recipe';
 import { RecipeRating } from '@/components/recipe/RecipeRating';
 import { FlagRecipeButton } from '@/components/recipe/FlagRecipeButton';
 
 export default async function RecipePage({ params }: { params: { id: string } }) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   const recipe = await getRecipe(params.id);
 
   // Get user's existing rating
@@ -407,10 +407,10 @@ export default async function RecipePage({ params }: { params: { id: string } })
 
 ### User Authentication
 
-Both rating and flagging require user authentication via Clerk:
+Both rating and flagging require a signed-in user (Auth.js session):
 
 ```typescript
-const { userId } = await auth();
+const userId = await getSessionUserId();
 
 if (!userId) {
   return { success: false, error: 'You must be logged in' };
@@ -419,22 +419,13 @@ if (!userId) {
 
 ### Admin Authorization
 
-Admin actions check for admin role in sessionClaims:
+Admin actions call `requireAdmin()` from `@/lib/admin`, which re-reads `users.is_admin` from the database:
 
 ```typescript
-const { userId, sessionClaims } = await auth();
-
-if (!userId) {
-  throw new Error('Unauthorized');
-}
-
-const metadata = sessionClaims?.metadata as { isAdmin?: string } | undefined;
-if (metadata?.isAdmin !== 'true') {
-  throw new Error('Admin access required');
-}
+const { userId } = await requireAdmin(); // throws unless the user is an admin
 ```
 
-**Setting Admin Role**: Admin status is managed through Clerk metadata.
+**Setting Admin Role**: Admin status is stored in `users.is_admin`; see [authentication.md](./authentication.md).
 
 ---
 
@@ -535,7 +526,7 @@ Admin flag list supports pagination via `limit` parameter (default 50, max confi
 - Rating values validated (0-5 range)
 - Flag reasons validated against enum
 - Text inputs sanitized (XSS protection via React)
-- User IDs validated through Clerk auth
+- User IDs come from the Auth.js session
 
 ### Authorization
 
@@ -593,7 +584,7 @@ Admin flag list supports pagination via `limit` parameter (default 50, max confi
 - [x] Admin dashboard created (/admin/flags)
 - [x] Admin navigation updated
 - [ ] Database migrations run on production
-- [ ] Admin users configured in Clerk
+- [ ] Admin users configured (`users.is_admin`)
 - [ ] Test all features in staging environment
 - [ ] Monitor flag volume and response times
 
@@ -605,14 +596,14 @@ Admin flag list supports pagination via `limit` parameter (default 50, max confi
 
 **Issue**: Ratings not updating
 - Check database connection
-- Verify Clerk authentication
+- Verify the user is signed in
 - Check browser console for errors
 - Ensure `revalidatePath()` is working
 
 **Issue**: Admin dashboard not accessible
-- Verify admin metadata in Clerk
-- Check sessionClaims structure
-- Ensure admin role is set correctly
+- Verify `users.is_admin` is true for the user
+- Check `/api/auth/session` shows the expected user
+- Ensure the admin role is set correctly
 
 **Issue**: Flags not appearing in dashboard
 - Check flag status (might be filtered out)

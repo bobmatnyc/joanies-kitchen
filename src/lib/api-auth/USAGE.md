@@ -18,7 +18,7 @@ The authentication middleware supports three authentication methods:
 
 1. **API Keys** (Bearer token) - Priority 1
 2. **Basic Auth** (username:password) - Priority 2
-3. **Clerk Session** (cookies) - Priority 3 (fallback)
+3. **Auth.js Session** (cookies) - Priority 3 (fallback)
 
 The middleware automatically detects the authentication method and returns a unified `AuthContext` with user information and scopes.
 
@@ -35,7 +35,7 @@ import { requireAuth } from '@/lib/api-auth';
 
 export const GET = requireAuth(async (request, auth) => {
   // auth.userId is guaranteed to exist
-  // auth.authType will be 'clerk' | 'api_key' | 'basic'
+  // auth.authType will be 'session' | 'api_key' | 'basic'
 
   const recipes = await getRecipesForUser(auth.userId);
   return NextResponse.json(recipes);
@@ -117,18 +117,18 @@ curl -H "Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=" \
 - Not yet fully implemented (placeholder)
 - Best for: Simple authentication, legacy systems
 
-### 3. Clerk Session
+### 3. Auth.js Session
 
 **Client Request:**
 ```bash
 # No special headers needed - uses cookies
-curl --cookie "session=..." \
+curl --cookie "authjs.session-token=..." \
      https://api.example.com/api/recipes
 ```
 
 **Characteristics:**
 - Lowest priority (fallback)
-- Uses existing Clerk session from browser
+- Uses the existing Auth.js session from the browser
 - Returns standard user scopes or admin scopes
 - Best for: Web app API calls, internal routes
 
@@ -414,7 +414,7 @@ curl -H "Authorization: Bearer $API_KEY" \
      http://localhost:3002/api/recipes
 ```
 
-### Testing with Clerk Session
+### Testing with an Auth.js Session
 
 ```javascript
 // In your frontend code
@@ -466,7 +466,7 @@ SCOPES.ALL               // '*' (use with caution)
 interface AuthContext {
   authenticated: boolean;
   userId: string | null;
-  authType: 'clerk' | 'api_key' | 'basic' | 'none';
+  authType: 'session' | 'api_key' | 'basic' | 'none';
   scopes: string[];
   apiKeyId?: string;
   apiKeyName?: string;
@@ -498,16 +498,16 @@ interface AuthContext {
 
 7. **Use Consistent Error Messages**: Return clear error messages for better API experience
 
-8. **Test All Auth Methods**: Test your endpoints with API keys, Clerk sessions, and no auth
+8. **Test All Auth Methods**: Test your endpoints with API keys, Auth.js sessions, and no auth
 
-## Migration from Direct Clerk Auth
+## Migration from Direct Session Checks
 
 **Before:**
 ```typescript
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 export async function GET(request: NextRequest) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

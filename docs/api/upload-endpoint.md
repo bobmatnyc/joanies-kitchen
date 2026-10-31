@@ -12,7 +12,7 @@ POST /api/upload
 
 ## Authentication
 
-Requires a valid Clerk session. Users must be authenticated to upload images.
+Requires a valid Auth.js session. Users must be authenticated to upload images.
 
 ## Request
 
@@ -146,7 +146,7 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
 ```bash
 curl -X POST https://your-domain.com/api/upload \
-  -H "Cookie: __session=your-clerk-session" \
+  -H "Cookie: authjs.session-token=your-session-token" \
   -F "file=@/path/to/image.jpg"
 ```
 
@@ -161,7 +161,7 @@ curl -X POST https://your-domain.com/api/upload \
 
 ### Security
 
-- Authentication required via Clerk session
+- Authentication required via Auth.js session
 - File size validation (max 5MB)
 - File type validation (images only)
 - Unique filename generation prevents conflicts

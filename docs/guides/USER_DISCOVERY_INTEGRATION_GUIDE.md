@@ -92,10 +92,12 @@ export default async function RecipeDetailPage({ params }) {
 **File**: `src/app/actions/recipes.ts`
 
 ```typescript
+import { getSessionUser } from '@/lib/session-user';
 import { getCurrentUserProfile, createOrUpdateProfile } from './user-profiles';
 
 export async function createRecipe(recipeData: NewRecipe) {
-  const { userId } = await auth();
+  const user = await getSessionUser();
+  const userId = user?.id;
 
   if (!userId) {
     return { success: false, error: 'Unauthorized' };
@@ -105,13 +107,12 @@ export async function createRecipe(recipeData: NewRecipe) {
   let profile = await getCurrentUserProfile();
 
   if (!profile) {
-    // Create basic profile from Clerk data
-    const user = await clerkClient.users.getUser(userId);
-    const username = user.username || `user_${userId.slice(0, 8)}`;
+    // Create basic profile from the Auth.js session user
+    const username = `user_${userId.slice(0, 8)}`;
 
     const profileResult = await createOrUpdateProfile({
       username,
-      displayName: user.fullName || user.firstName || username,
+      displayName: user?.name || username,
       isPublic: false, // Default to private
     });
 
@@ -178,11 +179,11 @@ export async function RecipeCard({ recipe }: RecipeCardProps) {
 
 ```tsx
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
 
 export async function Navigation() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   const profile = userId ? await getCurrentUserProfile() : null;
 
   return (

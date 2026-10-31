@@ -168,9 +168,10 @@ src/
 │   ├── ingredient-search.ts   # Ingredient search types
 │   └── instruction-metadata.ts # Instruction types
 ├── config/                     # Configuration
-│   ├── auth.config.ts         # Clerk configuration
 │   └── data-sources.json      # Data source config
-└── middleware.ts               # Next.js middleware
+├── auth.config.ts              # Auth.js edge-safe config (Google, JWT sessions)
+├── auth.ts                     # Auth.js Node-side config (Drizzle adapter, callbacks)
+└── middleware.ts               # Next.js middleware (Auth.js session)
 ```
 
 ---
@@ -302,8 +303,8 @@ export async function deleteRecipe(id: string) { ... }
 src/app/api/recipes/route.ts           // GET /api/recipes, POST /api/recipes
 src/app/api/recipes/[id]/route.ts      // GET/PUT/DELETE /api/recipes/:id
 
-// Webhook
-src/app/api/webhooks/clerk/route.ts    // POST /api/webhooks/clerk
+// Auth.js
+src/app/api/auth/[...nextauth]/route.ts // /api/auth/* (sign-in, callback, session)
 
 // Public API (no auth)
 src/app/api/public/stats/route.ts      // GET /api/public/stats
@@ -556,13 +557,13 @@ function RecipeCardActions({ recipeId }: { recipeId: string }) {
 ```typescript
 // src/app/recipes/page.tsx
 
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { db } from '@/lib/db';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 
 export default async function RecipesPage() {
   // Server-side data fetching
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   const recipes = await db.select()
     .from(recipesTable)
@@ -748,7 +749,7 @@ export default async function RecipesPage({ searchParams }) {
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 import { db } from '@/lib/db';
 
 const deleteRecipeSchema = z.object({
@@ -760,7 +761,7 @@ export async function deleteRecipe(recipeId: string) {
   const { recipeId: validId } = deleteRecipeSchema.parse({ recipeId });
 
   // 2. Check authorization
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
   // 3. Verify ownership

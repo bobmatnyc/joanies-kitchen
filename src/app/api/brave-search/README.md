@@ -3,7 +3,7 @@
 ## Quick Reference
 
 **Endpoint:** `POST /api/brave-search`
-**Auth:** Required (Clerk)
+**Auth:** Required (Auth.js session)
 
 ## Request
 ```json
@@ -29,7 +29,7 @@
 ```
 
 ## Security Features
-- ✅ Clerk authentication required
+- ✅ Signed-in session required
 - ✅ Input validation (query, count)
 - ✅ API key protection (never exposed)
 - ✅ Comprehensive error handling

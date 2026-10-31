@@ -345,11 +345,9 @@ Database:
 
 To make a user admin:
 
-1. Go to Clerk Dashboard
-2. Find your user
-3. Edit user metadata
-4. Add: `{ "isAdmin": "true" }`
-5. Save
+1. List your Google email in `AUTH_ADMIN_EMAILS`, or run `pnpm auth:seed-user --id <users.id> --admin`
+2. Sign in; sign-in sets `users.is_admin = true` for a listed email
+3. See [authentication.md](./authentication.md)
 
 Now that user can:
 - Create/edit/delete chefs

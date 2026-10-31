@@ -6,7 +6,7 @@ http://localhost:3000/api/v1/chefs
 ```
 
 ## Authentication
-All endpoints require authentication via Clerk session or API key.
+All endpoints require authentication via Auth.js session or API key.
 
 Include in headers:
 ```
@@ -298,7 +298,7 @@ src/app/api/v1/chefs/[slug]/recipes/route.ts - Chef recipes
 
 1. Start development server: `npm run dev`
 2. Ensure database is running and migrated
-3. Obtain authentication token (Clerk or API key)
+3. Obtain authentication token (session cookie or API key)
 4. Test endpoints using curl or API client
 5. Check logs for any errors
 

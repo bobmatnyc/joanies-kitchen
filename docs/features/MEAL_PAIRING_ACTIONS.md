@@ -17,7 +17,7 @@ src/app/actions/meal-pairing.ts
 ## Architecture
 
 ### Technology Stack
-- **Authentication**: Clerk (`@/lib/auth`)
+- **Authentication**: Auth.js (`@/lib/session-user`)
 - **Database**: Drizzle ORM with PostgreSQL
 - **Validation**: Zod schemas
 - **AI Engine**: OpenRouter via meal-pairing-engine
@@ -236,7 +236,7 @@ if (result.success) {
 ```typescript
 {
   id: uuid (PK)
-  user_id: text (Clerk user ID)
+  user_id: text (users.id)
   name: text
   description: text
   meal_type: enum
@@ -451,7 +451,7 @@ The old `generateMealPairing` is aliased for backward compatibility but will be 
 ## Troubleshooting
 
 ### Issue: "Authentication required"
-**Cause**: User not logged in or Clerk session expired
+**Cause**: User not logged in or session expired
 **Solution**: Redirect to sign-in page
 
 ### Issue: "Invalid request: [validation errors]"

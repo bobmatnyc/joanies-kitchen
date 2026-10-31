@@ -11,7 +11,7 @@
 **Name**: Joanie's Kitchen
 **Tagline**: From Garden to Table — with Heart and Soil
 **Type**: AI-Powered Recipe Management & Meal Planning Platform
-**Tech Stack**: Next.js 15, TypeScript, PostgreSQL (Neon), Clerk Auth
+**Tech Stack**: Next.js 15, TypeScript, PostgreSQL (Neon), Auth.js (Google)
 **Package Manager**: pnpm (NEVER npm or yarn)
 **Development Port**: 3002 (primary), 3005 (PM2 secondary)
 
@@ -33,10 +33,11 @@
 - **Vector Dimensions**: 384 (sentence-transformers/all-MiniLM-L6-v2)
 
 ### Authentication
-- **Provider**: Clerk
-- **Dual Environment**: Development keys (_DEV suffix), Production keys (_PROD suffix)
-- **Auto-selection**: Based on NODE_ENV via src/config/auth.config.ts
-- **Admin Access**: Public metadata `{ isAdmin: "true" }`
+- **Provider**: Auth.js v5, Google only, JWT sessions, closed registration
+- **Env vars**: AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, AUTH_SECRET, AUTH_URL, AUTH_ADMIN_EMAILS
+- **Config**: src/auth.ts, src/auth.config.ts, src/middleware.ts, src/lib/auth-routes.ts
+- **Admin Access**: AUTH_ADMIN_EMAILS plus `users.is_admin`
+- **Legacy ids**: `users.id` values for older users are Clerk-era ids (#22)
 
 ### Image Storage
 - **Primary**: Vercel Blob Storage
@@ -105,7 +106,7 @@
 - Shopping lists
 - Chef profiles
 - Recipe collections
-- User authentication (Clerk)
+- User authentication (Auth.js, Google)
 
 ### Features in Development
 - **Tools Feature**: Kitchen tools catalog and tracking
@@ -181,7 +182,7 @@ pnpm test:e2e:ui      # Playwright UI mode
 ### NEVER Commit
 - `.env.local` (contains secrets)
 - API keys, tokens, credentials
-- Clerk secret keys
+- Auth secrets (AUTH_SECRET, AUTH_GOOGLE_SECRET)
 - Database URLs with credentials
 
 ### ALWAYS Validate
@@ -223,7 +224,7 @@ pnpm test:e2e:ui      # Playwright UI mode
 - Next.js: 15.5.3 (App Router)
 - React: 19.1.0
 - TypeScript: 5.x (strict)
-- Clerk: 6.33.7
+- next-auth (Auth.js v5): 5.0.0-beta.32
 - Drizzle ORM: 0.44.5
 
 ### Package Manager
@@ -260,12 +261,12 @@ pnpm test:e2e:ui      # Playwright UI mode
 - **Vercel**: Primary deployment platform
 - **Database**: Neon PostgreSQL (serverless)
 - **Storage**: Vercel Blob
-- **Auth**: Clerk (managed)
+- **Auth**: Auth.js v5 (self-hosted in the app, Google OAuth)
 
 ### Environment Variables
 - Development: .env.local (gitignored)
 - Production: Set in Vercel dashboard
-- Dual keys: _DEV and _PROD suffixes for Clerk
+- Auth: use a different AUTH_SECRET per environment
 
 ### Build Process
 1. `pnpm build` (pre-build runs version bump)
@@ -335,7 +336,7 @@ pnpm test:e2e:ui      # Playwright UI mode
 5. **Beta launch is Dec 1** - Prioritize stability and core features
 6. **Port 3002 is standard** - Development server runs on 3002
 7. **Vercel Blob for images** - All new images go to Vercel Blob
-8. **Dual Clerk keys** - Development and production keys are separate
+8. **Separate AUTH_SECRET per environment** - Never reuse the production secret locally
 
 ### Common Pitfalls to Avoid
 

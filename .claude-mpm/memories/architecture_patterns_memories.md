@@ -38,21 +38,10 @@ const results = await db.execute(sql`
 
 ## Authentication Patterns
 
-### Dual Environment Keys (Clerk)
-```typescript
-// src/config/auth.config.ts
-const isProduction = process.env.NODE_ENV === 'production';
-
-export const authConfig = {
-  publishableKey: isProduction
-    ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD
-    : process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_DEV,
-
-  secretKey: isProduction
-    ? process.env.CLERK_SECRET_KEY_PROD
-    : process.env.CLERK_SECRET_KEY_DEV,
-};
-```
+### Auth.js Configuration
+- `src/auth.config.ts` (edge-safe: Google provider, JWT sessions) and `src/auth.ts` (Drizzle adapter, DB callbacks)
+- Env vars: `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` (production), `AUTH_ADMIN_EMAILS`
+- Read the session with `getSessionUserId()` from `@/lib/session-user`
 
 ### Server Action Auth Pattern
 ```typescript
@@ -440,7 +429,7 @@ function RecipeActions({ recipeId }: { recipeId: string }) {
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Export all related actions from one file
 export async function createRecipe(data: FormData) { ... }

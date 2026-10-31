@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **docs**: removed the Clerk-only guides (`CLERK_*`, `VERCEL_CLERK_*`, the dual-environment, production-keys-on-localhost and Google-OAuth-via-Clerk guides, the Clerk admin-metadata setup, flow and quick-reference pages, the Clerk E2E setup) and the `clerk-ops` agent. The live docs (getting-started, environment variables, authentication, API, admin, troubleshooting, the `src/**` READMEs and the project memory notes) now describe Auth.js with Google: `AUTH_*` variables, `getSessionUser`/`getSessionUserId`/`useSessionUser`, and `users.is_admin`. Dated reports, archives and this changelog are unchanged. The `CLERK_*` Vercel variables still exist; removing them is a separate step (#22)
+
 ### Added
 
 - **search**: migration `0006_recipe_embeddings_hnsw` adds an HNSW index on `recipe_embeddings.embedding` (`vector_cosine_ops`, m 16, ef_construction 64). `findSimilarRecipes` now takes the K = max(100, limit × 4) nearest embeddings first, so the index can serve that step, and then applies the soft-delete, visibility, source and similarity-cutoff filters before the result limit. It runs in one transaction with `SET LOCAL hnsw.ef_search = 40` and `hnsw.iterative_scan = relaxed_order`. On a Neon branch of production the query took 0.65-0.78 ms instead of 28-34 ms, with mean recall 0.996. `GET /api/v1/recipes/:id/similar` passes the caller's visibility into the query, so private recipes ranked above public ones no longer shorten the list, and admins now see private recipes there, as on the recipe page. The migration has not been applied to production (#131)

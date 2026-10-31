@@ -61,7 +61,7 @@ First, ahead of everything else: the `/privacy` and `/terms` pages, and a check 
   - the launch date corrected in the repo and on the site (the AlphaStamp component and its e2e test);
   - #24 (the retired OpenRouter model);
   - #26 (untrack the test artifacts);
-  - Clerk wrap-up: verify and close #22 and #21, remove the `CLERK_*` Vercel variables, and fix Clerk references in current docs;
+  - Clerk wrap-up: verify and close #22 and #21, and remove the `CLERK_*` Vercel variables (the Clerk references in current docs are fixed);
   - remove the dead pm2 `recipe-scraper` and `scraper:*` scripts.
 
 ### M1: Core loop and the sign-up safety gate (due 2026-11-20)

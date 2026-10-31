@@ -764,12 +764,12 @@ echo -e "\n✅ Meal planning test flow completed!"
 
 ### Flow 3: API Key Management
 
-Test API key operations (requires Clerk session):
+Test API key operations (requires a session):
 
 ```bash
 #!/bin/bash
 
-# Note: This requires Clerk session cookies
+# Note: This requires Auth.js session cookies
 COOKIES_FILE="cookies.txt"
 BASE_URL="https://your-domain.com/api/v1"
 
@@ -911,7 +911,7 @@ Access to fetch at 'https://...' from origin 'http://localhost:3000' has been bl
 
 **Solutions**:
 - Use API keys from server-side only (never in browser)
-- For web apps, use Clerk session authentication
+- For web apps, use Auth.js session authentication
 - CORS is intentionally restricted for security
 
 ---
