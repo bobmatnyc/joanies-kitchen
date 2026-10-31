@@ -14,8 +14,9 @@ import { addRecipeToMeal, getMealById, removeRecipeFromMeal } from '@/app/action
 import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { isSessionRequiredRefusal } from '@/lib/meals/session-required';
 import { type AddRecipeToMealInput, addRecipeToMealSchema } from '@/lib/validations/meal-api';
-import { mealErrorMessage } from '../../error-body';
+import { mealErrorMessage, mealSessionRequiredResponse } from '../../error-body';
 
 /**
  * POST /api/v1/meals/:id/recipes
@@ -121,6 +122,8 @@ export const POST = requireScopes(
       });
 
       if (!result.success) {
+        // #253: no session user (API-key-only caller) is 401, not 500.
+        if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
         // #225: a pending-deletion refusal is 403 (nothing was written); a meal
         // or recipe the caller cannot reach is 404; anything else stays 500.
         const status = isPendingDeletionRefusal(result)
@@ -240,6 +243,8 @@ export const DELETE = requireScopes(
       const result = await removeRecipeFromMeal(mealRecipeId, mealId);
 
       if (!result.success) {
+        // #253: no session user (API-key-only caller) is 401, not 500.
+        if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
         const statusCode = result.error === 'Recipe not found in meal' ? 404 : 500;
 
         return NextResponse.json(

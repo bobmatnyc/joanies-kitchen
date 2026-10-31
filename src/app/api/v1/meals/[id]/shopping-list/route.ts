@@ -16,7 +16,8 @@ import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
-import { mealErrorMessage } from '../../error-body';
+import { isSessionRequiredRefusal } from '@/lib/meals/session-required';
+import { mealErrorMessage, mealSessionRequiredResponse } from '../../error-body';
 
 /**
  * GET /api/v1/meals/:id/shopping-list
@@ -201,6 +202,8 @@ export const POST = requireScopes(
       const result = await generateShoppingList({ mealId });
 
       if (!result.success) {
+        // #253: no session user (API-key-only caller) is 401, not 500.
+        if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
         // #225: a pending-deletion refusal is 403 (nothing was written); a meal
         // the caller cannot reach is 404; anything else stays 500.
         const status = isPendingDeletionRefusal(result)
