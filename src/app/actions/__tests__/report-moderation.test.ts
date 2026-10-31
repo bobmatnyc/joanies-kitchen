@@ -89,6 +89,21 @@ beforeAll(async () => {
     { ...schema, userProfiles, users }
   );
   client = made.client;
+  // #194: the comment unhide runs in db.batch (one neon-http transaction); mirror that on PGlite.
+  Object.assign(made.db, {
+    batch: async (queries: Promise<unknown>[]) => {
+      await client.exec('BEGIN');
+      try {
+        const out: unknown[] = [];
+        for (const q of queries) out.push(await q);
+        await client.exec('COMMIT');
+        return out;
+      } catch (error) {
+        await client.exec('ROLLBACK');
+        throw error;
+      }
+    },
+  });
   state.db = made.db;
 });
 
