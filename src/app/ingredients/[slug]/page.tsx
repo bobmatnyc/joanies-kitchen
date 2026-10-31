@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getIngredientBySlug } from '@/app/actions/ingredients';
 import { JoanieComment } from '@/components/recipe/JoanieComment';
 import { Button } from '@/components/ui/button';
+import { socialImages } from '@/lib/default-og-image';
 import { getBaseUrl } from '@/lib/site-url';
 
 interface IngredientPageProps {
@@ -27,6 +28,11 @@ export async function generateMetadata({ params }: IngredientPageProps) {
   // #163: normalized base URL (env may carry a trailing newline)
   const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/ingredients/${slug}`;
+  // #256: the segment's openGraph/twitter replace the root ones, so fall back to the default image.
+  // #164: a page image states no width/height; its real size is unknown.
+  const social = socialImages(
+    ingredient.image_url ? { url: ingredient.image_url, alt: ingredient.display_name } : null
+  );
 
   return {
     // #138: the root layout's title.template appends the brand.
@@ -44,15 +50,15 @@ export async function generateMetadata({ params }: IngredientPageProps) {
         `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes.`,
       url: canonicalUrl,
       type: 'article',
-      images: ingredient.image_url
-        ? [
-            {
-              // #164: no width/height; the ingredient image's real size is unknown.
-              url: ingredient.image_url,
-              alt: ingredient.display_name,
-            },
-          ]
-        : undefined,
+      images: social.openGraph,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${ingredient.display_name} | Ingredient Guide`,
+      description:
+        ingredient.description ||
+        `Learn about ${ingredient.display_name} - storage tips, substitutions, and recipes.`,
+      images: social.twitter,
     },
     keywords: [
       ingredient.display_name,

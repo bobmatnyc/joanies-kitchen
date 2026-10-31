@@ -12,3 +12,27 @@ export const DEFAULT_OG_IMAGE_PATH = '/opengraph-image';
 export const DEFAULT_OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 
 export const DEFAULT_OG_IMAGE_ALT = `${SITE_NAME} - Cook from your fridge, waste nothing`;
+
+/** A page's own preview image. The size is omitted: these are external files of unknown size (#164). */
+export interface PageSocialImage {
+  url: string;
+  alt: string;
+}
+
+/**
+ * #256: the `images` values for a segment that sets its own `openGraph` or `twitter`.
+ *
+ * Why: such a segment replaces the parent's object whole, so the root file-based image
+ * never reaches it. What: returns the page image when given, else the generated default
+ * (relative path; Next makes it absolute through `metadataBase`).
+ * Test: `src/lib/__tests__/default-og-image.test.ts`.
+ */
+export function socialImages(image?: PageSocialImage | null): {
+  openGraph: Array<{ url: string; alt: string; width?: number; height?: number }>;
+  twitter: string[];
+} {
+  const og = image
+    ? { url: image.url, alt: image.alt }
+    : { url: DEFAULT_OG_IMAGE_PATH, ...DEFAULT_OG_IMAGE_SIZE, alt: DEFAULT_OG_IMAGE_ALT };
+  return { openGraph: [og], twitter: [og.url] };
+}
