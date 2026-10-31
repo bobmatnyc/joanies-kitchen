@@ -15,6 +15,7 @@ import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert'
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { type AddRecipeToMealInput, addRecipeToMealSchema } from '@/lib/validations/meal-api';
+import { mealErrorMessage } from '../../error-body';
 
 /**
  * POST /api/v1/meals/:id/recipes
@@ -75,7 +76,8 @@ export const POST = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -119,20 +121,20 @@ export const POST = requireScopes(
       });
 
       if (!result.success) {
+        // #225: a pending-deletion refusal is 403 (nothing was written); a meal
+        // or recipe the caller cannot reach is 404; anything else stays 500.
+        const status = isPendingDeletionRefusal(result)
+          ? 403
+          : result.error === 'Meal not found' || result.error === 'Recipe not found'
+            ? 404
+            : 500;
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to add recipe to meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(status, result.error, 'Failed to add recipe to meal'),
           },
-          // #225: a pending-deletion refusal is 403 (nothing was written); a meal
-          // or recipe the caller cannot reach is 404; anything else stays 500.
-          {
-            status: isPendingDeletionRefusal(result)
-              ? 403
-              : result.error === 'Meal not found' || result.error === 'Recipe not found'
-                ? 404
-                : 500,
-          }
+          { status }
         );
       }
 
@@ -221,7 +223,8 @@ export const DELETE = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -242,7 +245,8 @@ export const DELETE = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to remove recipe from meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, result.error, 'Failed to remove recipe from meal'),
           },
           { status: statusCode }
         );

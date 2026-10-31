@@ -19,6 +19,7 @@ import {
   type ListMealsQuery,
   listMealsQuerySchema,
 } from '@/lib/validations/meal-api';
+import { mealErrorMessage } from './error-body';
 
 /**
  * GET /api/v1/meals
@@ -93,7 +94,8 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
       return NextResponse.json(
         {
           success: false,
-          error: result.error || 'Failed to fetch meals',
+          // #241: a 500 carries a fixed message; the detail is logged only.
+          error: mealErrorMessage(500, result.error, 'Failed to fetch meals'),
         },
         { status: 500 }
       );
@@ -225,13 +227,15 @@ export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequ
     const result = await createMeal(mealCreateData);
 
     if (!result.success) {
+      // #217: the account has a pending deletion; nothing was written.
+      const status = isPendingDeletionRefusal(result) ? 403 : 500;
       return NextResponse.json(
         {
           success: false,
-          error: result.error || 'Failed to create meal',
+          // #241: a 500 carries a fixed message; the detail is logged only.
+          error: mealErrorMessage(status, result.error, 'Failed to create meal'),
         },
-        // #217: the account has a pending deletion; nothing was written.
-        { status: isPendingDeletionRefusal(result) ? 403 : 500 }
+        { status }
       );
     }
 

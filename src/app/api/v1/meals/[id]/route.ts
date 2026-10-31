@@ -16,6 +16,7 @@ import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert'
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { type UpdateMealInput, updateMealSchema } from '@/lib/validations/meal-api';
+import { mealErrorMessage } from '../error-body';
 
 /**
  * GET /api/v1/meals/:id
@@ -71,7 +72,8 @@ export const GET = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, result.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -168,7 +170,8 @@ export const PATCH = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -211,20 +214,20 @@ export const PATCH = requireScopes(
       const result = await updateMeal(existingMeal.data.id, updateData);
 
       if (!result.success) {
+        // #217: the account has a pending deletion; nothing was written.
+        // #225: a meal the update no longer finds is 404, not 500.
+        const status = isPendingDeletionRefusal(result)
+          ? 403
+          : result.error === 'Meal not found'
+            ? 404
+            : 500;
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to update meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(status, result.error, 'Failed to update meal'),
           },
-          // #217: the account has a pending deletion; nothing was written.
-          // #225: a meal the update no longer finds is 404, not 500.
-          {
-            status: isPendingDeletionRefusal(result)
-              ? 403
-              : result.error === 'Meal not found'
-                ? 404
-                : 500,
-          }
+          { status }
         );
       }
 
@@ -291,7 +294,8 @@ export const DELETE = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -307,13 +311,15 @@ export const DELETE = requireScopes(
       const result = await deleteMeal(existingMeal.data.id);
 
       if (!result.success) {
+        // #225: deleteMeal reports a delete that matched no row as not found.
+        const status = result.error === 'Meal not found' ? 404 : 500;
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to delete meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(status, result.error, 'Failed to delete meal'),
           },
-          // #225: deleteMeal reports a delete that matched no row as not found.
-          { status: result.error === 'Meal not found' ? 404 : 500 }
+          { status }
         );
       }
 
