@@ -526,6 +526,9 @@ export async function updateMealRecipe(id: unknown, updates: unknown) {
 /**
  * Generate a shopping list from a meal
  *
+ * #225: any signed-in caller may use a meal `getMealById` lets them read (their
+ * own, or a public one); the list is always the caller's.
+ *
  * @param data - Object with mealId (validated as UUID)
  * @returns Success response with generated shopping list or error message
  */
@@ -590,19 +593,24 @@ export async function generateShoppingList(data: unknown) {
     // Filter out non-purchaseable ingredients
     const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
 
-    // Query which items are non-purchaseable
-    const nonPurchaseableIngredients = await db
-      .select({ name: ingredients.name })
-      .from(ingredients)
-      .where(
-        and(
-          sql`LOWER(${ingredients.name}) IN (${sql.join(
-            ingredientNames.map((n) => sql`${n}`),
-            sql`, `
-          )})`,
-          eq(ingredients.is_purchaseable, false)
-        )
-      );
+    // Query which items are non-purchaseable.
+    // #225: with no items (no recipes, or none the caller may read) the query is
+    // skipped; an empty `IN ()` is invalid SQL.
+    const nonPurchaseableIngredients =
+      ingredientNames.length === 0
+        ? []
+        : await db
+            .select({ name: ingredients.name })
+            .from(ingredients)
+            .where(
+              and(
+                sql`LOWER(${ingredients.name}) IN (${sql.join(
+                  ingredientNames.map((n) => sql`${n}`),
+                  sql`, `
+                )})`,
+                eq(ingredients.is_purchaseable, false)
+              )
+            );
 
     // Filter out non-purchaseable items
     const purchaseableItems = consolidatedItems.filter(
@@ -610,17 +618,23 @@ export async function generateShoppingList(data: unknown) {
         !nonPurchaseableIngredients.some((ni) => ni.name.toLowerCase() === item.name.toLowerCase())
     );
 
-    // Create shopping list
-    const [newShoppingList] = await db
-      .insert(shoppingLists)
-      .values({
+    // #225: a new list owned by the caller (never the meal owner), refused in the
+    // insert statement itself for an account pending deletion, as #217.
+    const guarded = await insertUnlessPendingDeletion(
+      shoppingLists,
+      {
         user_id: userId,
         meal_id: mealId,
         name: `${meal.name} - Shopping List`,
         items: JSON.stringify(purchaseableItems),
         status: 'draft',
-      })
-      .returning();
+      },
+      userId
+    );
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('generate shopping lists');
+    }
+    const newShoppingList = guarded.row;
 
     revalidatePath('/meals');
     revalidatePath(`/meals/${mealId}`);
@@ -1050,19 +1064,24 @@ export async function generateShoppingListFromCollection(data: unknown) {
     // Filter out non-purchaseable ingredients
     const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
 
-    // Query which items are non-purchaseable
-    const nonPurchaseableIngredients = await db
-      .select({ name: ingredients.name })
-      .from(ingredients)
-      .where(
-        and(
-          sql`LOWER(${ingredients.name}) IN (${sql.join(
-            ingredientNames.map((n) => sql`${n}`),
-            sql`, `
-          )})`,
-          eq(ingredients.is_purchaseable, false)
-        )
-      );
+    // Query which items are non-purchaseable.
+    // #225: with no items (no recipes, or none the caller may read) the query is
+    // skipped; an empty `IN ()` is invalid SQL.
+    const nonPurchaseableIngredients =
+      ingredientNames.length === 0
+        ? []
+        : await db
+            .select({ name: ingredients.name })
+            .from(ingredients)
+            .where(
+              and(
+                sql`LOWER(${ingredients.name}) IN (${sql.join(
+                  ingredientNames.map((n) => sql`${n}`),
+                  sql`, `
+                )})`,
+                eq(ingredients.is_purchaseable, false)
+              )
+            );
 
     // Filter out non-purchaseable items
     const purchaseableItems = consolidatedItems.filter(
