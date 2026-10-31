@@ -51,6 +51,7 @@ import { POST as collectionRecipesPOST } from '@/app/api/v1/collections/[id]/rec
 import { POST as collectionsPOST } from '@/app/api/v1/collections/route';
 import {
   AccountPendingDeletionError,
+  insertUnlessPendingDeletion,
   pendingDeletionError,
 } from '@/lib/account-deletion/guarded-insert';
 import type { RouteContext } from '@/lib/api-auth/types';
@@ -238,9 +239,14 @@ beforeEach(async () => {
     ('${PENDING}', 'pending', 'Pending', false), ('${NORMAL}', 'normal', 'Normal', true),
     ('${LEGACY}', 'legacy', 'Legacy', true)`);
   // Counters start non-zero, so any write to them shows.
-  await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions,
-      is_public, moderation_status, fork_count, collection_count, like_count) VALUES
-    ('${RECIPE}', 'owner', 'Soup', '[]', '[]', true, 'approved', 2, 4, 6)`);
+  // Every column a fork copies is non-null, so a dropped column shows in the fork test.
+  await client.exec(`INSERT INTO "recipes" (id, user_id, name, description, ingredients,
+      instructions, prep_time, cook_time, servings, difficulty, cuisine, tags, images,
+      nutrition_info, source, is_ai_generated, is_public, moderation_status, fork_count,
+      collection_count, like_count) VALUES
+    ('${RECIPE}', 'owner', 'Soup', 'A warm soup', '["1 leek"]', '["Simmer"]', 10, 30, 4,
+      'easy', 'French', '["winter"]', '["https://example.test/soup.jpg"]', '{"kcal":120}',
+      'Grandma', true, true, 'approved', 2, 4, 6)`);
   await client.exec(`INSERT INTO "recipe_comments" (id, recipe_id, user_id, content) VALUES
     ('${COMMENT}', '${RECIPE}', '${AUTHOR}', 'Too salty')`);
   for (const [owner, id] of Object.entries(COLLECTION)) {
@@ -332,15 +338,96 @@ describe('#208 guarded writes are unchanged for other accounts', () => {
 
     const result = await forkRecipe(RECIPE);
 
-    expect(result).toMatchObject({
-      success: true,
-      data: { user_id: NORMAL, name: 'Soup (Forked)', is_public: false },
+    expect(result).toMatchObject({ success: true });
+    const fork = (result as { data: typeof schema.recipes.$inferSelect }).data;
+    expect({
+      user_id: fork.user_id,
+      name: fork.name,
+      description: fork.description,
+      ingredients: fork.ingredients,
+      instructions: fork.instructions,
+      prep_time: fork.prep_time,
+      cook_time: fork.cook_time,
+      servings: fork.servings,
+      difficulty: fork.difficulty,
+      cuisine: fork.cuisine,
+      tags: fork.tags,
+      images: fork.images,
+      nutrition_info: fork.nutrition_info,
+      source: fork.source,
+      is_ai_generated: fork.is_ai_generated,
+      is_public: fork.is_public,
+    }).toEqual({
+      user_id: NORMAL,
+      name: 'Soup (Forked)',
+      description: 'A warm soup',
+      ingredients: '["1 leek"]',
+      instructions: '["Simmer"]',
+      prep_time: 10,
+      cook_time: 30,
+      servings: 4,
+      difficulty: 'easy',
+      cuisine: 'French',
+      tags: '["winter"]',
+      images: '["https://example.test/soup.jpg"]',
+      nutrition_info: '{"kcal":120}',
+      source: 'Forked from: Soup',
+      is_ai_generated: false,
+      is_public: false,
     });
-    const forkId = (result as { data: { id: string; created_at: Date } }).data.id;
-    expect((result as { data: { created_at: Date } }).data.created_at).toBeInstanceOf(Date);
-    expect(await rows('SELECT recipe_id, original_recipe_id, user_id FROM recipe_forks')).toEqual([
-      { recipe_id: forkId, original_recipe_id: RECIPE, user_id: NORMAL },
+    expect(fork.created_at).toBeInstanceOf(Date);
+    expect(Number.isNaN(fork.created_at.getTime())).toBe(false);
+    // The stored row matches what the caller got back.
+    const [stored] = await rows('SELECT tags, nutrition_info, user_id FROM recipes WHERE id = $1', [
+      fork.id,
     ]);
+    expect(stored).toEqual({ tags: '["winter"]', nutrition_info: '{"kcal":120}', user_id: NORMAL });
+    expect(await rows('SELECT recipe_id, original_recipe_id, user_id FROM recipe_forks')).toEqual([
+      { recipe_id: fork.id, original_recipe_id: RECIPE, user_id: NORMAL },
+    ]);
+  });
+
+  it('returns the same row as a drizzle .values().returning() insert', async () => {
+    const db = state.db as {
+      insert: (t: typeof schema.recipes) => {
+        values: (v: typeof schema.recipes.$inferInsert) => {
+          returning: () => Promise<Array<typeof schema.recipes.$inferSelect>>;
+        };
+      };
+    };
+    const values = (id: string): typeof schema.recipes.$inferInsert => ({
+      id,
+      user_id: NORMAL,
+      name: 'Round trip',
+      description: 'd',
+      ingredients: '["a"]',
+      instructions: '["b"]',
+      prep_time: 5,
+      servings: 2,
+      difficulty: 'hard',
+      tags: '["t"]',
+      is_public: true,
+      published_date: new Date('2026-01-02T03:04:05.000Z'),
+      confidence_score: '0.75',
+    });
+    const [viaDrizzle] = await db
+      .insert(schema.recipes)
+      .values(values('eeeeeeee-0000-4000-8000-00000000000e'))
+      .returning();
+    const { row: viaGuard } = await insertUnlessPendingDeletion(
+      schema.recipes,
+      values('ffffffff-0000-4000-8000-00000000000f'),
+      NORMAL
+    );
+
+    const strip = (r: Record<string, unknown> | null) => {
+      const { id: _id, created_at: _c, updated_at: _u, ...rest } = r ?? {};
+      return rest;
+    };
+    expect(viaGuard).not.toBeNull();
+    expect(strip(viaGuard)).toEqual(strip(viaDrizzle));
+    expect(viaGuard?.published_date).toEqual(new Date('2026-01-02T03:04:05.000Z'));
+    expect(Number.isNaN((viaGuard?.created_at as Date).getTime())).toBe(false);
   });
 
   it('an add bumps recipe_count and collection_count once', async () => {
