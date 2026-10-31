@@ -1,4 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
+import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
@@ -62,6 +63,23 @@ export class CollectionService {
       .select()
       .from(collections)
       .where(eq(collections.id, id))
+      .limit(1);
+
+    return collection || null;
+  }
+
+  /**
+   * #213: `findById` for a read. Null while the owner's deletion is pending,
+   * unless the viewer is the owner. Write paths keep `findById`.
+   */
+  async findReadableById(
+    id: string,
+    viewerId: string | null | undefined
+  ): Promise<Collection | null> {
+    const [collection] = await db
+      .select()
+      .from(collections)
+      .where(and(eq(collections.id, id), ownerVisibleTo(collections.user_id, viewerId)))
       .limit(1);
 
     return collection || null;
@@ -243,10 +261,11 @@ export class CollectionService {
    * Get public collections with pagination
    */
   async findPublic(limit = 20, offset = 0): Promise<Collection[]> {
+    // #213: a public listing omits owners whose deletion is pending.
     return db
       .select()
       .from(collections)
-      .where(eq(collections.is_public, true))
+      .where(and(eq(collections.is_public, true), authorNotPendingDeletion(collections.user_id)))
       .orderBy(desc(collections.created_at))
       .limit(limit)
       .offset(offset);

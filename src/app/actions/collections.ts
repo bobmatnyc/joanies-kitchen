@@ -3,6 +3,7 @@
 import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
@@ -234,7 +235,12 @@ export async function getUserCollections(targetUserId?: string) {
       .where(
         isOwnProfile
           ? eq(collections.user_id, userId)
-          : and(eq(collections.user_id, userId), eq(collections.is_public, true))
+          : and(
+              eq(collections.user_id, userId),
+              eq(collections.is_public, true),
+              // #213: another viewer sees none while the owner's deletion is pending.
+              authorNotPendingDeletion(collections.user_id)
+            )
       )
       .orderBy(desc(collections.created_at));
 
@@ -280,7 +286,8 @@ export async function getCollectionById(collectionId: string) {
     const [collection] = await db
       .select()
       .from(collections)
-      .where(eq(collections.id, collectionId))
+      // #213: hidden from everyone but the owner while the owner's deletion is pending.
+      .where(and(eq(collections.id, collectionId), ownerVisibleTo(collections.user_id, userId)))
       .limit(1);
 
     if (!collection) {
@@ -346,7 +353,14 @@ export async function getCollectionBySlug(username: string, slug: string) {
     const [collection] = await db
       .select()
       .from(collections)
-      .where(and(eq(collections.user_id, profile.user_id), eq(collections.slug, slug)))
+      .where(
+        and(
+          eq(collections.user_id, profile.user_id),
+          eq(collections.slug, slug),
+          // #213: hidden from everyone but the owner while the owner's deletion is pending.
+          ownerVisibleTo(collections.user_id, currentUserId)
+        )
+      )
       .limit(1);
 
     if (!collection) {
@@ -397,6 +411,7 @@ export async function getCollectionBySlug(username: string, slug: string) {
  */
 export async function getPublicCollections(limit = 20, offset = 0) {
   try {
+    const viewer = await getRecipeViewer();
     const publicCollections = await db
       .select({
         collection: collections,
@@ -404,13 +419,19 @@ export async function getPublicCollections(limit = 20, offset = 0) {
       })
       .from(collections)
       .innerJoin(userProfiles, eq(collections.user_id, userProfiles.user_id))
-      .where(eq(collections.is_public, true))
+      .where(
+        and(
+          eq(collections.is_public, true),
+          // #213: omits a pending-deletion owner's collections and profile row, except for the owner.
+          ownerVisibleTo(collections.user_id, viewer.userId)
+        )
+      )
       .orderBy(desc(collections.created_at))
       .limit(limit)
       .offset(offset);
 
     // #41: previews show only recipes this viewer may read.
-    const visible = recipeVisibilityCondition(await getRecipeViewer());
+    const visible = recipeVisibilityCondition(viewer);
 
     // For each collection, fetch first 4 recipes for cover image generation
     const collectionsWithRecipes = await Promise.all(
