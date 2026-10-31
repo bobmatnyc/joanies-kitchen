@@ -26,7 +26,10 @@ const freshSession = vi.hoisted(() => () => ({
 const session = vi.hoisted(() => ({ current: freshSession() }));
 
 vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+  // #202: throws like Next's real notFound(), so a call inside the async effect rejects.
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
+  }),
   // Stable like Next's router; a new object per call would itself rerun the fetch effect.
   useRouter: () => ROUTER,
   useSearchParams: () => new URLSearchParams(),
@@ -236,12 +239,21 @@ describe('recipe page failed refetch after sign-out (#202)', () => {
     await settle(50);
   }
 
+  /** Rejections first: with the throwing mock, notFound() in the effect surfaces there. */
   function expectNotFoundView() {
+    expect(rejections).toEqual([]);
+    expect(notFound).not.toHaveBeenCalled();
     expect(getRecipe).toHaveBeenCalledTimes(2);
     expect(screen.queryByText('Secret Stew')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Page Not Found' })).toBeTruthy();
-    expect(notFound).not.toHaveBeenCalled();
-    expect(rejections).toEqual([]);
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((r) => {
+      resolve = r;
+    });
+    return { promise, resolve };
   }
 
   it('a {success:false} refetch replaces the recipe with the not-found view', async () => {
@@ -275,5 +287,46 @@ describe('recipe page failed refetch after sign-out (#202)', () => {
     await screen.findByRole('heading', { name: 'Page Not Found' });
     expect(getRecipe).toHaveBeenCalledTimes(1);
     expect(notFound).not.toHaveBeenCalled();
+    expect(rejections).toEqual([]);
+  });
+
+  it("a stale owner response that lands after sign-out's failed fetch is ignored", async () => {
+    const ownerFetch = deferred<{ success: true; data: typeof PRIVATE }>();
+    getRecipe.mockReturnValueOnce(ownerFetch.promise);
+    getRecipe.mockResolvedValueOnce({ success: false, error: 'Recipe not found' });
+    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+    await vi.waitFor(() => expect(getRecipe).toHaveBeenCalledTimes(1));
+
+    session.current = SIGNED_OUT;
+    rerender(<RecipePageClient params={PARAMS} />);
+    await screen.findByRole('heading', { name: 'Page Not Found' });
+    await act(async () => ownerFetch.resolve({ success: true, data: PRIVATE }));
+    await settle(50);
+
+    expect(getRecipe).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('Secret Stew')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Page Not Found' })).toBeTruthy();
+  });
+
+  it('a refetch that times out after 5 s replaces the recipe with the not-found view', async () => {
+    getRecipe.mockResolvedValue({ success: true, data: PRIVATE });
+    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+    await screen.findByRole('heading', { name: 'Secret Stew' });
+    vi.useFakeTimers();
+    try {
+      getRecipe.mockReturnValue(new Promise(() => undefined));
+      session.current = SIGNED_OUT;
+      rerender(<RecipePageClient params={PARAMS} />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4900);
+      });
+      expect(screen.getByRole('heading', { name: 'Secret Stew' })).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expectNotFoundView();
   });
 });
