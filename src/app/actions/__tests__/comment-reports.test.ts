@@ -274,24 +274,39 @@ describe('moderation queue', () => {
       expect(recipe[0].moderation_status).toBe('approved');
     });
 
-    it('leaves no half state when the report write fails', async () => {
-      const flag = await hideByReports();
-      await client.exec(`
-        CREATE FUNCTION fail_flag_update() RETURNS trigger LANGUAGE plpgsql
-          AS $$ BEGIN RAISE EXCEPTION 'flag write failed'; END $$;
-        CREATE TRIGGER fail_flag_update BEFORE UPDATE ON recipe_flags
-          FOR EACH ROW EXECUTE FUNCTION fail_flag_update();
-      `);
-      vi.spyOn(console, 'error').mockImplementation(() => undefined);
-      try {
-        expect((await unhide(flag.id)).success).toBe(false);
-      } finally {
+    // Either write failing must undo the other, whichever order an implementation runs them in.
+    it.each(['recipe_flags', 'recipe_comments'])(
+      'leaves no half state when the %s write fails',
+      async (table) => {
+        const flag = await hideByReports();
         await client.exec(`
-          DROP TRIGGER fail_flag_update ON recipe_flags;
-          DROP FUNCTION fail_flag_update();
+          CREATE FUNCTION fail_update() RETURNS trigger LANGUAGE plpgsql
+            AS $$ BEGIN RAISE EXCEPTION 'write failed'; END $$;
+          CREATE TRIGGER fail_update BEFORE UPDATE ON ${table}
+            FOR EACH ROW EXECUTE FUNCTION fail_update();
         `);
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+          expect((await unhide(flag.id)).success).toBe(false);
+        } finally {
+          await client.exec(`
+            DROP TRIGGER fail_update ON ${table};
+            DROP FUNCTION fail_update();
+          `);
+        }
+        expect(await isHidden()).toBe(true);
+        expect(await rows(`SELECT status, reviewed_by FROM recipe_flags`)).toEqual([
+          { status: 'pending', reviewed_by: null },
+          { status: 'pending', reviewed_by: null },
+          { status: 'pending', reviewed_by: null },
+        ]);
       }
-      expect(await isHidden()).toBe(true);
+    );
+
+    it('refuses a deleted comment and leaves its reports pending', async () => {
+      const flag = await hideByReports();
+      await client.exec(`DELETE FROM recipe_comments WHERE id = '${C1}'`);
+      expect((await unhide(flag.id)).success).toBe(false);
       expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
         { status: 'pending' },
       ]);
