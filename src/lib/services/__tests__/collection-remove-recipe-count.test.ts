@@ -199,23 +199,29 @@ describe('#231 removing a recipe from a collection', () => {
     expect((await counts()).recipeCounts[0]).toEqual({ id: MINE, recipe_count: 0 });
   });
 
-  it('one batch: the recipe lock first, then the delete-and-decrement', async () => {
-    type Item = { toSQL?: () => { sql: string }; getQuery?: () => { sql: string } };
-    const sqlOf = (q: Item) =>
-      (q.toSQL ? q.toSQL().sql : (q.getQuery as () => { sql: string })().sql)
-        .replace(/\s+/g, ' ')
-        .trim();
+  it('one batch: recipe lock, collection lock, then the delete-and-decrement', async () => {
+    type Query = { sql: string; params: unknown[] };
+    type Item = { toSQL?: () => Query; getQuery?: () => Query };
+    const queryOf = (q: Item) => (q.toSQL ? q.toSQL() : (q.getQuery as () => Query)());
     const batch = vi.spyOn(state.db as { batch: (q: unknown[]) => Promise<unknown> }, 'batch');
 
     await viaService();
 
     expect(batch).toHaveBeenCalledTimes(1);
-    const sqls = (batch.mock.calls[0][0] as Item[]).map(sqlOf);
-    expect(sqls).toHaveLength(2);
+    const queries = (batch.mock.calls[0][0] as Item[]).map(queryOf);
+    const sqls = queries.map((q) => q.sql.replace(/\s+/g, ' ').trim());
+    expect(sqls).toHaveLength(3);
     expect(sqls[0]).toMatch(
       /^select "id" from "recipes" where "recipes"\."id" = \$1 for no key update$/
     );
-    expect(sqls[1]).toMatch(/^WITH removed AS \( DELETE FROM "collection_recipes" .* RETURNING /);
+    // #231: a collection delete locks C before its cascade reaches (C, R).
+    expect(sqls[1]).toMatch(
+      /^select "id" from "collections" where "collections"\."id" = \$1 for no key update$/
+    );
+    expect(sqls[2]).toMatch(/^WITH removed AS \( DELETE FROM "collection_recipes" .* RETURNING /);
+    // A lock on any other id matches no row, so only the params show what is locked.
+    expect(queries[0].params).toEqual([RECIPE]);
+    expect(queries[1].params).toEqual([MINE]);
   });
 
   it('the service answers whether a row was removed', async () => {

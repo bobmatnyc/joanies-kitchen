@@ -231,7 +231,8 @@ export class CollectionService {
    * `recipes.collection_count` drifted one low.
    * What: one `db.batch` (one transaction on neon-http): `lockRecipeForRating`
    * locks the recipe row first, the purge's recipes-first order (#158, #211);
-   * then ONE statement deletes the `collection_recipes` row and lowers
+   * then the collection row, as a collection delete locks it before its cascade
+   * reaches `collection_recipes`; then ONE statement deletes the `collection_recipes` row and lowers
    * `collections.recipe_count` and `recipes.collection_count` (floor 0) only for
    * the row the DELETE returned. Returns whether a row was removed. The caller
    * checks ownership; the server action and the v1 DELETE route both call this.
@@ -239,8 +240,15 @@ export class CollectionService {
    */
   async removeRecipe(collectionId: string, recipeId: string): Promise<boolean> {
     // #231: decrement only what the DELETE returned, in the same statement.
-    const [, result] = await db.batch([
+    const [, , result] = await db.batch([
       lockRecipeForRating(recipeId),
+      // #231: collection row before the (C, R) row, or a concurrent collection
+      // delete (C, then its cascade into R's row) could deadlock (40P01).
+      db
+        .select({ id: collections.id })
+        .from(collections)
+        .where(eq(collections.id, collectionId))
+        .for('no key update'),
       db.execute(sql`
         WITH removed AS (
           DELETE FROM ${collectionRecipes}
