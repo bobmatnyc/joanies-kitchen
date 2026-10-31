@@ -16,7 +16,7 @@
 import { checkAdminAccess } from '@/lib/admin';
 import type { NextRequest } from 'next/server';
 import { validateApiKey } from './key-service';
-import { hasScope, SCOPE_GROUPS } from './scopes';
+import { allowedScopesForRole, hasScope, SCOPE_GROUPS } from './scopes';
 import type { AuthContext, AuthFailureReason, AuthMetadata, AuthType } from './types';
 
 // ============================================================================
@@ -93,7 +93,23 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthCon
 // ============================================================================
 
 /**
- * Authenticate using API key (Bearer token)
+ * Why: a key's stored scopes were checked against its owner's role when it was
+ * written, but the role can change afterwards.
+ * What: an admin owner keeps every stored scope; a non-admin owner keeps only
+ * the scopes `allowedScopesForRole(false)` lists, so admin-only scopes on the
+ * key stop working the moment the owner is not an admin.
+ * Test: `src/lib/api-auth/__tests__/api-key-scope-roles.test.ts`
+ */
+function scopesForOwner(storedScopes: string[], ownerIsAdmin: boolean): string[] {
+  if (ownerIsAdmin) return storedScopes;
+  const allowed = allowedScopesForRole(false);
+  return storedScopes.filter((scope) => allowed.includes(scope));
+}
+
+/**
+ * Authenticate using API key (Bearer token).
+ * The key lookup also reads the owner's `users` row (one joined query), so the
+ * owner checks below add no round trip.
  */
 async function authenticateWithApiKey(
   authHeader: string,
@@ -130,16 +146,32 @@ async function authenticateWithApiKey(
       };
     }
 
+    // The key is only as good as its owner's account: no `users` row, or a
+    // pending account deletion, rejects the key.
+    const owner = validation.owner;
+    if (!owner || owner.deletionPending) {
+      return {
+        authenticated: false,
+        userId: null,
+        authType: 'api_key',
+        scopes: [],
+        error: 'API key owner account is not active',
+        reason: 'inactive',
+        metadata,
+      };
+    }
+
     // Successfully authenticated with API key
     return {
       authenticated: true,
       userId: validation.userId!,
       authType: 'api_key',
-      scopes: validation.scopes || [],
+      scopes: scopesForOwner(validation.scopes || [], owner.isAdmin),
       apiKeyId: validation.apiKey?.id,
       apiKeyName: validation.apiKey?.name,
       metadata: {
         ...metadata,
+        isAdmin: owner.isAdmin,
         environment: validation.apiKey?.environment as 'production' | 'development' | undefined,
       },
     };

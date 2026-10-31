@@ -6,7 +6,10 @@
  * DELETE /api/v1/chefs/:slug - Delete chef (admin only)
  *
  * Authentication: Requires a signed-in session or API key
- * Authorization: Scope-based permissions
+ * Authorization: Scope-based permissions. `write:chefs` and `delete:chefs` are
+ * admin-only scopes (`ADMIN_ONLY_SCOPES`): only an admin can put them on a key,
+ * and a key whose owner is not an admin loses them at authentication. So PATCH
+ * and DELETE admit admins only.
  */
 
 import type { NextRequest } from 'next/server';
