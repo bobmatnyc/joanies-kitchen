@@ -97,6 +97,24 @@ async function ingestOne() {
   return rows.rows[0];
 }
 
+/** Posts a raw JSON body as the current caller. */
+const post = (body: unknown) =>
+  call(
+    new NextRequest('http://localhost/api/ingest-recipe', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({}) }
+  );
+
+/** `is_system_recipe` of every stored recipe. */
+const systemFlags = async () =>
+  (
+    await client.query<{ is_system_recipe: boolean }>(
+      'SELECT is_system_recipe FROM "recipes" ORDER BY created_at, id'
+    )
+  ).rows.map((r) => r.is_system_recipe);
+
 beforeAll(async () => {
   const built = await createVisibilityDb(
     [users, recipes, usageCounters],
@@ -119,6 +137,10 @@ beforeEach(async () => {
   state.adminLookups = [];
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  // Skip the 1 s pause between batch URLs.
+  const realSetTimeout = globalThis.setTimeout;
+  vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) =>
+    realSetTimeout(fn, ms === 1000 ? 0 : ms)) as typeof setTimeout);
 });
 
 describe('POST /api/ingest-recipe system flag (#233)', () => {
@@ -142,6 +164,23 @@ describe('POST /api/ingest-recipe system flag (#233)', () => {
     state.auth = { authenticated: true, userId: 'admin-1', apiKeyId: 'key-a' };
     expect((await ingestOne()).is_system_recipe).toBe(true);
     expect(state.adminLookups).toEqual(['member-1', 'admin-1']);
+  });
+
+  it('ignores a client-supplied is_system_recipe on a single-URL request', async () => {
+    state.auth = { authenticated: true, userId: 'member-1' };
+    const res = await post({ url: 'https://example.com/client-single', is_system_recipe: true });
+    expect(res.status).toBe(201);
+    expect(await systemFlags()).toEqual([false]);
+  });
+
+  it('ignores a client-supplied is_system_recipe on a batch request', async () => {
+    state.auth = { authenticated: true, userId: 'member-1' };
+    const urls = ['https://example.com/client-b1', 'https://example.com/client-b2'];
+    const res = await post({ urls, is_system_recipe: true });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { stats: { success: number } };
+    expect(body.stats.success).toBe(2);
+    expect(await systemFlags()).toEqual([false, false]);
   });
 
   it('stores a non-system recipe when the admin lookup fails', async () => {
