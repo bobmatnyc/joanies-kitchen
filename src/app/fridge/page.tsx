@@ -8,7 +8,7 @@ import { getUserInventory } from '@/app/actions/inventory';
 import { FridgeInput } from '@/components/inventory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 
 /**
  * Fridge Page - Zero-Waste Recipe Discovery
@@ -35,14 +35,14 @@ import { useAuth } from '@/lib/auth-client';
  */
 export default function FridgePage() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const signedIn = useSessionUser().user !== null;
 
   const [inventoryCount, setInventoryCount] = useState<number | null>(null);
   const [loadingInventory, setLoadingInventory] = useState(false);
 
   // Fetch inventory count if user is signed in
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!signedIn) return;
 
     async function fetchInventoryCount() {
       setLoadingInventory(true);
@@ -63,7 +63,7 @@ export default function FridgePage() {
     }
 
     fetchInventoryCount();
-  }, [isSignedIn]);
+  }, [signedIn]);
 
   /**
    * Handle recipe search navigation (manual mode)
@@ -105,7 +105,7 @@ export default function FridgePage() {
         </div>
 
         {/* Use My Inventory Section (Authenticated Users Only) */}
-        {isSignedIn && (
+        {signedIn && (
           <div className="mb-6 sm:mb-8">
             <Card className="border-2 border-jk-sage/40 bg-jk-sage/5">
               <CardContent className="p-6 sm:p-8">
@@ -155,7 +155,7 @@ export default function FridgePage() {
         <div className="bg-white rounded-2xl shadow-lg border border-jk-sage/20 p-6 sm:p-8 lg:p-10">
           <div className="mb-4 text-center">
             <h2 className="text-xl font-heading text-jk-olive">
-              {isSignedIn ? 'Or Enter Ingredients Manually' : 'Enter Ingredients'}
+              {signedIn ? 'Or Enter Ingredients Manually' : 'Enter Ingredients'}
             </h2>
           </div>
           <FridgeInput

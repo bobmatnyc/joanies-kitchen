@@ -63,15 +63,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useUser } from '@/lib/auth-client';
 import { getBaseUrl } from '@/lib/site-url';
+import { useSessionUser } from '@/lib/use-session-user';
 import { getRecipeHero } from '@/lib/utils/recipe-image';
 import { parseRecipe } from '@/lib/utils/recipe-utils';
-
-// #22: Auth.js session via the Clerk-shaped client shim.
-function useSessionUser() {
-  return useUser();
-}
 
 interface RecipePageProps {
   params: Promise<{
@@ -109,7 +104,12 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
   const chefSlug = fromParam?.startsWith('chef/') ? fromParam.replace('chef/', '') : null;
 
   // MUST be called unconditionally (React Rules of Hooks)
-  const { user, isSignedIn } = useSessionUser();
+  const { user } = useSessionUser();
+  const signedIn = user !== null;
+  // #22: the fetch effect keys on these primitives, not on `user`: SessionProvider
+  // swaps in an equal new session object on every poll and tab focus.
+  const userId = user?.id ?? null;
+  const userIsAdmin = user?.isAdmin === true;
 
   useEffect(() => {
     params.then((p) => setSlugOrId(p.slug));
@@ -157,17 +157,17 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       } else {
         // In development mode (no auth), treat all recipes as owned
         const isDevelopment = process.env.NODE_ENV === 'development';
-        if (isDevelopment && !isSignedIn) {
+        if (isDevelopment && userId === null) {
           setIsOwner(true);
-        } else if (isSignedIn && user?.id === result.data.user_id) {
+        } else if (userId !== null && userId === result.data.user_id) {
           setIsOwner(true);
         }
       }
 
       // Check if user is admin
-      if (isSignedIn && user?.id) {
+      if (userId) {
         // #22: JWT admin hint (UI only); admin actions re-check the DB.
-        setIsUserAdmin(user.publicMetadata.isAdmin === 'true');
+        setIsUserAdmin(userIsAdmin);
       }
 
       // Show page immediately - fetch secondary data in background
@@ -220,7 +220,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       }
     }
     fetchRecipe();
-  }, [slugOrId, isSignedIn, user, router]);
+  }, [slugOrId, userId, userIsAdmin, router]);
 
   const handleExportMarkdown = useCallback(async () => {
     if (!recipe) return;
@@ -484,8 +484,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         {/* Tool Buttons Row */}
         <div className="flex flex-wrap gap-2 mb-6">
           {/* Engagement Actions */}
-          {isSignedIn && <FavoriteButton recipeId={recipe.id} />}
-          {isSignedIn && <AddToCollectionButton recipeId={recipe.id} />}
+          {signedIn && <FavoriteButton recipeId={recipe.id} />}
+          {signedIn && <AddToCollectionButton recipeId={recipe.id} />}
           {!isOwner && (
             <CloneRecipeButton
               recipeId={recipe.id}
@@ -835,7 +835,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
             averageRating={recipe.avg_user_rating}
             totalRatings={recipe.total_user_ratings || 0}
             currentUserId={user?.id}
-            isAuthenticated={isSignedIn || false}
+            isAuthenticated={signedIn}
           />
         </div>
 
@@ -844,7 +844,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
           <RecipeComments
             recipeId={recipe.id}
             currentUserId={user?.id}
-            isAuthenticated={isSignedIn || false}
+            isAuthenticated={signedIn}
           />
         </div>
 

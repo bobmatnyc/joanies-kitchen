@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,7 +23,7 @@ import { SignInToSaveDialog } from './SignInToSaveDialog';
 
 export function MealBuilder() {
   const router = useRouter();
-  const { userId } = useAuth();
+  const userId = useSessionUser().user?.id ?? null;
   const [isLoading, setIsLoading] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true);

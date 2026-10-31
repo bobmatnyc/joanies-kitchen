@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-client';
+import { useSessionUser } from '@/lib/use-session-user';
 import { Plus, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -18,7 +18,7 @@ interface MealsListProps {
 }
 
 export function MealsList({ initialMeals = [], mealType, isPublicView = false }: MealsListProps) {
-  const { userId } = useAuth();
+  const userId = useSessionUser().user?.id ?? null;
   const [meals, setMeals] = useState<(Meal | GuestMeal)[]>(initialMeals);
   const [isLoading, setIsLoading] = useState(false);
 
