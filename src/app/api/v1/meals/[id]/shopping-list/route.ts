@@ -11,6 +11,7 @@
 import { and, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { generateShoppingList, getMealById } from '@/app/actions/meals';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { db } from '@/lib/db';
@@ -156,13 +157,13 @@ export const GET = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner
- * - 404: Meal not found
+ * - 403: Insufficient permissions, or the caller's account is pending deletion
+ * - 404: Meal not found, or another user's private meal (#225)
  * - 500: Internal server error
  */
 export const POST = requireScopes(
   [SCOPES.WRITE_MEALS],
-  async (_request: NextRequest, auth, context: RouteContext) => {
+  async (_request: NextRequest, _auth, context: RouteContext) => {
     try {
       // Extract meal ID from route params (Next.js 15: params is a Promise)
       const params = await context.params;
@@ -194,33 +195,26 @@ export const POST = requireScopes(
         );
       }
 
-      // Check ownership (users can only edit their own meals)
-      if (existingMeal.data.user_id !== auth.userId) {
-        // Check if user is admin
-        const isAdmin = auth.metadata?.isAdmin === true;
-
-        if (!isAdmin) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You do not have permission to edit this meal',
-            },
-            { status: 403 }
-          );
-        }
-      }
-
-      // Generate shopping list using server action
+      // #225: no ownership check and no admin bypass. getMealById answers only
+      // the caller's own meals and public ones (anything else is 404 above), and
+      // the action writes the list to the caller, never to the meal owner.
       const result = await generateShoppingList({ mealId });
 
       if (!result.success) {
+        // #225: a pending-deletion refusal is 403 (nothing was written); a meal
+        // the caller cannot reach is 404; anything else stays 500.
+        const status = isPendingDeletionRefusal(result)
+          ? 403
+          : result.error === 'Meal not found'
+            ? 404
+            : 500;
         return NextResponse.json(
           {
             success: false,
             // #241: a 500 carries a fixed message; the detail is logged only.
-            error: mealErrorMessage(500, result.error, 'Failed to generate shopping list'),
+            error: mealErrorMessage(status, result.error, 'Failed to generate shopping list'),
           },
-          { status: 500 }
+          { status }
         );
       }
 
