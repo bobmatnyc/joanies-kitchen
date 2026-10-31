@@ -16,6 +16,8 @@ const state = vi.hoisted(() => ({
   /** Set to make the admin lookup reject (fail-closed test). */
   adminError: undefined as Error | undefined,
   cleanCalls: 0,
+  /** Set to make the cleaning work reject (#251 error-body tests). */
+  cleanError: undefined as Error | undefined,
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -38,6 +40,7 @@ vi.mock('@/lib/auth-users', async (importOriginal) => {
 vi.mock('@/lib/services/recipe-cleaner.service', () => ({
   cleanRecipesWithOllama: async () => {
     state.cleanCalls += 1;
+    if (state.cleanError) throw state.cleanError;
     return { processed: 1, skipped: 0 };
   },
 }));
@@ -109,6 +112,36 @@ afterEach(() => {
   vi.restoreAllMocks();
   state.sessionUserId = null;
   state.adminError = undefined;
+  state.cleanError = undefined;
+});
+
+describe('error response bodies (#251)', () => {
+  const CONSTRAINT = 'recipes_user_id_fkey_secret_name';
+
+  it('answers 500 with a fixed message that omits the constraint name', async () => {
+    state.sessionUserId = ADMIN;
+    state.cleanError = new Error(
+      `insert or update on table "recipes" violates foreign key constraint "${CONSTRAINT}"`
+    );
+
+    const res = await call();
+    const text = await res.text();
+
+    expect(res.status).toBe(500);
+    expect(JSON.parse(text)).toEqual({ success: false, error: 'Failed to clean recipes' });
+    expect(text).not.toContain(CONSTRAINT);
+  });
+
+  it('answers 503 for a provider error with a fixed message, not the raw text', async () => {
+    state.sessionUserId = ADMIN;
+    state.cleanError = new Error('connect ECONNREFUSED ollama.internal.example:11434');
+
+    const res = await call();
+    const text = await res.text();
+
+    expect(res.status).toBe(503);
+    expect(text).not.toContain('internal.example');
+  });
 });
 
 describe('signed-in callers', () => {
