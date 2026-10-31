@@ -50,11 +50,60 @@ describe('hasScope', () => {
     expect(hasScope([], 'read:recipes')).toBe(false);
   });
 
-  it('should support action:resource format wildcard', () => {
-    const userScopes = ['read:*'];
+  it('an action wildcard matches every resource for that action', () => {
+    expect(hasScope(['read:*'], 'read:recipes')).toBe(true);
+    expect(hasScope(['read:*'], 'write:recipes')).toBe(false);
+  });
 
-    // This should match when user has wildcard for all resources for 'read'
-    expect(hasScope(userScopes, 'read:recipes')).toBe(false); // Different format
+  it('admin:* matches every admin scope', () => {
+    expect(hasScope(['admin:*'], 'admin:system')).toBe(true);
+    expect(hasScope(['admin:*'], 'admin:users')).toBe(true);
+    expect(hasScope(['admin:*'], 'admin:content')).toBe(true);
+  });
+
+  it('admin:* does not match scopes of other resources', () => {
+    expect(hasScope(['admin:*'], 'read:recipes')).toBe(false);
+    expect(hasScope(['admin:*'], 'write:chefs')).toBe(false);
+  });
+
+  it('a resource wildcard matches only its own resource', () => {
+    expect(hasScope(['recipes:*'], 'read:meals')).toBe(false);
+    expect(hasScope(['chefs:*'], 'write:chefs')).toBe(true);
+    expect(hasScope(['analytics:*'], 'read:analytics')).toBe(true);
+    expect(hasScope(['meals:*'], 'admin:users')).toBe(false);
+  });
+
+  it('a non-admin wildcard does not match any admin-only scope', () => {
+    for (const wildcard of [
+      'recipes:*',
+      'meals:*',
+      'collections:*',
+      'inventory:*',
+      'favorites:*',
+    ]) {
+      for (const required of [
+        'admin:users',
+        'admin:content',
+        'admin:system',
+        'read:analytics',
+        'write:chefs',
+        'delete:chefs',
+        'write:ingredients',
+        'delete:ingredients',
+      ]) {
+        expect(hasScope([wildcard], required)).toBe(false);
+      }
+    }
+  });
+
+  it('agrees with expandWildcard for every wildcard scope', () => {
+    const all = Object.values(SCOPES);
+    for (const wildcard of all.filter((s) => s.endsWith(':*'))) {
+      const expanded = expandWildcard(wildcard);
+      for (const scope of all.filter((s) => s !== '*')) {
+        expect(hasScope([wildcard], scope)).toBe(expanded.includes(scope));
+      }
+    }
   });
 });
 

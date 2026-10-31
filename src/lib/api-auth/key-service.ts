@@ -17,6 +17,7 @@
  */
 
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { getUserAdminFlag } from '../auth-users';
 import { db } from '../db';
 import {
   type ApiKey,
@@ -25,13 +26,14 @@ import {
   type NewApiKey,
   type NewApiKeyUsage,
 } from '../db/api-keys-schema';
+import { users } from '../db/auth-schema';
 import {
   constantTimeCompare,
   generateApiKey,
   hashApiKey,
   validateApiKeyFormat,
 } from './key-generator';
-import { hasScope, validateScopes } from './scopes';
+import { disallowedScopesForRole, validateScopes } from './scopes';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -53,6 +55,23 @@ export interface CreateApiKeyResult {
   keyId?: string;
   keyPrefix?: string; // For display in UI
   error?: string;
+  /** Set when the owner's role does not allow some requested scopes. */
+  reason?: 'scope_not_allowed';
+  disallowedScopes?: string[];
+}
+
+export interface UpdateApiKeyResult {
+  success: boolean;
+  error?: string;
+  /** Set when the owner's role does not allow some requested scopes. */
+  reason?: 'scope_not_allowed' | 'not_found';
+  disallowedScopes?: string[];
+}
+
+/** The key owner's `users` row facts, or null when the row is missing. */
+export interface ApiKeyOwner {
+  isAdmin: boolean;
+  deletionPending: boolean;
 }
 
 export interface ValidateApiKeyResult {
@@ -60,8 +79,24 @@ export interface ValidateApiKeyResult {
   apiKey?: ApiKey;
   scopes?: string[];
   userId?: string;
+  owner?: ApiKeyOwner | null;
   error?: string;
   reason?: 'invalid_format' | 'not_found' | 'inactive' | 'expired' | 'revoked';
+}
+
+/**
+ * Why: a key may only carry scopes its owner's role allows, whatever the caller.
+ * What: reads `users.is_admin` for the owner (a missing row counts as
+ * non-admin) and returns the requested scopes that role may not hold.
+ * Throws on DB error.
+ */
+async function scopesOutsideOwnerRole(userId: string, scopes: string[]): Promise<string[]> {
+  const isAdmin = (await getUserAdminFlag(userId)) === true;
+  return disallowedScopesForRole(scopes, isAdmin);
+}
+
+function scopeNotAllowedMessage(disallowed: string[]): string {
+  return `Your account cannot grant these scopes: ${disallowed.join(', ')}`;
 }
 
 export interface ApiKeyUsageParams {
@@ -97,7 +132,8 @@ export interface ApiKeyUsageStats {
  * Create a new API key for a user
  *
  * Process:
- * 1. Validate scopes
+ * 1. Validate scope format, then refuse (`reason: 'scope_not_allowed'`) any
+ *    scope the owner's role does not allow (`allowedScopesForRole`)
  * 2. Generate cryptographically secure key
  * 3. Hash the key (SHA-256)
  * 4. Store hash in database (never store plaintext)
@@ -129,6 +165,16 @@ export async function createApiKey(params: CreateApiKeyParams): Promise<CreateAp
       return {
         success: false,
         error: scopeValidation.message || 'Invalid scopes',
+      };
+    }
+
+    const disallowed = await scopesOutsideOwnerRole(params.userId, params.scopes);
+    if (disallowed.length > 0) {
+      return {
+        success: false,
+        reason: 'scope_not_allowed',
+        disallowedScopes: disallowed,
+        error: scopeNotAllowedMessage(disallowed),
       };
     }
 
@@ -213,8 +259,21 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
     // Step 2: Hash the provided key
     const keyHash = hashApiKey(providedKey);
 
-    // Step 3: Look up key in database by hash
-    const [key] = await db.select().from(apiKeys).where(eq(apiKeys.key_hash, keyHash)).limit(1);
+    // Step 3: Look up key in database by hash. The owner's `users` row rides
+    // in the same query (left join on the primary key), so the caller can
+    // apply owner checks without a second round trip.
+    const [row] = await db
+      .select({
+        key: apiKeys,
+        ownerId: users.id,
+        ownerIsAdmin: users.is_admin,
+        ownerDeletionRequestedAt: users.deletion_requested_at,
+      })
+      .from(apiKeys)
+      .leftJoin(users, eq(users.id, apiKeys.user_id))
+      .where(eq(apiKeys.key_hash, keyHash))
+      .limit(1);
+    const key = row?.key;
 
     if (!key) {
       return {
@@ -260,6 +319,16 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
       };
     }
 
+    // The key is only as good as its owner's account: no `users` row, or a
+    // pending account deletion, refuses the key before any use is recorded.
+    if (!row.ownerId || row.ownerDeletionRequestedAt !== null) {
+      return {
+        valid: false,
+        reason: 'inactive',
+        error: 'API key owner account is not active',
+      };
+    }
+
     // Step 5: Update last_used_at timestamp (fire and forget)
     db.update(apiKeys)
       .set({
@@ -278,6 +347,7 @@ export async function validateApiKey(providedKey: string): Promise<ValidateApiKe
       apiKey: key,
       scopes: key.scopes as string[],
       userId: key.user_id,
+      owner: { isAdmin: row.ownerIsAdmin === true, deletionPending: false },
     };
   } catch (error) {
     console.error('Error validating API key:', error);
@@ -409,9 +479,13 @@ export async function getApiKeyById(keyId: string): Promise<ApiKey | null> {
  * Can update: name, description, scopes, expiration
  * Cannot update: key_hash, user_id (security)
  *
+ * New scopes must pass the format check and be allowed for the key owner's
+ * role (`allowedScopesForRole`); otherwise nothing is written and the result
+ * carries `reason: 'scope_not_allowed'` and the refused scopes.
+ *
  * @param keyId - The API key ID
  * @param updates - Fields to update
- * @returns Success boolean
+ * @returns Result with `success`, or the refusal reason
  */
 export async function updateApiKey(
   keyId: string,
@@ -421,14 +495,33 @@ export async function updateApiKey(
     scopes?: string[];
     expires_at?: Date | null;
   }
-): Promise<boolean> {
+): Promise<UpdateApiKeyResult> {
   try {
     // Validate scopes if provided
     if (updates.scopes) {
       const validation = validateScopes(updates.scopes);
       if (!validation.valid) {
         console.error('Invalid scopes:', validation.message);
-        return false;
+        return { success: false, error: validation.message || 'Invalid scopes' };
+      }
+
+      const [key] = await db
+        .select({ userId: apiKeys.user_id })
+        .from(apiKeys)
+        .where(eq(apiKeys.id, keyId))
+        .limit(1);
+      if (!key) {
+        return { success: false, reason: 'not_found', error: 'API key not found' };
+      }
+
+      const disallowed = await scopesOutsideOwnerRole(key.userId, updates.scopes);
+      if (disallowed.length > 0) {
+        return {
+          success: false,
+          reason: 'scope_not_allowed',
+          disallowedScopes: disallowed,
+          error: scopeNotAllowedMessage(disallowed),
+        };
       }
     }
 
@@ -441,10 +534,15 @@ export async function updateApiKey(
       .where(eq(apiKeys.id, keyId))
       .returning();
 
-    return !!updated;
+    return updated
+      ? { success: true }
+      : { success: false, reason: 'not_found', error: 'API key not found' };
   } catch (error) {
     console.error('Error updating API key:', error);
-    return false;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error updating API key',
+    };
   }
 }
 
@@ -644,30 +742,6 @@ export async function getRecentUsageLogs(keyId: string, limit: number = 100) {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Check if a user has permission via their API key
- *
- * @param keyId - The API key ID
- * @param requiredScope - The scope to check for
- * @returns true if key has the required scope
- */
-export async function checkApiKeyPermission(
-  keyId: string,
-  requiredScope: string
-): Promise<boolean> {
-  try {
-    const key = await getApiKeyById(keyId);
-    if (!key || !key.is_active) {
-      return false;
-    }
-
-    return hasScope(key.scopes as string[], requiredScope);
-  } catch (error) {
-    console.error('Error checking API key permission:', error);
-    return false;
-  }
-}
 
 /**
  * Clean up expired API keys (for scheduled jobs)

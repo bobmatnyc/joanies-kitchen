@@ -129,17 +129,18 @@ export const SCOPE_GROUPS = {
 /**
  * Check if a user has a specific scope
  *
- * Supports wildcards:
- * - "recipes:*" matches "read:recipes", "write:recipes", "delete:recipes"
- * - "*" matches everything
- *
- * @param userScopes - Array of scopes the user/key has
- * @param requiredScope - The scope to check for
- * @returns true if user has the required scope
+ * Why: every scope-gated route decides access here, so wildcard matching must
+ * agree with `expandWildcard` for both wildcard forms.
+ * What: true when `requiredScope` is held exactly, when `*` is held, or when a
+ * held `<x>:*` names either side of `requiredScope` — the resource
+ * (`recipes:*` matches `read:recipes`) or the action (`admin:*` matches
+ * `admin:system`).
+ * Test: `src/lib/api-auth/__tests__/scopes.test.ts` (`hasScope` blocks)
  *
  * @example
  * hasScope(['read:recipes', 'write:recipes'], 'read:recipes') // true
  * hasScope(['recipes:*'], 'read:recipes') // true
+ * hasScope(['admin:*'], 'admin:system') // true
  * hasScope(['*'], 'admin:users') // true
  * hasScope(['read:recipes'], 'write:recipes') // false
  */
@@ -148,37 +149,95 @@ export function hasScope(userScopes: string[], requiredScope: string): boolean {
     return false;
   }
 
-  // Check for exact match first (most common case)
-  if (userScopes.includes(requiredScope)) {
+  if (userScopes.includes(requiredScope) || userScopes.includes('*')) {
     return true;
   }
 
-  // Check for global wildcard
-  if (userScopes.includes('*')) {
-    return true;
+  const [requiredAction, requiredResource] = requiredScope.split(':');
+
+  return userScopes.some((userScope) => {
+    if (!userScope.endsWith(':*')) return false;
+    const prefix = userScope.slice(0, -2);
+    return prefix === requiredResource || prefix === requiredAction;
+  });
+}
+
+// ============================================================================
+// ROLE-BASED SCOPE LIMITS
+// ============================================================================
+
+/**
+ * Resources whose rows belong to the caller. Their v1 handlers act only on the
+ * caller's own rows, so every scope on them is safe to grant any signed-in user.
+ */
+const OWN_RESOURCES = ['recipes', 'meals', 'collections', 'inventory', 'favorites'];
+
+/**
+ * Site-wide catalog resources shared by all users. Anyone may read them;
+ * changing them changes content for every user, so writes are admin-only.
+ */
+const SHARED_CATALOG_RESOURCES = ['chefs', 'ingredients'];
+
+/** Site-operator data (usage analytics). Every scope on it is admin-only. */
+const ADMIN_RESOURCES = ['analytics'];
+
+/**
+ * The administration action: `admin:users`, `admin:content`, `admin:system`
+ * and `admin:*` manage other users' accounts, all content and site settings.
+ */
+const ADMIN_ACTION = 'admin';
+
+/** Who may hold a scope: any user, admins only, or not classified. */
+export type ScopeAudience = 'user' | 'admin' | 'unclassified';
+
+/**
+ * Why: key creation, key update and key use must agree on which scopes a
+ * non-admin may hold.
+ * What: `*` and every `admin:<x>` are admin-only. Other `<action>:<resource>`
+ * and `<resource>:*` scopes are classified by resource: own resources →
+ * `user`; shared catalog → `user` for `read`, else `admin`; admin resources →
+ * `admin`. A resource in none of the lists is `unclassified`.
+ * Test: `src/lib/api-auth/__tests__/scope-roles.test.ts`
+ */
+export function classifyScope(scope: string): ScopeAudience {
+  if (scope === SCOPES.ALL) return 'admin';
+  const [left, right] = scope.split(':');
+  if (left === ADMIN_ACTION) return 'admin';
+  const wildcard = right === '*';
+  const resource = wildcard ? left : right;
+  if (OWN_RESOURCES.includes(resource)) return 'user';
+  if (SHARED_CATALOG_RESOURCES.includes(resource)) {
+    return !wildcard && left === 'read' ? 'user' : 'admin';
   }
+  if (ADMIN_RESOURCES.includes(resource)) return 'admin';
+  return 'unclassified';
+}
 
-  // Check for resource wildcard (e.g., "recipes:*" matching "read:recipes")
-  const [_requiredAction, requiredResource] = requiredScope.split(':');
+const ALL_SCOPE_VALUES: string[] = Object.values(SCOPES);
 
-  for (const userScope of userScopes) {
-    // Check if user has wildcard for this resource
-    // Example: user has "recipes:*", required is "read:recipes"
-    if (userScope.endsWith(':*')) {
-      const userResource = userScope.replace(':*', '');
-      if (requiredResource === userResource) {
-        return true;
-      }
-    }
+/** Every `SCOPES` value a non-admin may hold. Includes `SCOPE_GROUPS.USER` and `READ_ONLY`. */
+export const NON_ADMIN_SCOPES: readonly string[] = ALL_SCOPE_VALUES.filter(
+  (scope) => classifyScope(scope) === 'user'
+);
 
-    // Also check the reverse format: "read:recipes" vs "recipes:*"
-    const [userAction, userResource] = userScope.split(':');
-    if (userResource === '*' && requiredResource === userAction) {
-      return true;
-    }
-  }
+/** Every `SCOPES` value only an admin may hold. Includes `SCOPE_GROUPS.ADMIN` and `SUPER_ADMIN`. */
+export const ADMIN_ONLY_SCOPES: readonly string[] = ALL_SCOPE_VALUES.filter(
+  (scope) => classifyScope(scope) !== 'user'
+);
 
-  return false;
+/**
+ * Why: one place defines what a key owner's role allows.
+ * What: an admin may hold any `SCOPES` value; a non-admin only `NON_ADMIN_SCOPES`.
+ * Test: `src/lib/api-auth/__tests__/scope-roles.test.ts`
+ */
+export function allowedScopesForRole(isAdmin: boolean): readonly string[] {
+  return isAdmin ? ALL_SCOPE_VALUES : NON_ADMIN_SCOPES;
+}
+
+/** Returns the scopes in `scopes` that the role may not hold, in input order. */
+export function disallowedScopesForRole(scopes: string[], isAdmin: boolean): string[] {
+  const allowed = allowedScopesForRole(isAdmin);
+  return scopes.filter((scope) => !allowed.includes(scope));
 }
 
 /**
