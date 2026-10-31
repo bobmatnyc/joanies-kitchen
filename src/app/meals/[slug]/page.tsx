@@ -1,10 +1,8 @@
-import { desc, eq } from 'drizzle-orm';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getMealBySlug } from '@/app/actions/meals';
 import { MealDetailContent } from '@/components/meals/MealDetailContent';
-import { db } from '@/lib/db';
-import { shoppingLists } from '@/lib/db/schema';
+import { getViewerShoppingListForMeal } from '@/lib/meals/viewer-shopping-list';
 import { getSessionUserId } from '@/lib/session-user';
 
 interface PageProps {
@@ -25,17 +23,8 @@ export default async function MealDetailPage({ params }: PageProps) {
     if (mealResult.success && mealResult.data) {
       initialMeal = mealResult.data;
 
-      // Fetch shopping list for this meal
-      const shoppingListResults = await db
-        .select()
-        .from(shoppingLists)
-        .where(eq(shoppingLists.meal_id, mealResult.data.id))
-        .orderBy(desc(shoppingLists.created_at))
-        .limit(1);
-
-      if (shoppingListResults.length > 0) {
-        initialShoppingList = shoppingListResults[0];
-      }
+      // #223: only the viewer's own list; other users' lists for this meal stay hidden.
+      initialShoppingList = await getViewerShoppingListForMeal(mealResult.data.id, userId);
     }
   }
 
