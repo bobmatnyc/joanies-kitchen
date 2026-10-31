@@ -37,6 +37,11 @@ vi.mock('@/lib/db', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
+// The real actions; updateMeal is wrapped so one test can force a plain failure.
+vi.mock('@/app/actions/meals', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/app/actions/meals')>();
+  return { ...actual, updateMeal: vi.fn(actual.updateMeal) };
+});
 // The route authenticates OWNER either by session or by API key (no session).
 vi.mock('@/lib/api-auth/middleware', () => ({
   authenticateRequest: async () => ({
@@ -50,6 +55,7 @@ vi.mock('@/lib/api-auth/middleware', () => ({
   authHasAnyScope: () => true,
 }));
 
+import { updateMeal } from '@/app/actions/meals';
 import {
   DELETE as mealRecipesDELETE,
   POST as mealRecipesPOST,
@@ -86,12 +92,16 @@ async function snapshot() {
   };
 }
 
-async function call(handler: Handler, method: string, path: string, id: string, body?: unknown) {
+async function send(handler: Handler, method: string, path: string, id: string, body?: unknown) {
   const req = new NextRequest(`http://localhost${path}`, {
     method,
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const res = await handler(req, { params: Promise.resolve({ id }) } as RouteContext);
+  return handler(req, { params: Promise.resolve({ id }) } as RouteContext);
+}
+
+async function call(handler: Handler, method: string, path: string, id: string, body?: unknown) {
+  const res = await send(handler, method, path, id, body);
   return { status: res.status, body: await res.json() };
 }
 
@@ -216,6 +226,27 @@ describe('#253 an API-key-only caller gets 401 from a meal action route', () => 
 
     expect(res).toEqual(SESSION_REQUIRED);
     expect(await snapshot()).toEqual(before);
+  });
+
+  it('the 401 carries a WWW-Authenticate header', async () => {
+    asApiKeyOnly();
+
+    const res = await send(collectionGET, 'GET', '/api/v1/meals', '');
+
+    expect(res.status).toBe(401);
+    expect(res.headers.get('WWW-Authenticate')).toBe('Session realm="Meals"');
+  });
+
+  it('a plain Unauthorized failure without the errorCode stays 500', async () => {
+    // Guards against matching on the error string or on authType.
+    asApiKeyOnly();
+    vi.mocked(updateMeal).mockResolvedValueOnce({ success: false, error: 'Unauthorized' });
+
+    const res = await call(mealPATCH, 'PATCH', `/api/v1/meals/${PUBLIC_MEAL}`, PUBLIC_MEAL, {
+      name: 'Renamed',
+    });
+
+    expect(res).toEqual({ status: 500, body: { success: false, error: 'Failed to update meal' } });
   });
 });
 
