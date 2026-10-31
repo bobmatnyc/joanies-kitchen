@@ -110,6 +110,10 @@ describe('#211 removeFavorite statement order', () => {
       expect(sqls).toHaveLength(2);
       expect(sqls[0]).toMatch(LOCK);
       expect(sqls[1]).toMatch(DELETE_AND_DECREMENT);
+      // #211: a lock on any other id matches no row and changes no result, so
+      // only the bound parameter shows the batch locks this recipe.
+      const lock = (batch.mock.calls[0][0] as { toSQL: () => { params: unknown[] } }[])[0];
+      expect(lock.toSQL().params).toEqual([recipeId]);
     }
   );
 });
