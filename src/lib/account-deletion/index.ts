@@ -23,6 +23,7 @@ import { userProfiles } from '@/lib/db/user-discovery-schema';
  *   (the safe direction).
  * - comments: not written; `authorNotPendingDeletion` filters them on read.
  * - collections: not written; `ownerVisibleTo` filters them on read (#213).
+ * - meals: not written; `ownerVisibleTo` filters them on read (#217).
  * Test: `src/lib/account-deletion/__tests__/account-deletion.test.ts`
  */
 

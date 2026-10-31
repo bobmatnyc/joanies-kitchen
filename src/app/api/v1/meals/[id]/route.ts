@@ -12,6 +12,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { deleteMeal, getMealById, updateMeal } from '@/app/actions/meals';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { type UpdateMealInput, updateMealSchema } from '@/lib/validations/meal-api';
@@ -134,7 +135,8 @@ export const GET = requireScopes(
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions or not meal owner
+ * - 403: Insufficient permissions or not meal owner, or the account has a
+ *   pending deletion (#217)
  * - 404: Meal not found
  * - 400: Invalid request body
  * - 500: Internal server error
@@ -224,7 +226,8 @@ export const PATCH = requireScopes(
             success: false,
             error: result.error || 'Failed to update meal',
           },
-          { status: 500 }
+          // #217: the account has a pending deletion; nothing was written.
+          { status: isPendingDeletionRefusal(result) ? 403 : 500 }
         );
       }
 
