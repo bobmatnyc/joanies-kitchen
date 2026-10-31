@@ -21,7 +21,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import Link from 'next/link';
-import { notFound, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
@@ -29,6 +29,7 @@ import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-
 import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
+import NotFound from '@/app/not-found';
 import { AdminContentActions } from '@/components/admin/AdminContentActions';
 import { AdminEditModeProvider } from '@/components/admin/AdminEditMode';
 import { FlagImageButton } from '@/components/admin/FlagImageButton';
@@ -117,6 +118,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
 
   useEffect(() => {
     if (!slugOrId) return;
+    let active = true;
 
     async function fetchRecipe() {
       // #22: the effect reruns when the user changes. Clear the previous user's
@@ -131,20 +133,32 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
         setTimeout(() => reject(new Error('Recipe fetch timeout')), 5000)
       );
 
+      // #202: notFound() thrown from this async effect only rejected its promise, so the
+      // previous recipe stayed on screen (or the skeleton, on a first load). Clear the
+      // recipe instead; render shows the not-found view. A timeout or throw gets the same
+      // view: there was no retry before. #134: a hidden recipe answers as a missing one,
+      // so there is no sign-in prompt branch.
+      const showNotFound = () => {
+        if (!active) return;
+        setRecipe(null);
+        setLoading(false);
+      };
+
       let result;
       try {
         result = await Promise.race([recipePromise, timeoutPromise]) as Awaited<ReturnType<typeof getRecipe>>;
       } catch (error) {
         console.error('Recipe fetch error:', error);
-        notFound();
+        showNotFound();
         return;
       }
 
       if (!result.success || !result.data) {
-        // #134: a hidden recipe answers as a missing one, so there is no sign-in prompt branch.
-        notFound();
+        showNotFound();
         return;
       }
+      // #202: a stale response (slug or user changed since) must not overwrite the current one.
+      if (!active) return;
 
       const parsedRecipe = parseRecipe(result.data);
       setRecipe(parsedRecipe);
@@ -218,6 +232,9 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       }
     }
     fetchRecipe();
+    return () => {
+      active = false;
+    };
   }, [slugOrId, userId, userIsAdmin, router]);
 
   const handleExportMarkdown = useCallback(async () => {
@@ -446,8 +463,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
   }
 
   if (!recipe) {
-    notFound();
-    return null;
+    // #202: rendered from state, not notFound(); the server layout already sent the 404 status.
+    return <NotFound />;
   }
 
   // #185: never empty; a placeholder hero carries the placeholder's own alt text.
