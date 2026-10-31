@@ -28,7 +28,8 @@ vi.mock('@/lib/session-user', () => ({
   getSessionUserId: async () => state.userId,
   getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
-vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
+// #233: POST /api/ingest-recipe is admin-only, so every caller here is an admin.
+vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => true }));
 vi.mock('@/lib/db', () => ({
   get db() {
     return state.db;

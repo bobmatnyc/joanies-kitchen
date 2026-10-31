@@ -108,6 +108,9 @@ beforeAll(async () => {
   );
   client = built.client;
   state.db = built.db;
+  // #233: the route is admin-only; the caller is a real admin row.
+  await client.exec(`INSERT INTO "users" (id, email, is_admin)
+    VALUES ('admin-1', 'admin@example.com', true)`);
 });
 
 afterAll(async () => {
