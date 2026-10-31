@@ -184,6 +184,22 @@ describe('API key callers', () => {
   });
 });
 
+describe('automation bypass callers', () => {
+  const SECRET = 'automation-test-secret'; // pragma: allowlist secret
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('answers 403 to the bypass identity, which has no users row', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('AUTOMATION_BYPASS_SECRET', SECRET);
+
+    expect((await call(SECRET)).status).toBe(403);
+    expect(state.cleanCalls).toBe(0);
+  });
+});
+
 describe('unauthenticated callers', () => {
   it('answers 401 with no session and no key', async () => {
     expect((await call()).status).toBe(401);

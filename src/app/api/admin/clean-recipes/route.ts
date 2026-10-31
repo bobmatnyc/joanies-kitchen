@@ -32,13 +32,14 @@ const MAX_LIMIT = 20;
  * gate shut them out of this operation.
  * What: true only when `users.is_admin` is true for `auth.userId` (the session
  * user, or an API key's owner). A missing row, null or a failed lookup is
- * false. An API key must also hold `admin:system`: a key acts only through its
- * scopes, so an admin's narrowly scoped key cannot run a system operation.
+ * false. Every non-session caller (an API key) must also hold `admin:system`:
+ * a key acts only through its scopes, so an admin's narrowly scoped key cannot
+ * run a system operation.
  * Test: `src/app/api/admin/clean-recipes/__tests__/route-admin-access.test.ts`
  */
 async function isAdminCaller(auth: AuthContext): Promise<boolean> {
   if (!auth.userId) return false;
-  if (auth.authType === 'api_key' && !authHasScope(auth, SCOPES.ADMIN_SYSTEM)) return false;
+  if (auth.authType !== 'session' && !authHasScope(auth, SCOPES.ADMIN_SYSTEM)) return false;
   try {
     return (await getUserAdminFlag(auth.userId)) === true;
   } catch (error: unknown) {
