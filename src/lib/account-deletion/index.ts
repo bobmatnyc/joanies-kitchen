@@ -22,6 +22,7 @@ import { userProfiles } from '@/lib/db/user-discovery-schema';
  *   private. If anything else touched the row meanwhile, it stays private
  *   (the safe direction).
  * - comments: not written; `authorNotPendingDeletion` filters them on read.
+ * - collections: not written; `ownerVisibleTo` filters them on read (#213).
  * Test: `src/lib/account-deletion/__tests__/account-deletion.test.ts`
  */
 
@@ -45,6 +46,17 @@ export function isWithinGracePeriod(requestedAt: Date, now = Date.now()): boolea
  */
 export function authorNotPendingDeletion(userId: AnyColumn | string): SQL {
   return sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.id} = ${userId} AND ${users.deletion_requested_at} IS NOT NULL)`;
+}
+
+/**
+ * #213: SQL condition for reading an owner's content: the viewer is the owner,
+ * or the owner has no pending account deletion. A null viewer gets only the
+ * second test. Nothing is written, so `restoreAccount` brings the rows back.
+ * Test: `src/lib/__tests__/collections-pending-deletion.test.ts`
+ */
+export function ownerVisibleTo(ownerColumn: AnyColumn, viewerId: string | null | undefined): SQL {
+  const notPending = authorNotPendingDeletion(ownerColumn);
+  return viewerId ? sql`(${ownerColumn} = ${viewerId} OR ${notPending})` : notPending;
 }
 
 /**

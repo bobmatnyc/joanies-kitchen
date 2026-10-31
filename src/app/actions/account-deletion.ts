@@ -1,6 +1,7 @@
 'use server';
 
 import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 import { isWithinGracePeriod, markAccountDeleted, restoreAccount } from '@/lib/account-deletion';
 import { verifyUndoToken } from '@/lib/account-deletion/undo-token';
 import { isEnvAdminEmail } from '@/lib/auth-env';
@@ -28,6 +29,19 @@ export interface AccountDeletionResult {
 }
 
 const GENERIC_ERROR = 'Something went wrong. Nothing was changed. Please try again.';
+
+/**
+ * #213: /collections is prerendered, so its HTML would keep a pending owner's
+ * collections until the next revalidation. Runs after the commit; a failure is
+ * logged and never turns a committed change into a reported failure.
+ */
+function refreshCollectionsListing(): void {
+  try {
+    revalidatePath('/collections');
+  } catch (error) {
+    console.error('[account-deletion] revalidating /collections failed:', error);
+  }
+}
 
 export async function requestAccountDeletion(input: {
   confirmEmail: string;
@@ -62,6 +76,7 @@ export async function requestAccountDeletion(input: {
     }
 
     await markAccountDeleted(userId, input.keepRecipes === true, new Date());
+    refreshCollectionsListing(); // #213
     return { success: true };
   } catch (error) {
     // #103: fail closed — never report success for a failed write.
@@ -92,6 +107,7 @@ export async function undoAccountDeletion(token: string): Promise<AccountDeletio
     }
 
     await restoreAccount(claims.userId, requestedAt);
+    refreshCollectionsListing(); // #213
     return { success: true };
   } catch (error) {
     console.error('[undoAccountDeletion] failed:', error);
