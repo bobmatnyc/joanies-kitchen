@@ -143,29 +143,63 @@ describe('recipe page fetch (#22)', () => {
   });
 });
 
-describe('recipe page sign-out (#22)', () => {
-  it('signing out clears the admin and owner actions', async () => {
-    session.current = {
-      data: { ...freshSession().data, user: { ...freshSession().data.user, isAdmin: true } },
-      status: 'authenticated',
-    };
-    getRecipe.mockResolvedValue({
-      success: true,
-      data: { ...ROW, user_id: 'u1', is_system_recipe: false },
-    });
-    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+describe('recipe page sign-out and user switch (#22)', () => {
+  const OWNED = { ...ROW, user_id: 'u1', is_system_recipe: false };
+  const SIGNED_OUT = { data: null, status: 'unauthenticated' } as unknown as ReturnType<
+    typeof freshSession
+  >;
+
+  function sessionFor(id: string, isAdmin: boolean) {
+    const fresh = freshSession();
+    return { ...fresh, data: { ...fresh.data, user: { ...fresh.data.user, id, isAdmin } } };
+  }
+
+  /** Renders the page for u1, an admin who owns the recipe, and waits for both action sets. */
+  async function renderAsAdminOwner() {
+    session.current = sessionFor('u1', true);
+    getRecipe.mockResolvedValue({ success: true, data: OWNED });
+    const view = render(<RecipePageClient params={PARAMS} />);
     await screen.findByText('admin actions');
     expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Delete recipe' })).toBeTruthy();
+    return view;
+  }
 
-    session.current = { data: null, status: 'unauthenticated' } as unknown as ReturnType<
-      typeof freshSession
-    >;
+  function expectNoOwnerActions() {
+    expect(screen.queryByRole('button', { name: 'Edit recipe' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete recipe' })).toBeNull();
+  }
+
+  it('signing out clears the admin and owner actions', async () => {
+    const { rerender } = await renderAsAdminOwner();
+    session.current = SIGNED_OUT;
     rerender(<RecipePageClient params={PARAMS} />);
     await settle(50);
 
     expect(screen.queryByText('admin actions')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Edit recipe' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Delete recipe' })).toBeNull();
+    expectNoOwnerActions();
+  });
+
+  it('signing out clears them when the refetch fails (a private recipe)', async () => {
+    const { rerender } = await renderAsAdminOwner();
+    getRecipe.mockResolvedValue({ success: false, error: 'Recipe not found' });
+    session.current = SIGNED_OUT;
+    rerender(<RecipePageClient params={PARAMS} />);
+    await settle(50);
+
+    expect(getRecipe).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('admin actions')).toBeNull();
+    expectNoOwnerActions();
+  });
+
+  it('switching to another signed-in user clears the owner actions', async () => {
+    const { rerender } = await renderAsAdminOwner();
+    session.current = sessionFor('u2', false);
+    rerender(<RecipePageClient params={PARAMS} />);
+    await settle(50);
+
+    expect(getRecipe).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('admin actions')).toBeNull();
+    expectNoOwnerActions();
   });
 });

@@ -20,7 +20,7 @@ export const users = pgTable('users', {
   email: text('email').unique(),
   emailVerified: timestamp('email_verified', { mode: 'date' }),
   image: text('image'),
-  // #22: replaces Clerk sessionClaims.metadata.isAdmin.
+  // #22: the source of truth for admin; the JWT carries a copy as a UI hint.
   is_admin: boolean('is_admin').default(false).notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
   // #103: set when the user requests account deletion; null = active. The

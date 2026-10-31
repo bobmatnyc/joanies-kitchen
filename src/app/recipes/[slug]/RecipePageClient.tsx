@@ -119,6 +119,12 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
     if (!slugOrId) return;
 
     async function fetchRecipe() {
+      // #22: the effect reruns when the user changes. Clear the previous user's
+      // owner and admin flags before the fetch: a failed or timed-out fetch
+      // returns before they are set again.
+      setIsOwner(false);
+      setIsUserAdmin(false);
+
       // Add 5-second timeout to recipe fetch
       const recipePromise = getRecipe(slugOrId);
       const timeoutPromise = new Promise((_, reject) =>
@@ -150,25 +156,16 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
         return;
       }
 
-      // Check if current user is the owner
-      // System recipes cannot be edited by anyone
-      if (result.data.is_system_recipe) {
-        setIsOwner(false);
-      } else {
-        // In development mode (no auth), treat all recipes as owned
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        if (isDevelopment && userId === null) {
-          setIsOwner(true);
-        } else if (userId !== null && userId === result.data.user_id) {
-          setIsOwner(true);
-        } else if (userId === null) {
-          // #22: signing out clears a stale owner flag from the signed-in render.
-          setIsOwner(false);
-        }
-      }
+      // Owner: system recipes cannot be edited by anyone. In development mode
+      // (no auth), a signed-out visitor is treated as the owner.
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      setIsOwner(
+        !result.data.is_system_recipe &&
+          ((isDevelopment && userId === null) ||
+            (userId !== null && userId === result.data.user_id))
+      );
 
-      // #22: JWT admin hint (UI only); admin actions re-check the DB. Signed out is
-      // never admin, so signing out clears a stale admin flag.
+      // #22: JWT admin hint (UI only); admin actions re-check the DB.
       setIsUserAdmin(userId !== null && userIsAdmin);
 
       // Show page immediately - fetch secondary data in background
