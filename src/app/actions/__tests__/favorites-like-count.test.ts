@@ -28,6 +28,7 @@ vi.mock('@/lib/db', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { addFavorite, removeFavorite, toggleFavorite } from '@/app/actions/favorites';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { favorites, userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -61,7 +62,8 @@ async function seed(likeCountValue: number, favorited: boolean) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, userProfiles, favorites],
+    // #208: addFavorite's pending-deletion guard reads users.
+    [schema.recipes, userProfiles, favorites, users],
     { ...schema, userProfiles, favorites },
     { constraints: true }
   );

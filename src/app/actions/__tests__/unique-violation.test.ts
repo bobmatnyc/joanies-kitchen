@@ -51,6 +51,7 @@ vi.mock('@/app/actions/user-profiles', async (importOriginal) => {
 import { addRecipeToCollection, createCollection } from '@/app/actions/collections';
 import { addFavorite } from '@/app/actions/favorites';
 import { createOrUpdateProfile } from '@/app/actions/user-profiles';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import * as discovery from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -66,6 +67,8 @@ beforeAll(async () => {
       discovery.collectionRecipes,
       discovery.favorites,
       discovery.userProfiles,
+      // #208: addFavorite's pending-deletion guard reads users.
+      users,
     ],
     { ...schema, ...discovery },
     { constraints: true }

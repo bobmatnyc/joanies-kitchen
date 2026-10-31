@@ -49,6 +49,10 @@ export async function addFavorite(recipeId: string) {
     if (result.status === 'exists') {
       return { success: false, error: 'Recipe already in favorites' };
     }
+    // #208: the core refused the add because the account has a pending deletion.
+    if (result.status === 'pending-deletion') {
+      return { success: false, error: core.PENDING_DELETION_FAVORITE_ERROR };
+    }
 
     revalidatePath('/favorites');
     revalidatePath(`/recipes/${recipeId}`);
