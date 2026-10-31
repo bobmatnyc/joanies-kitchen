@@ -6,6 +6,8 @@
  * against PGlite tables carrying the production `recipe_ratings.recipe_id`
  * foreign key. The account purge's rating path is covered in
  * `src/lib/account-purge/__tests__/account-purge.test.ts`.
+ * #197: `rateRecipe`'s write carries the pending-deletion guard and its
+ * recompute runs only when that write landed (`rate-recipe-pending-deletion.test.ts`).
  */
 
 import type { PGlite } from '@electric-sql/pglite';
@@ -26,6 +28,7 @@ vi.mock('@/lib/db', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { deleteRating, rateRecipe } from '@/app/actions/rate-recipe';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -54,7 +57,8 @@ async function aggregates() {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.recipeRatings, userProfiles],
+    // #197: rateRecipe's write reads users.deletion_requested_at.
+    [users, schema.recipes, schema.recipeRatings, userProfiles],
     { ...schema, userProfiles },
     { constraints: true }
   );
@@ -89,9 +93,13 @@ describe('#141 rating batches: recipe lock, rating write, aggregate recompute', 
   const LOCK = /^select "id" from "recipes" where "recipes"\."id" = \$1 for no key update$/;
   const RECOMPUTE =
     /^update "recipes" set "avg_user_rating" = \(SELECT CAST\(AVG\(rr\."rating"\) .+ "total_user_ratings" = \(SELECT COUNT\(\*\) FROM "recipe_ratings" rr WHERE rr\."recipe_id" = "recipes"\."id"\) where "recipes"\."id" = \$\d+ returning /;
+  // #197: rateRecipe's recompute runs only when this batch's rating row landed.
+  const RATE_RECOMPUTE =
+    /^update "recipes" set "avg_user_rating" = \(SELECT CAST\(AVG\(rr\."rating"\) .+ where \("recipes"\."id" = \$\d+ and exists \(select 1 from "recipe_ratings" where \("recipe_ratings"\."recipe_id" = \$\d+ and "recipe_ratings"\."user_id" = \$\d+ and "recipe_ratings"\."updated_at" = \$\d+\)\)\) returning /;
 
+  // #197: the upsert carries the pending-deletion guard in its own statement.
   const UPSERT =
-    /^insert into "recipe_ratings" .+ on conflict \("recipe_id","user_id"\) do update set /;
+    /^insert into "recipe_ratings" .+ select .+ from "recipes" where \("recipes"\."id" = \$\d+ and NOT EXISTS \(SELECT 1 FROM "users" WHERE "users"\."id" = \$\d+ AND "users"\."deletion_requested_at" IS NOT NULL\)\) on conflict \("recipe_id","user_id"\) do update set .+ returning "id"$/;
   const DELETE =
     /^delete from "recipe_ratings" where \("recipe_ratings"\."recipe_id" = \$1 and "recipe_ratings"\."user_id" = \$2\)$/;
   const noRating = async () => undefined;
@@ -100,12 +108,12 @@ describe('#141 rating batches: recipe lock, rating write, aggregate recompute', 
   };
 
   it.each([
-    ['rateRecipe (insert)', noRating, () => rateRecipe(RECIPE, 4), UPSERT],
-    ['rateRecipe (update)', rated, () => rateRecipe(RECIPE, 2), UPSERT],
-    ['deleteRating', rated, () => deleteRating(RECIPE), DELETE],
+    ['rateRecipe (insert)', noRating, () => rateRecipe(RECIPE, 4), UPSERT, RATE_RECOMPUTE],
+    ['rateRecipe (update)', rated, () => rateRecipe(RECIPE, 2), UPSERT, RATE_RECOMPUTE],
+    ['deleteRating', rated, () => deleteRating(RECIPE), DELETE, RECOMPUTE],
   ])(
     '%s sends the lock, the rating write and the recompute, in that order',
-    async (_n, setup, act, write) => {
+    async (_n, setup, act, write, recompute) => {
       state.userId = A;
       await setup();
       const batch = vi.spyOn(state.db as { batch: (q: unknown[]) => Promise<unknown> }, 'batch');
@@ -117,7 +125,7 @@ describe('#141 rating batches: recipe lock, rating write, aggregate recompute', 
       expect(sqls).toHaveLength(3);
       expect(sqls[0]).toMatch(LOCK);
       expect(sqls[1]).toMatch(write);
-      expect(sqls[2]).toMatch(RECOMPUTE);
+      expect(sqls[2]).toMatch(recompute);
     }
   );
 });

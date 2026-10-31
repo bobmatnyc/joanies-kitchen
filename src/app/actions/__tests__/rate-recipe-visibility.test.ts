@@ -49,6 +49,7 @@ import {
   getUserRating,
   rateRecipe,
 } from '@/app/actions/rate-recipe';
+import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { createVisibilityDb } from './recipe-visibility-db';
@@ -101,7 +102,8 @@ async function snapshot(recipeId: string) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, schema.recipeRatings, userProfiles],
+    // #197: rateRecipe's write reads users.deletion_requested_at.
+    [users, schema.recipes, schema.recipeRatings, userProfiles],
     { ...schema, userProfiles },
     { constraints: true }
   );
