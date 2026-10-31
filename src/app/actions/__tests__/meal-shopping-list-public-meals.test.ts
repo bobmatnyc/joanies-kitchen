@@ -20,7 +20,12 @@ const ADMIN = 'user_admin';
 const PENDING = 'user_pending';
 const PUBLIC_MEAL = '22222222-0000-4000-8000-000000000001';
 const PRIVATE_MEAL = '22222222-0000-4000-8000-000000000002';
+// Public meals whose recipes no other caller may read: none at all, or only a private one.
+const EMPTY_MEAL = '22222222-0000-4000-8000-000000000003';
+const ONLY_PRIVATE_MEAL = '22222222-0000-4000-8000-000000000004';
 const RECIPE = 'bbbbbbbb-0000-4000-8000-00000000000b';
+// The owner's private recipe, also on PUBLIC_MEAL (#32: admins may read it).
+const PRIVATE_RECIPE = 'bbbbbbbb-0000-4000-8000-00000000000c';
 const OWNER_LIST = 'cccccccc-0000-4000-8000-00000000000c';
 
 const state = vi.hoisted(() => ({ db: undefined as unknown, userId: null as string | null }));
@@ -71,6 +76,8 @@ async function rows(query: string, params: unknown[] = []) {
   return (await client.query(query, params)).rows as Record<string, unknown>[];
 }
 
+type Item = { name: string; from_recipes: string[] };
+const itemsOf = (list: Record<string, unknown>) => JSON.parse(String(list.items)) as Item[];
 const allLists = () => rows('SELECT * FROM shopping_lists ORDER BY id');
 const listsOf = (userId: string) =>
   rows('SELECT * FROM shopping_lists WHERE user_id = $1 ORDER BY id', [userId]);
@@ -116,21 +123,26 @@ beforeEach(async () => {
   );
   await client.exec(`INSERT INTO recipes (id, user_id, name, ingredients, instructions,
       is_public, moderation_status, prep_time, cook_time) VALUES
-    ('${RECIPE}', '${OWNER}', 'Soup', '["2 cups flour"]', '[]', true, 'approved', 10, 20)`);
-  for (const [id, isPublic] of [
-    [PUBLIC_MEAL, true],
-    [PRIVATE_MEAL, false],
+    ('${RECIPE}', '${OWNER}', 'Soup', '["2 cups flour"]', '[]', true, 'approved', 10, 20),
+    ('${PRIVATE_RECIPE}', '${OWNER}', 'Secret', '["1 cup saffron"]', '[]', false, 'approved', 5, 5)`);
+  for (const [id, isPublic, recipeIds] of [
+    [PUBLIC_MEAL, true, [RECIPE, PRIVATE_RECIPE]],
+    [PRIVATE_MEAL, false, [RECIPE]],
+    [EMPTY_MEAL, true, []],
+    [ONLY_PRIVATE_MEAL, true, [PRIVATE_RECIPE]],
   ] as const) {
     await rows(
       `INSERT INTO meals (id, user_id, name, is_public, total_prep_time, total_cook_time)
        VALUES ($1, $2, 'Dinner', $3, 0, 0)`,
       [id, OWNER, isPublic]
     );
-    await rows(
-      `INSERT INTO meal_recipes (meal_id, recipe_id, course_category, display_order)
-       VALUES ($1, $2, 'main', 0)`,
-      [id, RECIPE]
-    );
+    for (const [order, recipeId] of recipeIds.entries()) {
+      await rows(
+        `INSERT INTO meal_recipes (meal_id, recipe_id, course_category, display_order)
+         VALUES ($1, $2, 'main', $3)`,
+        [id, recipeId, order]
+      );
+    }
   }
   // The owner's own list for the public meal; no other caller may touch it.
   await rows(
@@ -166,10 +178,41 @@ describe('#225 (c) POST /api/v1/meals/:id/shopping-list', () => {
       const mine = await listsOf(user);
       expect(mine).toHaveLength(1);
       expect(mine[0]).toMatchObject({ user_id: user, meal_id: PUBLIC_MEAL });
-      expect(JSON.parse(String(mine[0].items))).toMatchObject([{ name: 'flour' }]);
+      expect(itemsOf(mine[0]).map((i) => i.name)).toContain('flour');
       expect(await listsOf(OWNER)).toEqual(ownerBefore);
     }
   );
+
+  it("another user's list leaves out the owner's private recipe on a public meal", async () => {
+    state.userId = OTHER;
+
+    expect((await generateRoute(PUBLIC_MEAL)).status).toBe(201);
+    const items = itemsOf((await listsOf(OTHER))[0]);
+    expect(items.map((i) => i.name)).toEqual(['flour']);
+    expect(items.flatMap((i) => i.from_recipes)).not.toContain(PRIVATE_RECIPE);
+  });
+
+  it("an admin's list includes the owner's private recipe (#32 admin read)", async () => {
+    state.userId = ADMIN;
+
+    expect((await generateRoute(PUBLIC_MEAL)).status).toBe(201);
+    const items = itemsOf((await listsOf(ADMIN))[0]);
+    expect(items.map((i) => i.name).sort()).toEqual(['flour', 'saffron']);
+    expect(items.flatMap((i) => i.from_recipes)).toContain(PRIVATE_RECIPE);
+  });
+
+  it.each([
+    ['whose only recipe is private to the owner', ONLY_PRIVATE_MEAL],
+    ['with no recipes', EMPTY_MEAL],
+  ])('another user on a public meal %s gets 201 and an empty list', async (_, mealId) => {
+    state.userId = OTHER;
+
+    expect(await generateRoute(mealId)).toMatchObject({
+      status: 201,
+      body: { success: true, data: { user_id: OTHER, meal_id: mealId, items: [] } },
+    });
+    expect(itemsOf((await listsOf(OTHER))[0])).toEqual([]);
+  });
 
   it.each([
     ['another user', OTHER],

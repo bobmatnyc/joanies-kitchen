@@ -147,7 +147,8 @@ const READS: Array<{ name: string; sees: (owner: string) => Promise<boolean> }> 
     name: 'generateShoppingList (reads the meal and its recipes)',
     sees: async (owner) => {
       const r = await generateShoppingList({ mealId: mealIdOf(owner) });
-      // #225: a pending-deletion caller's write is refused only after the meal was read.
+      // #225: the order is deliberate. generateShoppingList reads the meal first and
+      // refuses a pending-deletion caller's write only after, so a refusal means it saw it.
       return r.success || isPendingDeletionRefusal(r);
     },
   },

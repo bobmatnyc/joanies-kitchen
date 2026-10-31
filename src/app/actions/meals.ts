@@ -593,19 +593,24 @@ export async function generateShoppingList(data: unknown) {
     // Filter out non-purchaseable ingredients
     const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
 
-    // Query which items are non-purchaseable
-    const nonPurchaseableIngredients = await db
-      .select({ name: ingredients.name })
-      .from(ingredients)
-      .where(
-        and(
-          sql`LOWER(${ingredients.name}) IN (${sql.join(
-            ingredientNames.map((n) => sql`${n}`),
-            sql`, `
-          )})`,
-          eq(ingredients.is_purchaseable, false)
-        )
-      );
+    // Query which items are non-purchaseable.
+    // #225: with no items (no recipes, or none the caller may read) the query is
+    // skipped; an empty `IN ()` is invalid SQL.
+    const nonPurchaseableIngredients =
+      ingredientNames.length === 0
+        ? []
+        : await db
+            .select({ name: ingredients.name })
+            .from(ingredients)
+            .where(
+              and(
+                sql`LOWER(${ingredients.name}) IN (${sql.join(
+                  ingredientNames.map((n) => sql`${n}`),
+                  sql`, `
+                )})`,
+                eq(ingredients.is_purchaseable, false)
+              )
+            );
 
     // Filter out non-purchaseable items
     const purchaseableItems = consolidatedItems.filter(
@@ -1059,19 +1064,24 @@ export async function generateShoppingListFromCollection(data: unknown) {
     // Filter out non-purchaseable ingredients
     const ingredientNames = consolidatedItems.map((item) => item.name.toLowerCase());
 
-    // Query which items are non-purchaseable
-    const nonPurchaseableIngredients = await db
-      .select({ name: ingredients.name })
-      .from(ingredients)
-      .where(
-        and(
-          sql`LOWER(${ingredients.name}) IN (${sql.join(
-            ingredientNames.map((n) => sql`${n}`),
-            sql`, `
-          )})`,
-          eq(ingredients.is_purchaseable, false)
-        )
-      );
+    // Query which items are non-purchaseable.
+    // #225: with no items (no recipes, or none the caller may read) the query is
+    // skipped; an empty `IN ()` is invalid SQL.
+    const nonPurchaseableIngredients =
+      ingredientNames.length === 0
+        ? []
+        : await db
+            .select({ name: ingredients.name })
+            .from(ingredients)
+            .where(
+              and(
+                sql`LOWER(${ingredients.name}) IN (${sql.join(
+                  ingredientNames.map((n) => sql`${n}`),
+                  sql`, `
+                )})`,
+                eq(ingredients.is_purchaseable, false)
+              )
+            );
 
     // Filter out non-purchaseable items
     const purchaseableItems = consolidatedItems.filter(
