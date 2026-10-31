@@ -208,14 +208,12 @@ async function action(call: () => Promise<{ success: boolean; error?: string }>)
 
 /**
  * One entry per user-initiated recipe insert. `action` names the refused
- * action; `status` is a route's answer; `normal` overrides the outcome for an
- * account that may write (default `{ ok: true }`).
+ * action; `status` is a route's answer. An account that may write gets `{ ok: true }`.
  */
 const PATHS: Array<{
   name: string;
   action: string;
   status?: number;
-  normal?: Outcome;
   run: () => Promise<Outcome>;
 }> = [
   {
@@ -264,8 +262,6 @@ const PATHS: Array<{
   {
     name: 'copyRecipeToCollection (server action)',
     action: 'copy recipes',
-    // Pre-existing: the copy keeps the original's id, so the insert hits the primary key.
-    normal: { refused: 'Failed to copy recipe to collection' },
     run: () => action(() => copyRecipeToCollection(ORIGINAL)),
   },
   {
@@ -428,11 +424,6 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
     const added = await rows('SELECT * FROM recipes WHERE NOT (id = ANY($1))', [
       before.map((r) => r.id),
     ]);
-    if (p.normal) {
-      expect(outcome).toEqual(p.normal);
-      expect(added).toEqual([]);
-      return;
-    }
     expect(outcome).toEqual({ ok: true });
     expect(added).toHaveLength(1);
     expect(added[0].user_id).toBe(p.userId);
@@ -480,6 +471,38 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
       { fork_count: 3 },
     ]);
     expect(addFavorite).toHaveBeenCalledTimes(1);
+  });
+
+  // #234: the copy used to reuse the original's id and slug and always failed.
+  it('copyRecipeToCollection writes a new private row with a new id and a unique slug', async () => {
+    state.userId = NORMAL;
+    await rows('UPDATE recipes SET like_count = 5, collection_count = 4 WHERE id = $1', [ORIGINAL]);
+    const original = await rows('SELECT * FROM recipes WHERE id = $1', [ORIGINAL]);
+
+    const first = await copyRecipeToCollection(ORIGINAL);
+    const second = await copyRecipeToCollection(ORIGINAL);
+
+    expect(first).toMatchObject({ success: true });
+    expect(second).toMatchObject({ success: true });
+    const copies = await rows(
+      'SELECT id, user_id, name, slug, ingredients, is_public, like_count, fork_count, collection_count FROM recipes WHERE id <> $1 ORDER BY created_at, slug',
+      [ORIGINAL]
+    );
+    const copy = {
+      user_id: NORMAL,
+      name: 'Soup (Copy)',
+      ingredients: '["1 leek"]',
+      is_public: false,
+      like_count: 0,
+      fork_count: 0,
+      collection_count: 0,
+    };
+    expect(copies).toEqual([
+      { ...copy, id: (first as { data: { id: string } }).data.id, slug: 'soup-copy' },
+      { ...copy, id: (second as { data: { id: string } }).data.id, slug: 'soup-copy-2' },
+    ]);
+    expect(copies[0].id).not.toBe(copies[1].id);
+    expect(await rows('SELECT * FROM recipes WHERE id = $1', [ORIGINAL])).toEqual(original);
   });
 
   it('discoverRecipeFromUrl writes the embedding row for the saved recipe', async () => {

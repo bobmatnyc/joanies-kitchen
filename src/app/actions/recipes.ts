@@ -605,7 +605,21 @@ export async function copyRecipeToCollection(recipeId: string) {
       return { success: false, error: 'Recipe not found or not public' };
     }
 
-    const originalRecipe = recipeToCopy[0];
+    // #234: drop the original's id and slug (primary key / unique) and its engagement
+    // counters; the copy gets a fresh id, its own slug, and starts at zero like a clone.
+    const {
+      id: _id,
+      slug: _slug,
+      like_count: _likes,
+      fork_count: _forks,
+      collection_count: _collections,
+      avg_user_rating: _avgRating,
+      total_user_ratings: _totalRatings,
+      ...originalRecipe
+    } = recipeToCopy[0];
+    const name = `${originalRecipe.name} (Copy)`;
+    // #234: generated the same way createRecipe does.
+    const slug = await generateUniqueSlug(name);
 
     // Create a copy for the user
     // #220: refused in the insert statement itself for an account pending deletion.
@@ -613,12 +627,13 @@ export async function copyRecipeToCollection(recipeId: string) {
       recipes,
       {
         ...originalRecipe,
+        slug,
         user_id: userId,
         is_public: false, // Make it private by default
         is_system_recipe: false, // User copies are never system recipes
         created_at: new Date(),
         updated_at: new Date(),
-        name: `${originalRecipe.name} (Copy)`,
+        name,
       },
       userId
     );
