@@ -3,6 +3,10 @@
 import { desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import {
+  insertUnlessPendingDeletion,
+  pendingDeletionRefusal,
+} from '@/lib/account-deletion/guarded-insert';
 import { generateMeal, type MealPlan, type SimpleMealRequest } from '@/lib/ai/meal-pairing-engine';
 import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { db } from '@/lib/db';
@@ -232,7 +236,13 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
       is_public: false,
     };
 
-    const [createdMeal] = await db.insert(meals).values(mealData).returning();
+    // #217: refused in the insert statement itself for an account pending deletion;
+    // the meal_recipes rows below are written only after a meal landed.
+    const guarded = await insertUnlessPendingDeletion(meals, mealData, userId);
+    if (!guarded.allowed) {
+      return pendingDeletionRefusal('create meals');
+    }
+    const createdMeal = guarded.row;
 
     if (!createdMeal?.id) {
       return {
