@@ -7,6 +7,7 @@
  * The real useSessionUser runs here over a mocked useSession.
  */
 import { act, render, screen } from '@testing-library/react';
+import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RecipePageClient from '@/app/recipes/[slug]/RecipePageClient';
@@ -201,5 +202,78 @@ describe('recipe page sign-out and user switch (#22)', () => {
     expect(getRecipe).toHaveBeenCalledTimes(2);
     expect(screen.queryByText('admin actions')).toBeNull();
     expectNoOwnerActions();
+  });
+});
+
+/**
+ * #202: a failed refetch called notFound() inside the async effect. That only rejected
+ * the effect's promise, so the previously loaded private recipe stayed on screen.
+ */
+describe('recipe page failed refetch after sign-out (#202)', () => {
+  const PRIVATE = { ...ROW, name: 'Secret Stew', user_id: 'u1', is_system_recipe: false };
+  const SIGNED_OUT = { data: null, status: 'unauthenticated' } as unknown as ReturnType<
+    typeof freshSession
+  >;
+  const rejections: unknown[] = [];
+  const onRejection = (reason: unknown) => rejections.push(reason);
+
+  beforeEach(() => {
+    rejections.length = 0;
+    vi.mocked(notFound).mockClear();
+    process.on('unhandledRejection', onRejection);
+    return () => {
+      process.off('unhandledRejection', onRejection);
+    };
+  });
+
+  async function signOutAfterOwnerView(refetch: () => void) {
+    getRecipe.mockResolvedValue({ success: true, data: PRIVATE });
+    const view = render(<RecipePageClient params={PARAMS} />);
+    await screen.findByRole('heading', { name: 'Secret Stew' });
+    refetch();
+    session.current = SIGNED_OUT;
+    view.rerender(<RecipePageClient params={PARAMS} />);
+    await settle(50);
+  }
+
+  function expectNotFoundView() {
+    expect(getRecipe).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('Secret Stew')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Page Not Found' })).toBeTruthy();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(rejections).toEqual([]);
+  }
+
+  it('a {success:false} refetch replaces the recipe with the not-found view', async () => {
+    await signOutAfterOwnerView(() =>
+      getRecipe.mockResolvedValue({ success: false, error: 'Recipe not found' })
+    );
+    expectNotFoundView();
+  });
+
+  it('a thrown refetch replaces the recipe with the not-found view', async () => {
+    await signOutAfterOwnerView(() => getRecipe.mockRejectedValue(new Error('network down')));
+    expectNotFoundView();
+  });
+
+  it('a public recipe stays visible after sign-out', async () => {
+    getRecipe.mockResolvedValue({ success: true, data: ROW });
+    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+    await screen.findByRole('heading', { name: 'Plain Soup' });
+    session.current = SIGNED_OUT;
+    rerender(<RecipePageClient params={PARAMS} />);
+    await settle(50);
+
+    expect(getRecipe).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('heading', { name: 'Plain Soup' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Page Not Found' })).toBeNull();
+  });
+
+  it('a failed first load shows the not-found view, not a skeleton', async () => {
+    getRecipe.mockResolvedValue({ success: false, error: 'Recipe not found' });
+    render(<RecipePageClient params={PARAMS} />);
+    await screen.findByRole('heading', { name: 'Page Not Found' });
+    expect(getRecipe).toHaveBeenCalledTimes(1);
+    expect(notFound).not.toHaveBeenCalled();
   });
 });
