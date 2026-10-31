@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getRecipe } from '@/app/actions/recipes';
 import { RecipeForm } from '@/components/recipe/RecipeForm';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ interface EditRecipePageProps {
 }
 
 export default async function EditRecipePage({ params }: EditRecipePageProps) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Skip auth check for localhost development
   const isLocalhost = process.env.NODE_ENV === 'development';

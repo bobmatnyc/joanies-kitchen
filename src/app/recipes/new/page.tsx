@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { AIRecipeUploader } from '@/components/recipe/AIRecipeUploader';
 import { RecipeForm } from '@/components/recipe/RecipeForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export const metadata = {
 };
 
 export default async function NewRecipePage() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Skip auth check for localhost development
   const isLocalhost = process.env.NODE_ENV === 'development';

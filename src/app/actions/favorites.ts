@@ -1,9 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
 import * as core from '@/lib/favorites';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUser, getSessionUserId } from '@/lib/session-user';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -25,7 +25,8 @@ import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
  */
 export async function addFavorite(recipeId: string) {
   try {
-    const { userId, user } = await auth();
+    const user = await getSessionUser();
+    const userId = user?.id;
 
     if (!userId) {
       return { success: false, error: 'Please sign in to favorite recipes' };
@@ -70,7 +71,7 @@ export async function addFavorite(recipeId: string) {
  */
 export async function removeFavorite(recipeId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -95,7 +96,7 @@ export async function removeFavorite(recipeId: string) {
  */
 export async function toggleFavorite(recipeId: string) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Please sign in to favorite recipes' };
@@ -132,7 +133,7 @@ export async function toggleFavorite(recipeId: string) {
  */
 export async function getUserFavorites(targetUserId?: string) {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
     const userId = targetUserId || currentUserId;
 
     if (!userId) {
@@ -164,7 +165,7 @@ export async function getUserFavorites(targetUserId?: string) {
  */
 export async function isFavorited(recipeId: string): Promise<boolean> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return false;
@@ -196,7 +197,7 @@ export async function getFavoriteCount(recipeId: string): Promise<number> {
  */
 export async function getUserFavoriteIds(): Promise<string[]> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return [];

@@ -1,7 +1,7 @@
 import { ChefHat } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { RecipeUploadWizard } from '@/components/recipe/RecipeUploadWizard';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 export const metadata = {
   // #138: the root layout's title.template appends the brand.
@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function UploadRecipePage() {
   // Check authentication
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     redirect('/sign-in?redirect=/recipes/upload');

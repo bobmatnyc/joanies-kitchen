@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   insertValues: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: 'user_1' }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => 'user_1',
+  getSessionUser: async () => ({ id: 'user_1' }),
+}));
 // The limiter has its own PGlite tests (paid-paths-rate-limit); allow every call here.
 vi.mock('@/lib/rate-limit', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit')>()),

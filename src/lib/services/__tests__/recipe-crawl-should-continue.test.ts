@@ -28,7 +28,10 @@ vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/ai/embeddings', () => ({ generateRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/ai/openrouter-server', () => ({ getOpenRouterClient: vi.fn() }));
 vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({ evaluateRecipeQuality: vi.fn() }));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/serpapi', () => ({ filterRecipeSites: vi.fn(), searchRecipesWithSerpAPI: vi.fn() }));
 
 import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';

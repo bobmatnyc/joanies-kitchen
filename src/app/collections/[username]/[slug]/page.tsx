@@ -5,7 +5,7 @@ import { getCollectionBySlug } from '@/app/actions/collections';
 import { GenerateShoppingListButton } from '@/components/collections/GenerateShoppingListButton';
 import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 interface CollectionDetailPageProps {
   params: Promise<{
@@ -17,7 +17,7 @@ interface CollectionDetailPageProps {
 export default async function CollectionDetailPage({ params }: CollectionDetailPageProps) {
   const resolvedParams = await params;
   const { username, slug } = resolvedParams;
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   // Fetch collection with recipes
   const collection = await getCollectionBySlug(username, slug);

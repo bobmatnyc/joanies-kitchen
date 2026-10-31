@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
 import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 import { ProfileEditor } from '@/components/profile/ProfileEditor';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 export const metadata = {
   // #138: the root layout's title.template appends the brand.
@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 export default async function EditProfilePage() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     redirect('/sign-in?redirect=/profile/edit');

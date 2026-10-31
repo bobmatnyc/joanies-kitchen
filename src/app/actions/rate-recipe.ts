@@ -13,12 +13,12 @@
 
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { recipeRatings, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { lockRecipeForRating, ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -70,7 +70,7 @@ export async function rateRecipe(
   review?: string
 ): Promise<RateRecipeResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return {
@@ -163,7 +163,7 @@ export async function getUserRating(recipeId: string): Promise<{
   updatedAt?: Date;
 } | null> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return null;
@@ -273,7 +273,7 @@ export async function deleteRating(
   targetUserId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return {

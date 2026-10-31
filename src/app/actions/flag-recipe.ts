@@ -12,11 +12,11 @@
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { checkAdminAccess, requireAdmin } from '@/lib/admin';
-import { auth } from '@/lib/auth';
 import { applyCommentFlagAction } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeFlags, recipes } from '@/lib/db/schema';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export type FlagReason =
@@ -48,7 +48,7 @@ export async function flagRecipe(
   description?: string
 ): Promise<FlagRecipeResult> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return {
@@ -171,7 +171,7 @@ export async function getFlagCount(recipeId: string): Promise<number> {
  */
 export async function hasUserFlagged(recipeId: string): Promise<boolean> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return false;

@@ -6,9 +6,9 @@
  * Provides server-side substitution lookup with error handling
  */
 
-import { auth } from '@/lib/auth';
 import { isPaidCallBlocked, type PaidCallBlockedCode } from '@/lib/costs';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { getSessionUserId } from '@/lib/session-user';
 import {
   getBatchSubstitutions,
   needsAiSubstitution,
@@ -88,7 +88,7 @@ export async function getMultipleIngredientSubstitutions(
     // reaches the paid AI path counts against the caller's rate limit.
     // Static-table and cache hits stay free.
     if (validIngredients.some(needsAiSubstitution)) {
-      const { userId } = await auth();
+      const userId = await getSessionUserId();
       const verdict = await enforceRateLimit('substitutions', userId ?? null);
       if (!verdict.allowed) {
         return verdict.reason === 'unavailable'

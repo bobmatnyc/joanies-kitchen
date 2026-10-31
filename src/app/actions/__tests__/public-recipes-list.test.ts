@@ -15,12 +15,19 @@ const PRIVATE_ID = 'bbbbbbbb-0000-4000-8000-00000000000b';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  sessionUserId: undefined as unknown as ReturnType<typeof vi.fn>,
 }));
 
-vi.mock('@/lib/auth', () => {
-  state.auth = vi.fn(async () => ({ userId: null, sessionClaims: null }));
-  return { auth: (...args: unknown[]) => state.auth(...args) };
+vi.mock('@/lib/session-user', () => {
+  state.sessionUserId = vi.fn(async () => null);
+  const getSessionUserId = (...args: unknown[]) => state.sessionUserId(...args);
+  return {
+    getSessionUserId,
+    getSessionUser: async () => {
+      const id = await getSessionUserId();
+      return id ? { id } : null;
+    },
+  };
 });
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({

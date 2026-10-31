@@ -6,21 +6,21 @@ import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
+  sessionUserId: vi.fn(),
   signIn: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: mocks.sessionUserId }));
 vi.mock('@/auth', () => ({ signIn: mocks.signIn }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 
 import SignInPage from '@/app/sign-in/[[...sign-in]]/page';
 
-const SIGNED_OUT = { userId: null };
-const SIGNED_IN = { userId: 'user_a' };
+const SIGNED_OUT = null;
+const SIGNED_IN = 'user_a';
 
 function render(callbackUrl?: string) {
   return SignInPage({ searchParams: Promise.resolve(callbackUrl ? { callbackUrl } : {}) });
@@ -51,27 +51,27 @@ beforeEach(() => {
 
 describe('SignInPage', () => {
   it('redirects a signed-in visitor to the safe callback path instead of offering sign-in', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_IN);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_IN);
     await expect(render('/favorites')).rejects.toThrow('NEXT_REDIRECT:/favorites');
     expect(mocks.signIn).not.toHaveBeenCalled();
   });
 
   it('never redirects a signed-in visitor off-site', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_IN);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_IN);
     await expect(render('//evil.example')).rejects.toThrow('NEXT_REDIRECT:/');
   });
 
   it('refuses to start Google sign-in if the visitor signed in after the page loaded', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
     const action = findFormAction(await render('/favorites'));
     expect(action).not.toBeNull();
-    mocks.auth.mockResolvedValue(SIGNED_IN);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_IN);
     await expect(action?.()).rejects.toThrow('NEXT_REDIRECT:/favorites');
     expect(mocks.signIn).not.toHaveBeenCalled();
   });
 
   it('links the Terms and Privacy Policy next to the Google button', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
     const { renderToStaticMarkup } = await import('react-dom/server');
     const html = renderToStaticMarkup(await render('/favorites'));
     expect(html).toContain('By continuing you agree to the');
@@ -80,7 +80,7 @@ describe('SignInPage', () => {
   });
 
   it('starts Google sign-in for a signed-out visitor', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
     const action = findFormAction(await render('/favorites'));
     await action?.();
     expect(mocks.signIn).toHaveBeenCalledWith('google', { redirectTo: '/favorites' });
@@ -102,7 +102,7 @@ describe('SignInPage local-staging bypass (#60 D5f)', () => {
   }
 
   it('shows no bypass marker or button when a Vercel marker is present', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
     stubBypass({ VERCEL: '1' });
     const out = await html();
     expect(out).not.toContain('LOCAL STAGING');
@@ -111,7 +111,7 @@ describe('SignInPage local-staging bypass (#60 D5f)', () => {
   });
 
   it('shows the marker without the email and signs in through the bypass provider', async () => {
-    mocks.auth.mockResolvedValue(SIGNED_OUT);
+    mocks.sessionUserId.mockResolvedValue(SIGNED_OUT);
     stubBypass({ AUTH_GOOGLE_ID: '', AUTH_GOOGLE_SECRET: '' });
     const out = await html();
     expect(out).toContain('LOCAL STAGING AUTH BYPASS ACTIVE');

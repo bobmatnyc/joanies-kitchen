@@ -10,7 +10,7 @@ type Row = { id: string; name: string; displayName: string; category: string | n
 
 const mocks = vi.hoisted(() => ({ rows: [] as Row[] }));
 
-vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
+vi.mock('@/lib/session-user', () => ({ getSessionUserId: vi.fn() }));
 vi.mock('@/lib/cache', () => ({
   ENABLE_CACHE_STATS: false,
   generateIngredientSearchKey: () => 'k',

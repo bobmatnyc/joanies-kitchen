@@ -2,7 +2,6 @@
 
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   insertUserProfileSchema,
@@ -12,6 +11,7 @@ import {
 } from '@/lib/db/user-discovery-schema';
 import { ensureUserProfileFor } from '@/lib/ensure-user-profile';
 import { publicRecipe } from '@/lib/recipe-public';
+import { getSessionUser, getSessionUserId } from '@/lib/session-user';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -31,7 +31,7 @@ import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
  */
 export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized - Please sign in' };
@@ -96,7 +96,7 @@ export async function createOrUpdateProfile(data: Partial<NewUserProfile>) {
  */
 export async function getProfileByUsername(username: string): Promise<UserProfile | null> {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
 
     const [profile] = await db
       .select()
@@ -126,7 +126,7 @@ export async function getProfileByUsername(username: string): Promise<UserProfil
  */
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return null;
@@ -150,7 +150,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
  */
 export async function getProfileByUserId(targetUserId: string): Promise<UserProfile | null> {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
 
     const [profile] = await db
       .select()
@@ -212,7 +212,7 @@ export async function checkUsernameAvailability(username: string): Promise<boole
  */
 export async function updateProfileSettings(settings: { isPublic?: boolean }) {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
@@ -316,7 +316,7 @@ export async function getUserRecipes(
   }
 ): Promise<{ recipes: any[]; total: number }> {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getSessionUserId();
 
     // Get profile by username
     const profile = await getProfileByUsername(username);
@@ -405,7 +405,8 @@ export async function getUserRecipes(
  */
 export async function ensureUserProfile(): Promise<UserProfile | null> {
   try {
-    const { userId, user } = await auth();
+    const user = await getSessionUser();
+    const userId = user?.id;
 
     if (!userId) {
       return null;

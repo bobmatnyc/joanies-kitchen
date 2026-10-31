@@ -21,7 +21,10 @@ const RECIPE = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const state = vi.hoisted(() => ({ db: undefined as unknown, apiUser: null as string | null }));
 
 // An API-key caller has no session: auth() answers signed out.
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null, user: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
   get db() {

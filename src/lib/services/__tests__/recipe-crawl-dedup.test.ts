@@ -62,7 +62,10 @@ vi.mock('@/lib/db/embeddings', () => ({ saveRecipeEmbedding: vi.fn() }));
 vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({
   evaluateRecipeQuality: async () => ({ rating: 4, reasoning: 'ok' }),
 }));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/serpapi', () => ({ filterRecipeSites: vi.fn(), searchRecipesWithSerpAPI: vi.fn() }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';

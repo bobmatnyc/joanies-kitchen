@@ -19,7 +19,10 @@ vi.mock('@/lib/admin', () => ({
   requireAdmin: vi.fn(async () => undefined),
   checkAdminAccess: vi.fn(async () => false),
 }));
-vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: 'user-1' })) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => 'user-1',
+  getSessionUser: async () => ({ id: 'user-1' }),
+}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 import { revalidatePath } from 'next/cache';

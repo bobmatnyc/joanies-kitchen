@@ -20,8 +20,9 @@ const state = vi.hoisted(() => ({
   rateAllowed: true,
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: async () => ({ userId: state.userId, sessionClaims: null }),
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => state.userId,
+  getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
 vi.mock('@/lib/auth-users', () => ({
   getUserAdminFlag: async (userId: string) => userId === ADMIN,

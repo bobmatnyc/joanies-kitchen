@@ -2,7 +2,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: 'u1' }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => 'u1',
+  getSessionUser: async () => ({ id: 'u1' }),
+}));
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimit: async () => ({ allowed: true }),
 }));

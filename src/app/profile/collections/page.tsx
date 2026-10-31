@@ -4,14 +4,14 @@ import { redirect } from 'next/navigation';
 import { getUserCollections } from '@/app/actions/collections';
 import { CollectionCard } from '@/components/collections/CollectionCard';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 // Force dynamic rendering since we use authentication
 export const dynamic = 'force-dynamic';
 
 export default async function MyCollectionsPage() {
   // Check authentication - redirect if not authenticated
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     redirect('/sign-in?redirect=/profile/collections');

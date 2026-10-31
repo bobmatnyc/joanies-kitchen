@@ -10,16 +10,16 @@
  */
 import { NextResponse } from 'next/server';
 import { buildUserExport } from '@/lib/account-export';
-import { auth } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { getSessionUserId } from '@/lib/session-user';
 
 export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store, max-age=0', Pragma: 'no-cache' };
 
 export async function GET() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (!userId) {
     return NextResponse.json(
       { error: 'Sign in to export your data' },

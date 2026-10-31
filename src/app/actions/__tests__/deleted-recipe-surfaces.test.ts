@@ -18,7 +18,10 @@ const ING = '77777777-7777-4777-8777-777777777777';
 
 const state = vi.hoisted(() => ({ db: undefined as unknown, ids: [] as string[] }));
 
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: null, sessionClaims: null }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => null,
+  getSessionUser: async () => null,
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
   get db() {

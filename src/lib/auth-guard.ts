@@ -5,7 +5,7 @@
  * and other protected server actions.
  */
 
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 
 /**
  * Requires authentication for server actions
@@ -22,7 +22,7 @@ import { auth } from '@/lib/auth';
  * }
  */
 export async function requireAuth(featureName: string = 'this feature') {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     throw new Error(`Authentication required. Please sign in to use ${featureName}.`);
@@ -46,7 +46,7 @@ export async function requireAuth(featureName: string = 'this feature') {
  * }
  */
 export async function checkAuth() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   return {
     userId: userId || null,

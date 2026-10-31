@@ -34,7 +34,10 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-real-ip': '203.0.113.9' }),
 }));
-vi.mock('@/lib/auth', () => ({ auth: vi.fn(async () => ({ userId: 'user-paid-1' })) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => 'user-paid-1',
+  getSessionUser: async () => ({ id: 'user-paid-1' }),
+}));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
   get db() {

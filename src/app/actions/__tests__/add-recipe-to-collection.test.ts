@@ -21,12 +21,19 @@ const PRIVATE_RECIPE = 'cccccccc-0000-4000-8000-00000000000c';
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  auth: undefined as unknown as ReturnType<typeof vi.fn>,
+  sessionUserId: undefined as unknown as ReturnType<typeof vi.fn>,
 }));
 
-vi.mock('@/lib/auth', () => {
-  state.auth = vi.fn();
-  return { auth: (...args: unknown[]) => state.auth(...args) };
+vi.mock('@/lib/session-user', () => {
+  state.sessionUserId = vi.fn();
+  const getSessionUserId = (...args: unknown[]) => state.sessionUserId(...args);
+  return {
+    getSessionUserId,
+    getSessionUser: async () => {
+      const id = await getSessionUserId();
+      return id ? { id } : null;
+    },
+  };
 });
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
@@ -85,7 +92,7 @@ beforeEach(async () => {
   await db()
     .insert(discovery.collections)
     .values({ id: COLLECTION, user_id: OWNER, name: 'Mine', slug: 'mine' });
-  state.auth.mockResolvedValue({ userId: OWNER, sessionClaims: { metadata: {} } });
+  state.sessionUserId.mockResolvedValue(OWNER);
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 

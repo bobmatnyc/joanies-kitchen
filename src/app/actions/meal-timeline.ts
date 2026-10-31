@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/lib/auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { getMealById } from './meals';
 
 /**
@@ -56,7 +56,7 @@ export async function generateMealPrepTimeline(
   mealId: string
 ): Promise<{ success: boolean; timeline?: MealPrepTimeline; error?: string }> {
   try {
-    const { userId } = await auth();
+    const userId = await getSessionUserId();
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }

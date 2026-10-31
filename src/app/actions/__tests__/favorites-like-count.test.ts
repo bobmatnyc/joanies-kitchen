@@ -15,8 +15,9 @@ const RECIPE = 'aaaaaaaa-0000-4000-8000-00000000000a';
 
 const state = vi.hoisted(() => ({ db: undefined as unknown, userId: null as string | null }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: async () => ({ userId: state.userId, sessionClaims: null }),
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => state.userId,
+  getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
 vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
 vi.mock('@/lib/db', () => ({
@@ -146,5 +147,16 @@ describe('#167 addFavorite like_count', () => {
       error: 'Recipe already in favorites',
     });
     expect(await likeCount()).toBe(1);
+  });
+
+  it('a signed-out caller gets the sign-in error and nothing is counted', async () => {
+    await seed(0, false);
+    state.userId = null;
+
+    expect(await addFavorite(RECIPE)).toEqual({
+      success: false,
+      error: 'Please sign in to favorite recipes',
+    });
+    expect(await likeCount()).toBe(0);
   });
 });

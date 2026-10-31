@@ -10,7 +10,10 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/auth', () => ({ auth: async () => ({ userId: state.userId }) }));
+vi.mock('@/lib/session-user', () => ({
+  getSessionUserId: async () => state.userId,
+  getSessionUser: async () => (state.userId ? { id: state.userId } : null),
+}));
 vi.mock('@/lib/db', () => ({ getDb: () => state.db, db: {} }));
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: vi.fn(async () => state.verdict) }));
 
