@@ -6,6 +6,7 @@ import {
 } from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { lockRecipeForRating } from '@/lib/recipe-rating-aggregates';
 import {
   ANONYMOUS_VIEWER,
   type RecipeViewer,
@@ -225,34 +226,51 @@ export class CollectionService {
   }
 
   /**
-   * Remove a recipe from a collection
+   * Why: #231: the counters were lowered even when the DELETE removed no row (a
+   * repeat remove, or a row the account purge already deleted), so
+   * `recipes.collection_count` drifted one low.
+   * What: one `db.batch` (one transaction on neon-http): `lockRecipeForRating`
+   * locks the recipe row first, the purge's recipes-first order (#158, #211);
+   * then the collection row, as a collection delete locks it before its cascade
+   * reaches `collection_recipes`; then ONE statement deletes the `collection_recipes` row and lowers
+   * `collections.recipe_count` and `recipes.collection_count` (floor 0) only for
+   * the row the DELETE returned. Returns whether a row was removed. The caller
+   * checks ownership; the server action and the v1 DELETE route both call this.
+   * Test: `src/lib/services/__tests__/collection-remove-recipe-count.test.ts`
    */
-  async removeRecipe(collectionId: string, recipeId: string): Promise<void> {
-    await db
-      .delete(collectionRecipes)
-      .where(
-        and(
-          eq(collectionRecipes.collection_id, collectionId),
-          eq(collectionRecipes.recipe_id, recipeId)
+  async removeRecipe(collectionId: string, recipeId: string): Promise<boolean> {
+    // #231: decrement only what the DELETE returned, in the same statement.
+    const [, , result] = await db.batch([
+      lockRecipeForRating(recipeId),
+      // #231: collection row before the (C, R) row, or a concurrent collection
+      // delete (C, then its cascade into R's row) could deadlock (40P01).
+      db
+        .select({ id: collections.id })
+        .from(collections)
+        .where(eq(collections.id, collectionId))
+        .for('no key update'),
+      db.execute(sql`
+        WITH removed AS (
+          DELETE FROM ${collectionRecipes}
+          WHERE ${collectionRecipes.collection_id} = ${collectionId}
+            AND ${collectionRecipes.recipe_id} = ${recipeId}
+          RETURNING ${collectionRecipes.collection_id}, ${collectionRecipes.recipe_id}
+        ), dropped_collection AS (
+          UPDATE ${collections}
+          SET recipe_count = GREATEST(${collections.recipe_count} - 1, 0), updated_at = now()
+          WHERE ${collections.id} IN (SELECT collection_id FROM removed)
+          RETURNING 1
+        ), dropped_recipe AS (
+          UPDATE ${recipes}
+          SET collection_count = GREATEST(${recipes.collection_count} - 1, 0)
+          WHERE ${recipes.id} IN (SELECT recipe_id FROM removed)
+          RETURNING 1
         )
-      );
-
-    // Update collection recipe count
-    await db
-      .update(collections)
-      .set({
-        recipe_count: sql`GREATEST(${collections.recipe_count} - 1, 0)`,
-        updated_at: new Date(),
-      })
-      .where(eq(collections.id, collectionId));
-
-    // Decrement recipe's collection_count
-    await db
-      .update(recipes)
-      .set({
-        collection_count: sql`GREATEST(${recipes.collection_count} - 1, 0)`,
-      })
-      .where(eq(recipes.id, recipeId));
+        SELECT count(*)::int AS removed FROM removed
+      `),
+    ]);
+    const row = (result.rows as unknown as Array<{ removed: number | string }>)[0];
+    return Number(row?.removed ?? 0) > 0;
   }
 
   /**

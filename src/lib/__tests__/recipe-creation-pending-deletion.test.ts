@@ -21,14 +21,23 @@ const state = vi.hoisted(() => ({
   client: undefined as unknown,
   userId: null as string | null,
   discoverUrls: [{ url: 'https://example.test/stew', title: 'Stew' }],
+  /** #233: true only while an admin-only route runs; every other path is a non-admin. */
+  isAdmin: false,
 }));
+/** The id with no `users` row; its admin lookup finds nothing, as in production. */
+const LEGACY = 'user_legacy_no_users_row';
 const addFavorite = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 
 vi.mock('@/lib/session-user', () => ({
   getSessionUserId: async () => state.userId,
   getSessionUser: async () => (state.userId ? { id: state.userId } : null),
 }));
-vi.mock('@/lib/auth-users', () => ({ getUserAdminFlag: async () => false }));
+// #233: admin only inside the POST /api/ingest-recipe entries; an id with no users row is
+// never an admin (`getUserAdminFlag` answers null for it).
+vi.mock('@/lib/auth-users', () => ({
+  getUserAdminFlag: async (userId: string) =>
+    userId === 'user_legacy_no_users_row' ? null : state.isAdmin,
+}));
 vi.mock('@/lib/db', () => ({
   get db() {
     return state.db;
@@ -141,7 +150,6 @@ import * as schema from '@/lib/db/schema';
 
 const PENDING = 'user_pending';
 const NORMAL = 'user_normal';
-const LEGACY = 'user_legacy_no_users_row';
 const OWNER = 'user_owner';
 const ORIGINAL = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const REQUESTED_AT = new Date('2026-10-01T00:00:00.000Z');
@@ -201,6 +209,16 @@ async function route(call: () => Promise<{ status: number; body: any }>): Promis
 
 type Outcome = { ok: true } | { refused: string; status?: number };
 
+/** #233: runs `call` with the caller an admin, then back to a non-admin. */
+async function asAdmin<T>(call: () => Promise<T>): Promise<T> {
+  state.isAdmin = true;
+  try {
+    return await call();
+  } finally {
+    state.isAdmin = false;
+  }
+}
+
 async function action(call: () => Promise<{ success: boolean; error?: string }>): Promise<Outcome> {
   const result = await call();
   return result.success ? { ok: true } : { refused: result.error ?? '' };
@@ -208,14 +226,14 @@ async function action(call: () => Promise<{ success: boolean; error?: string }>)
 
 /**
  * One entry per user-initiated recipe insert. `action` names the refused
- * action; `status` is a route's answer; `normal` overrides the outcome for an
- * account that may write (default `{ ok: true }`).
+ * action; `status` is a route's answer. An account that may write gets `{ ok: true }`.
  */
 const PATHS: Array<{
   name: string;
   action: string;
   status?: number;
-  normal?: Outcome;
+  /** #233: an admin-only route; it runs as an admin, and a legacy id gets 403. */
+  adminOnly?: true;
   run: () => Promise<Outcome>;
 }> = [
   {
@@ -243,9 +261,12 @@ const PATHS: Array<{
     name: 'POST /api/ingest-recipe (single url)',
     action: 'import recipes',
     status: 403,
+    adminOnly: true,
     run: () =>
-      route(() =>
-        api('/api/ingest-recipe', { url: 'https://example.test/stew' }, ingestPOST as never)
+      asAdmin(() =>
+        route(() =>
+          api('/api/ingest-recipe', { url: 'https://example.test/stew' }, ingestPOST as never)
+        )
       ),
   },
   {
@@ -264,8 +285,6 @@ const PATHS: Array<{
   {
     name: 'copyRecipeToCollection (server action)',
     action: 'copy recipes',
-    // Pre-existing: the copy keeps the original's id, so the insert hits the primary key.
-    normal: { refused: 'Failed to copy recipe to collection' },
     run: () => action(() => copyRecipeToCollection(ORIGINAL)),
   },
   {
@@ -428,9 +447,10 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
     const added = await rows('SELECT * FROM recipes WHERE NOT (id = ANY($1))', [
       before.map((r) => r.id),
     ]);
-    if (p.normal) {
-      expect(outcome).toEqual(p.normal);
-      expect(added).toEqual([]);
+    if (p.adminOnly && p.userId === LEGACY) {
+      // #233: an id with no users row is not an admin, so the admin-only route refuses it.
+      expect(outcome).toEqual({ refused: 'Admin access required', status: 403 });
+      expect(added).toHaveLength(0);
       return;
     }
     expect(outcome).toEqual({ ok: true });
@@ -482,6 +502,105 @@ describe('#220 recipe creation is unchanged for other accounts', () => {
     expect(addFavorite).toHaveBeenCalledTimes(1);
   });
 
+  // #234: the copy used to reuse the original's id and slug and always failed.
+  it('copyRecipeToCollection writes a new private row with a new id and a unique slug', async () => {
+    state.userId = NORMAL;
+    await rows('UPDATE recipes SET like_count = 5, collection_count = 4 WHERE id = $1', [ORIGINAL]);
+    const original = await rows('SELECT * FROM recipes WHERE id = $1', [ORIGINAL]);
+
+    const first = await copyRecipeToCollection(ORIGINAL);
+    const second = await copyRecipeToCollection(ORIGINAL);
+
+    expect(first).toMatchObject({ success: true });
+    expect(second).toMatchObject({ success: true });
+    const copies = await rows(
+      'SELECT id, user_id, name, slug, ingredients, is_public, like_count, fork_count, collection_count FROM recipes WHERE id <> $1 ORDER BY created_at, slug',
+      [ORIGINAL]
+    );
+    const copy = {
+      user_id: NORMAL,
+      name: 'Soup (Copy)',
+      ingredients: '["1 leek"]',
+      is_public: false,
+      like_count: 0,
+      fork_count: 0,
+      collection_count: 0,
+    };
+    expect(copies).toEqual([
+      { ...copy, id: (first as { data: { id: string } }).data.id, slug: 'soup-copy' },
+      { ...copy, id: (second as { data: { id: string } }).data.id, slug: 'soup-copy-2' },
+    ]);
+    expect(copies[0].id).not.toBe(copies[1].id);
+    expect(await rows('SELECT * FROM recipes WHERE id = $1', [ORIGINAL])).toEqual(original);
+  });
+
+  // #234: a copy keeps content only; server-managed columns take their column defaults.
+  it('copyRecipeToCollection resets moderation, QA, admin and attribution columns', async () => {
+    state.userId = NORMAL;
+    const managed = [
+      'moderation_status',
+      'moderation_notes',
+      'moderated_by',
+      'moderated_at',
+      'submission_notes',
+      'qa_status',
+      'qa_timestamp',
+      'qa_method',
+      'qa_confidence',
+      'qa_notes',
+      'qa_issues_found',
+      'qa_fixes_applied',
+      'image_flagged_for_regeneration',
+      'image_regeneration_requested_at',
+      'image_regeneration_requested_by',
+      'content_flagged_for_cleanup',
+      'ingredients_need_cleanup',
+      'instructions_need_cleanup',
+      'system_rating',
+      'system_rating_reason',
+      'chef_id',
+      'source_id',
+      'license',
+    ];
+    await rows(
+      `UPDATE recipes SET moderation_status = 'approved', moderation_notes = 'ok', moderated_by = 'admin',
+        moderated_at = now(), submission_notes = 'please review', is_system_recipe = true,
+        chef_id = 'cccccccc-0000-4000-8000-00000000000c', source_id = 'dddddddd-0000-4000-8000-00000000000d',
+        qa_status = 'flagged', qa_timestamp = now(), qa_method = 'human', qa_confidence = 0.9,
+        qa_notes = 'n', qa_issues_found = '["x"]', qa_fixes_applied = '["y"]',
+        image_flagged_for_regeneration = true, image_regeneration_requested_at = now(),
+        image_regeneration_requested_by = 'admin', content_flagged_for_cleanup = true,
+        ingredients_need_cleanup = true, instructions_need_cleanup = true,
+        system_rating = 4.5, system_rating_reason = 'good', license = 'PUBLIC_DOMAIN',
+        cuisine = 'French', prep_time = 10
+      WHERE id = $1`,
+      [ORIGINAL]
+    );
+    // A row given only the required columns holds every column default.
+    const [defaults] = await rows(
+      `INSERT INTO recipes (id, user_id, name, ingredients, instructions)
+       VALUES ('dddddddd-0000-4000-8000-0000000000de', $1, 'Defaults', '[]', '[]') RETURNING *`,
+      [OWNER]
+    );
+    await rows('DELETE FROM recipes WHERE id = $1', [defaults.id]);
+
+    const result = await copyRecipeToCollection(ORIGINAL);
+
+    expect(result).toMatchObject({ success: true });
+    const [copy] = await rows('SELECT * FROM recipes WHERE id = $1', [
+      (result as { data: { id: string } }).data.id,
+    ]);
+    const pick = (r: Record<string, unknown>) => Object.fromEntries(managed.map((k) => [k, r[k]]));
+    expect(pick(copy)).toEqual(pick(defaults));
+    expect(copy).toMatchObject({
+      user_id: NORMAL,
+      is_system_recipe: false,
+      is_public: false,
+      cuisine: 'French',
+      prep_time: 10,
+    });
+  });
+
   it('discoverRecipeFromUrl writes the embedding row for the saved recipe', async () => {
     state.userId = NORMAL;
 
@@ -509,10 +628,12 @@ describe('#220 batches stop at the first refusal', () => {
     state.userId = PENDING;
     const before = await snapshot();
 
-    const r = await api(
-      '/api/ingest-recipe',
-      { urls: ['https://example.test/a', 'https://example.test/b'] },
-      ingestPOST as never
+    const r = await asAdmin(() =>
+      api(
+        '/api/ingest-recipe',
+        { urls: ['https://example.test/a', 'https://example.test/b'] },
+        ingestPOST as never
+      )
     );
 
     expect(r).toEqual({

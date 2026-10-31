@@ -15,6 +15,7 @@ import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { db } from '@/lib/db';
 import { shoppingLists } from '@/lib/db/schema';
+import { mealErrorMessage } from '../../error-body';
 
 /**
  * GET /api/v1/meals/:id/shopping-list
@@ -63,7 +64,8 @@ export const GET = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -185,7 +187,8 @@ export const POST = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: existingMeal.error || 'Failed to fetch meal',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(statusCode, existingMeal.error, 'Failed to fetch meal'),
           },
           { status: statusCode }
         );
@@ -214,7 +217,8 @@ export const POST = requireScopes(
         return NextResponse.json(
           {
             success: false,
-            error: result.error || 'Failed to generate shopping list',
+            // #241: a 500 carries a fixed message; the detail is logged only.
+            error: mealErrorMessage(500, result.error, 'Failed to generate shopping list'),
           },
           { status: 500 }
         );

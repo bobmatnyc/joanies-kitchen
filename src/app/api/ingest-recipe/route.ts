@@ -9,9 +9,11 @@
  * 3. Generates unique slug
  * 4. Saves to database with default settings
  *
- * Authentication:
- * - API Key: Authorization: Bearer <API_KEY>
- * - Admin: Session-based authentication
+ * Authentication (admin-only, #233):
+ * - API Key: Authorization: Bearer <API_KEY>, owned by an admin
+ * - Session: a signed-in admin
+ * Admin status is the caller's (or the key owner's) `users.is_admin`. A non-admin,
+ * or a failed lookup, gets 403 before any scrape, LLM call, rate-limit count or insert.
  *
  * Request Body:
  * - Single URL: { "url": "https://..." }
@@ -19,7 +21,7 @@
  *
  * Default Recipe Settings:
  * - is_public: true (shared/public by default)
- * - is_system_recipe: true for an admin caller, else false (#233)
+ * - is_system_recipe: true (only admins reach the insert, #233)
  * - license: 'PUBLIC_DOMAIN'
  * - chef_id: null (unless detected)
  */
@@ -36,6 +38,7 @@ import {
   type ParsedIngredient,
   parseRecipeForIngestion,
 } from '@/lib/ai/recipe-ingestion-parser';
+import { apiForbidden } from '@/lib/api/responses';
 import { requireScopes } from '@/lib/api-auth/require-auth';
 import { SCOPES } from '@/lib/api-auth/scopes';
 import { getUserAdminFlag } from '@/lib/auth-users';
@@ -129,10 +132,10 @@ function duplicateResult(
 }
 
 /**
- * #233: only admins may mark recipes as system recipes. Reads `users.is_admin`
- * for the caller (a session user or an API key's owner); a missing user or a
- * failed lookup counts as non-admin.
- * Test: `src/app/api/ingest-recipe/__tests__/route-system-flag.test.ts`
+ * #233: the route is admin-only. Reads `users.is_admin` for the caller (a
+ * session user or an API key's owner); a missing user or a failed lookup
+ * counts as non-admin.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-admin-only.test.ts`
  */
 async function isAdminUser(userId: string): Promise<boolean> {
   try {
@@ -212,9 +215,6 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     const instructionsJson = JSON.stringify(parsedRecipe.instructions);
     const tagsJson = JSON.stringify(parsedRecipe.tags || []);
 
-    // #233: only admins may mark recipes as system recipes.
-    const isSystemRecipe = await isAdminUser(userId);
-
     // Step 7: Generate embedding (non-blocking)
     let embeddingResult: RecipeEmbeddingResult | null = null; // #96 D57: carries modelName
     try {
@@ -239,7 +239,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         images: imagesJson,
         is_ai_generated: false,
         is_public: true,
-        is_system_recipe: isSystemRecipe, // #233
+        is_system_recipe: true, // #233: only admins reach this
         nutrition_info: parsedRecipe.nutritionInfo
           ? JSON.stringify(parsedRecipe.nutritionInfo)
           : null,
@@ -340,7 +340,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           : null,
         is_ai_generated: false,
         is_public: true, // PUBLIC by default
-        is_system_recipe: isSystemRecipe, // #233: admin callers only
+        is_system_recipe: true, // #233: the route is admin-only
         license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
         source: url,
         slug,
@@ -403,11 +403,15 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
 /**
  * POST /api/ingest-recipe
  *
- * Requires: write:recipes scope (API key or admin auth)
+ * Requires: write:recipes scope, and an admin caller (session or API-key owner)
  */
 export const POST = requireScopes(
   [SCOPES.WRITE_RECIPES],
   async (request: NextRequest, auth, _context) => {
+    // #233: admin-only route; refuse a non-admin before any scrape, LLM, rate-limit or insert.
+    if (!auth.userId || !(await isAdminUser(auth.userId))) {
+      return apiForbidden('Admin access required');
+    }
     // Each URL is a Firecrawl scrape + LLM parse, so every URL counts once against the
     // caller's bucket: keyed by API key (one key cannot spend the whole cap), else by user.
     const limiterKey = auth.apiKeyId ? `apikey:${auth.apiKeyId}` : `user:${auth.userId}`;
@@ -600,7 +604,8 @@ export async function GET() {
     description: 'Automatically ingest recipes from URLs',
     authentication: {
       required: true,
-      methods: ['API Key (Bearer token)', 'Admin Session'],
+      adminOnly: true, // #233
+      methods: ['API Key (Bearer token) owned by an admin', 'Admin Session'],
       scope: 'write:recipes',
     },
     requestBody: {
@@ -650,7 +655,7 @@ export async function GET() {
     },
     defaultSettings: {
       is_public: true,
-      is_system_recipe: 'true for admin callers, else false', // #233
+      is_system_recipe: true, // #233: admin-only route
       license: 'PUBLIC_DOMAIN',
       chef_id: null,
     },

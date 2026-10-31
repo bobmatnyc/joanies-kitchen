@@ -22,9 +22,17 @@ import { getSessionUserId } from '@/lib/session-user';
 // TRACK VIEWS
 // ============================================================================
 
+/** #205: a signed-in user's repeat views of one recipe inside this window count once. */
+const VIEW_DEDUP_WINDOW = sql.raw(`interval '1 minute'`);
+
 /**
- * Track when a user views a recipe
- * Works for both authenticated and anonymous users
+ * Why: the view count is `count(*)` over `recipe_views`, so a client loop that
+ * re-calls this action inflates it directly (#199: 224 rows from one user).
+ * What: records one view of a recipe the caller may read. A signed-in user's
+ * view is skipped when the same (user_id, recipe_id) already has a row from the
+ * last minute (#205). Anonymous views carry no identity to dedup on and are
+ * recorded on every call; their policy is a separate decision.
+ * Test: `src/app/actions/__tests__/recipe-view-dedup.test.ts`
  */
 export async function trackRecipeView(recipeId: string): Promise<void> {
   try {
@@ -43,12 +51,26 @@ export async function trackRecipeView(recipeId: string): Promise<void> {
     if (userId) {
       const { ensureUserProfile } = await import('./user-profiles');
       await ensureUserProfile();
+
+      // #205: one conditional INSERT ... WHERE NOT EXISTS, so the check and the
+      // write are a single statement (neon-http has no interactive transactions).
+      await db.execute(sql`
+        INSERT INTO "recipe_views" ("recipe_id", "user_id")
+        SELECT ${recipeId}, ${userId}
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "recipe_views"
+          WHERE "user_id" = ${userId}
+            AND "recipe_id" = ${recipeId}
+            AND "viewed_at" > now() - ${VIEW_DEDUP_WINDOW}
+        )
+      `);
+      return;
     }
 
-    // Record view (userId can be null for anonymous views)
+    // #205: anonymous views are not deduplicated (no identity to key on).
     await db.insert(recipeViews).values({
       recipe_id: recipeId,
-      user_id: userId || null,
+      user_id: null,
     });
 
     // Note: We don't revalidate paths here to avoid performance impact
