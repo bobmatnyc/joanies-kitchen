@@ -1,6 +1,7 @@
 /**
  * #208: the guarded INSERT for user-content writes that an account with a
- * pending deletion must not make (comments, forks, collections, reports).
+ * pending deletion must not make (comments, forks, collections, reports, and
+ * meals since #217).
  *
  * Why: the account purge reads its lock set once. A row the departing user
  * writes while the purge runs can lock a row the purge never locked (40P01),
@@ -25,6 +26,26 @@ import { db } from '@/lib/db';
 /** #208: the refusal text for `action` (e.g. "comment on recipes"). */
 export function pendingDeletionError(action: string): string {
   return `Your account is scheduled for deletion, so you cannot ${action}. Cancel the deletion to ${action} again.`;
+}
+
+/**
+ * #217: `errorCode` on a server action's pending-deletion refusal, so a v1
+ * route that calls the action can answer 403 instead of 500.
+ */
+export const PENDING_DELETION_ERROR_CODE = 'ACCOUNT_PENDING_DELETION';
+
+/** #217: the `{ success: false }` result a server action returns for a refused write. */
+export function pendingDeletionRefusal(action: string) {
+  return {
+    success: false as const,
+    error: pendingDeletionError(action),
+    errorCode: PENDING_DELETION_ERROR_CODE,
+  };
+}
+
+/** #217: true when a server action's result is a `pendingDeletionRefusal`. */
+export function isPendingDeletionRefusal(result: object): boolean {
+  return 'errorCode' in result && result.errorCode === PENDING_DELETION_ERROR_CODE;
 }
 
 /** #208: thrown by the service layer when the guard refuses a write. */

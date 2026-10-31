@@ -11,6 +11,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { addRecipeToMeal, createMeal, getUserMeals } from '@/app/actions/meals';
+import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import {
   type CreateMealInput,
@@ -182,7 +183,8 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
  *
  * Errors:
  * - 401: Not authenticated
- * - 403: Insufficient permissions (missing write:meals scope)
+ * - 403: Insufficient permissions (missing write:meals scope), or the
+ *   account has a pending deletion (#217)
  * - 400: Invalid request body
  * - 500: Internal server error
  */
@@ -228,7 +230,8 @@ export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequ
           success: false,
           error: result.error || 'Failed to create meal',
         },
-        { status: 500 }
+        // #217: the account has a pending deletion; nothing was written.
+        { status: isPendingDeletionRefusal(result) ? 403 : 500 }
       );
     }
 
