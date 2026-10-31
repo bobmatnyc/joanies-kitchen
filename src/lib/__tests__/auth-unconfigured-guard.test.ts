@@ -33,8 +33,14 @@ describe('server auth with Auth.js unconfigured (#154)', () => {
     expect(mocks.authJs).not.toHaveBeenCalled();
   });
 
-  it('preview + configured: the session is read', async () => {
+  it('preview + configured: no session read, signed-out (Auth.js is off on previews)', async () => {
     setEnv('preview', true);
+    await expect(checkAdminAccess()).resolves.toMatchObject({ isAdmin: false, userId: null });
+    expect(mocks.authJs).not.toHaveBeenCalled();
+  });
+
+  it('production + configured: the session is read', async () => {
+    setEnv('production', true);
     await expect(checkAdminAccess()).resolves.toMatchObject({ isAdmin: true, userId: 'user_1' });
     expect(mocks.authJs).toHaveBeenCalledTimes(1);
   });
