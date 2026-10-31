@@ -46,12 +46,7 @@ import { markAccountDeleted, restoreAccount } from '@/lib/account-deletion';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
-import {
-  collections,
-  favorites,
-  recipeViews,
-  userProfiles,
-} from '@/lib/db/user-discovery-schema';
+import { collections, favorites, recipeViews, userProfiles } from '@/lib/db/user-discovery-schema';
 import {
   ensureUserProfileFor,
   ensureUserProfileStatus,
@@ -240,7 +235,10 @@ describe('#210 a pending account with a hidden profile stays hidden', () => {
 
     const result = await ensureUserProfileStatus(HIDDEN);
 
-    expect(result).toMatchObject({ status: 'ready', profile: { user_id: HIDDEN, is_public: false } });
+    expect(result).toMatchObject({
+      status: 'ready',
+      profile: { user_id: HIDDEN, is_public: false },
+    });
     expect(await profiles()).toEqual(before);
   });
 
@@ -284,13 +282,14 @@ describe('#210 the guard is in the insert statement', () => {
     expect(await profiles()).toEqual(before);
   });
 
+  // A normal user, so the insert runs whatever any pre-check would answer.
   it.each([
-    ['ensureUserProfileStatus', () => ensureUserProfileStatus(PENDING)],
+    ['ensureUserProfileStatus', () => ensureUserProfileStatus(NORMAL)],
     [
       'createOrUpdateProfile',
       () => {
-        state.userId = PENDING;
-        return createOrUpdateProfile({ username: 'pending', display_name: 'P' });
+        state.userId = NORMAL;
+        return createOrUpdateProfile({ username: 'normal', display_name: 'N' });
       },
     ],
   ])('%s: one profile INSERT statement, carrying the guard', async (_n, call) => {
@@ -315,8 +314,9 @@ describe('#210 other accounts are unchanged', () => {
       profile: { user_id: NORMAL, username: 'normal-person', is_public: true },
     });
     expect(await ensureUserProfileFor(NORMAL)).toMatchObject({ username: 'normal-person' });
-    expect(await rows('SELECT count(*)::int AS n FROM user_profiles WHERE user_id = $1', [NORMAL]))
-      .toEqual([{ n: 1 }]);
+    expect(
+      await rows('SELECT count(*)::int AS n FROM user_profiles WHERE user_id = $1', [NORMAL])
+    ).toEqual([{ n: 1 }]);
   });
 
   it('a legacy id with no users row gets user-<id8>', async () => {
@@ -373,8 +373,9 @@ describe('#210 restoring the account re-enables profile writes', () => {
 
     await restoreAccount(HIDDEN, REQUESTED_AT);
 
-    expect(await rows('SELECT display_name, is_public FROM user_profiles WHERE user_id = $1', [HIDDEN]))
-      .toEqual([{ display_name: 'Hidden', is_public: true }]);
+    expect(
+      await rows('SELECT display_name, is_public FROM user_profiles WHERE user_id = $1', [HIDDEN])
+    ).toEqual([{ display_name: 'Hidden', is_public: true }]);
   });
 
   it('a restored public profile is public again and editable', async () => {

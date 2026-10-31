@@ -43,10 +43,7 @@ export type GuardedProfileInsert = 'inserted' | 'conflict' | 'pending-deletion';
  * #210: the guarded INSERT as one statement. A `user_id` conflict is ignored
  * when `ignoreUserIdConflict` is set, and raises 23505 otherwise.
  */
-function guardedProfileInsertSql(
-  values: NewUserProfile,
-  ignoreUserIdConflict: boolean
-): SQL {
+function guardedProfileInsertSql(values: NewUserProfile, ignoreUserIdConflict: boolean): SQL {
   const columns = getTableColumns(userProfiles);
   const keys = (Object.keys(values) as Array<keyof NewUserProfile>).filter(
     (key) => values[key] !== undefined

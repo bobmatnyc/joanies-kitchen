@@ -192,13 +192,26 @@ describe('#181 an API-key caller gets a profile named from the users row', () =>
   });
 
   it('falls back to user-<id8> and still creates the profile when the users lookup throws', async () => {
-    await client.exec('ALTER TABLE "users" RENAME TO "users_hidden"');
+    // #210: only the identity read fails. The insert's pending-deletion guard also
+    // reads users, so a missing users table now fails the insert (closed).
+    const select = db.select.bind(db);
+    let calls = 0;
+    const spy = vi.spyOn(db, 'select').mockImplementation(((...args: Parameters<typeof select>) => {
+      calls += 1;
+      // Call 1 is the existing-profile read; call 2 is the identity lookup.
+      if (calls === 2) throw new Error('users lookup failed');
+      return select(...args);
+    }) as typeof db.select);
     try {
       const profile = await ensureUserProfileFor(API_USER);
 
       expect(profile?.username).toBe('user-user_api');
+      expect(console.error).toHaveBeenCalledWith(
+        'Error loading user identity for profile:',
+        expect.objectContaining({ message: 'users lookup failed' })
+      );
     } finally {
-      await client.exec('ALTER TABLE "users_hidden" RENAME TO "users"');
+      spy.mockRestore();
     }
   });
 

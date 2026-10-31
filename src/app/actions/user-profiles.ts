@@ -259,7 +259,10 @@ export async function updateProfileSettings(settings: { isPublic?: boolean }) {
         .from(users)
         .where(and(eq(users.id, userId), isNotNull(users.deletion_requested_at)))
         .limit(1);
-      return { success: false, error: pending ? PENDING_DELETION_PROFILE_ERROR : 'Profile not found' };
+      return {
+        success: false,
+        error: pending ? PENDING_DELETION_PROFILE_ERROR : 'Profile not found',
+      };
     }
 
     revalidatePath('/profile/edit');
