@@ -12,8 +12,9 @@ const SIGNED_OUT: SessionContextValue = {
 };
 
 /**
- * Why: #22 — Auth.js SessionProvider replaces ClerkProvider and Google One
- * Tap; its periodic refetch also lets the Node `jwt` callback refresh isAdmin.
+ * Why: #22 — Auth.js SessionProvider supplies the session to client
+ * components; its periodic refetch also lets the Node `jwt` callback refresh
+ * isAdmin.
  * #154 — with Auth.js unconfigured (a Vercel preview) every session fetch
  * fails with a "server configuration" error logged on each page load.
  * What: `enabled` (the layout passes `isAuthConfigured()`) mounts the real

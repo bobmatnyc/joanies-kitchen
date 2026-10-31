@@ -3,7 +3,7 @@ import { boolean, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-
 /**
  * Auth.js (NextAuth v5) tables — #22.
  *
- * Why: Clerk is replaced by Auth.js with JWT sessions; the Drizzle adapter
+ * Why: auth runs on Auth.js with JWT sessions; the Drizzle adapter
  * needs `users` and `accounts` to link a Google login to an app user id.
  * What: `users.id` is text so the one real pre-existing Clerk id keeps every
  * row that references it attached; new rows get a UUID. `is_admin` is the
@@ -20,7 +20,7 @@ export const users = pgTable('users', {
   email: text('email').unique(),
   emailVerified: timestamp('email_verified', { mode: 'date' }),
   image: text('image'),
-  // #22: replaces Clerk sessionClaims.metadata.isAdmin.
+  // #22: the source of truth for admin; the JWT carries a copy as a UI hint.
   is_admin: boolean('is_admin').default(false).notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
   // #103: set when the user requests account deletion; null = active. The

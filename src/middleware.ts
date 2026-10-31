@@ -5,7 +5,7 @@ import { authConfig } from './auth.config';
 import { isAuthConfigured } from './lib/auth-env';
 import { decideRoute } from './lib/auth-routes';
 
-// #22: Auth.js replaces clerkMiddleware. Built from the edge-safe config only,
+// #22: Auth.js session middleware. Built from the edge-safe config only,
 // so it verifies the session JWT without a database call.
 const { auth } = NextAuth(authConfig);
 

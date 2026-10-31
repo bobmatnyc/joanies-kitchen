@@ -56,6 +56,17 @@ describe('AuthButtons', () => {
   });
 
   it.each([
+    ['signed out', null],
+    ['signed in', ADA],
+  ])('loading (%s): renders the skeleton, no Sign In link and no Account menu', (_, user) => {
+    auth.value = { isLoaded: false, user };
+    const { container } = render(<AuthButtons />);
+    expect(screen.queryByRole('link', { name: /sign in/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Account menu' })).toBeNull();
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
+  it.each([
     [true, 1],
     [false, 0],
   ])('isAdmin %s: admin link count %i', (isAdmin, count) => {
