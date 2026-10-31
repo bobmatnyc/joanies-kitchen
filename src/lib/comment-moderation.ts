@@ -49,6 +49,49 @@ export async function hideCommentAtThreshold(commentId: string): Promise<boolean
   return hidden.length > 0;
 }
 
+/**
+ * Why: #194 (ruling Df8) "unhide resolves all pending reports, like dismiss;
+ * three new reporters re-hide". Pending reports left behind by an unhide made the
+ * next single report re-hide the comment at once.
+ * What: admin-checked by the caller. In one `db.batch` (one transaction) clears
+ * `is_flagged` and marks every pending report on the comment `dismissed` with the
+ * reviewer and time. The report write is guarded by the comment's existence, so a
+ * missing comment changes nothing. A reporter whose report is closed cannot count
+ * again: the unique index (comment_id, user_id) spans every status. Returns the
+ * comment's recipe id, or null when the comment does not exist.
+ * Test: `src/app/actions/__tests__/comment-reports.test.ts`
+ */
+export async function unhideCommentResolvingReports(
+  commentId: string,
+  adminId: string,
+  reviewNotes: string | null
+): Promise<{ recipeId: string } | null> {
+  const now = new Date();
+  const commentWrite = db
+    .update(recipeComments)
+    .set({ is_flagged: false, updated_at: now })
+    .where(eq(recipeComments.id, commentId))
+    .returning({ recipeId: recipeComments.recipe_id });
+  const flagsWrite = db
+    .update(recipeFlags)
+    .set({
+      status: 'dismissed',
+      reviewed_by: adminId,
+      reviewed_at: now,
+      review_notes: reviewNotes,
+      updated_at: now,
+    })
+    .where(
+      and(
+        eq(recipeFlags.comment_id, commentId),
+        eq(recipeFlags.status, 'pending'),
+        sql`EXISTS (SELECT 1 FROM ${recipeComments} WHERE ${recipeComments.id} = ${commentId})`
+      )
+    );
+  const [restored] = await db.batch([commentWrite, flagsWrite]);
+  return restored[0] ?? null;
+}
+
 export type CommentFlagAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
 
 /**
@@ -57,7 +100,7 @@ export type CommentFlagAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
  * What: admin-checked by the caller. `dismiss` un-hides the comment and dismisses
  * every pending report on it (so stale reports cannot re-trigger the auto-hide);
  * `hide` hides it and `remove` deletes it, each resolving every pending report;
- * `unhide` clears the hidden state and leaves reports alone. The comment write
+ * `unhide` delegates to `unhideCommentResolvingReports` (#194). The comment write
  * and the report updates run in one `db.batch`. Returns an error string when
  * `unhide` finds no comment or no report row was updated, else null.
  */
@@ -67,6 +110,12 @@ export async function applyCommentFlagAction(
   adminId: string,
   reviewNotes: string | null
 ): Promise<string | null> {
+  if (action === 'unhide') {
+    // #194: unhide closes the pending reports in the same transaction, like dismiss.
+    const restored = await unhideCommentResolvingReports(flag.comment_id, adminId, reviewNotes);
+    return restored ? null : 'Comment not found';
+  }
+
   const now = new Date();
   const commentWhere = eq(recipeComments.id, flag.comment_id);
   const commentWrite =
@@ -77,11 +126,6 @@ export async function applyCommentFlagAction(
           .set({ is_flagged: action === 'hide', updated_at: now })
           .where(commentWhere)
           .returning({ id: recipeComments.id });
-
-  if (action === 'unhide') {
-    const restored = await commentWrite;
-    return restored.length === 0 ? 'Comment not found' : null;
-  }
 
   const flagsWrite = db
     .update(recipeFlags)

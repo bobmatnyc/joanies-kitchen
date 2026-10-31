@@ -8,6 +8,7 @@ import {
   pendingDeletionError,
 } from '@/lib/account-deletion/guarded-insert';
 import { requireAdmin } from '@/lib/admin';
+import { unhideCommentResolvingReports } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeForks, recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
@@ -417,24 +418,30 @@ export async function getRecipeCommentCount(recipeId: string): Promise<DataResul
  * Why: #59 lets an admin hide an abusive comment without deleting it.
  * What: admin-only. Sets (`hidden: true`) or clears `recipe_comments.is_flagged`;
  * `getRecipeComments` and `getRecipeCommentCount` already exclude flagged rows.
+ * An unhide also dismisses the comment's pending reports in the same transaction
+ * (#194, `unhideCommentResolvingReports`).
  * A comment id that matches no row, or any thrown error, returns `success: false`.
- * Test: `src/app/actions/__tests__/report-moderation.test.ts`
+ * Test: `src/app/actions/__tests__/report-moderation.test.ts`,
+ * `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function setCommentHidden(commentId: string, hidden: boolean): Promise<SuccessResult> {
   try {
-    await requireAdmin();
+    const { userId } = await requireAdmin();
 
-    const updated = await db
-      .update(recipeComments)
-      .set({ is_flagged: hidden, updated_at: new Date() })
-      .where(eq(recipeComments.id, commentId))
-      .returning({ recipeId: recipeComments.recipe_id });
+    // #194: an unhide must not leave pending reports that re-hide on the next report.
+    const [updated] = hidden
+      ? await db
+          .update(recipeComments)
+          .set({ is_flagged: true, updated_at: new Date() })
+          .where(eq(recipeComments.id, commentId))
+          .returning({ recipeId: recipeComments.recipe_id })
+      : [await unhideCommentResolvingReports(commentId, userId, null)];
 
-    if (updated.length === 0) {
+    if (!updated) {
       return { success: false, error: 'Comment not found' };
     }
 
-    revalidatePath(`/recipes/${updated[0].recipeId}`);
+    revalidatePath(`/recipes/${updated.recipeId}`);
     return { success: true };
   } catch (error) {
     console.error('[setCommentHidden] Error:', error);

@@ -42,7 +42,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }
 
 import { actOnRecipeFlag, flagRecipe, getAllFlags } from '@/app/actions/flag-recipe';
 import { reportComment } from '@/app/actions/report-comment';
-import { getRecipeComments } from '@/app/actions/social';
+import { getRecipeComments, setCommentHidden } from '@/app/actions/social';
 import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
@@ -244,5 +244,72 @@ describe('moderation queue', () => {
     state.userId = 'u1';
     expect((await actOnRecipeFlag(flag.id, 'dismiss')).success).toBe(false);
     expect(await isHidden()).toBe(true);
+  });
+
+  // #194 (ruling Df8): every admin unhide path closes the pending reports with the unhide.
+  const unhidePaths: [string, (flagId: string) => Promise<{ success: boolean }>][] = [
+    ['the flag queue', (flagId) => actOnRecipeFlag(flagId, 'unhide')],
+    ['setCommentHidden', () => setCommentHidden(C1, false)],
+  ];
+
+  describe.each(unhidePaths)('unhide via %s', (_name, unhide) => {
+    it('dismisses every pending report; only three new reporters re-hide', async () => {
+      const flag = await hideByReports();
+      expect((await unhide(flag.id)).success).toBe(true);
+      expect(await isHidden()).toBe(false);
+      expect(await rows(`SELECT DISTINCT status, reviewed_by FROM recipe_flags`)).toEqual([
+        { status: 'dismissed', reviewed_by: ADMIN },
+      ]);
+
+      // Earlier reporters cannot report again, so they never count twice.
+      for (const u of ['u1', 'u2', 'u3']) {
+        expect(await reportAs(u)).toEqual({ success: true, alreadyReported: true });
+      }
+      expect((await reportAs('u4')).hidden).toBe(false);
+      expect((await reportAs('u5')).hidden).toBe(false);
+      expect(await isHidden()).toBe(false);
+      expect((await reportAs('u6')).hidden).toBe(true);
+      expect(await isHidden()).toBe(true);
+      const recipe = await rows(`SELECT moderation_status FROM recipes WHERE id = '${R1}'`);
+      expect(recipe[0].moderation_status).toBe('approved');
+    });
+
+    // Either write failing must undo the other, whichever order an implementation runs them in.
+    it.each(['recipe_flags', 'recipe_comments'])(
+      'leaves no half state when the %s write fails',
+      async (table) => {
+        const flag = await hideByReports();
+        await client.exec(`
+          CREATE FUNCTION fail_update() RETURNS trigger LANGUAGE plpgsql
+            AS $$ BEGIN RAISE EXCEPTION 'write failed'; END $$;
+          CREATE TRIGGER fail_update BEFORE UPDATE ON ${table}
+            FOR EACH ROW EXECUTE FUNCTION fail_update();
+        `);
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+          expect((await unhide(flag.id)).success).toBe(false);
+        } finally {
+          await client.exec(`
+            DROP TRIGGER fail_update ON ${table};
+            DROP FUNCTION fail_update();
+          `);
+        }
+        expect(await isHidden()).toBe(true);
+        expect(await rows(`SELECT status, reviewed_by FROM recipe_flags`)).toEqual([
+          { status: 'pending', reviewed_by: null },
+          { status: 'pending', reviewed_by: null },
+          { status: 'pending', reviewed_by: null },
+        ]);
+      }
+    );
+
+    it('refuses a deleted comment and leaves its reports pending', async () => {
+      const flag = await hideByReports();
+      await client.exec(`DELETE FROM recipe_comments WHERE id = '${C1}'`);
+      expect((await unhide(flag.id)).success).toBe(false);
+      expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
+        { status: 'pending' },
+      ]);
+    });
   });
 });
