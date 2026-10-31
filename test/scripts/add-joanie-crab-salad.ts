@@ -22,8 +22,8 @@ async function addJoaniesCrabSalad() {
   console.log('🦀 Adding Joanie\'s First Recipe: Monday Night Crab Salad\n');
 
   // Get the authenticated user ID (Joanie's account)
-  // For now, we'll use a placeholder - in production this would be Joanie's actual Clerk user_id
-  const JOANIES_USER_ID = 'user_joanie'; // Replace with actual Clerk user ID
+  // For now, we'll use a placeholder - in production this would be Joanie's actual users.id
+  const JOANIES_USER_ID = 'user_joanie'; // Replace with actual users.id
 
   const recipeData = {
     user_id: JOANIES_USER_ID,

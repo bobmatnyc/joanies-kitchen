@@ -89,7 +89,7 @@ export async function ensureUserProfileFor(
     const resolved = identity ?? (await loadUserIdentity(userId));
 
     // #22: profile data comes from the Auth.js session (Google name, email,
-    // image) instead of a Clerk Backend API lookup.
+    // image).
     // Priority: full name > email prefix > user id
     const fullName = resolved?.name?.trim() || null;
     let username: string;

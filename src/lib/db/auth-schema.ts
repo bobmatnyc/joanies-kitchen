@@ -3,7 +3,7 @@ import { boolean, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-
 /**
  * Auth.js (NextAuth v5) tables — #22.
  *
- * Why: Clerk is replaced by Auth.js with JWT sessions; the Drizzle adapter
+ * Why: auth runs on Auth.js with JWT sessions; the Drizzle adapter
  * needs `users` and `accounts` to link a Google login to an app user id.
  * What: `users.id` is text so the one real pre-existing Clerk id keeps every
  * row that references it attached; new rows get a UUID. `is_admin` is the

@@ -30,10 +30,11 @@ const SHOW_COUNTER_AT = 800;
  * - Sign-in prompt for guests
  *
  * @example
+ * const { user } = useSessionUser();
  * <CommentInput
  *   recipeId="recipe-123"
  *   onCommentAdded={handleRefresh}
- *   isAuthenticated={isSignedIn}
+ *   isAuthenticated={!!user}
  * />
  */
 export function CommentInput({

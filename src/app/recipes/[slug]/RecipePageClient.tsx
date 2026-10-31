@@ -161,14 +161,15 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
           setIsOwner(true);
         } else if (userId !== null && userId === result.data.user_id) {
           setIsOwner(true);
+        } else if (userId === null) {
+          // #22: signing out clears a stale owner flag from the signed-in render.
+          setIsOwner(false);
         }
       }
 
-      // Check if user is admin
-      if (userId) {
-        // #22: JWT admin hint (UI only); admin actions re-check the DB.
-        setIsUserAdmin(userIsAdmin);
-      }
+      // #22: JWT admin hint (UI only); admin actions re-check the DB. Signed out is
+      // never admin, so signing out clears a stale admin flag.
+      setIsUserAdmin(userId !== null && userIsAdmin);
 
       // Show page immediately - fetch secondary data in background
       setLoading(false);

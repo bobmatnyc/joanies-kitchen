@@ -32,6 +32,21 @@ describe('RequireAuth', () => {
     }
   );
 
+  it.each([
+    ['signed out', null],
+    ['signed in', { id: 'u1' }],
+  ])('loading (%s): renders only the pulsing lock, no children and no button', (_, user) => {
+    auth.value = { isLoaded: false, user };
+    const { container } = render(
+      <RequireAuth featureName="Feature">
+        <p>secret</p>
+      </RequireAuth>
+    );
+    expect(screen.queryByText('secret')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(container.querySelector('.animate-pulse svg')).not.toBeNull();
+  });
+
   it('signed in: renders the children', () => {
     auth.value = { isLoaded: true, user: { id: 'u1' } };
     render(

@@ -48,7 +48,10 @@ vi.mock('@/app/actions/recipe-views', () => ({
 }));
 vi.mock('@/app/actions/user-profiles', () => ({ getProfileByUserId: vi.fn(async () => null) }));
 // Page sections unrelated to the hero image.
-vi.mock('@/components/admin/AdminContentActions', () => ({ AdminContentActions: () => null }));
+// A marker for the admin-only actions; the sign-out test asserts it disappears.
+vi.mock('@/components/admin/AdminContentActions', () => ({
+  AdminContentActions: () => <span>admin actions</span>,
+}));
 vi.mock('@/components/admin/AdminEditMode', () => ({
   AdminEditModeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -137,5 +140,32 @@ describe('recipe page fetch (#22)', () => {
       await settle(50);
     }
     expectBoundedFetches();
+  });
+});
+
+describe('recipe page sign-out (#22)', () => {
+  it('signing out clears the admin and owner actions', async () => {
+    session.current = {
+      data: { ...freshSession().data, user: { ...freshSession().data.user, isAdmin: true } },
+      status: 'authenticated',
+    };
+    getRecipe.mockResolvedValue({
+      success: true,
+      data: { ...ROW, user_id: 'u1', is_system_recipe: false },
+    });
+    const { rerender } = render(<RecipePageClient params={PARAMS} />);
+    await screen.findByText('admin actions');
+    expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Delete recipe' })).toBeTruthy();
+
+    session.current = { data: null, status: 'unauthenticated' } as unknown as ReturnType<
+      typeof freshSession
+    >;
+    rerender(<RecipePageClient params={PARAMS} />);
+    await settle(50);
+
+    expect(screen.queryByText('admin actions')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit recipe' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete recipe' })).toBeNull();
   });
 });

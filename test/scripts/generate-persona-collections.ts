@@ -823,7 +823,7 @@ async function createCollectionForPersona(
       .from(collections)
       .where(
         and(
-          eq(collections.user_id, persona.id), // persona.id is the Clerk user ID
+          eq(collections.user_id, persona.id), // persona.id is the persona's users.id
           eq(collections.slug, slug)
         )
       )

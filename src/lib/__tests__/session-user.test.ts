@@ -10,7 +10,7 @@ vi.mock('@/auth', () => ({ auth: mocks.authJs }));
 import { getSessionUser, getSessionUserId } from '@/lib/session-user';
 
 // See #22: a legacy user keeps the Clerk-era id string in `users.id`.
-const CLERK_ERA_ID = 'user_2abcDEF123ghiJKL456mnoPQR789';
+const LEGACY_ID = 'user_2abcDEF123ghiJKL456mnoPQR789';
 
 function configure() {
   vi.stubEnv('AUTH_SECRET', 'test-secret');
@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe('session-user helpers', () => {
-  it.each(['user_1', CLERK_ERA_ID, 'b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d'])(
+  it.each(['user_1', LEGACY_ID, 'b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d'])(
     'signed in: returns the exact id %s and the session user',
     async (id) => {
       configure();
@@ -51,6 +51,13 @@ describe('session-user helpers', () => {
       await expect(getSessionUser()).resolves.toBeNull();
     }
   );
+
+  it('an error thrown by Auth.js auth() propagates instead of reading as signed out', async () => {
+    configure();
+    mocks.authJs.mockRejectedValue(new Error('session decode failed'));
+    await expect(getSessionUser()).rejects.toThrow('session decode failed');
+    await expect(getSessionUserId()).rejects.toThrow('session decode failed');
+  });
 
   it.each(['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'])(
     'auth unconfigured: returns null without reading the session when %s is unset',

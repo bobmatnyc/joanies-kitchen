@@ -6,7 +6,7 @@
  * What: `decideRoute` maps a path plus the session's user id and JWT admin
  * flag to `allow`, `sign-in` (redirect) or `home` (signed-in non-admin on
  * /admin). Server components, actions and API routes re-check auth
- * themselves. Clerk-era rules for routes that no longer exist were removed.
+ * themselves.
  * `/recipes/<slug>/edit` is guarded by its page, not here.
  * Test: `src/lib/__tests__/auth-routes.test.ts`
  */
