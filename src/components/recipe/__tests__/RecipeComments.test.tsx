@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/app/actions/social', () => mocks);
 
+import { CommentsList } from '../CommentsList';
 import { RecipeComments } from '../RecipeComments';
 
 const COMMENT = {
@@ -56,6 +57,27 @@ describe('RecipeComments load count', () => {
     expect(screen.getByText('Lovely soup')).toBeInTheDocument();
     expect(screen.getByText('Comments (1)')).toBeInTheDocument();
     expect(mocks.getRecipeComments).toHaveBeenCalledTimes(1);
+  });
+
+  // #269: holds at 6b2549e too, because RecipeComments only mounts the list when
+  // the count is above zero. The list's own contract is the next test.
+  it('calls getRecipeComments exactly once for a recipe with no comments', async () => {
+    mocks.getRecipeComments.mockResolvedValue({ success: true, data: [] });
+    render(<RecipeComments recipeId="r1" isAuthenticated={false} />);
+    await flushRenders();
+
+    expect(screen.getByText('Comments')).toBeInTheDocument();
+    expect(mocks.getRecipeComments).toHaveBeenCalledTimes(1);
+  });
+
+  // #269: an empty list means the host already fetched and found nothing.
+  it('CommentsList adds no fetch of its own when given no comments', async () => {
+    mocks.getRecipeComments.mockResolvedValue({ success: true, data: [] });
+    render(<CommentsList recipeId="r1" initialComments={[]} totalCount={0} />);
+    await flushRenders();
+
+    expect(screen.getByText('No comments yet')).toBeInTheDocument();
+    expect(mocks.getRecipeComments).not.toHaveBeenCalled();
   });
 
   it('reloads exactly once when recipeId changes', async () => {
