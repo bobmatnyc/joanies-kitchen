@@ -133,7 +133,8 @@ export async function actOnHiddenComment(
     const notes = reviewNotes || null;
     if (action === 'unhide') {
       const restored = await unhideCommentResolvingReports(commentId, userId, notes);
-      if (!restored) return { success: false, error: 'Comment not found' };
+      // #59: the hidden check above can be stale by the write; the write re-checks it.
+      if ('error' in restored) return { success: false, error: restored.error };
     } else {
       const removed = await removeHiddenCommentResolvingReports(commentId, userId, notes);
       if (!removed) return { success: false, error: STALE_HIDDEN_COMMENT_ERROR };

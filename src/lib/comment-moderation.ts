@@ -82,25 +82,23 @@ export async function hideCommentAtThreshold(commentId: string): Promise<boolean
  * three new reporters re-hide". Pending reports left behind by an unhide made the
  * next single report re-hide the comment at once. #59: dismiss now closes one
  * report; this function still closes all of them.
- * What: admin-checked by the caller. In one `db.batch` (one transaction) clears
- * `is_flagged` and marks every pending report on the comment `dismissed` with the
- * reviewer and time. The report write is guarded by the comment's existence, so a
- * missing comment changes nothing. A reporter whose report is closed cannot count
- * again: the unique index (comment_id, user_id) spans every status. Returns the
- * comment's recipe id, or null when the comment does not exist.
+ * What: admin-checked by the caller. In one `db.batch` (one transaction) marks
+ * every pending report on the comment `dismissed` with the reviewer and time and
+ * clears `is_flagged`, both only while the comment is hidden. #59: the report write
+ * locks the hidden comment row first, so an Unhide from a stale page, after another
+ * admin's unhide, closes no newer report. A reporter whose report is closed cannot
+ * count again: the unique index (comment_id, user_id) spans every status. Returns
+ * the comment's recipe id; else, with nothing written, `STALE_HIDDEN_COMMENT_ERROR`
+ * for a visible comment or 'Comment not found' for a missing one.
  * Test: `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function unhideCommentResolvingReports(
   commentId: string,
   adminId: string,
   reviewNotes: string | null
-): Promise<{ recipeId: string } | null> {
+): Promise<{ recipeId: string } | { error: string }> {
   const now = new Date();
-  const commentWrite = db
-    .update(recipeComments)
-    .set({ is_flagged: false, updated_at: now })
-    .where(eq(recipeComments.id, commentId))
-    .returning({ recipeId: recipeComments.recipe_id });
+  const stillHidden = and(eq(recipeComments.id, commentId), eq(recipeComments.is_flagged, true));
   const flagsWrite = db
     .update(recipeFlags)
     .set({
@@ -114,11 +112,21 @@ export async function unhideCommentResolvingReports(
       and(
         eq(recipeFlags.comment_id, commentId),
         eq(recipeFlags.status, 'pending'),
-        sql`EXISTS (SELECT 1 FROM ${recipeComments} WHERE ${recipeComments.id} = ${commentId})`
+        sql`EXISTS (SELECT 1 FROM ${recipeComments} WHERE ${stillHidden} FOR UPDATE)`
       )
     );
-  const [restored] = await db.batch([commentWrite, flagsWrite]);
-  return restored[0] ?? null;
+  const commentWrite = db
+    .update(recipeComments)
+    .set({ is_flagged: false, updated_at: now })
+    .where(stillHidden)
+    .returning({ recipeId: recipeComments.recipe_id });
+  const comment = db
+    .select({ id: recipeComments.id })
+    .from(recipeComments)
+    .where(eq(recipeComments.id, commentId));
+  const [, restored, found] = await db.batch([flagsWrite, commentWrite, comment]);
+  if (restored[0]) return restored[0];
+  return { error: found.length > 0 ? STALE_HIDDEN_COMMENT_ERROR : 'Comment not found' };
 }
 
 /**
@@ -176,7 +184,8 @@ export type CommentFlagAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
  * `unhideCommentResolvingReports` (#194) and is the only queue action that makes
  * a comment visible; it works from a closed report and leaves that report as it is.
  * Returns `STALE_REPORT_ERROR`, with nothing written, when this report is no longer
- * pending; 'Comment not found' when `unhide` finds no comment; else null.
+ * pending; `unhide` returns `STALE_HIDDEN_COMMENT_ERROR` for a visible comment and
+ * 'Comment not found' for a missing one; else null.
  * Test: `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function applyCommentFlagAction(
@@ -188,7 +197,7 @@ export async function applyCommentFlagAction(
   if (action === 'unhide') {
     // #194: unhide closes every pending report in the same transaction. #59: dismiss closes only one.
     const restored = await unhideCommentResolvingReports(flag.comment_id, adminId, reviewNotes);
-    return restored ? null : 'Comment not found';
+    return 'error' in restored ? restored.error : null;
   }
 
   const now = new Date();

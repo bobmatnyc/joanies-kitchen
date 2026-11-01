@@ -521,4 +521,29 @@ describe('moderation queue', () => {
       ]);
     });
   });
+
+  // #59: a stale page's Unhide on a comment another admin already unhid must not close a newer report.
+  const staleUnhidePaths: [string, (flagId: string) => Promise<{ success: boolean }>][] = [
+    ['the flag queue', (flagId) => actOnRecipeFlag(flagId, 'unhide', 'stale decision')],
+    ['setCommentHidden', () => setCommentHidden(C1, false)],
+  ];
+
+  it.each(staleUnhidePaths)(
+    'unhide via %s refuses a visible comment and leaves its pending report open',
+    async (_name, unhide) => {
+      await reportAs('u1');
+      state.userId = ADMIN;
+      const flag = (await getAllFlags()).find((f) => f.user_id === 'u1');
+      if (!flag) throw new Error('u1 report missing');
+
+      expect(await unhide(flag.id)).toEqual({
+        success: false,
+        error: 'This comment is no longer hidden. Refresh the page to see its current state.',
+      });
+      expect(await rows(`SELECT status, review_notes, reviewed_by FROM recipe_flags`)).toEqual([
+        { status: 'pending', review_notes: null, reviewed_by: null },
+      ]);
+      expect(await isHidden()).toBe(false);
+    }
+  );
 });
