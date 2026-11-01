@@ -16,6 +16,34 @@ import { recipeComments, recipeFlags } from '@/lib/db/schema';
 /** Distinct pending reporters that hide a comment. */
 export const COMMENT_AUTO_HIDE_THRESHOLD = 3;
 
+/** #59: rows per page in the admin hidden-comments list. */
+export const HIDDEN_COMMENTS_PAGE_SIZE = 25;
+
+/** #59: answered when an admin acts on a report another action already closed. */
+export const STALE_REPORT_ERROR =
+  'This report was already closed. Refresh the page to see its current state.';
+
+/** #59: answered when an admin acts on a comment that is no longer hidden. */
+export const STALE_HIDDEN_COMMENT_ERROR =
+  'This comment is no longer hidden. Refresh the page to see its current state.';
+
+/**
+ * #59: the WHERE that closes a report only while it is pending. Postgres re-checks
+ * it on the locked row, so of two racing closes only one matches.
+ */
+export function reportStillPending(flagId: string) {
+  return and(eq(recipeFlags.id, flagId), eq(recipeFlags.status, 'pending'));
+}
+
+/**
+ * #59: guards a write on a report's target. `FOR UPDATE` holds the report row until
+ * the batch commits and re-reads it after any rival commit, so a close that lost the
+ * race leaves the target unchanged.
+ */
+export function lockReportIfPending(flagId: string) {
+  return sql`EXISTS (SELECT 1 FROM ${recipeFlags} WHERE ${reportStillPending(flagId)} FOR UPDATE)`;
+}
+
 /**
  * Why: the hide must fire exactly once when the third distinct reporter lands,
  * and two concurrent reports must not both miss it.
@@ -93,20 +121,62 @@ export async function unhideCommentResolvingReports(
   return restored[0] ?? null;
 }
 
+/**
+ * Why: #59: a hidden comment can have no pending report, or no report row at all,
+ * so Remove cannot depend on a report being open.
+ * What: admin-checked by the caller. In one `db.batch` marks the comment's pending
+ * reports `resolved` and deletes the comment, both only while the comment is hidden.
+ * Closed reports keep their status and notes. Returns false when no hidden comment
+ * was deleted.
+ * Test: `src/app/actions/__tests__/hidden-comments.test.ts`
+ */
+export async function removeHiddenCommentResolvingReports(
+  commentId: string,
+  adminId: string,
+  reviewNotes: string | null
+): Promise<boolean> {
+  const now = new Date();
+  const stillHidden = and(eq(recipeComments.id, commentId), eq(recipeComments.is_flagged, true));
+  const flagsWrite = db
+    .update(recipeFlags)
+    .set({
+      status: 'resolved',
+      reviewed_by: adminId,
+      reviewed_at: now,
+      review_notes: reviewNotes,
+      updated_at: now,
+    })
+    .where(
+      and(
+        eq(recipeFlags.comment_id, commentId),
+        eq(recipeFlags.status, 'pending'),
+        sql`EXISTS (SELECT 1 FROM ${recipeComments} WHERE ${stillHidden})`
+      )
+    );
+  const commentWrite = db
+    .delete(recipeComments)
+    .where(stillHidden)
+    .returning({ id: recipeComments.id });
+  const [, removed] = await db.batch([flagsWrite, commentWrite]);
+  return removed.length > 0;
+}
+
 export type CommentFlagAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
 
 /**
  * Why: the queue's actions act on the comment, not the recipe the report row also
  * names. #59: a dismiss must not un-hide. `is_flagged` does not record who hid a
  * comment, so an admin hide and an auto-hide look the same, and a dismiss cannot
- * tell whether other grounds for the hide remain.
+ * tell whether other grounds for the hide remain. #59: a page can be stale, so
+ * `dismiss`, `hide` and `remove` act only while this report is pending.
  * What: admin-checked by the caller. `dismiss` closes this one report and never
  * writes the comment; other pending reports stay in the queue and keep counting
  * toward the auto-hide. `hide` hides the comment and `remove` deletes it, each
  * resolving every pending report in one `db.batch`. `unhide` delegates to
  * `unhideCommentResolvingReports` (#194) and is the only queue action that makes
- * a comment visible. Returns an error string when `unhide` finds no comment or no
- * report row was updated, else null.
+ * a comment visible; it works from a closed report and leaves that report as it is.
+ * Returns `STALE_REPORT_ERROR`, with nothing written, when this report is no longer
+ * pending; 'Comment not found' when `unhide` finds no comment; else null.
  * Test: `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function applyCommentFlagAction(
@@ -116,7 +186,7 @@ export async function applyCommentFlagAction(
   reviewNotes: string | null
 ): Promise<string | null> {
   if (action === 'unhide') {
-    // #194: unhide closes the pending reports in the same transaction, like dismiss.
+    // #194: unhide closes every pending report in the same transaction. #59: dismiss closes only one.
     const restored = await unhideCommentResolvingReports(flag.comment_id, adminId, reviewNotes);
     return restored ? null : 'Comment not found';
   }
@@ -134,30 +204,32 @@ export async function applyCommentFlagAction(
     const dismissed = await db
       .update(recipeFlags)
       .set({ ...review, status: 'dismissed' })
-      .where(eq(recipeFlags.id, flag.id))
+      // #59: a stale page must not overwrite a closed report's status or notes.
+      .where(reportStillPending(flag.id))
       .returning({ id: recipeFlags.id });
-    return dismissed.length === 0 ? 'Failed to update flag' : null;
+    return dismissed.length === 0 ? STALE_REPORT_ERROR : null;
   }
 
-  const commentWhere = eq(recipeComments.id, flag.comment_id);
+  // #59: both writes match only while this report is pending, so a stale page writes nothing.
+  const commentWhere = and(eq(recipeComments.id, flag.comment_id), lockReportIfPending(flag.id));
   const commentWrite =
     action === 'remove'
-      ? db.delete(recipeComments).where(commentWhere).returning({ id: recipeComments.id })
-      : db
-          .update(recipeComments)
-          .set({ is_flagged: true, updated_at: now })
-          .where(commentWhere)
-          .returning({ id: recipeComments.id });
+      ? db.delete(recipeComments).where(commentWhere)
+      : db.update(recipeComments).set({ is_flagged: true, updated_at: now }).where(commentWhere);
 
   const flagsWrite = db
     .update(recipeFlags)
     .set({ ...review, status: 'resolved' })
     .where(
-      sql`${recipeFlags.id} = ${flag.id} OR (${recipeFlags.comment_id} = ${flag.comment_id} AND ${recipeFlags.status} = 'pending')`
+      and(
+        eq(recipeFlags.comment_id, flag.comment_id),
+        eq(recipeFlags.status, 'pending'),
+        lockReportIfPending(flag.id)
+      )
     )
     .returning({ id: recipeFlags.id });
 
   // A comment already gone needs no write; the reports still close.
   const [, flags] = await db.batch([commentWrite, flagsWrite]);
-  return flags.length === 0 ? 'Failed to update flag' : null;
+  return flags.length === 0 ? STALE_REPORT_ERROR : null;
 }

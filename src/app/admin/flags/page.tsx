@@ -15,6 +15,7 @@ import { AlertTriangle, CheckCircle, Flag, XCircle } from 'lucide-react';
 import { Suspense } from 'react';
 import { getAllFlags } from '@/app/actions/flag-recipe';
 import { FlagList } from '@/components/admin/FlagList';
+import { HiddenCommentsPanel } from '@/components/admin/HiddenCommentsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -133,7 +134,13 @@ async function FlagsContent({
   }
 }
 
-export default function AdminFlagsPage() {
+export default async function AdminFlagsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hiddenPage?: string | string[] }>;
+}) {
+  const hiddenPage = Number((await searchParams).hiddenPage);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -160,6 +167,11 @@ export default function AdminFlagsPage() {
         }
       >
         <FlagStats />
+      </Suspense>
+
+      {/* #59: outside the tabs, so no tab or report row decides whether a hidden comment shows. */}
+      <Suspense fallback={<LoadingSkeleton />}>
+        <HiddenCommentsPanel page={hiddenPage} />
       </Suspense>
 
       {/* Flags List with Tabs */}

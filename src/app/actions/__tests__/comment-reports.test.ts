@@ -13,6 +13,11 @@ const ADMIN = 'user_admin';
 const AUTHOR = 'user_author';
 const R1 = 'recipe-1';
 const C1 = 'aaaaaaaa-0000-4000-8000-00000000000a';
+// #59: literal on purpose; an admin reads this text, and it must name a refresh.
+const STALE = {
+  success: false,
+  error: 'This report was already closed. Refresh the page to see its current state.',
+};
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -40,7 +45,7 @@ vi.mock('@/lib/rate-limit', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
-import { actOnRecipeFlag, flagRecipe, getAllFlags } from '@/app/actions/flag-recipe';
+import { actOnRecipeFlag, flagRecipe, getAllFlags, reviewFlag } from '@/app/actions/flag-recipe';
 import { reportComment } from '@/app/actions/report-comment';
 import { getRecipeComments, setCommentHidden, updateRecipeComment } from '@/app/actions/social';
 import { users } from '@/lib/db/auth-schema';
@@ -311,7 +316,7 @@ describe('#59: dismiss closes one report and leaves the comment alone', () => {
     await reportAs('u1');
     const flag = await flagOf('u1');
     expect((await actOnRecipeFlag(flag.id, 'hide')).success).toBe(true);
-    expect(await actOnRecipeFlag(flag.id, 'dismiss')).toEqual({ success: true });
+    expect(await actOnRecipeFlag(flag.id, 'dismiss')).toEqual(STALE);
     expect(await isHidden()).toBe(true);
   });
 
@@ -337,6 +342,67 @@ describe('#59: dismiss closes one report and leaves the comment alone', () => {
   });
 });
 
+describe('#59: a stale page cannot change a closed comment report', () => {
+  const closedRow = `SELECT status, review_notes, reviewed_at IS NOT NULL AS timed FROM recipe_flags WHERE user_id = 'u1'`;
+
+  async function closedFlagId(closing: 'dismiss' | 'hide', notes: string) {
+    await reportAs('u1');
+    state.userId = ADMIN;
+    const flag = (await getAllFlags()).find((f) => f.user_id === 'u1');
+    if (!flag) throw new Error('u1 report missing');
+    expect(await actOnRecipeFlag(flag.id, closing, notes)).toEqual({ success: true });
+    return flag.id;
+  }
+
+  const closings = [
+    ['dismiss', 'dismissed', false],
+    ['hide', 'resolved', true],
+  ] as const;
+
+  describe.each(closings)('after %s', (closing, status, hidden) => {
+    it.each(['dismiss', 'hide', 'remove'] as const)(
+      'a stale %s writes nothing and reports a stale page',
+      async (stale) => {
+        const flagId = await closedFlagId(closing, 'first decision');
+
+        expect(await actOnRecipeFlag(flagId, stale, 'stale decision')).toEqual(STALE);
+
+        expect(await rows(closedRow)).toEqual([
+          { status, review_notes: 'first decision', timed: true },
+        ]);
+        expect(await isHidden()).toBe(hidden);
+      }
+    );
+  });
+
+  it('a stale hide leaves another pending report on the comment open', async () => {
+    const flagId = await closedFlagId('dismiss', 'first decision');
+    await reportAs('u2');
+    state.userId = ADMIN;
+    expect(await actOnRecipeFlag(flagId, 'hide')).toEqual(STALE);
+    expect(await rows(`SELECT status FROM recipe_flags WHERE user_id = 'u2'`)).toEqual([
+      { status: 'pending' },
+    ]);
+  });
+
+  it('unhide from a closed report restores the comment and leaves that report as it is', async () => {
+    const flagId = await closedFlagId('hide', 'first decision');
+    expect(await actOnRecipeFlag(flagId, 'unhide', 'stale decision')).toEqual({ success: true });
+    expect(await isHidden()).toBe(false);
+    expect(await rows(closedRow)).toEqual([
+      { status: 'resolved', review_notes: 'first decision', timed: true },
+    ]);
+  });
+
+  it('reviewFlag does not overwrite a closed report', async () => {
+    const flagId = await closedFlagId('dismiss', 'first decision');
+    expect(await reviewFlag(flagId, 'resolved', 'stale decision')).toEqual(STALE);
+    expect(await rows(closedRow)).toEqual([
+      { status: 'dismissed', review_notes: 'first decision', timed: true },
+    ]);
+  });
+});
+
 describe('moderation queue', () => {
   async function hideByReports() {
     for (const u of ['u1', 'u2', 'u3']) await reportAs(u);
@@ -358,14 +424,26 @@ describe('moderation queue', () => {
     expect((await getAllFlags()).filter((f) => f.comment_id === C1)).toHaveLength(3);
   });
 
-  it('unhide restores the comment and remove deletes it', async () => {
+  it('unhide restores the comment and a pending report can hide it again', async () => {
     const flag = await hideByReports();
     expect(await actOnRecipeFlag(flag.id, 'unhide')).toEqual({ success: true });
     expect(await isHidden()).toBe(false);
-    expect(await actOnRecipeFlag(flag.id, 'hide')).toEqual({ success: true });
+
+    await reportAs('u4');
+    state.userId = ADMIN;
+    const fresh = (await getAllFlags()).find((f) => f.user_id === 'u4');
+    if (!fresh) throw new Error('u4 report missing');
+    expect(await actOnRecipeFlag(fresh.id, 'hide')).toEqual({ success: true });
     expect(await isHidden()).toBe(true);
+  });
+
+  it('remove deletes the comment, resolves every pending report and keeps the recipe', async () => {
+    const flag = await hideByReports();
     expect(await actOnRecipeFlag(flag.id, 'remove')).toEqual({ success: true });
     expect(await rows(`SELECT id FROM recipe_comments`)).toEqual([]);
+    expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
+      { status: 'resolved' },
+    ]);
     const recipe = await rows(`SELECT deleted_at FROM recipes WHERE id = '${R1}'`);
     expect(recipe[0].deleted_at).toBeNull();
   });
