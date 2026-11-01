@@ -6,6 +6,7 @@ import { ChefAvatar } from '@/components/chef/ChefAvatar';
 import { ChefDisclaimer } from '@/components/chef/ChefDisclaimer';
 import { RecipeList } from '@/components/recipe/RecipeList';
 import { Badge } from '@/components/ui/badge';
+import { socialImages } from '@/lib/default-og-image';
 import { getBaseUrl } from '@/lib/site-url';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -22,6 +23,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   // #163: normalized base URL (env may carry a trailing newline)
   const baseUrl = getBaseUrl();
   const canonicalUrl = `${baseUrl}/chef/${slug}`;
+  // #256: the segment's openGraph/twitter replace the root ones, so fall back to the default image.
+  // #164: a page image states no width/height; its real size is unknown.
+  const social = socialImages(
+    chef.profile_image_url
+      ? { url: chef.profile_image_url, alt: `${chef.display_name || chef.name} - Chef Profile` }
+      : null
+  );
 
   return {
     // #138: the root layout's title.template appends the brand.
@@ -35,15 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
       url: canonicalUrl,
       type: 'profile',
-      images: chef.profile_image_url
-        ? [
-            {
-              // #164: no width/height; the profile image's real size is unknown.
-              url: chef.profile_image_url,
-              alt: `${chef.display_name || chef.name} - Chef Profile`,
-            },
-          ]
-        : undefined,
+      images: social.openGraph,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${chef.display_name || chef.name}`,
+      description: chef.bio || `Browse recipes from ${chef.display_name || chef.name}`,
+      images: social.twitter,
     },
   };
 }

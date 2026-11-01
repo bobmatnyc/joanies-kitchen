@@ -110,21 +110,15 @@ export const metadata: Metadata = {
     description:
       "Transform what's in your fridge into delicious meals. Stop food waste. Start cooking smart.",
     url: '/',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: "Joanie's Kitchen - Cook from your fridge, waste nothing",
-      },
-    ],
+    // #171: no `images` key. /og-image.png never existed; src/app/opengraph-image.tsx
+    // supplies the image, and Next resolves it to an absolute URL via metadataBase.
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
     title: "Joanie's Kitchen | Zero Food Waste Cooking",
     description: 'Cook from your fridge. Waste nothing. Smart substitutions for every ingredient.',
-    images: ['/og-image.png'],
+    // #171: no `images` key; src/app/twitter-image.tsx supplies the card image.
   },
   alternates: {
     canonical: '/',

@@ -2,7 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { Button } from '@/components/ui/button';
-import { isGoogleAuthConfigured, isLocalStagingSignInEnabled } from '@/lib/auth-env';
+import {
+  isAuthConfigured,
+  isGoogleAuthConfigured,
+  isLocalStagingSignInEnabled,
+} from '@/lib/auth-env';
 import { safeCallbackPath } from '@/lib/auth-routes';
 import { LOCAL_STAGING_PROVIDER_ID } from '@/lib/local-staging-auth';
 import { getSessionUserId } from '@/lib/session-user';
@@ -21,7 +25,8 @@ export default async function SignInPage({
   const params = await searchParams;
   const error = typeof params.error === 'string' ? params.error : undefined;
   const callbackUrl = safeCallbackPath(params.callbackUrl);
-  const configured = isGoogleAuthConfigured();
+  // #154: isAuthConfigured() is false on previews, so no Google button reaches Auth.js there.
+  const configured = isAuthConfigured() && isGoogleAuthConfigured();
   // #60 D5f: false everywhere except a local-staging deploy; see local-staging-auth.ts.
   const stagingBypass = isLocalStagingSignInEnabled();
 

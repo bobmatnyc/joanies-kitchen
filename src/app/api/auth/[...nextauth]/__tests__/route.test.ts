@@ -41,8 +41,21 @@ describe('/api/auth/[...nextauth] (#154)', () => {
     expect(mocks.GET).not.toHaveBeenCalled();
   });
 
-  it('preview + configured: session GET is handled by Auth.js', async () => {
+  it('preview + configured: Auth.js is never reached, even with all AUTH vars set', async () => {
     setEnv('preview', true);
+
+    const session = await GET(request('/api/auth/session'));
+    await expect(session.json()).resolves.toBeNull();
+
+    const signIn = await POST(request('/api/auth/signin/google', 'POST'));
+    expect(signIn.status).toBe(503);
+
+    expect(mocks.GET).not.toHaveBeenCalled();
+    expect(mocks.POST).not.toHaveBeenCalled();
+  });
+
+  it('production + configured: session GET is handled by Auth.js', async () => {
+    setEnv('production', true);
     const res = await GET(request('/api/auth/session'));
     await expect(res.json()).resolves.toEqual(ADMIN_SESSION);
     expect(mocks.GET).toHaveBeenCalledTimes(1);

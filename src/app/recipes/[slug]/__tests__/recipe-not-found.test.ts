@@ -225,3 +225,15 @@ describe('/recipes/[slug] 404 page metadata and title (#138)', () => {
     expect(brandCount(title)).toBe(1);
   });
 });
+
+describe('/recipes/[slug] social image fallback (#171)', () => {
+  it('a recipe with no image names the generated site image for og and twitter', async () => {
+    state.userId = null;
+    const segment = await generateMetadata({ params: Promise.resolve({ slug: 'open-soup' }) });
+
+    expect(segment.openGraph?.images).toEqual([
+      expect.objectContaining({ url: '/opengraph-image', width: 1200, height: 630 }),
+    ]);
+    expect(segment.twitter?.images).toEqual(['/opengraph-image']);
+  });
+});

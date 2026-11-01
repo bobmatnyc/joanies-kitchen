@@ -48,7 +48,6 @@ src/app/api/v1/collections/[id]/recipes/[recipeId]/route.ts:format 1
 src/app/api/v1/collections/[id]/recipes/route.ts:assist/source/organizeImports 1
 src/app/api/v1/collections/[id]/recipes/route.ts:format 1
 src/app/api/v1/collections/[id]/route.ts:assist/source/organizeImports 1
-src/app/api/v1/favorites/[recipeId]/route.ts:format 1
 src/app/api/v1/favorites/route.ts:format 1
 src/app/api/v1/ingredients/[slug]/recipes/route.ts:assist/source/organizeImports 1
 src/app/api/v1/ingredients/route.ts:format 1

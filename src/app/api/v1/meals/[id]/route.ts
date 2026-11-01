@@ -15,8 +15,9 @@ import { deleteMeal, getMealById, updateMeal } from '@/app/actions/meals';
 import { isPendingDeletionRefusal } from '@/lib/account-deletion/guarded-insert';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
+import { isSessionRequiredRefusal } from '@/lib/meals/session-required';
 import { type UpdateMealInput, updateMealSchema } from '@/lib/validations/meal-api';
-import { mealErrorMessage } from '../error-body';
+import { mealErrorMessage, mealSessionRequiredResponse } from '../error-body';
 
 /**
  * GET /api/v1/meals/:id
@@ -214,6 +215,8 @@ export const PATCH = requireScopes(
       const result = await updateMeal(existingMeal.data.id, updateData);
 
       if (!result.success) {
+        // #253: no session user (API-key-only caller) is 401, not 500.
+        if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
         // #217: the account has a pending deletion; nothing was written.
         // #225: a meal the update no longer finds is 404, not 500.
         const status = isPendingDeletionRefusal(result)
@@ -311,6 +314,8 @@ export const DELETE = requireScopes(
       const result = await deleteMeal(existingMeal.data.id);
 
       if (!result.success) {
+        // #253: no session user (API-key-only caller) is 401, not 500.
+        if (isSessionRequiredRefusal(result)) return mealSessionRequiredResponse();
         // #225: deleteMeal reports a delete that matched no row as not found.
         const status = result.error === 'Meal not found' ? 404 : 500;
         return NextResponse.json(

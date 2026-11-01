@@ -132,6 +132,7 @@ export function buildErrorRecord(error: unknown, ctx: ReportErrorContext): Recor
   };
 }
 
+// #55: log-line contract — see docs/operations/error-log-contract.md
 /** Logs one `app-error` JSON line. Never throws. */
 export function reportError(error: unknown, ctx: ReportErrorContext): void {
   try {

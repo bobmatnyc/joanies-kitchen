@@ -21,8 +21,12 @@ export function isLocalStagingSignInEnabled(): boolean {
  * When false the app runs signed-out: the `@/lib/session-user` helpers report
  * no user and middleware treats every request as anonymous, so protected and
  * admin routes stay closed.
+ * Always false on a Vercel preview deployment (`VERCEL_ENV === 'preview'`); an
+ * unset or any other value counts as production and is unchanged.
  */
 export function isAuthConfigured(): boolean {
+  // #154: Auth.js stays off on preview deployments, whatever AUTH_* holds there.
+  if (process.env.VERCEL_ENV === 'preview') return false;
   return isGoogleAuthConfigured() || isLocalStagingSignInEnabled();
 }
 

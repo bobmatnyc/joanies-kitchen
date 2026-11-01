@@ -56,8 +56,20 @@ describe('AuthProvider (#154)', () => {
     expect(sessionFetches()).toHaveLength(0);
   });
 
-  it('preview + configured: reads the session from /api/auth/session', async () => {
+  it('preview + configured: renders signed-out without fetching the session', async () => {
     setEnv('preview', true);
+    render(
+      <AuthProvider enabled={isAuthConfigured()}>
+        <Probe />
+      </AuthProvider>
+    );
+    expect(screen.getByText('signed-out')).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sessionFetches()).toHaveLength(0);
+  });
+
+  it('production + configured: reads the session from /api/auth/session', async () => {
+    setEnv('production', true);
     render(
       <AuthProvider enabled={isAuthConfigured()}>
         <Probe />

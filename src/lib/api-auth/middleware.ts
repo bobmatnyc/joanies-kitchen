@@ -49,10 +49,11 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthCon
   // Try each authentication method in priority order
   const authHeader = request.headers.get('authorization');
 
-  // 0. Automation bypass — for CI/integration testing only.
-  //    Works in any environment when AUTOMATION_BYPASS_SECRET is set.
+  // 0. Automation test credential — for CI/integration testing only.
+  // #238: accepted only outside production; in production the header takes the
+  // ordinary API key path below.
   const automationSecret = process.env.AUTOMATION_BYPASS_SECRET;
-  if (automationSecret && authHeader) {
+  if (automationSecret && authHeader && !isProductionDeployment()) {
     const spaceIndex = authHeader.indexOf(' ');
     const scheme = spaceIndex !== -1 ? authHeader.substring(0, spaceIndex) : '';
     const token = spaceIndex !== -1 ? authHeader.substring(spaceIndex + 1) : '';
@@ -306,6 +307,23 @@ async function authenticateWithSession(metadata: AuthMetadata): Promise<AuthCont
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Why: #238 — the automation test credential is accepted only outside
+ * production, and the decision must come from the deployment, never the client.
+ * What: true when `VERCEL_ENV` is `production`. Without `VERCEL_ENV` (not on
+ * Vercel) it falls back to `NODE_ENV`. Vercel sets `NODE_ENV=production` on
+ * preview builds too, so `NODE_ENV` alone cannot tell preview from production.
+ * Fails closed: any value it does not recognise, or no value, counts as
+ * production.
+ * Test: `src/lib/api-auth/__tests__/automation-credential-env.test.ts`
+ */
+function isProductionDeployment(): boolean {
+  const vercelEnv = process.env.VERCEL_ENV;
+  if (vercelEnv) return vercelEnv !== 'preview' && vercelEnv !== 'development';
+  const nodeEnv = process.env.NODE_ENV;
+  return nodeEnv !== 'development' && nodeEnv !== 'test';
+}
 
 /**
  * Extract metadata from the request for tracking

@@ -67,6 +67,7 @@ import { removeRecipeFromMeal, updateMealRecipe } from '@/app/actions/meals';
 import { DELETE as mealRecipesDELETE } from '@/app/api/v1/meals/[id]/recipes/route';
 import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
+import { sessionRequiredRefusal } from '@/lib/meals/session-required';
 import { createVisibilityDb } from './recipe-visibility-db';
 
 let client: PGlite;
@@ -182,7 +183,8 @@ describe('#222 removeRecipeFromMeal', () => {
 
   it('refuses an unauthenticated caller', async () => {
     const before = await snapshot();
-    expect(await removeRecipeFromMeal(MR1)).toEqual({ success: false, error: 'Unauthorized' });
+    // #253: the refusal is typed so a v1 route can answer it with 401.
+    expect(await removeRecipeFromMeal(MR1)).toEqual(sessionRequiredRefusal());
     expect(await snapshot()).toEqual(before);
   });
 
