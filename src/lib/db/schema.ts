@@ -145,6 +145,8 @@ export const recipes = pgTable(
     nutrition_info: text('nutrition_info'), // JSON object with nutritional data
     model_used: text('model_used'), // AI model used for generation
     source: text('source'), // Recipe source (URL, chef name, etc.)
+    // #142: canonicalizeSourceUrl(source), for indexed duplicate checks; nothing writes it yet (D1b)
+    canonical_source_url: text('canonical_source_url'),
 
     // License and usage rights
     license: recipeLicenseEnum('license').notNull().default('ALL_RIGHTS_RESERVED'), // Recipe usage rights and restrictions
@@ -263,6 +265,7 @@ export const recipes = pgTable(
       table.discovery_week
     ),
     slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
+    canonicalSourceUrlIdx: index('idx_recipes_canonical_source_url').on(table.canonical_source_url), // #142: non-unique by ruling D1b; UNIQUE comes later
     flaggedImageIdx: index('idx_recipes_flagged_images')
       .on(table.image_flagged_for_regeneration)
       .where(sql`(image_flagged_for_regeneration = true)`),
