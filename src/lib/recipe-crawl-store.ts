@@ -126,6 +126,7 @@ function embeddingInput(recipe: ExtractedRecipe, userId: string | null): Recipe 
     nutrition_info: null,
     model_used: null,
     source: null,
+    canonical_source_url: null, // #142: the Recipe type requires it; this row is never stored
     license: 'ALL_RIGHTS_RESERVED', // Default license for crawled recipes
     created_at: new Date(),
     updated_at: new Date(),

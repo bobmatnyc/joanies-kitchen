@@ -42,6 +42,7 @@ function createMockRecipe(overrides: Partial<Recipe> = {}): Recipe {
     nutrition_info: '{"calories": 250}',
     model_used: null,
     source: null,
+    canonical_source_url: null,
     license: 'PERSONAL_USE',
     created_at: new Date(),
     updated_at: new Date(),

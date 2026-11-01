@@ -50,6 +50,13 @@
       "when": 1793366674915,
       "tag": "0006_recipe_embeddings_hnsw",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793549232243,
+      "tag": "0007_recipes_canonical_source_url",
+      "breakpoints": true
     }
   ]
 }

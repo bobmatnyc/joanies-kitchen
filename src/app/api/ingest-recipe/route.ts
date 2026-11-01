@@ -245,6 +245,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           : null,
         model_used: null,
         source: url,
+        canonical_source_url: null, // #142: the Recipe type requires it; this row is never stored
         license: 'PUBLIC_DOMAIN',
         created_at: new Date(),
         updated_at: new Date(),
