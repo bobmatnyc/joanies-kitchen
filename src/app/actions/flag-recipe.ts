@@ -16,9 +16,15 @@ import {
   pendingDeletionError,
 } from '@/lib/account-deletion/guarded-insert';
 import { checkAdminAccess, requireAdmin } from '@/lib/admin';
-import { applyCommentFlagAction } from '@/lib/comment-moderation';
+import {
+  applyCommentFlagAction,
+  lockReportIfPending,
+  reportStillPending,
+  STALE_REPORT_ERROR,
+} from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeFlags, recipes } from '@/lib/db/schema';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
@@ -75,6 +81,12 @@ export async function flagRecipe(
         success: false,
         error: 'Invalid flag reason',
       };
+    }
+
+    // #59: bounds report spam across many recipes, as `reportComment` does for comments.
+    const verdict = await enforceRateLimit('recipe-report', userId);
+    if (!verdict.allowed) {
+      return { success: false, error: 'Too many reports. Please try again later.' };
     }
 
     // #41: a recipe the caller cannot see is answered as nonexistent.
@@ -337,8 +349,8 @@ export async function reviewFlag(
       };
     }
 
-    // Update flag
-    await db
+    // #59: same stale-page guard as actOnRecipeFlag.
+    const updated = await db
       .update(recipeFlags)
       .set({
         status,
@@ -347,7 +359,9 @@ export async function reviewFlag(
         review_notes: reviewNotes || null,
         updated_at: new Date(),
       })
-      .where(eq(recipeFlags.id, flagId));
+      .where(reportStillPending(flagId))
+      .returning({ id: recipeFlags.id });
+    if (updated.length === 0) return { success: false, error: STALE_REPORT_ERROR };
 
     console.log(`[Review Flag] Admin ${userId} reviewed flag ${flagId} as ${status}`);
 
@@ -427,9 +441,10 @@ export type FlagQueueAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
  * `dismiss` marks the flag dismissed and leaves the recipe
  * alone. `hide` sets `recipes.moderation_status` to `rejected` (not publicly
  * visible) and resolves the flag. `remove` soft-deletes the recipe
- * (`deleted_at`, `deleted_by`) and resolves the flag. A recipe write that
- * touches no row, or any thrown error, returns `success: false`; the flag is
- * only updated after the recipe write succeeds.
+ * (`deleted_at`, `deleted_by`) and resolves the flag. A missing recipe or any
+ * thrown error returns `success: false`. #59: `dismiss`, `hide` and `remove` on a
+ * report that is no longer pending return `STALE_REPORT_ERROR` and write nothing;
+ * `hide` and `remove` write the report and the recipe in one `db.batch`.
  * #105: a comment report (`comment_id` set) delegates to `applyCommentFlagAction`.
  * Test: `src/app/actions/__tests__/report-moderation.test.ts`,
  * `src/app/actions/__tests__/comment-reports.test.ts`
@@ -451,8 +466,11 @@ export async function actOnRecipeFlag(
         id: recipeFlags.id,
         recipe_id: recipeFlags.recipe_id,
         comment_id: recipeFlags.comment_id,
+        status: recipeFlags.status,
+        recipeRowId: recipes.id,
       })
       .from(recipeFlags)
+      .leftJoin(recipes, eq(recipeFlags.recipe_id, recipes.id))
       .where(eq(recipeFlags.id, flagId))
       .limit(1);
 
@@ -498,7 +516,31 @@ export async function actOnRecipeFlag(
       return { success: true };
     }
 
-    if (action === 'hide' || action === 'remove') {
+    // #59: a stale page must not overwrite a closed report or change the recipe.
+    if (flag.status !== 'pending') {
+      return { success: false, error: STALE_REPORT_ERROR };
+    }
+    if (action !== 'dismiss' && !flag.recipeRowId) {
+      return { success: false, error: 'Recipe not found' };
+    }
+
+    const closeReport = db
+      .update(recipeFlags)
+      .set({
+        status: action === 'dismiss' ? 'dismissed' : 'resolved',
+        reviewed_by: userId,
+        reviewed_at: now,
+        review_notes: reviewNotes || null,
+        updated_at: now,
+      })
+      .where(reportStillPending(flagId))
+      .returning({ id: recipeFlags.id });
+
+    let closedReports: { id: string }[];
+    if (action === 'dismiss') {
+      closedReports = await closeReport;
+    } else {
+      // #59: the recipe write matches only while the report is pending.
       const changes =
         action === 'hide'
           ? {
@@ -508,29 +550,14 @@ export async function actOnRecipeFlag(
               updated_at: now,
             }
           : { deleted_at: now, deleted_by: userId, updated_at: now };
-      const updated = await db
+      const recipeWrite = db
         .update(recipes)
         .set(changes)
-        .where(eq(recipes.id, flag.recipe_id))
-        .returning({ id: recipes.id });
-      if (updated.length === 0) {
-        return { success: false, error: 'Recipe not found' };
-      }
+        .where(and(eq(recipes.id, flag.recipe_id), lockReportIfPending(flagId)));
+      [, closedReports] = await db.batch([recipeWrite, closeReport]);
     }
-
-    const flagged = await db
-      .update(recipeFlags)
-      .set({
-        status: action === 'dismiss' ? 'dismissed' : 'resolved',
-        reviewed_by: userId,
-        reviewed_at: now,
-        review_notes: reviewNotes || null,
-        updated_at: now,
-      })
-      .where(eq(recipeFlags.id, flagId))
-      .returning({ id: recipeFlags.id });
-    if (flagged.length === 0) {
-      return { success: false, error: 'Failed to update flag' };
+    if (closedReports.length === 0) {
+      return { success: false, error: STALE_REPORT_ERROR };
     }
 
     console.log(`[Flag Queue] Admin ${userId} applied ${action} to flag ${flagId}`);

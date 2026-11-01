@@ -37,9 +37,13 @@ vi.mock('@/lib/db', () => ({
     return state.db;
   },
 }));
+// #59: the limit itself is pinned in recipe-report-rate-limit.test.ts.
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: async () => ({ allowed: true, count: 1, limit: 20 }),
+}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
-import { actOnRecipeFlag, flagRecipe } from '@/app/actions/flag-recipe';
+import { actOnRecipeFlag, flagRecipe, reviewFlag } from '@/app/actions/flag-recipe';
 import { getRecipesPaginated, searchRecipes } from '@/app/actions/recipes';
 import { getRecipeCommentCount, getRecipeComments, setCommentHidden } from '@/app/actions/social';
 import { users } from '@/lib/db/auth-schema';
@@ -239,6 +243,67 @@ describe('actOnRecipeFlag', () => {
     expect(result).toEqual({ success: false, error: 'Recipe not found' });
     const flags = await rows(`SELECT status FROM recipe_flags WHERE id = '${F1}'`);
     expect(flags[0].status).toBe('pending');
+  });
+
+  // #59: a stale page must not overwrite a closed report or change the recipe.
+  const stale = {
+    success: false,
+    error: 'This report was already closed. Refresh the page to see its current state.',
+  };
+  const closings = [
+    ['dismiss', 'dismissed', 'approved'],
+    ['hide', 'resolved', 'rejected'],
+  ] as const;
+
+  describe.each(closings)('after %s', (closing, status, moderation) => {
+    it.each(['dismiss', 'hide', 'remove'] as const)(
+      'a stale %s writes nothing and reports a stale page',
+      async (action) => {
+        state.userId = ADMIN;
+        expect(await actOnRecipeFlag(F1, closing, 'first decision')).toEqual({ success: true });
+
+        expect(await actOnRecipeFlag(F1, action, 'stale decision')).toEqual(stale);
+
+        expect(
+          await rows(`SELECT status, review_notes FROM recipe_flags WHERE id = '${F1}'`)
+        ).toEqual([{ status, review_notes: 'first decision' }]);
+        expect(
+          await rows(`SELECT moderation_status, deleted_at FROM recipes WHERE id = '${R1}'`)
+        ).toEqual([{ moderation_status: moderation, deleted_at: null }]);
+      }
+    );
+  });
+
+  it('reviewFlag does not overwrite a closed report', async () => {
+    state.userId = ADMIN;
+    expect(await actOnRecipeFlag(F1, 'dismiss', 'first decision')).toEqual({ success: true });
+    expect(await reviewFlag(F1, 'resolved', 'stale decision')).toEqual(stale);
+    expect(await rows(`SELECT status, review_notes FROM recipe_flags WHERE id = '${F1}'`)).toEqual([
+      { status: 'dismissed', review_notes: 'first decision' },
+    ]);
+  });
+
+  it('hide writes the recipe and the report together or not at all', async () => {
+    state.userId = ADMIN;
+    await client.exec(`
+      CREATE FUNCTION fail_recipe_update() RETURNS trigger LANGUAGE plpgsql
+        AS $$ BEGIN RAISE EXCEPTION 'write failed'; END $$;
+      CREATE TRIGGER fail_recipe_update BEFORE UPDATE ON recipes
+        FOR EACH ROW EXECUTE FUNCTION fail_recipe_update();
+    `);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect((await actOnRecipeFlag(F1, 'hide')).success).toBe(false);
+    } finally {
+      logged.mockRestore();
+      await client.exec(`
+        DROP TRIGGER fail_recipe_update ON recipes;
+        DROP FUNCTION fail_recipe_update();
+      `);
+    }
+    expect(await rows(`SELECT status, review_notes FROM recipe_flags WHERE id = '${F1}'`)).toEqual([
+      { status: 'pending', review_notes: null },
+    ]);
   });
 });
 

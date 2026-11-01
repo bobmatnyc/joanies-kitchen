@@ -419,7 +419,8 @@ export async function getRecipeCommentCount(recipeId: string): Promise<DataResul
  * What: admin-only. Sets (`hidden: true`) or clears `recipe_comments.is_flagged`;
  * `getRecipeComments` and `getRecipeCommentCount` already exclude flagged rows.
  * An unhide also dismisses the comment's pending reports in the same transaction
- * (#194, `unhideCommentResolvingReports`).
+ * (#194, `unhideCommentResolvingReports`). #59: an unhide of a visible comment
+ * returns `STALE_HIDDEN_COMMENT_ERROR` and writes nothing.
  * A comment id that matches no row, or any thrown error, returns `success: false`.
  * Test: `src/app/actions/__tests__/report-moderation.test.ts`,
  * `src/app/actions/__tests__/comment-reports.test.ts`
@@ -429,16 +430,18 @@ export async function setCommentHidden(commentId: string, hidden: boolean): Prom
     const { userId } = await requireAdmin();
 
     // #194: an unhide must not leave pending reports that re-hide on the next report.
-    const [updated] = hidden
-      ? await db
-          .update(recipeComments)
-          .set({ is_flagged: true, updated_at: new Date() })
-          .where(eq(recipeComments.id, commentId))
-          .returning({ recipeId: recipeComments.recipe_id })
-      : [await unhideCommentResolvingReports(commentId, userId, null)];
+    const updated = hidden
+      ? ((
+          await db
+            .update(recipeComments)
+            .set({ is_flagged: true, updated_at: new Date() })
+            .where(eq(recipeComments.id, commentId))
+            .returning({ recipeId: recipeComments.recipe_id })
+        )[0] ?? { error: 'Comment not found' })
+      : await unhideCommentResolvingReports(commentId, userId, null);
 
-    if (!updated) {
-      return { success: false, error: 'Comment not found' };
+    if ('error' in updated) {
+      return { success: false, error: updated.error };
     }
 
     revalidatePath(`/recipes/${updated.recipeId}`);

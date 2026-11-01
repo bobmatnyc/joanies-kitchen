@@ -13,6 +13,11 @@ const ADMIN = 'user_admin';
 const AUTHOR = 'user_author';
 const R1 = 'recipe-1';
 const C1 = 'aaaaaaaa-0000-4000-8000-00000000000a';
+// #59: literal on purpose; an admin reads this text, and it must name a refresh.
+const STALE = {
+  success: false,
+  error: 'This report was already closed. Refresh the page to see its current state.',
+};
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -40,9 +45,9 @@ vi.mock('@/lib/rate-limit', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
-import { actOnRecipeFlag, flagRecipe, getAllFlags } from '@/app/actions/flag-recipe';
+import { actOnRecipeFlag, flagRecipe, getAllFlags, reviewFlag } from '@/app/actions/flag-recipe';
 import { reportComment } from '@/app/actions/report-comment';
-import { getRecipeComments, setCommentHidden } from '@/app/actions/social';
+import { getRecipeComments, setCommentHidden, updateRecipeComment } from '@/app/actions/social';
 import { users } from '@/lib/db/auth-schema';
 import * as schema from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
@@ -64,6 +69,15 @@ async function isHidden() {
 async function reportAs(userId: string) {
   state.userId = userId;
   return reportComment(C1, 'harassment');
+}
+
+async function reportEach(userIds: string[]) {
+  for (const u of userIds) await reportAs(u);
+}
+
+async function hideAsAdmin() {
+  state.userId = ADMIN;
+  expect((await setCommentHidden(C1, true)).success).toBe(true);
 }
 
 beforeAll(async () => {
@@ -163,8 +177,8 @@ describe('reportComment', () => {
     expect(await isHidden()).toBe(false);
     expect((await reportAs('u3')).hidden).toBe(true);
     expect(await isHidden()).toBe(true);
-    // A fourth reporter does not re-apply the hide.
-    expect((await reportAs('u4')).hidden).toBe(false);
+    // #59: a fourth reporter is refused; the comment is already out of public view.
+    expect((await reportAs('u4')).success).toBe(false);
 
     state.userId = 'viewer';
     const list = await getRecipeComments(R1);
@@ -193,6 +207,200 @@ describe('reportComment', () => {
     await reportAs('u1');
     expect((await flagRecipe(R1, 'spam')).success).toBe(true);
   });
+
+  // #59: a hidden comment is answered as nonexistent, however it was hidden and whoever asks.
+  const hideRoutes: [string, () => Promise<unknown>][] = [
+    ['an admin', () => hideAsAdmin()],
+    ['three reporters', () => reportEach(['u1', 'u2', 'u3'])],
+  ];
+
+  it.each(hideRoutes)('refuses a report on a comment hidden by %s', async (_how, hide) => {
+    await hide();
+    const before = await rows('SELECT id, status FROM recipe_flags ORDER BY id');
+    const refused = { success: false, error: 'Comment not found' };
+
+    expect(await reportAs('u9')).toEqual(refused);
+    expect(await reportAs(AUTHOR)).toEqual(refused);
+    expect(await rows('SELECT id, status FROM recipe_flags ORDER BY id')).toEqual(before);
+    expect(await isHidden()).toBe(true);
+  });
+
+  it('refuses an earlier reporter of a hidden comment instead of answering alreadyReported', async () => {
+    await reportEach(['u1', 'u2', 'u3']);
+    expect(await reportAs('u1')).toEqual({ success: false, error: 'Comment not found' });
+  });
+
+  it('accepts reports again once an admin unhides the comment', async () => {
+    await hideAsAdmin();
+    state.userId = ADMIN;
+    expect((await setCommentHidden(C1, false)).success).toBe(true);
+    expect(await reportAs('u9')).toEqual({ success: true, hidden: false });
+  });
+});
+
+describe('#59: only an admin unhide makes a hidden comment visible', () => {
+  it('holds through every non-admin action, then an admin working the whole queue', async () => {
+    // Filed while visible, so the non-admin queue calls below have a real report to act on.
+    await reportAs('u0');
+    await hideAsAdmin();
+
+    // Each non-admin route to the comment or its reports.
+    await reportEach(['u1', 'u2', 'u3', AUTHOR]);
+    state.userId = 'u1';
+    expect((await setCommentHidden(C1, false)).success).toBe(false);
+    const queued = await rows('SELECT id FROM recipe_flags');
+    expect(queued.length).toBeGreaterThan(0);
+    for (const { id } of queued) {
+      expect((await actOnRecipeFlag(id as string, 'unhide')).success).toBe(false);
+      expect((await actOnRecipeFlag(id as string, 'dismiss')).success).toBe(false);
+    }
+    state.userId = AUTHOR;
+    expect((await updateRecipeComment(C1, 'kind words now')).success).toBe(true);
+    expect(await isHidden()).toBe(true);
+
+    // The admin dismisses whatever those calls left in the queue.
+    state.userId = ADMIN;
+    for (const { id } of await rows(`SELECT id FROM recipe_flags WHERE status = 'pending'`)) {
+      expect((await actOnRecipeFlag(id as string, 'dismiss')).success).toBe(true);
+    }
+
+    expect(await isHidden()).toBe(true);
+    state.userId = 'viewer';
+    const list = await getRecipeComments(R1);
+    expect(list.success && list.data).toEqual([]);
+  });
+});
+
+describe('#59: dismiss closes one report and leaves the comment alone', () => {
+  async function flagOf(userId: string) {
+    state.userId = ADMIN;
+    const flag = (await getAllFlags()).find((f) => f.user_id === userId);
+    if (!flag) throw new Error(`${userId} report missing`);
+    return flag;
+  }
+
+  async function statusByUser() {
+    return rows('SELECT user_id, status, reviewed_by FROM recipe_flags ORDER BY user_id');
+  }
+
+  it('stays hidden when the reports left pending are still at the threshold', async () => {
+    await reportEach(['u1', 'u2', 'u3']);
+    // A report whose insert committed just before the hide: the check in reportComment missed it.
+    await testDb.insert(schema.recipeFlags).values({
+      recipe_id: R1,
+      comment_id: C1,
+      user_id: 'u4',
+      reason: 'spam',
+      status: 'pending',
+    });
+
+    expect(await actOnRecipeFlag((await flagOf('u1')).id, 'dismiss')).toEqual({ success: true });
+
+    expect(await isHidden()).toBe(true);
+    expect(await statusByUser()).toEqual([
+      { user_id: 'u1', status: 'dismissed', reviewed_by: ADMIN },
+      { user_id: 'u2', status: 'pending', reviewed_by: null },
+      { user_id: 'u3', status: 'pending', reviewed_by: null },
+      { user_id: 'u4', status: 'pending', reviewed_by: null },
+    ]);
+  });
+
+  it('keeps a comment an admin hid with setCommentHidden hidden', async () => {
+    await reportAs('u1');
+    await hideAsAdmin();
+    expect(await actOnRecipeFlag((await flagOf('u1')).id, 'dismiss')).toEqual({ success: true });
+    expect(await isHidden()).toBe(true);
+  });
+
+  it('keeps a comment an admin hid from the queue hidden when a stale page dismisses', async () => {
+    await reportAs('u1');
+    const flag = await flagOf('u1');
+    expect((await actOnRecipeFlag(flag.id, 'hide')).success).toBe(true);
+    expect(await actOnRecipeFlag(flag.id, 'dismiss')).toEqual(STALE);
+    expect(await isHidden()).toBe(true);
+  });
+
+  // The data model records no hide source, so an auto-hide below the threshold also stays hidden.
+  it('keeps an auto-hidden comment hidden until an explicit unhide, even with no reports left', async () => {
+    await reportEach(['u1', 'u2', 'u3']);
+    for (const u of ['u1', 'u2', 'u3']) {
+      expect(await actOnRecipeFlag((await flagOf(u)).id, 'dismiss')).toEqual({ success: true });
+      expect(await isHidden()).toBe(true);
+    }
+
+    expect(await actOnRecipeFlag((await flagOf('u1')).id, 'unhide')).toEqual({ success: true });
+    expect(await isHidden()).toBe(false);
+  });
+
+  it('on a visible comment, removes only the dismissed reporter from the count', async () => {
+    await reportEach(['u1', 'u2']);
+    expect(await actOnRecipeFlag((await flagOf('u1')).id, 'dismiss')).toEqual({ success: true });
+    expect(await isHidden()).toBe(false);
+
+    expect((await reportAs('u3')).hidden).toBe(false);
+    expect((await reportAs('u4')).hidden).toBe(true);
+  });
+});
+
+describe('#59: a stale page cannot change a closed comment report', () => {
+  const closedRow = `SELECT status, review_notes, reviewed_at IS NOT NULL AS timed FROM recipe_flags WHERE user_id = 'u1'`;
+
+  async function closedFlagId(closing: 'dismiss' | 'hide', notes: string) {
+    await reportAs('u1');
+    state.userId = ADMIN;
+    const flag = (await getAllFlags()).find((f) => f.user_id === 'u1');
+    if (!flag) throw new Error('u1 report missing');
+    expect(await actOnRecipeFlag(flag.id, closing, notes)).toEqual({ success: true });
+    return flag.id;
+  }
+
+  const closings = [
+    ['dismiss', 'dismissed', false],
+    ['hide', 'resolved', true],
+  ] as const;
+
+  describe.each(closings)('after %s', (closing, status, hidden) => {
+    it.each(['dismiss', 'hide', 'remove'] as const)(
+      'a stale %s writes nothing and reports a stale page',
+      async (stale) => {
+        const flagId = await closedFlagId(closing, 'first decision');
+
+        expect(await actOnRecipeFlag(flagId, stale, 'stale decision')).toEqual(STALE);
+
+        expect(await rows(closedRow)).toEqual([
+          { status, review_notes: 'first decision', timed: true },
+        ]);
+        expect(await isHidden()).toBe(hidden);
+      }
+    );
+  });
+
+  it('a stale hide leaves another pending report on the comment open', async () => {
+    const flagId = await closedFlagId('dismiss', 'first decision');
+    await reportAs('u2');
+    state.userId = ADMIN;
+    expect(await actOnRecipeFlag(flagId, 'hide')).toEqual(STALE);
+    expect(await rows(`SELECT status FROM recipe_flags WHERE user_id = 'u2'`)).toEqual([
+      { status: 'pending' },
+    ]);
+  });
+
+  it('unhide from a closed report restores the comment and leaves that report as it is', async () => {
+    const flagId = await closedFlagId('hide', 'first decision');
+    expect(await actOnRecipeFlag(flagId, 'unhide', 'stale decision')).toEqual({ success: true });
+    expect(await isHidden()).toBe(false);
+    expect(await rows(closedRow)).toEqual([
+      { status: 'resolved', review_notes: 'first decision', timed: true },
+    ]);
+  });
+
+  it('reviewFlag does not overwrite a closed report', async () => {
+    const flagId = await closedFlagId('dismiss', 'first decision');
+    expect(await reviewFlag(flagId, 'resolved', 'stale decision')).toEqual(STALE);
+    expect(await rows(closedRow)).toEqual([
+      { status: 'dismissed', review_notes: 'first decision', timed: true },
+    ]);
+  });
 });
 
 describe('moderation queue', () => {
@@ -216,25 +424,26 @@ describe('moderation queue', () => {
     expect((await getAllFlags()).filter((f) => f.comment_id === C1)).toHaveLength(3);
   });
 
-  it('dismiss un-hides the comment and closes every pending report on it', async () => {
-    const flag = await hideByReports();
-    expect(await actOnRecipeFlag(flag.id, 'dismiss')).toEqual({ success: true });
-    expect(await isHidden()).toBe(false);
-    expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
-      { status: 'dismissed' },
-    ]);
-    // Dismissed reports no longer count toward a new auto-hide.
-    expect((await reportAs('u5')).hidden).toBe(false);
-  });
-
-  it('unhide restores the comment and remove deletes it', async () => {
+  it('unhide restores the comment and a pending report can hide it again', async () => {
     const flag = await hideByReports();
     expect(await actOnRecipeFlag(flag.id, 'unhide')).toEqual({ success: true });
     expect(await isHidden()).toBe(false);
-    expect(await actOnRecipeFlag(flag.id, 'hide')).toEqual({ success: true });
+
+    await reportAs('u4');
+    state.userId = ADMIN;
+    const fresh = (await getAllFlags()).find((f) => f.user_id === 'u4');
+    if (!fresh) throw new Error('u4 report missing');
+    expect(await actOnRecipeFlag(fresh.id, 'hide')).toEqual({ success: true });
     expect(await isHidden()).toBe(true);
+  });
+
+  it('remove deletes the comment, resolves every pending report and keeps the recipe', async () => {
+    const flag = await hideByReports();
     expect(await actOnRecipeFlag(flag.id, 'remove')).toEqual({ success: true });
     expect(await rows(`SELECT id FROM recipe_comments`)).toEqual([]);
+    expect(await rows(`SELECT DISTINCT status FROM recipe_flags`)).toEqual([
+      { status: 'resolved' },
+    ]);
     const recipe = await rows(`SELECT deleted_at FROM recipes WHERE id = '${R1}'`);
     expect(recipe[0].deleted_at).toBeNull();
   });
@@ -312,4 +521,29 @@ describe('moderation queue', () => {
       ]);
     });
   });
+
+  // #59: a stale page's Unhide on a comment another admin already unhid must not close a newer report.
+  const staleUnhidePaths: [string, (flagId: string) => Promise<{ success: boolean }>][] = [
+    ['the flag queue', (flagId) => actOnRecipeFlag(flagId, 'unhide', 'stale decision')],
+    ['setCommentHidden', () => setCommentHidden(C1, false)],
+  ];
+
+  it.each(staleUnhidePaths)(
+    'unhide via %s refuses a visible comment and leaves its pending report open',
+    async (_name, unhide) => {
+      await reportAs('u1');
+      state.userId = ADMIN;
+      const flag = (await getAllFlags()).find((f) => f.user_id === 'u1');
+      if (!flag) throw new Error('u1 report missing');
+
+      expect(await unhide(flag.id)).toEqual({
+        success: false,
+        error: 'This comment is no longer hidden. Refresh the page to see its current state.',
+      });
+      expect(await rows(`SELECT status, review_notes, reviewed_by FROM recipe_flags`)).toEqual([
+        { status: 'pending', review_notes: null, reviewed_by: null },
+      ]);
+      expect(await isHidden()).toBe(false);
+    }
+  );
 });

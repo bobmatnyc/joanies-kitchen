@@ -37,8 +37,8 @@ const VALID_REASONS: FlagReason[] = [
  * Why: #105 lets signed-in users report a comment into the /admin/flags queue,
  * and hides it once three distinct users have reported it.
  * What: requires a session and the `comment-report` rate limit. Refuses an
- * unknown reason, a comment that does not exist or sits on a recipe the caller
- * cannot see, and the caller's own comment. Stores a `recipe_flags` row with
+ * unknown reason, a comment that does not exist, is hidden (#59) or sits on a
+ * recipe the caller cannot see, and the caller's own comment. Stores a `recipe_flags` row with
  * `comment_id`; the partial unique index (comment_id, user_id) makes a repeat
  * report a no-op (`alreadyReported`). Then runs the auto-hide step
  * (`hideCommentAtThreshold`; race reasoning there). A failed hide is logged and
@@ -67,12 +67,21 @@ export async function reportComment(
     }
 
     const [comment] = await db
-      .select({ recipe_id: recipeComments.recipe_id, user_id: recipeComments.user_id })
+      .select({
+        recipe_id: recipeComments.recipe_id,
+        user_id: recipeComments.user_id,
+        is_flagged: recipeComments.is_flagged,
+      })
       .from(recipeComments)
       .where(eq(recipeComments.id, commentId))
       .limit(1);
     // #41 pattern: a comment on a recipe the caller cannot see is answered as nonexistent.
     if (!comment || !(await findViewableRecipe(comment.recipe_id, await getRecipeViewer()))) {
+      return { success: false, error: 'Comment not found' };
+    }
+
+    // #59: a hidden comment is absent from every public read, so it is answered as nonexistent.
+    if (comment.is_flagged) {
       return { success: false, error: 'Comment not found' };
     }
 

@@ -246,7 +246,8 @@ function FlagCard({ flag }: { flag: FlagData }) {
             <DialogDescription>
               {selectedAction === 'dismiss' &&
                 (flag.comment_id
-                  ? 'Dismiss every pending report on this comment and un-hide it.'
+                  ? // #59: dismiss closes this report only and never un-hides the comment.
+                    'Dismiss this report. The comment stays as it is; use Unhide to restore a hidden comment.'
                   : 'Mark this report reviewed. The recipe is unchanged.')}
               {selectedAction === 'hide' &&
                 `Hide this ${target} from public view and resolve the report.`}
