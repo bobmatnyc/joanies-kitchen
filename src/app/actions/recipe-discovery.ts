@@ -150,8 +150,9 @@ async function saveDiscoveredRecipe(
       // #96 D57: label from the embedder, not a stale MiniLM literal.
       embedding_model: embeddingResult?.modelName ?? null,
       is_ai_generated: false, // Discovered from web
-      is_public: !userId, // Anonymous discoveries are public
-      is_system_recipe: !userId, // Anonymous = system recipe
+      // #259: userId is always set here (the guard above), so these were always false.
+      is_public: false,
+      is_system_recipe: false, // a discovery is the caller's own recipe, never a system recipe
       nutrition_info: null,
       image_url: null,
       images: null,

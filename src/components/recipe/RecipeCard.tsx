@@ -127,7 +127,14 @@ const RecipeCardComponent = ({
               onError={onImageError}
             />
             {/* Favorite Button - Top Left */}
-            <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
+            {/* #269: preventDefault too; stopPropagation alone leaves the anchor's native navigation. */}
+            <div
+              className="absolute top-2 left-2 z-10"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
               <FavoriteButton recipeId={recipe.id} variant="default" size="icon" />
             </div>
 

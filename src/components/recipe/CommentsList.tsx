@@ -1,7 +1,7 @@
 'use client';
 
 import { MessageSquare } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { getRecipeComments } from '@/app/actions/social';
 import { CommentItem } from '@/components/recipe/CommentItem';
@@ -89,13 +89,7 @@ export function CommentsList({
     [recipeId]
   );
 
-  // Deps resolve to primitives (recipeId, initial count): an unmemoized loader
-  // re-ran this effect on every render and looped server-action POSTs.
-  useEffect(() => {
-    if (initialComments.length === 0) {
-      loadComments(0, true);
-    }
-  }, [initialComments.length, loadComments]);
+  // #269: no fetch on mount; RecipeComments owns the first load and passes it in.
 
   const handleLoadMore = () => {
     loadComments(offset, false);

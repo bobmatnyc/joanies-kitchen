@@ -103,6 +103,7 @@ describe('RecipeCard', () => {
     nutrition_info: null,
     model_used: null,
     source: null,
+    canonical_source_url: null,
     license: 'PERSONAL_USE',
     created_at: new Date('2024-01-01'),
     updated_at: new Date('2024-01-01'),

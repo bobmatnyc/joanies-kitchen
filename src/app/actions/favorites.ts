@@ -198,6 +198,7 @@ export async function getFavoriteCount(recipeId: string): Promise<number> {
 /**
  * Get favorite IDs for current user (for quick lookup)
  * Returns array of recipe IDs that are favorited
+ * Rejects when the lookup fails; a signed-out caller gets []
  */
 export async function getUserFavoriteIds(): Promise<string[]> {
   try {
@@ -210,6 +211,7 @@ export async function getUserFavoriteIds(): Promise<string[]> {
     return await core.listFavoriteRecipeIds(userId);
   } catch (error) {
     console.error('Error fetching favorite IDs:', error);
-    return [];
+    // #269: [] would read as "no favorites"; the client must be able to tell.
+    throw error;
   }
 }
