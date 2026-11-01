@@ -3,6 +3,7 @@
 import { Heart } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { toast } from 'sonner';
 import { toggleFavorite } from '@/app/actions/favorites';
 import {
   ensureFavoriteStateLoaded,
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useSessionUser } from '@/lib/use-session-user';
 
 const LOAD_FAILED_MESSAGE = "Couldn't load your favorites. Reload the page to try again.";
+const NO_USER_MESSAGE = 'Sign in to save favorites. If you are signed in, reload the page.';
 
 interface FavoriteButtonProps {
   recipeId: string;
@@ -49,11 +51,19 @@ export function FavoriteButton({
   const own = userId !== null && shared.userId === userId ? shared : null;
   const favorited = own?.ids.has(recipeId) ?? false;
   const isChecking = !isLoaded || (userId !== null && (!own || own.status === 'loading'));
-  // #269: toggle flips the server's value, so a click on a heart of unknown state
-  // could remove a real favorite. The button stays disabled until the next page.
   const loadFailed = own?.status === 'error';
+  // #269: toggle flips the server's value, so a click on a heart of unknown state
+  // could remove a real favorite. A failed session fetch also reads as "no user"
+  // while the cookie stays valid, so no known user blocks the toggle too.
+  const blockedMessage =
+    userId === null ? NO_USER_MESSAGE : loadFailed ? LOAD_FAILED_MESSAGE : null;
 
   const handleToggle = async () => {
+    if (blockedMessage) {
+      toast.error(blockedMessage);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -90,9 +100,18 @@ export function FavoriteButton({
       variant={variant}
       size={size}
       onClick={handleToggle}
-      disabled={isLoading || loadFailed}
-      title={loadFailed ? LOAD_FAILED_MESSAGE : undefined}
-      className={favorited ? 'text-red-500 hover:text-red-600' : ''}
+      disabled={isLoading}
+      // #269: aria-disabled, not disabled: ui/button gives disabled pointer-events-none,
+      // which hides the title and lets a click through to the card link.
+      aria-disabled={blockedMessage !== null}
+      title={blockedMessage ?? undefined}
+      className={
+        favorited
+          ? 'text-red-500 hover:text-red-600'
+          : loadFailed
+            ? 'opacity-50 cursor-not-allowed'
+            : ''
+      }
     >
       <Heart
         className={`w-5 h-5 transition-all ${

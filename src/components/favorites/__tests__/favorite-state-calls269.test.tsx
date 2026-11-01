@@ -6,7 +6,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '@/lib/db/schema';
 
@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   isFavorited: vi.fn(),
   getUserFavoriteIds: vi.fn(),
   toggleFavorite: vi.fn(),
+  toastError: vi.fn(),
   auth: { value: { isLoaded: true, user: null as { id: string } | null } },
   nav: { pathname: '/search' },
 }));
@@ -28,6 +29,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
   usePathname: () => mocks.nav.pathname,
 }));
+vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }));
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -127,8 +129,145 @@ describe('favorite-state server calls (#269)', () => {
     expect(stateCalls()).toBe(0);
     for (const heart of hearts()) {
       expect(isShownFavorited(heart)).toBe(false);
-      expect(heart).toBeEnabled();
+      expect(heart).toHaveAttribute('aria-disabled', 'true');
     }
+  });
+
+  it('refuses a signed-out click without a server call or navigation', async () => {
+    mocks.auth.value = { isLoaded: true, user: null };
+    render(<Cards list={recipes(1)} />);
+    await flush();
+
+    const notPrevented = fireEvent.click(heartOf('Recipe r0'));
+    await flush();
+
+    expect(notPrevented).toBe(false);
+    expect(mocks.toggleFavorite).not.toHaveBeenCalled();
+    expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('Sign in'));
+  });
+
+  it('does not follow the card link when a heart is toggled', async () => {
+    signIn();
+    render(<Cards list={recipes(1)} />);
+    await flush();
+
+    let notPrevented = true;
+    await act(async () => {
+      notPrevented = fireEvent.click(heartOf('Recipe r0'));
+    });
+    await flush();
+
+    expect(notPrevented).toBe(false);
+    expect(mocks.toggleFavorite).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not follow the card link from a heart that is still loading', async () => {
+    signIn();
+    mocks.getUserFavoriteIds.mockReturnValue(new Promise(() => undefined));
+    render(<Cards list={recipes(1)} />);
+    await flush();
+
+    // A disabled button has pointer-events-none, so the click lands on its wrapper.
+    const wrapper = heartOf('Recipe r0').parentElement as HTMLElement;
+    expect(fireEvent.click(wrapper)).toBe(false);
+  });
+
+  it('shows no stale favorites after the session ends', async () => {
+    signIn();
+    mocks.getUserFavoriteIds.mockResolvedValue(['r0']);
+    const { rerender } = render(<FavoriteButton recipeId="r0" />);
+    await flush();
+    expect(isShownFavorited(hearts()[0])).toBe(true);
+
+    mocks.auth.value = { isLoaded: true, user: null };
+    rerender(<FavoriteButton recipeId="r0" />);
+    await flush();
+
+    expect(isShownFavorited(hearts()[0])).toBe(false);
+  });
+
+  it("never commits one user's favorites while a second user's load is unresolved", async () => {
+    signIn();
+    mocks.getUserFavoriteIds.mockResolvedValue(['r0']);
+    const first = render(<FavoriteButton recipeId="r0" />);
+    await flush();
+    expect(isShownFavorited(hearts()[0])).toBe(true);
+    first.unmount();
+
+    signIn();
+    mocks.getUserFavoriteIds.mockReturnValue(new Promise(() => undefined));
+    // Layout effects see the first commit, before the load effect replaces the state.
+    const commits: boolean[] = [];
+    const Probe = ({ children }: { children: ReactNode }) => {
+      useLayoutEffect(() => {
+        commits.push(isShownFavorited(hearts()[0]));
+      });
+      return <>{children}</>;
+    };
+    render(
+      <Probe>
+        <FavoriteButton recipeId="r0" />
+      </Probe>
+    );
+    await flush();
+
+    expect(commits.length).toBeGreaterThan(0);
+    expect(commits).not.toContain(true);
+    expect(isShownFavorited(hearts()[0])).toBe(false);
+    expect(hearts()[0]).toBeDisabled();
+  });
+
+  describe('when an older load finishes after a newer one', () => {
+    function deferred() {
+      let resolve: (ids: string[]) => void = () => undefined;
+      let reject: (error: Error) => void = () => undefined;
+      const promise = new Promise<string[]>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    }
+
+    /** Starts a load on path A, then one on path B that resolves to ['r0']. */
+    async function loadPathAThenB() {
+      signIn();
+      const pathA = deferred();
+      const pathB = deferred();
+      mocks.getUserFavoriteIds.mockReturnValueOnce(pathA.promise);
+      mocks.getUserFavoriteIds.mockReturnValueOnce(pathB.promise);
+
+      mocks.nav.pathname = '/path-a';
+      const a = render(<FavoriteButton recipeId="r0" />);
+      await flush();
+      a.unmount();
+
+      mocks.nav.pathname = '/path-b';
+      render(<FavoriteButton recipeId="r0" />);
+      await flush();
+      expect(mocks.getUserFavoriteIds).toHaveBeenCalledTimes(2);
+
+      await act(async () => pathB.resolve(['r0']));
+      await flush();
+      expect(isShownFavorited(hearts()[0])).toBe(true);
+      return pathA;
+    }
+
+    it('keeps the newer result when the older load resolves', async () => {
+      const pathA = await loadPathAThenB();
+      await act(async () => pathA.resolve([]));
+      await flush();
+
+      expect(isShownFavorited(hearts()[0])).toBe(true);
+    });
+
+    it('keeps the newer result when the older load rejects', async () => {
+      const pathA = await loadPathAThenB();
+      await act(async () => pathA.reject(new Error('late failure')));
+      await flush();
+
+      expect(isShownFavorited(hearts()[0])).toBe(true);
+      expect(hearts()[0]).toHaveAttribute('aria-disabled', 'false');
+    });
   });
 
   it('makes no calls while the session is still loading', async () => {
@@ -271,11 +410,27 @@ describe('favorite-state server calls (#269)', () => {
       expect(screen.getByRole('article', { name: 'Recipe r0' })).toHaveTextContent('Recipe r0');
       for (const heart of hearts()) {
         expect(isShownFavorited(heart)).toBe(false);
-        expect(heart).toBeDisabled();
+        // Not `disabled`: that adds pointer-events-none, which hides the title.
+        expect(heart).not.toBeDisabled();
+        expect(heart).toHaveAttribute('aria-disabled', 'true');
         expect(heart).toHaveAttribute('title', expect.stringContaining('Reload the page'));
       }
       expect(stateCalls()).toBe(1);
       expect(mocks.toggleFavorite).not.toHaveBeenCalled();
+    });
+
+    it('a click shows the message, and neither toggles nor navigates', async () => {
+      signIn();
+      mocks.getUserFavoriteIds.mockRejectedValue(new Error('db down'));
+      render(<Cards list={recipes(1)} />);
+      await flush();
+
+      const notPrevented = fireEvent.click(heartOf('Recipe r0'));
+      await flush();
+
+      expect(notPrevented).toBe(false);
+      expect(mocks.toggleFavorite).not.toHaveBeenCalled();
+      expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('Reload the page'));
     });
 
     it('clears hearts known from an earlier page and recovers on the next page', async () => {
@@ -298,7 +453,7 @@ describe('favorite-state server calls (#269)', () => {
       render(<Cards list={recipes(1)} />);
       await flush();
       expect(isShownFavorited(heartOf('Recipe r0'))).toBe(true);
-      expect(heartOf('Recipe r0')).toBeEnabled();
+      expect(heartOf('Recipe r0')).toHaveAttribute('aria-disabled', 'false');
     });
   });
 });
