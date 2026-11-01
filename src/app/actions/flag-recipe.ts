@@ -19,6 +19,7 @@ import { checkAdminAccess, requireAdmin } from '@/lib/admin';
 import { applyCommentFlagAction } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
 import { recipeComments, recipeFlags, recipes } from '@/lib/db/schema';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
@@ -75,6 +76,12 @@ export async function flagRecipe(
         success: false,
         error: 'Invalid flag reason',
       };
+    }
+
+    // #59: bounds report spam across many recipes, as `reportComment` does for comments.
+    const verdict = await enforceRateLimit('recipe-report', userId);
+    if (!verdict.allowed) {
+      return { success: false, error: 'Too many reports. Please try again later.' };
     }
 
     // #41: a recipe the caller cannot see is answered as nonexistent.

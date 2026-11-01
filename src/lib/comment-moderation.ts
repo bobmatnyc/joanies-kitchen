@@ -52,7 +52,8 @@ export async function hideCommentAtThreshold(commentId: string): Promise<boolean
 /**
  * Why: #194 (ruling Df8) "unhide resolves all pending reports, like dismiss;
  * three new reporters re-hide". Pending reports left behind by an unhide made the
- * next single report re-hide the comment at once.
+ * next single report re-hide the comment at once. #59: dismiss now closes one
+ * report; this function still closes all of them.
  * What: admin-checked by the caller. In one `db.batch` (one transaction) clears
  * `is_flagged` and marks every pending report on the comment `dismissed` with the
  * reviewer and time. The report write is guarded by the comment's existence, so a
@@ -95,14 +96,18 @@ export async function unhideCommentResolvingReports(
 export type CommentFlagAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
 
 /**
- * Why: #105 "admin dismiss un-hides the comment"; the queue's other actions act
- * on the comment, not the recipe the report row also names.
- * What: admin-checked by the caller. `dismiss` un-hides the comment and dismisses
- * every pending report on it (so stale reports cannot re-trigger the auto-hide);
- * `hide` hides it and `remove` deletes it, each resolving every pending report;
- * `unhide` delegates to `unhideCommentResolvingReports` (#194). The comment write
- * and the report updates run in one `db.batch`. Returns an error string when
- * `unhide` finds no comment or no report row was updated, else null.
+ * Why: the queue's actions act on the comment, not the recipe the report row also
+ * names. #59: a dismiss must not un-hide. `is_flagged` does not record who hid a
+ * comment, so an admin hide and an auto-hide look the same, and a dismiss cannot
+ * tell whether other grounds for the hide remain.
+ * What: admin-checked by the caller. `dismiss` closes this one report and never
+ * writes the comment; other pending reports stay in the queue and keep counting
+ * toward the auto-hide. `hide` hides the comment and `remove` deletes it, each
+ * resolving every pending report in one `db.batch`. `unhide` delegates to
+ * `unhideCommentResolvingReports` (#194) and is the only queue action that makes
+ * a comment visible. Returns an error string when `unhide` finds no comment or no
+ * report row was updated, else null.
+ * Test: `src/app/actions/__tests__/comment-reports.test.ts`
  */
 export async function applyCommentFlagAction(
   flag: { id: string; comment_id: string },
@@ -117,25 +122,36 @@ export async function applyCommentFlagAction(
   }
 
   const now = new Date();
+  const review = {
+    reviewed_by: adminId,
+    reviewed_at: now,
+    review_notes: reviewNotes,
+    updated_at: now,
+  };
+
+  if (action === 'dismiss') {
+    // #59: one report closes; the comment's hidden state changes only through an explicit unhide.
+    const dismissed = await db
+      .update(recipeFlags)
+      .set({ ...review, status: 'dismissed' })
+      .where(eq(recipeFlags.id, flag.id))
+      .returning({ id: recipeFlags.id });
+    return dismissed.length === 0 ? 'Failed to update flag' : null;
+  }
+
   const commentWhere = eq(recipeComments.id, flag.comment_id);
   const commentWrite =
     action === 'remove'
       ? db.delete(recipeComments).where(commentWhere).returning({ id: recipeComments.id })
       : db
           .update(recipeComments)
-          .set({ is_flagged: action === 'hide', updated_at: now })
+          .set({ is_flagged: true, updated_at: now })
           .where(commentWhere)
           .returning({ id: recipeComments.id });
 
   const flagsWrite = db
     .update(recipeFlags)
-    .set({
-      status: action === 'dismiss' ? 'dismissed' : 'resolved',
-      reviewed_by: adminId,
-      reviewed_at: now,
-      review_notes: reviewNotes,
-      updated_at: now,
-    })
+    .set({ ...review, status: 'resolved' })
     .where(
       sql`${recipeFlags.id} = ${flag.id} OR (${recipeFlags.comment_id} = ${flag.comment_id} AND ${recipeFlags.status} = 'pending')`
     )

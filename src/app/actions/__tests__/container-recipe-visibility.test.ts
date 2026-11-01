@@ -55,6 +55,10 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+// #59: `flagRecipe` is rate-limited; this suite has no usage_counters table.
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: async () => ({ allowed: true, count: 1, limit: 20 }),
+}));
 vi.mock('@/lib/ai/meal-pairing-engine', () => ({ generateMeal: vi.fn() }));
 vi.mock('@/app/actions/user-profiles', () => ({ ensureUserProfile: vi.fn(async () => ({})) }));
 // v1 API: a session-authenticated caller with every scope.

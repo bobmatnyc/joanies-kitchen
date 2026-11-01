@@ -37,6 +37,10 @@ vi.mock('@/lib/db', () => ({
     return state.db;
   },
 }));
+// #59: the limit itself is pinned in recipe-report-rate-limit.test.ts.
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: async () => ({ allowed: true, count: 1, limit: 20 }),
+}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import { actOnRecipeFlag, flagRecipe } from '@/app/actions/flag-recipe';

@@ -40,6 +40,8 @@ export const RATE_LIMITS = {
   'account-export': { limit: 3, windowSec: 3_600 },
   /** #105: `reportComment`, per user: bounds report spam across many comments. */
   'comment-report': { limit: 20, windowSec: 3_600 },
+  /** #59: `flagRecipe`, per user: the same bound as `comment-report`, on its own budget. */
+  'recipe-report': { limit: 20, windowSec: 3_600 },
   /** #55 S2: `POST /api/client-error`, per IP: bounds error-beacon spam into the logs. */
   'client-error': { limit: 10, windowSec: 60 },
 } as const satisfies Record<string, RateLimitRule>;
