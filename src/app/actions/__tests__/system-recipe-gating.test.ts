@@ -321,7 +321,15 @@ describe('storeCrawledRecipe (#248 case 5)', () => {
     expect(await systemRows()).toEqual([{ id: res.recipeId, user_id: 'system' }]);
   });
 
-  it("a signed-in user's crawl stores a non-system recipe", async () => {
+  // #259: an admin-started crawl stores system recipes, as the cron crawl does.
+  it("an admin's crawl stores a system recipe owned by the admin", async () => {
+    state.sessionUserId = ADMIN;
+    const res = await storeCrawledRecipe(crawled, { sourceUrl: 'https://a.com/stew' });
+    expect(res.success).toBe(true);
+    expect(await systemRows()).toEqual([{ id: res.recipeId, user_id: ADMIN }]);
+  });
+
+  it("a signed-in non-admin user's crawl stores a non-system recipe", async () => {
     state.sessionUserId = USER;
     const res = await storeCrawledRecipe(crawled, { sourceUrl: 'https://a.com/stew' });
     expect(res.success).toBe(true);
