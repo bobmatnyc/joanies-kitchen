@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
   db: undefined as unknown,
   sessionUserId: null as string | null,
   scrape: vi.fn(),
+  crawl: vi.fn(),
   llmCreate: vi.fn(),
 }));
 
@@ -40,8 +41,14 @@ vi.mock('@/lib/cache', async (importOriginal) => ({
 vi.mock('@/app/actions/chefs', () => ({
   linkRecipeToChef: vi.fn(async () => ({ success: true })),
 }));
+vi.mock('@/lib/chef-recipe-count', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/chef-recipe-count')>()),
+  recountChefRecipes: vi.fn(),
+}));
+// cloneRecipe favorites the original; the favorites table is not under test.
+vi.mock('@/app/actions/favorites', () => ({ addFavorite: vi.fn(async () => ({ success: true })) }));
 vi.mock('@/lib/firecrawl', () => ({
-  crawlChefRecipes: vi.fn(),
+  crawlChefRecipes: state.crawl,
   scrapeRecipePage: state.scrape,
 }));
 vi.mock('@/lib/ai/recipe-parser', () => ({
@@ -73,12 +80,14 @@ vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({
 }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
-import { uploadRecipeFromUrl } from '@/app/actions/ai-upload';
-import { scrapeSingleRecipe } from '@/app/actions/chef-scraping';
+import { uploadRecipeFromUrl, uploadRecipeWithAI } from '@/app/actions/ai-upload';
+import { scrapeSingleRecipe, startChefScraping } from '@/app/actions/chef-scraping';
+import { cloneRecipe } from '@/app/actions/recipe-cloning';
 import { discoverRecipeFromUrl } from '@/app/actions/recipe-discovery';
 import { saveIngestedRecipe } from '@/app/actions/recipe-ingestion';
 import { copyRecipeToCollection, createRecipe, updateRecipe } from '@/app/actions/recipes';
 import { users } from '@/lib/db/auth-schema';
+import { scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { storeCrawledRecipe } from '@/lib/recipe-crawl-store';
 import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
@@ -100,10 +109,14 @@ const stored = async (id: string) =>
       [id]
     )
   ).rows[0];
-/** The new recipe's id from an action result (`recipe` or `data`); undefined on a refusal. */
+/** The new recipe's id from an action result; undefined on a refusal. */
 const idOf = (res: object) => {
-  const r = res as { recipe?: { id: string }; data?: { id: string } };
-  return (r.recipe ?? r.data)?.id as string;
+  const r = res as {
+    recipe?: { id: string };
+    data?: { id: string };
+    clonedRecipe?: { id: string };
+  };
+  return (r.recipe ?? r.data ?? r.clonedRecipe)?.id as string;
 };
 /** The row as the fix must leave it: the column equals canonicalizeSourceUrl(source). */
 const expected = (source: string) => ({
@@ -113,8 +126,8 @@ const expected = (source: string) => ({
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [users, recipes],
-    { users, recipes },
+    [users, recipes, scrapingJobs],
+    { users, recipes, scrapingJobs },
     { constraints: true }
   );
   client = built.client;
@@ -135,7 +148,7 @@ afterEach(() => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  await client.exec('DELETE FROM "recipes"; DELETE FROM "users";');
+  await client.exec('DELETE FROM "recipes"; DELETE FROM "scraping_jobs"; DELETE FROM "users";');
   await client.exec(`INSERT INTO "users" (id, email, is_admin)
     VALUES ('${ADMIN}', 'admin@example.com', true), ('${USER}', 'user@example.com', false)`);
   state.sessionUserId = null;
@@ -238,6 +251,32 @@ describe('crawl and scrape paths write canonical_source_url (#142)', () => {
     const res = await uploadRecipeFromUrl(VARIANT);
     expect(await stored(idOf(res))).toEqual(expected(VARIANT));
   });
+
+  it('uploadRecipeWithAI stores null: its source is the label "AI Upload"', async () => {
+    state.sessionUserId = USER;
+    const res = await uploadRecipeWithAI({ text: 'Soup: 1 onion. Cook it.' });
+    expect(await stored(idOf(res))).toEqual({ source: 'AI Upload', canonical_source_url: null });
+  });
+
+  it('startChefScraping (multi-page chef crawl)', { timeout: 10_000 }, async () => {
+    state.sessionUserId = ADMIN;
+    state.crawl.mockResolvedValue({ data: [{ url: VARIANT, markdown: '# soup' }] });
+    expect(await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' })).toMatchObject({
+      success: true,
+    });
+    // The crawl runs in the background; wait for the job to finish.
+    await vi.waitFor(
+      async () => {
+        const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
+        expect(job.rows[0]?.status).toBe('completed');
+      },
+      { timeout: 5_000, interval: 50 }
+    );
+    const { rows } = await client.query<{ source: string; canonical_source_url: string | null }>(
+      'SELECT source, canonical_source_url FROM "recipes"'
+    );
+    expect(rows).toEqual([expected(VARIANT)]);
+  });
 });
 
 describe('user recipe writes keep canonical_source_url in step with source (#142)', () => {
@@ -271,5 +310,16 @@ describe('user recipe writes keep canonical_source_url in step with source (#142
     state.sessionUserId = USER;
     const res = await copyRecipeToCollection('pub-1');
     expect(await stored(idOf(res))).toEqual(expected(VARIANT));
+  });
+
+  it('cloneRecipe stores null: its source is the fork note, not the original URL', async () => {
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source, canonical_source_url, is_public)
+      VALUES ('pub-2', '${ADMIN}', 'Public Stew', '[]', '[]', '${VARIANT}', 'https://a.com/stew', true)`);
+    state.sessionUserId = USER;
+    const res = await cloneRecipe('pub-2');
+    expect(await stored(idOf(res))).toEqual({
+      source: 'Forked from recipe ID: pub-2',
+      canonical_source_url: null,
+    });
   });
 });
