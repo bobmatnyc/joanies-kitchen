@@ -6,6 +6,7 @@
 import type { PGlite } from '@electric-sql/pglite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildPlan } from '../../../../scripts/dedup-135/plan';
+import { canonicalizeSourceUrl } from '../dedup';
 import { runApply } from '../dedup-merge-apply';
 import { runRollback } from '../dedup-merge-rollback';
 import { createMigratedDb } from './dedup-135-db';
@@ -55,6 +56,34 @@ describe('runRollback', () => {
     expect(res).toHaveLength(4);
     expect(await snapshot(db)).toEqual(before);
     expect(await liveLedger()).toBe(0);
+  });
+
+  // #142: the override moves canonical_source_url with source; rollback puts both back.
+  it('source_override writes canonical_source_url and rollback restores it', async () => {
+    const canonical = async () =>
+      (
+        await db.query<{ id: string; source: string; canonical_source_url: string | null }>(
+          `SELECT id, source, canonical_source_url FROM recipes WHERE id IN ('b2', 'c1') ORDER BY id`
+        )
+      ).rows;
+    await db.exec(
+      `UPDATE recipes SET canonical_source_url = 'https://prior.example/c1' WHERE id = 'c1'`
+    );
+    await applyBoth();
+    expect(await canonical()).toEqual([
+      {
+        id: 'b2',
+        source: 'https://example.com/cashew-milk',
+        canonical_source_url: canonicalizeSourceUrl('https://example.com/cashew-milk'),
+      },
+      // No override: the column is left as it was.
+      { id: 'c1', source: 'example.com', canonical_source_url: 'https://prior.example/c1' },
+    ]);
+    await runRollback(db, { batchId: 'b-rb' });
+    expect(await canonical()).toEqual([
+      { id: 'b2', source: 'example.com', canonical_source_url: null },
+      { id: 'c1', source: 'example.com', canonical_source_url: 'https://prior.example/c1' },
+    ]);
   });
 
   // A69 gap 5 / item 9: each coverage named, so a removed reversal fails by name.

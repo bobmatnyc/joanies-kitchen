@@ -137,7 +137,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
         is_public: formData.isPublic,
         // #179: a new recipe, or an edit where images changed, writes the cleaned list. An
         // untouched edit omits both keys: pickRecipeWriteFields skips an absent key
-        // (src/lib/utils/recipe-write-fields.ts:43), so updateRecipe leaves the columns as stored.
+        // (src/lib/utils/recipe-write-fields.ts:44), so updateRecipe leaves the columns as stored.
         ...(!recipe || imagesTouched
           ? {
               images: formData.images.length > 0 ? JSON.stringify(formData.images) : null,
@@ -149,7 +149,7 @@ export function RecipeForm({ recipe }: RecipeFormProps) {
       let result;
       if (recipe) {
         // #184: untouched edit fields are omitted; pickRecipeWriteFields skips an absent key
-        // (src/lib/utils/recipe-write-fields.ts:43) and updateRecipe's `if (data.x)` guards
+        // (src/lib/utils/recipe-write-fields.ts:44) and updateRecipe's `if (data.x)` guards
         // leave it absent, so a malformed stored value is never rewritten as an empty array.
         // Tags have no editor in this form, so an edit never sends them.
         result = await updateRecipe(recipe.id, {

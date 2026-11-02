@@ -6,9 +6,11 @@
  * What: steps 1-8 of the step plan plus the A69 additions: step-1 assertions
  * (survivor owner, recipe_ingredients counts), backup-table notes, collisions
  * pinned to the signed set, parent counters, `source_override`.
- * Test: `src/lib/recipes/__tests__/dedup-merge-apply.test.ts`
+ * Test: `src/lib/recipes/__tests__/dedup-merge-apply.test.ts`,
+ * `src/lib/recipes/__tests__/dedup-merge-rollback.test.ts` (#142 canonical_source_url)
  */
 import { generateUniqueSlug } from '@/lib/utils/slug';
+import { canonicalizeSourceUrl } from './dedup';
 import {
   ident,
   keyRefName,
@@ -301,7 +303,8 @@ async function updateKeeper(ctx: GroupContext, counts: Record<string, number>): 
   const { rows: led } = await db.query<{ id: number }>(
     `INSERT INTO dedup_135_ledger (${LEDGER_COLS})
      SELECT $2, $3, 'keeper', 'recipes', NULL, jsonb_build_object('id', id), id, id,
-       jsonb_build_object('slug', slug, 'name', name, 'source', source, ${KEEPER_COUNTERS_JSON})
+       jsonb_build_object('slug', slug, 'name', name, 'source', source,
+         'canonical_source_url', canonical_source_url, ${KEEPER_COUNTERS_JSON})
      FROM recipes WHERE id = $1 RETURNING id::int AS id`,
     [g.keeperId, ctx.batchId, g.groupId]
   );
@@ -310,13 +313,15 @@ async function updateKeeper(ctx: GroupContext, counts: Record<string, number>): 
     `UPDATE recipes r SET
        name = btrim(r.name),
        source = coalesce($2, r.source),
+       canonical_source_url = CASE WHEN $2::text IS NULL THEN r.canonical_source_url ELSE $3 END,
        like_count = (SELECT count(*) FROM favorites WHERE recipe_id = r.id),
        fork_count = (SELECT count(*) FROM recipe_forks WHERE original_recipe_id = r.id),
        collection_count = (SELECT count(*) FROM collection_recipes WHERE recipe_id = r.id),
        total_user_ratings = (SELECT count(*) FROM recipe_ratings WHERE recipe_id = r.id),
        avg_user_rating = (SELECT CAST(AVG(rating) AS DECIMAL(2,1)) FROM recipe_ratings WHERE recipe_id = r.id)
      WHERE r.id = $1 RETURNING r.name, r.slug`,
-    [g.keeperId, g.sourceOverride ?? null]
+    // #142: an overridden source carries its canonical URL, so the column follows it.
+    [g.keeperId, g.sourceOverride ?? null, canonicalizeSourceUrl(g.sourceOverride)]
   );
   if (g.sourceOverride) bump(counts, 'survivor source overridden', 1);
   // #135 (code-critic): the counters after the recount, so rollback can reverse by difference.

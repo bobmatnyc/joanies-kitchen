@@ -7,6 +7,7 @@
  */
 
 import type { NewRecipe } from '@/lib/db/schema';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 
 /** Columns any signed-in owner may set on their own recipe. */
 const USER_RECIPE_FIELDS = [
@@ -54,8 +55,11 @@ export function hasAdminRecipeFields(data: object): boolean {
  * What: returns a new object holding only the allowlisted keys present in
  * `data` (undefined values skipped, so partial updates stay partial). The
  * admin-only keys are copied only when `isAdmin` is true. Unknown keys are
- * dropped, never rejected.
- * Test: `src/app/actions/__tests__/recipe-field-injection.test.ts`
+ * dropped, never rejected. When `source` is copied, `canonical_source_url` is
+ * set to `canonicalizeSourceUrl(source)` (#142), so a partial update without
+ * `source` leaves both columns alone.
+ * Test: `src/app/actions/__tests__/recipe-field-injection.test.ts`,
+ * `src/lib/__tests__/canonical-source-url-writes.test.ts`
  */
 export function pickRecipeWriteFields(data: object, isAdmin: boolean): Partial<NewRecipe> {
   const source = data as Record<string, unknown>;
@@ -65,6 +69,11 @@ export function pickRecipeWriteFields(data: object, isAdmin: boolean): Partial<N
     : USER_RECIPE_FIELDS;
   for (const key of keys) {
     if (present(source, key)) picked[key] = source[key];
+  }
+  // #142: the column follows `source` on create, update and copy; never client-supplied.
+  if (present(picked, 'source')) {
+    const value = picked.source;
+    picked.canonical_source_url = typeof value === 'string' ? canonicalizeSourceUrl(value) : null;
   }
   return picked as Partial<NewRecipe>;
 }

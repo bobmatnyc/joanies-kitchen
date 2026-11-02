@@ -145,7 +145,8 @@ export const recipes = pgTable(
     nutrition_info: text('nutrition_info'), // JSON object with nutritional data
     model_used: text('model_used'), // AI model used for generation
     source: text('source'), // Recipe source (URL, chef name, etc.)
-    // #142: canonicalizeSourceUrl(source), for indexed duplicate checks; nothing writes it yet (D1b)
+    // #142: canonicalizeSourceUrl(source), for indexed duplicate checks (D1b). Every recipe insert
+    // that sets `source` writes it, and so do updateRecipe and the #135 merge's source override.
     canonical_source_url: text('canonical_source_url'),
 
     // License and usage rights

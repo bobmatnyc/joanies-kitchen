@@ -5,7 +5,7 @@
  * restores everything the apply changed, without the snapshot restore (B).
  * What: per group (newest first), one transaction that walks the group's live
  * ledger entries in reverse id order: deletes the redirect rows, restores the
- * keeper's prior slug/name/source/counters, restores each loser's prior
+ * keeper's prior slug/name/source/canonical_source_url/counters, restores each loser's prior
  * `deleted_at`, restores parent counters (chefs, collections), moves rows back
  * (recipe_of_the_day and recipe_discovery_run_items included), re-inserts
  * dropped rows from their stored JSON, skips notes, then marks
@@ -100,7 +100,10 @@ async function reverse(db: Queryable, e: Entry, batchId: string): Promise<void> 
       ).join(',\n           ');
       return one(
         db,
+        // #142: the canonical URL goes back with `source`; a pre-#142 ledger row has no key, so it stays.
         `UPDATE recipes x SET slug = p.slug, name = p.name, source = p.source,
+           canonical_source_url = CASE WHEN l.row_data ? 'canonical_source_url'
+             THEN p.canonical_source_url ELSE x.canonical_source_url END,
            ${ints},
            avg_user_rating = CASE WHEN x.avg_user_rating IS NOT DISTINCT FROM a.avg_user_rating
              THEN p.avg_user_rating ELSE x.avg_user_rating END

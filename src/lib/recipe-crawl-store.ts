@@ -20,7 +20,12 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
-import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
+import {
+  canonicalizeSourceUrl,
+  type DuplicateMatch,
+  duplicateSkipReason,
+  findDuplicateRecipe,
+} from '@/lib/recipes/dedup';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
 import { pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -321,6 +326,7 @@ export async function storeCrawledRecipe(
         difficulty: recipe.difficulty || null,
         images: JSON.stringify(storedImages),
         source: metadata.sourceUrl,
+        canonical_source_url: canonicalizeSourceUrl(metadata.sourceUrl), // #142: indexed dedup key
         search_query: metadata.searchQuery,
         discovery_date: new Date(),
         discovery_week: week?.info.week,

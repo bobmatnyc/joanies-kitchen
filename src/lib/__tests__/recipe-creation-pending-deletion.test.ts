@@ -108,7 +108,10 @@ vi.mock('@/lib/recipe-discovery-steps', () => ({
   }),
   generateRecipeMetadata: async () => ({ cuisine: 'Irish', tags: ['found'], difficulty: 'easy' }),
 }));
-vi.mock('@/lib/recipes/dedup', () => ({
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
+  // #142: the recipe inserts write canonicalizeSourceUrl(source); keep the real one.
+  canonicalizeSourceUrl: (await importOriginal<typeof import('@/lib/recipes/dedup')>())
+    .canonicalizeSourceUrl,
   findDuplicateRecipe: async () => null,
   duplicateRefusal: () => ({ error: 'duplicate' }),
   duplicateSkipReason: () => 'duplicate',

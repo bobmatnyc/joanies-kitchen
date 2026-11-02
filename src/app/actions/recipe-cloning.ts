@@ -15,6 +15,7 @@ import {
   getRecipeViewer,
   recipeVisibilityCondition,
 } from '@/lib/recipe-visibility';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { addFavorite } from './favorites';
@@ -83,6 +84,7 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
     }
 
     // 2. Create new recipe based on original
+    const forkSource = `Forked from recipe ID: ${originalRecipeId}`;
     const clonedRecipeData: NewRecipe = {
       // New ownership and ID
       id: randomUUID(),
@@ -108,7 +110,8 @@ export async function cloneRecipe(originalRecipeId: string, modifications?: Clon
       nutrition_info: modifications?.nutritionInfo || originalRecipe.nutrition_info,
 
       // Attribution: Store reference to original
-      source: `Forked from recipe ID: ${originalRecipeId}`,
+      source: forkSource,
+      canonical_source_url: canonicalizeSourceUrl(forkSource), // #142: null; not a URL
 
       // Copy images (user can change later)
       images: originalRecipe.images,

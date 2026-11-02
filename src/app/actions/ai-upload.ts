@@ -9,6 +9,7 @@ import { MODELS } from '@/lib/ai/openrouter';
 import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser';
 import { recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
@@ -77,6 +78,7 @@ export async function uploadRecipeWithAI(params: {
         is_public: false, // User can change this later
         model_used: params.parseFromImage ? MODELS.GPT_4O : MODELS.CLAUDE_SONNET_4_5,
         source: 'AI Upload',
+        canonical_source_url: canonicalizeSourceUrl('AI Upload'), // #142: null; not a URL
       },
       userId
     );
@@ -164,6 +166,7 @@ export async function uploadRecipeFromUrl(url: string) {
         is_public: false,
         model_used: MODELS.CLAUDE_SONNET_4_5,
         source: url,
+        canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
       },
       userId
     );
