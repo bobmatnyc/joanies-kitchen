@@ -20,6 +20,9 @@ const state = vi.hoisted(() => ({
   scrape: vi.fn(),
   crawl: vi.fn(),
   llmCreate: vi.fn(),
+  search: vi.fn(),
+  /** True: the #135 pre-check finds nothing, as when a concurrent insert races it. */
+  skipPrecheck: false,
 }));
 
 vi.mock('server-only', () => ({}));
@@ -62,7 +65,15 @@ vi.mock('@/lib/rate-limit', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/rate-limit')>()),
   enforceRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 30 })),
 }));
-vi.mock('@/lib/brave-search', () => ({ searchRecipes: vi.fn() }));
+vi.mock('@/lib/brave-search', () => ({ searchRecipes: state.search }));
+vi.mock('@/lib/recipes/dedup', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/recipes/dedup')>();
+  return {
+    ...actual,
+    findDuplicateRecipe: async (...args: Parameters<typeof actual.findDuplicateRecipe>) =>
+      state.skipPrecheck ? null : actual.findDuplicateRecipe(...args),
+  };
+});
 vi.mock('@/lib/ai/openrouter-server', () => ({
   getOpenRouterClient: () => ({ chat: { completions: { create: state.llmCreate } } }),
   MODELS: { CLAUDE_3_HAIKU: 'anthropic/claude-3-haiku' },
@@ -78,9 +89,11 @@ vi.mock('@/lib/ai/recipe-quality-evaluator', () => ({
 }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
+import { restoreRecipe } from '@/app/actions/admin-content';
 import { uploadRecipeFromUrl } from '@/app/actions/ai-upload';
 import { scrapeSingleRecipe, startChefScraping } from '@/app/actions/chef-scraping';
-import { discoverRecipeFromUrl } from '@/app/actions/recipe-discovery';
+import { linkRecipeToChef } from '@/app/actions/chefs';
+import { discoverRecipeFromUrl, discoverRecipes } from '@/app/actions/recipe-discovery';
 import { copyRecipeToCollection, createRecipe, updateRecipe } from '@/app/actions/recipes';
 import { markAccountDeleted, restoreAccount } from '@/lib/account-deletion';
 import { users } from '@/lib/db/auth-schema';
@@ -145,6 +158,7 @@ beforeEach(async () => {
     ('${OTHER}', 'other@example.com', false)`);
   await client.exec(`INSERT INTO "chefs" (id, name, slug) VALUES ('${CHEF}', 'Chef', 'chef')`);
   state.sessionUserId = null;
+  state.skipPrecheck = false;
   state.scrape.mockResolvedValue({ markdown: '# Scraped Soup' });
   const extracted = {
     name: 'Chicken soup',
@@ -189,8 +203,26 @@ describe('migration 0008 (#142 D09)', () => {
     const error = await migrate(
       `('a', 'u', 'A', '[]', '[]', '${HELD}', NULL), ('b', 'u', 'B', '[]', '[]', '${HELD}', NULL)`
     );
-    expect(error?.message).toContain('0008: 1 live duplicate group(s)');
+    expect(error?.message).toContain('0008: 1 duplicate group(s)');
     expect(error?.message).toContain(HELD);
+  });
+
+  it('counts rows pending account deletion with the live ones', async () => {
+    const { client: c } = await createVisibilityDb([recipes], { recipes }, { constraints: true });
+    try {
+      await c.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions,
+          canonical_source_url, deleted_at, deleted_by) VALUES
+        ('a', 'u', 'A', '[]', '[]', '${HELD}', NULL, NULL),
+        ('b', 'v', 'B', '[]', '[]', '${HELD}', now(), 'account-deletion:v')`);
+      await expect(applyMigration0008(c)).rejects.toThrow('0008: 1 duplicate group(s)');
+      // Nothing changed: the check runs before any DDL.
+      const idx = await c.query(`SELECT 1 FROM pg_indexes WHERE indexname = $1`, [
+        CANONICAL_SOURCE_URL_UNIQUE_INDEX,
+      ]);
+      expect(idx.rows).toEqual([]);
+    } finally {
+      await c.close();
+    }
   });
 
   it('applies when the duplicates are soft-deleted, and with many NULL URLs', async () => {
@@ -235,6 +267,19 @@ describe('withCanonicalConflict', () => {
         cause: { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX },
       })
     ).toBe(true);
+  });
+
+  it('rethrows the violation when the holder lookup itself rejects', async () => {
+    await seedHiddenHolder();
+    const violation = { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX };
+    const failingDb = {
+      select: () => {
+        throw new Error('lookup down');
+      },
+    } as unknown as Parameters<typeof withCanonicalConflict>[2];
+    await expect(
+      withCanonicalConflict(HELD, async () => Promise.reject(violation), failingDb)
+    ).rejects.toBe(violation);
   });
 
   it('rethrows the violation when no live recipe holds the URL any more', async () => {
@@ -302,6 +347,10 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
         metadata: { recipes_skipped: 1 },
       });
       expect(await count(`canonical_source_url = '${HELD}'`)).toBe(1);
+      // #142: the private holder gets no chef link (chef_recipes row or chef_id).
+      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).not.toContain(
+        'held-1'
+      );
     }
   );
 
@@ -309,13 +358,23 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     await seedHiddenHolder();
     state.sessionUserId = ADMIN;
     const res = await scrapeSingleRecipe({ chefId: CHEF, url: HELD_VARIANT });
-    expect(res).toMatchObject({
-      success: false,
-      error: 'skipped: duplicate of held-1',
-      duplicateOf: 'held-1',
-    });
-
+    // #142: a holder the system may not see is neither named nor linked.
+    expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
+    expect(linkRecipeToChef).not.toHaveBeenCalled();
     expect(await count()).toBe(1);
+  });
+
+  it('scrapeSingleRecipe links a conflict holder the system may see (pre-check raced)', async () => {
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url, is_public, moderation_status)
+      VALUES ('pub-held', '${OTHER}', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
+    state.sessionUserId = ADMIN;
+    state.skipPrecheck = true;
+    const res = await scrapeSingleRecipe({ chefId: CHEF, url: HELD_VARIANT });
+    expect(res).toMatchObject({ success: false, duplicateOf: 'pub-held', linkedToChef: true });
+    expect(linkRecipeToChef).toHaveBeenCalledWith(
+      expect.objectContaining({ chefId: CHEF, recipeId: 'pub-held' })
+    );
   });
 });
 
@@ -360,6 +419,20 @@ describe('user paths refuse the conflicting URL without naming a hidden recipe (
     expect(await count()).toBe(1);
   });
 
+  it('updateRecipe on a copy that re-sends its unchanged source succeeds and keeps the key NULL', async () => {
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url, is_public, moderation_status) VALUES
+      ('orig', '${ADMIN}', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved'),
+      ('copy', '${USER}', 'Public Stew (Copy)', '[]', '[]', '${HELD}', NULL, false, 'pending')`);
+    state.sessionUserId = USER;
+    const res = await updateRecipe('copy', { source: HELD, description: 'edited' });
+    expect(res.success).toBe(true);
+    const row = await client.query<{ description: string; canonical_source_url: string | null }>(
+      `SELECT description, canonical_source_url FROM "recipes" WHERE id = 'copy'`
+    );
+    expect(row.rows[0]).toEqual({ description: 'edited', canonical_source_url: null });
+  });
+
   it('copyRecipeToCollection succeeds: the copy keeps source and stores no canonical URL', async () => {
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
         canonical_source_url, is_public, moderation_status)
@@ -399,5 +472,73 @@ describe('restoring soft-deleted recipes (#142 D09)', () => {
       { id: 'u-free', deleted_at: null, canonical_source_url: 'https://a.com/soup' },
       { id: 'u-held', deleted_at: null, canonical_source_url: null },
     ]);
+  });
+});
+
+describe('restoring rows that share a URL (#142 D09)', () => {
+  const marker = `account-deletion:${USER}`;
+  /** USER's recipes pending deletion; the index allows deleted rows to share a URL. */
+  async function seedPending(ids: string[], url = HELD) {
+    for (const id of ids) {
+      await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+          canonical_source_url, is_public, deleted_at, deleted_by)
+        VALUES ('${id}', '${USER}', '${id}', '[]', '[]', '${url}', '${url}', true, now(), '${marker}')`);
+    }
+  }
+  const urls = async () =>
+    (
+      await client.query<{
+        id: string;
+        deleted_at: Date | null;
+        canonical_source_url: string | null;
+      }>(
+        `SELECT id, deleted_at, canonical_source_url FROM "recipes" WHERE user_id = '${USER}' ORDER BY id`
+      )
+    ).rows;
+
+  it('restoreAccount restores both; only the smaller id keeps the shared URL', async () => {
+    await seedPending(['p-1', 'p-2']);
+    await restoreAccount(USER, new Date());
+    expect(await urls()).toEqual([
+      { id: 'p-1', deleted_at: null, canonical_source_url: HELD },
+      { id: 'p-2', deleted_at: null, canonical_source_url: null },
+    ]);
+  });
+
+  it('restoreAccount gives neither the URL when a live recipe holds it', async () => {
+    await seedPending(['p-1', 'p-2']);
+    await seedHiddenHolder();
+    await restoreAccount(USER, new Date());
+    expect((await urls()).map((r) => r.canonical_source_url)).toEqual([null, null]);
+  });
+
+  it('admin restoreRecipe restores a recipe whose URL a live recipe took, with the key NULL', async () => {
+    await seedPending(['p-1']);
+    await seedHiddenHolder();
+    state.sessionUserId = ADMIN;
+    expect(await restoreRecipe('p-1')).toMatchObject({ success: true });
+    expect(await urls()).toEqual([{ id: 'p-1', deleted_at: null, canonical_source_url: null }]);
+  });
+});
+
+describe('discoverRecipes: a failed holder lookup fails one item (#142)', () => {
+  it('counts the item as failed and still saves the next one', async () => {
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url, is_public, moderation_status)
+      VALUES ('pub-held', '${OTHER}', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
+    state.sessionUserId = USER;
+    state.skipPrecheck = true; // the insert, not the pre-check, finds the holder
+    state.search.mockResolvedValue([
+      { url: HELD_VARIANT, title: 'Stew', description: '' },
+      { url: 'https://a.com/soup', title: 'Soup', description: '' },
+    ]);
+    const query = (state.db as { query: { recipes: { findFirst: () => Promise<unknown> } } }).query;
+    vi.spyOn(query.recipes, 'findFirst').mockRejectedValueOnce(new Error('lookup down'));
+
+    const res = await discoverRecipes('stew', { maxResults: 2 });
+
+    expect(res.success).toBe(true);
+    expect(res.stats).toMatchObject({ saved: 1, failed: 1, skipped: 0 });
+    expect(await count(`user_id = '${USER}'`)).toBe(1);
   });
 });

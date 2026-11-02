@@ -346,10 +346,15 @@ export async function discoverRecipes(
         if (i < searchResults.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-      } catch (error) {
+      } catch (caught) {
+        let error = caught;
         if (error instanceof CanonicalUrlConflictError) {
-          skipAsDuplicate(result.url, await duplicateOutcome(error.match, userId)); // #142
-          continue;
+          try {
+            skipAsDuplicate(result.url, await duplicateOutcome(error.match, userId)); // #142
+            continue;
+          } catch (lookupErr) {
+            error = lookupErr; // #142: a failed holder lookup fails this item, not the request
+          }
         }
         if (isPaidCallBlocked(error)) throw error; // #57: stop the loop; the outer catch maps it
         if (error instanceof AccountPendingDeletionError) throw error; // #220: as above

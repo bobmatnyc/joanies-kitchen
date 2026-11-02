@@ -219,7 +219,8 @@ export async function restoreRecipe(recipeId: string): Promise<ActionResult> {
       .set({
         deleted_at: null,
         deleted_by: null,
-        canonical_source_url: canonicalUrlOnRestore, // #142: released if another live recipe holds it
+        // #142: released if another live recipe holds it
+        canonical_source_url: canonicalUrlOnRestore((r) => eq(r.id, recipeId)),
       })
       .where(eq(recipes.id, recipeId));
 

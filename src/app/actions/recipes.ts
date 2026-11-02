@@ -352,6 +352,9 @@ export async function updateRecipe(
     const isAdmin = hasAdminRecipeFields(data) && (await checkAdminAccess()).isAdmin;
     // Ensure ingredients and instructions are JSON strings if they're arrays
     const updateData: Partial<NewRecipe> = pickRecipeWriteFields(data, isAdmin);
+    // #142: an unchanged source keeps the stored key (a copy's stays NULL), so a re-sent
+    // source is never refused as a duplicate of the recipe it was copied from.
+    if (updateData.source === recipe.source) delete updateData.canonical_source_url;
 
     if (data.ingredients) {
       updateData.ingredients =

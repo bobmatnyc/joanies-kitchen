@@ -15,7 +15,8 @@
  * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`
  */
 
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull, type SQL, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { recipes } from '@/lib/db/schema';
 import {
   canonicalizeSourceUrl,
@@ -102,17 +103,35 @@ export async function withCanonicalConflict<T>(
   }
 }
 
+/** The recipes table, or an alias of it; `restoreSet` builds its condition on either. */
+export type RecipesRef = typeof recipes;
+
 /**
- * Why: restoring a soft-deleted recipe puts it back under the D09 index. If
- * another live recipe took its URL meanwhile, the restore would fail with
- * 23505, and an account-deletion cancel or purge batch would fail with it.
+ * Why: restoring soft-deleted recipes puts them back under the D09 index. If
+ * another live recipe took a URL meanwhile, or two restored rows share one,
+ * the restore fails with 23505, and an account-deletion cancel or purge batch
+ * fails with it. A subquery alone sees the pre-UPDATE snapshot, where none of
+ * the restored rows is live yet, so it cannot settle rows restored together.
  * What: the `canonical_source_url` value for an `UPDATE recipes SET
- * deleted_at = NULL`: NULL when another live recipe holds the URL, else
- * unchanged. `source` is kept, so the restored recipe keeps its credit.
- * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`
+ * deleted_at = NULL WHERE restoreSet(recipes)`. A row already live keeps its
+ * URL. A restored row keeps it only when no live row holds it and no restored
+ * row with a smaller id shares it (`restoreSet(peer)` names the same set);
+ * otherwise NULL. So exactly one row per URL keeps it. `source` is kept.
+ * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`,
+ * `src/lib/account-purge/__tests__/account-purge.test.ts`
  */
-export const canonicalUrlOnRestore = sql`CASE WHEN EXISTS (
-  SELECT 1 FROM "recipes" AS held
-  WHERE held."canonical_source_url" = "recipes"."canonical_source_url"
-    AND held."deleted_at" IS NULL AND held."id" <> "recipes"."id"
-) THEN NULL ELSE "recipes"."canonical_source_url" END`;
+export function canonicalUrlOnRestore(restoreSet: (t: RecipesRef) => SQL): SQL {
+  // An aliased table renders only its alias name, so the FROM below names it in full.
+  const peer = alias(recipes, 'restore_peer');
+  return sql`CASE WHEN "recipes"."deleted_at" IS NULL THEN "recipes"."canonical_source_url"
+  WHEN EXISTS (
+    SELECT 1 FROM "recipes" AS held
+    WHERE held."canonical_source_url" = "recipes"."canonical_source_url"
+      AND held."deleted_at" IS NULL AND held."id" <> "recipes"."id"
+  ) OR EXISTS (
+    SELECT 1 FROM "recipes" AS "restore_peer"
+    WHERE ${peer.canonical_source_url} = "recipes"."canonical_source_url"
+      AND ${peer.deleted_at} IS NOT NULL AND ${peer.id} < "recipes"."id"
+      AND ${restoreSet(peer as unknown as RecipesRef)}
+  ) THEN NULL ELSE "recipes"."canonical_source_url" END`;
+}

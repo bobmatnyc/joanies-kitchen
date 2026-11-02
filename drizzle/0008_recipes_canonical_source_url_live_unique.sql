@@ -1,6 +1,8 @@
 -- #142 (owner ruling D09): one live recipe per canonical_source_url.
 -- Live means deleted_at IS NULL (the recipes soft-delete column). NULL URLs stay allowed.
--- Refuses to run while live duplicates exist: merge them first (#135 merge tooling).
+-- Refuses to run while duplicates exist among live rows plus rows pending account deletion
+-- (deleted_by 'account-deletion:<user>'), which a deletion cancel or the purge makes live again.
+-- Merge them first (#135 merge tooling).
 DO $$
 DECLARE
   dup_groups integer;
@@ -11,12 +13,13 @@ BEGIN
   FROM (
     SELECT canonical_source_url
     FROM "recipes"
-    WHERE "deleted_at" IS NULL AND "canonical_source_url" IS NOT NULL
+    WHERE ("deleted_at" IS NULL OR "deleted_by" LIKE 'account-deletion:%')
+      AND "canonical_source_url" IS NOT NULL
     GROUP BY canonical_source_url
     HAVING count(*) > 1
   ) d;
   IF dup_groups > 0 THEN
-    RAISE EXCEPTION '0008: % live duplicate group(s) on recipes.canonical_source_url; merge them before this migration: %',
+    RAISE EXCEPTION '0008: % duplicate group(s) on recipes.canonical_source_url among live and pending-deletion rows; merge them before this migration: %',
       dup_groups, left(sample, 2000)
       USING ERRCODE = 'unique_violation';
   END IF;

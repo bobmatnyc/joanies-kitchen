@@ -7,6 +7,8 @@ import { parseRecipeWithAI } from '@/lib/ai/recipe-parser';
 import { recountChefRecipes } from '@/lib/chef-recipe-count';
 // #142: duplicate checks and chef links live in a server-internal module.
 import {
+  conflictSkippedResult,
+  linkConflictHolder,
   linkInsertedRecipe,
   linkSkippedDuplicate,
   skippedDuplicate,
@@ -124,8 +126,8 @@ async function scrapeAndParseRecipes(
         })
         .where(eq(scrapingJobs.id, jobId));
     /** #142: a skipped duplicate; a source-URL match is linked to the chef first. */
-    const skip = async (match: DuplicateMatch, url: string) => {
-      await linkSkippedDuplicate(params.chefId, match, url);
+    const skip = async (match: DuplicateMatch, url: string, link = linkSkippedDuplicate) => {
+      await link(params.chefId, match, url);
       recipesSkipped++;
       await saveProgress();
     };
@@ -210,7 +212,8 @@ async function scrapeAndParseRecipes(
             .returning()
         );
         if (!inserted.ok) {
-          await skip(inserted.duplicate, page.url as string); // page.url is set: the key is
+          // page.url is set: the key is. #142: a holder the system may not see is not linked.
+          await skip(inserted.duplicate, page.url as string, linkConflictHolder);
           continue;
         }
         const recipe = inserted.value;
@@ -327,7 +330,9 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
         })
         .returning()
     );
-    if (!inserted.ok) return await skippedResult(params.chefId, inserted.duplicate, params.url);
+    if (!inserted.ok) {
+      return await conflictSkippedResult(params.chefId, inserted.duplicate, params.url);
+    }
     const recipe = inserted.value;
 
     // #142: a failed link deletes the recipe and throws into the failure answer below.
