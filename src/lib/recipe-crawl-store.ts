@@ -13,6 +13,7 @@
  * #13: server-internal and deliberately NOT 'use server'.
  */
 
+import { checkAdminAccess } from '@/lib/admin';
 import { generateRecipeEmbedding, type RecipeEmbeddingResult } from '@/lib/ai/embeddings';
 import { evaluateRecipeQuality } from '@/lib/ai/recipe-quality-evaluator';
 import { db } from '@/lib/db';
@@ -20,7 +21,6 @@ import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
 import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
-import { getSessionUserId } from '@/lib/session-user';
 import { describeDbError, toErrorMessage } from '@/lib/utils/error-handling';
 import { pickRecipeImages } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -102,7 +102,11 @@ export function validateAndParseDate(dateString: string | undefined | null): Dat
 }
 
 /** The unsaved recipe row the embedder reads; only the content fields carry data. */
-function embeddingInput(recipe: ExtractedRecipe, userId: string | null): Recipe {
+function embeddingInput(
+  recipe: ExtractedRecipe,
+  userId: string | null,
+  isSystemRecipe: boolean
+): Recipe {
   return {
     id: '', // Temporary ID, will be replaced
     user_id: userId || '',
@@ -122,7 +126,7 @@ function embeddingInput(recipe: ExtractedRecipe, userId: string | null): Recipe 
     images: null,
     is_ai_generated: false,
     is_public: true,
-    is_system_recipe: !userId,
+    is_system_recipe: isSystemRecipe,
     nutrition_info: null,
     model_used: null,
     source: null,
@@ -200,11 +204,12 @@ function embeddingInput(recipe: ExtractedRecipe, userId: string | null): Recipe 
  */
 async function tryEmbedding(
   recipe: ExtractedRecipe,
-  userId: string | null
+  userId: string | null,
+  isSystemRecipe: boolean
 ): Promise<RecipeEmbeddingResult | null> {
   try {
     console.log(`[Store] Generating embedding for: ${recipe.name}`);
-    const result = await generateRecipeEmbedding(embeddingInput(recipe, userId));
+    const result = await generateRecipeEmbedding(embeddingInput(recipe, userId, isSystemRecipe));
     console.log(`[Store] Successfully generated embedding (${result.embedding.length} dimensions)`);
     return result;
   } catch (error: unknown) {
@@ -249,8 +254,10 @@ async function trySaveEmbedding(recipeId: string, embedding: RecipeEmbeddingResu
  * saves the embedding. An embedding failure stores the recipe without one; a
  * DB failure returns `success: false` with the Postgres error (#12).
  * `searchQuery` fills `search_query`; `week` fills `discovery_week`,
- * `discovery_year` and `published_date`.
- * Test: `src/lib/__tests__/recipe-crawl-store.test.ts`
+ * `discovery_year` and `published_date`. Cron (no session) and an admin store
+ * a system recipe; any other signed-in user a regular one (#259, #248).
+ * Test: `src/lib/__tests__/recipe-crawl-store.test.ts`,
+ * `src/app/actions/__tests__/system-recipe-gating.test.ts`
  */
 export async function storeCrawledRecipe(
   recipe: ExtractedRecipe,
@@ -260,7 +267,9 @@ export async function storeCrawledRecipe(
   try {
     console.log(`[Store] Storing recipe: ${recipe.name}`);
 
-    const userId = await getSessionUserId();
+    const { userId, isAdmin } = await checkAdminAccess();
+    // #259: admin crawls store system recipes like cron (no session); a non-admin's never do (#248).
+    const isSystemRecipe = !userId || isAdmin;
 
     // #135: never insert a duplicate (same canonical URL, or same title on the same host).
     const duplicate = await findDuplicateRecipe(
@@ -285,7 +294,7 @@ export async function storeCrawledRecipe(
     });
     console.log(`[Store] Quality rating: ${qualityEval.rating}/5 - ${qualityEval.reasoning}`);
 
-    const embeddingResult = await tryEmbedding(recipe, userId ?? null);
+    const embeddingResult = await tryEmbedding(recipe, userId, isSystemRecipe);
 
     const publishedDate = week ? validateAndParseDate(week.publishedDate) : null;
     if (week) {
@@ -323,7 +332,7 @@ export async function storeCrawledRecipe(
         embedding_model: embeddingResult?.modelName ?? null,
         is_ai_generated: false,
         is_public: true,
-        is_system_recipe: !userId,
+        is_system_recipe: isSystemRecipe,
         // Quality rating fields
         system_rating: qualityEval.rating.toFixed(1),
         system_rating_reason: qualityEval.reasoning,
