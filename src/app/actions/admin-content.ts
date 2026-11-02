@@ -7,6 +7,7 @@ import { checkAdminAccess } from '@/lib/admin';
 import { invalidateRecipeById } from '@/lib/cache';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
+import { canonicalUrlOnRestore } from '@/lib/recipes/canonical-url-conflict';
 
 /**
  * Admin Server Actions for Recipe Content Management
@@ -218,6 +219,8 @@ export async function restoreRecipe(recipeId: string): Promise<ActionResult> {
       .set({
         deleted_at: null,
         deleted_by: null,
+        // #142: released if another live recipe holds it
+        canonical_source_url: canonicalUrlOnRestore((r) => eq(r.id, recipeId)),
       })
       .where(eq(recipes.id, recipeId));
 

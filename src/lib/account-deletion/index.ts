@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/auth-schema';
 import { recipes } from '@/lib/db/schema';
 import { userProfiles } from '@/lib/db/user-discovery-schema';
+import { canonicalUrlOnRestore, type RecipesRef } from '@/lib/recipes/canonical-url-conflict';
 
 /**
  * Account soft delete with a 30-day grace period — #103 (D7c S4).
@@ -86,6 +87,10 @@ export async function markAccountDeleted(
   ]);
 }
 
+/** The recipes `restoreAccount` restores, on `recipes` or an alias of it (#142). */
+const restoredByCancel = (r: RecipesRef, userId: string): SQL =>
+  and(eq(r.user_id, userId), eq(r.deleted_by, accountDeletionMarker(userId))) as SQL;
+
 /**
  * Reverses `markAccountDeleted` for the request made at `requestedAt`,
  * atomically. Rejects when the batch fails.
@@ -104,10 +109,13 @@ export async function restoreAccount(userId: string, requestedAt: Date): Promise
       ),
     db
       .update(recipes)
-      .set({ deleted_at: null, deleted_by: null })
-      .where(
-        and(eq(recipes.user_id, userId), eq(recipes.deleted_by, accountDeletionMarker(userId)))
-      ),
+      // #142: a URL another live or restored recipe holds is released, not a failed cancel.
+      .set({
+        deleted_at: null,
+        deleted_by: null,
+        canonical_source_url: canonicalUrlOnRestore((r) => restoredByCancel(r, userId)),
+      })
+      .where(restoredByCancel(recipes, userId)),
     db
       .update(users)
       .set({ deletion_requested_at: null, deletion_keep_recipes: null })

@@ -31,6 +31,7 @@ import { verificationTokens } from '@/lib/db/auth-schema';
 import { recipeDiscoveryRunItems, recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { joanieComments } from '@/lib/db/schema';
+import { applyMigration0008 } from '@/lib/recipes/__tests__/migration-0008';
 
 const NOW = new Date('2026-10-29T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -202,6 +203,35 @@ describe('purgeDueAccounts', () => {
     ).toHaveLength(1);
     expect(deletedBlobs()).toEqual([PRIVATE_BLOB]);
     expect(await dump()).not.toContain(fx.userA);
+  });
+
+  it('#142 (D09): kept recipes sharing a URL are all kept; one keeps the URL, the rest NULL', async () => {
+    await applyMigration0008(client);
+    const url = 'https://a.com/stew';
+    await rows('UPDATE recipes SET canonical_source_url = $1 WHERE id = $2', [url, recipeA]);
+    await rows(
+      `INSERT INTO recipes (id, user_id, name, is_public, canonical_source_url) VALUES ('zz-a-2', $1, 'S2', true, NULL)`,
+      [fx.userA]
+    );
+    await requestDeletion(fx.userA, true, 31);
+    // Both pending deletion now; the index lets deleted rows share the URL.
+    await rows(`UPDATE recipes SET canonical_source_url = $1 WHERE id = 'zz-a-2'`, [url]);
+
+    const result = await purgeDueAccounts(NOW);
+
+    expect(result).toMatchObject({ purged: [fx.userA], failed: [] });
+    const kept = await rows(
+      `SELECT id, user_id, deleted_at, canonical_source_url FROM recipes WHERE id IN ($1, 'zz-a-2') ORDER BY id`,
+      [recipeA]
+    );
+    expect(kept.map((r) => [r.user_id, r.deleted_at])).toEqual([
+      [DELETED_USER_ID, null],
+      [DELETED_USER_ID, null],
+    ]);
+    expect(kept.map((r) => r.canonical_source_url).sort()).toEqual([null, url].sort());
+    expect(kept.find((r) => r.canonical_source_url === url)?.id).toBe(
+      [recipeA, 'zz-a-2'].sort()[0]
+    );
   });
 
   it('#167 (D26): recounts like_count for recipes the purged user favorited', async () => {

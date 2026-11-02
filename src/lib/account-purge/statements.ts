@@ -59,6 +59,7 @@ import {
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
 import { ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
+import { canonicalUrlOnRestore, type RecipesRef } from '@/lib/recipes/canonical-url-conflict';
 
 /** `recipes.user_id` of recipes kept under the "keep" choice. No `users` row; no FK needs one. */
 export const DELETED_USER_ID = 'deleted-user';
@@ -132,13 +133,13 @@ export function stillDue(t: PurgeTarget): SQL {
 }
 
 /** SQL condition: a recipe the purge keeps (reassigns) rather than deletes. */
-export function keptRecipe(t: PurgeTarget): SQL {
+export function keptRecipe(t: PurgeTarget, r: RecipesRef = recipes): SQL {
   if (!t.keepRecipes) return sql`false`;
   // coalesce: a NULL column must read as "not kept", so NOT(kept) still selects the row.
   return sql`coalesce(${and(
-    eq(recipes.user_id, t.userId),
-    eq(recipes.is_public, true),
-    eq(recipes.deleted_by, accountDeletionMarker(t.userId))
+    eq(r.user_id, t.userId),
+    eq(r.is_public, true),
+    eq(r.deleted_by, accountDeletionMarker(t.userId))
   )}, false)`;
 }
 
@@ -225,7 +226,13 @@ export function purgeStatements(t: PurgeTarget) {
     // Kept recipes: credited to deleted-user and shown again.
     db
       .update(recipes)
-      .set({ user_id: DELETED_USER_ID, deleted_at: null, deleted_by: null })
+      // #142: a URL another live or kept recipe holds is released, not a failed purge.
+      .set({
+        user_id: DELETED_USER_ID,
+        deleted_at: null,
+        deleted_by: null,
+        canonical_source_url: canonicalUrlOnRestore((r) => keptRecipe(t, r)),
+      })
       .where(keptRecipe(t)),
     // Rows hanging off the user's own (deleted) recipes, including other users' rows.
     db

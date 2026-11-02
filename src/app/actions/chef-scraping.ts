@@ -7,6 +7,8 @@ import { parseRecipeWithAI } from '@/lib/ai/recipe-parser';
 import { recountChefRecipes } from '@/lib/chef-recipe-count';
 // #142: duplicate checks and chef links live in a server-internal module.
 import {
+  conflictSkippedResult,
+  linkConflictHolder,
   linkInsertedRecipe,
   linkSkippedDuplicate,
   skippedDuplicate,
@@ -16,6 +18,7 @@ import { db } from '@/lib/db';
 import { type NewScrapingJob, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
 import { canonicalizeSourceUrl, type DuplicateMatch } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
@@ -123,8 +126,8 @@ async function scrapeAndParseRecipes(
         })
         .where(eq(scrapingJobs.id, jobId));
     /** #142: a skipped duplicate; a source-URL match is linked to the chef first. */
-    const skip = async (match: DuplicateMatch, url: string) => {
-      await linkSkippedDuplicate(params.chefId, match, url);
+    const skip = async (match: DuplicateMatch, url: string, link = linkSkippedDuplicate) => {
+      await link(params.chefId, match, url);
       recipesSkipped++;
       await saveProgress();
     };
@@ -176,34 +179,44 @@ async function scrapeAndParseRecipes(
         );
 
         // Create recipe in database
-        const recipe = await db
-          .insert(recipes)
-          .values({
-            user_id: 'system', // System user for scraped recipes
-            chef_id: params.chefId,
-            name: parsed.name,
-            description: parsed.description || '',
-            ingredients: JSON.stringify(parsed.ingredients),
-            instructions: JSON.stringify(parsed.instructions),
-            // #12: coerce to integer-or-null so free text never reaches the integer column.
-            prep_time: toRecipeInt(parsed.prepTime),
-            cook_time: toRecipeInt(parsed.cookTime),
-            servings: toRecipeInt(parsed.servings),
-            difficulty: parsed.difficulty || null,
-            cuisine: parsed.cuisine || null,
-            tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-            images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
-            image_url: imageUrl,
-            nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-            is_system_recipe: true,
-            is_public: true,
-            is_ai_generated: true,
-            model_used: 'anthropic/claude-sonnet-4.5',
-            source: page.url || params.sourceUrl,
-            // #142: indexed dedup key, from the same value as `source`
-            canonical_source_url: canonicalizeSourceUrl(page.url || params.sourceUrl),
-          })
-          .returning();
+        // #142 (D09): a URL another live recipe holds is skipped and linked like a #135 match.
+        const inserted = await withCanonicalConflict(page.url, () =>
+          db
+            .insert(recipes)
+            .values({
+              user_id: 'system', // System user for scraped recipes
+              chef_id: params.chefId,
+              name: parsed.name,
+              description: parsed.description || '',
+              ingredients: JSON.stringify(parsed.ingredients),
+              instructions: JSON.stringify(parsed.instructions),
+              // #12: coerce to integer-or-null so free text never reaches the integer column.
+              prep_time: toRecipeInt(parsed.prepTime),
+              cook_time: toRecipeInt(parsed.cookTime),
+              servings: toRecipeInt(parsed.servings),
+              difficulty: parsed.difficulty || null,
+              cuisine: parsed.cuisine || null,
+              tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+              images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+              image_url: imageUrl,
+              nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+              is_system_recipe: true,
+              is_public: true,
+              is_ai_generated: true,
+              model_used: 'anthropic/claude-sonnet-4.5',
+              source: page.url || params.sourceUrl,
+              // #142 (D09): the page's own URL only. The base-URL fallback is shared by every
+              // page without a URL, so it is not a key: a second such page would conflict.
+              canonical_source_url: canonicalizeSourceUrl(page.url),
+            })
+            .returning()
+        );
+        if (!inserted.ok) {
+          // page.url is set: the key is. #142: a holder the system may not see is not linked.
+          await skip(inserted.duplicate, page.url as string, linkConflictHolder);
+          continue;
+        }
+        const recipe = inserted.value;
 
         // #142: a failed link deletes the recipe and throws, so the page counts as failed.
         await linkInsertedRecipe(params.chefId, recipe[0].id, page.url || params.sourceUrl);
@@ -287,33 +300,40 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     );
 
     // Create recipe
-    const recipe = await db
-      .insert(recipes)
-      .values({
-        user_id: 'system',
-        chef_id: params.chefId,
-        name: parsed.name,
-        description: parsed.description || '',
-        ingredients: JSON.stringify(parsed.ingredients),
-        instructions: JSON.stringify(parsed.instructions),
-        // #12: coerce to integer-or-null so free text never reaches the integer column.
-        prep_time: toRecipeInt(parsed.prepTime),
-        cook_time: toRecipeInt(parsed.cookTime),
-        servings: toRecipeInt(parsed.servings),
-        difficulty: parsed.difficulty || null,
-        cuisine: parsed.cuisine || null,
-        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-        images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
-        image_url: imageUrl,
-        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-        is_system_recipe: true,
-        is_public: true,
-        is_ai_generated: true,
-        model_used: 'anthropic/claude-sonnet-4.5',
-        source: params.url,
-        canonical_source_url: canonicalizeSourceUrl(params.url), // #142: indexed dedup key
-      })
-      .returning();
+    // #142 (D09): a URL another live recipe holds is skipped and linked like a #135 match.
+    const inserted = await withCanonicalConflict(params.url, () =>
+      db
+        .insert(recipes)
+        .values({
+          user_id: 'system',
+          chef_id: params.chefId,
+          name: parsed.name,
+          description: parsed.description || '',
+          ingredients: JSON.stringify(parsed.ingredients),
+          instructions: JSON.stringify(parsed.instructions),
+          // #12: coerce to integer-or-null so free text never reaches the integer column.
+          prep_time: toRecipeInt(parsed.prepTime),
+          cook_time: toRecipeInt(parsed.cookTime),
+          servings: toRecipeInt(parsed.servings),
+          difficulty: parsed.difficulty || null,
+          cuisine: parsed.cuisine || null,
+          tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+          images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+          image_url: imageUrl,
+          nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+          is_system_recipe: true,
+          is_public: true,
+          is_ai_generated: true,
+          model_used: 'anthropic/claude-sonnet-4.5',
+          source: params.url,
+          canonical_source_url: canonicalizeSourceUrl(params.url), // #142: indexed dedup key
+        })
+        .returning()
+    );
+    if (!inserted.ok) {
+      return await conflictSkippedResult(params.chefId, inserted.duplicate, params.url);
+    }
+    const recipe = inserted.value;
 
     // #142: a failed link deletes the recipe and throws into the failure answer below.
     await linkInsertedRecipe(params.chefId, recipe[0].id, params.url);

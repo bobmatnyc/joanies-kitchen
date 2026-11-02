@@ -13,6 +13,8 @@ import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
 import { isPublicRecipe, publicRecipe } from '@/lib/recipe-public';
 import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
+import { duplicateRefusal } from '@/lib/recipes/dedup';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -285,7 +287,13 @@ export async function createRecipe(
     };
 
     // #220: refused in the insert statement itself for an account pending deletion.
-    const guarded = await insertUnlessPendingDeletion(recipes, recipeData, userId);
+    // #142 (D09): a source URL another live recipe holds is refused as a #135 duplicate.
+    const inserted = await withCanonicalConflict(recipeData.source, () =>
+      insertUnlessPendingDeletion(recipes, recipeData, userId)
+    );
+    if (!inserted.ok)
+      return { success: false as const, ...duplicateRefusal(inserted.duplicate, userId) };
+    const guarded = inserted.value;
     if (!guarded.allowed) {
       return pendingDeletionRefusal('create recipes');
     }
@@ -344,6 +352,9 @@ export async function updateRecipe(
     const isAdmin = hasAdminRecipeFields(data) && (await checkAdminAccess()).isAdmin;
     // Ensure ingredients and instructions are JSON strings if they're arrays
     const updateData: Partial<NewRecipe> = pickRecipeWriteFields(data, isAdmin);
+    // #142: an unchanged source keeps the stored key (a copy's stays NULL), so a re-sent
+    // source is never refused as a duplicate of the recipe it was copied from.
+    if (updateData.source === recipe.source) delete updateData.canonical_source_url;
 
     if (data.ingredients) {
       updateData.ingredients =
@@ -363,11 +374,17 @@ export async function updateRecipe(
 
     updateData.updated_at = new Date(); // #33: server-set; was `updatedAt`, not a column
 
-    const result = await db
-      .update(recipes)
-      .set(updateData)
-      .where(and(eq(recipes.id, id), eq(recipes.user_id, userId)))
-      .returning();
+    // #142 (D09): a new source URL another live recipe holds is refused, the recipe unchanged.
+    const updated = await withCanonicalConflict(updateData.source, () =>
+      db
+        .update(recipes)
+        .set(updateData)
+        .where(and(eq(recipes.id, id), eq(recipes.user_id, userId)))
+        .returning()
+    );
+    if (!updated.ok)
+      return { success: false as const, ...duplicateRefusal(updated.duplicate, userId) };
+    const result = updated.value;
 
     // Invalidate caches for this specific recipe and all searches
     invalidateRecipeById(id);
@@ -620,6 +637,8 @@ export async function copyRecipeToCollection(recipeId: string) {
       recipes,
       {
         ...content,
+        // #142 (D09): the copy keeps `source` for credit; the original holds the live dedup key.
+        canonical_source_url: null,
         name,
         ingredients: originalRecipe.ingredients,
         instructions: originalRecipe.instructions,

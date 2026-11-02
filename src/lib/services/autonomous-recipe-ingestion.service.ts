@@ -31,12 +31,14 @@ import {
   setCostRunId,
   withCostRun,
 } from '@/lib/costs';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
 import { describeDbError } from '@/lib/utils/error-handling';
 import {
   EXTRACTION_TIERS,
   finalizeIngestionRun,
   type IngestionRunOptions,
   isReleased,
+  recordDuplicateSkip,
   recordItem,
   resolveChefId,
   skippedAsDuplicate,
@@ -411,7 +413,15 @@ export class AutonomousRecipeIngestionService {
       if (isReleased(m, url)) return;
       let recipeId: string | null = null;
       try {
-        recipeId = await storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery);
+        // #142 (D09): a URL another live recipe holds is a skipped duplicate, not a failure.
+        const stored = await withCanonicalConflict(url, () =>
+          storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery)
+        );
+        if (!stored.ok) {
+          await recordDuplicateSkip(m, record, stored.duplicate, url);
+          return;
+        }
+        recipeId = stored.value;
       } catch (storeErr) {
         // storeRecipe already logs internally; surface into errors[] so it's visible in run metrics
         // #12: record the Postgres error on err.cause, not the Drizzle "Failed query" wrapper.

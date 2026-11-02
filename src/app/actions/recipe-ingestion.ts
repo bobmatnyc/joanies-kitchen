@@ -15,7 +15,8 @@ import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
-import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
+import { canonicalizeSourceUrl, duplicateRefusal } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -178,6 +179,8 @@ export async function saveIngestedRecipe(recipeData: {
   success: boolean;
   data?: { id: string; slug: string };
   error?: string;
+  /** #142: the live recipe that already holds this source URL; nothing was inserted. */
+  duplicateOf?: string;
 }> {
   try {
     // Check admin permissions
@@ -229,7 +232,12 @@ export async function saveIngestedRecipe(recipeData: {
     };
 
     // Insert recipe into database
-    const result = await db.insert(recipes).values(newRecipe).returning();
+    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate.
+    const inserted = await withCanonicalConflict(recipeData.source, () =>
+      db.insert(recipes).values(newRecipe).returning()
+    );
+    if (!inserted.ok) return { success: false, ...duplicateRefusal(inserted.duplicate, userId) };
+    const result = inserted.value;
 
     if (!result || result.length === 0) {
       return { success: false, error: 'Failed to save recipe to database' };

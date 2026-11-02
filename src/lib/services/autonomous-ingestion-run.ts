@@ -12,6 +12,7 @@
 import { currentRunSpend } from '@/lib/costs';
 import {
   type DuplicateCandidate,
+  type DuplicateMatch,
   duplicateSkipReason,
   findDuplicateRecipe,
 } from '@/lib/recipes/dedup';
@@ -118,13 +119,27 @@ export async function skippedAsDuplicate(
     titleRule: true,
   });
   if (!match) return false;
+  await recordDuplicateSkip(m, record, match, candidate.sourceUrl);
+  return true;
+}
+
+/**
+ * #135, #142: counts `match` as a skipped duplicate and writes its
+ * `skipped_duplicate` item row linked to the stored recipe. Changes nothing
+ * when the run released `url` meanwhile (the deadline closed it).
+ */
+export async function recordDuplicateSkip(
+  m: RunMetrics,
+  record: RecordItemFn,
+  match: DuplicateMatch,
+  url: string | null | undefined
+): Promise<void> {
   // #135: the deadline may have closed the run during the lookup; counters are then final.
-  if (candidate.sourceUrl && isReleased(m, candidate.sourceUrl)) return true;
+  if (url && isReleased(m, url)) return;
   const reason = duplicateSkipReason(match);
-  console.log(`[AutonomousIngestion] ${reason} (${match.reason}): ${candidate.sourceUrl}`);
+  console.log(`[AutonomousIngestion] ${reason} (${match.reason}): ${url}`);
   m.recipesSkipped++;
   await record('skipped_duplicate', reason, match.id);
-  return true;
 }
 
 /** #6: true once the run closed or another row claimed `url`; late work then changes nothing. */

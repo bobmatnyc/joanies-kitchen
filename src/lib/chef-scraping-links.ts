@@ -10,7 +10,13 @@
 
 import { linkRecipeToChef } from '@/app/actions/chefs';
 import { deleteRecipesWithChefRecount } from '@/lib/chef-recipe-count';
-import { type DuplicateMatch, duplicateSkipReason, findDuplicateRecipe } from '@/lib/recipes/dedup';
+import {
+  type DuplicateMatch,
+  duplicateRefusal,
+  duplicateSkipReason,
+  findDuplicateRecipe,
+  isDisclosableDuplicate,
+} from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 /**
@@ -103,4 +109,39 @@ export async function skippedResult(chefId: string, match: DuplicateMatch, url: 
     duplicateOf: match.id,
     ...(linked ? { linkedToChef: true as const } : {}),
   };
+}
+
+/** Scraped recipes are system recipes; the owner every duplicate check uses. */
+const SYSTEM_USER_ID = 'system';
+
+/**
+ * Why: a write-time conflict on the D09 index (#142) usually means another
+ * user's PRIVATE recipe holds the URL. Linking it would write `chef_recipes`
+ * and `chef_id` onto a row the system user may not see.
+ * What: links the holder like `linkSkippedDuplicate` only when it is
+ * disclosable to the system user (`isDisclosableDuplicate`); otherwise logs
+ * the skip and writes nothing. Returns true when it linked.
+ * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`
+ */
+export async function linkConflictHolder(
+  chefId: string,
+  match: DuplicateMatch,
+  url: string
+): Promise<boolean> {
+  if (isDisclosableDuplicate(match, SYSTEM_USER_ID)) {
+    return linkSkippedDuplicate(chefId, match, url);
+  }
+  console.log(`[ChefScraping] #142: ${url} is held by a recipe the system may not see; not linked`);
+  return false;
+}
+
+/**
+ * #142: `scrapeSingleRecipe`'s answer for a write-time conflict. A disclosable
+ * holder gets `skippedResult` (linked); any other gets the #135 refusal that
+ * names no recipe, and nothing is written to it.
+ */
+export async function conflictSkippedResult(chefId: string, match: DuplicateMatch, url: string) {
+  if (isDisclosableDuplicate(match, SYSTEM_USER_ID)) return skippedResult(chefId, match, url);
+  await linkConflictHolder(chefId, match, url); // logs the unlinked skip
+  return { success: false as const, ...duplicateRefusal(match, SYSTEM_USER_ID) };
 }
