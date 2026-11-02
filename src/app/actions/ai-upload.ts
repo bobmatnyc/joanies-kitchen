@@ -9,7 +9,8 @@ import { MODELS } from '@/lib/ai/openrouter';
 import { parseRecipeFromImage, parseRecipeWithAI } from '@/lib/ai/recipe-parser';
 import { recipes } from '@/lib/db/schema';
 import { paidCallRefusal, rateLimitRefusal } from '@/lib/rate-limit/refusal';
-import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
+import { canonicalizeSourceUrl, duplicateRefusal } from '@/lib/recipes/dedup';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
@@ -144,32 +145,38 @@ export async function uploadRecipeFromUrl(url: string) {
 
     // Create recipe
     // #220: refused in the insert statement itself; the scrape and parse above still run.
-    const guarded = await insertUnlessPendingDeletion(
-      recipes,
-      {
-        user_id: userId,
-        name: parsed.name,
-        description: parsed.description || '',
-        ingredients: JSON.stringify(parsed.ingredients),
-        instructions: JSON.stringify(parsed.instructions),
-        // #12: coerce to integer-or-null so free text never reaches the integer column.
-        prep_time: toRecipeInt(parsed.prepTime),
-        cook_time: toRecipeInt(parsed.cookTime),
-        servings: toRecipeInt(parsed.servings),
-        difficulty: parsed.difficulty || null,
-        cuisine: parsed.cuisine || null,
-        tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
-        images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
-        image_url: imageUrl,
-        nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
-        is_ai_generated: true,
-        is_public: false,
-        model_used: MODELS.CLAUDE_SONNET_4_5,
-        source: url,
-        canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
-      },
-      userId
+    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate.
+    const inserted = await withCanonicalConflict(url, () =>
+      insertUnlessPendingDeletion(
+        recipes,
+        {
+          user_id: userId,
+          name: parsed.name,
+          description: parsed.description || '',
+          ingredients: JSON.stringify(parsed.ingredients),
+          instructions: JSON.stringify(parsed.instructions),
+          // #12: coerce to integer-or-null so free text never reaches the integer column.
+          prep_time: toRecipeInt(parsed.prepTime),
+          cook_time: toRecipeInt(parsed.cookTime),
+          servings: toRecipeInt(parsed.servings),
+          difficulty: parsed.difficulty || null,
+          cuisine: parsed.cuisine || null,
+          tags: parsed.tags ? JSON.stringify(parsed.tags) : null,
+          images: imageUrl ? JSON.stringify([imageUrl]) : null, // #185
+          image_url: imageUrl,
+          nutrition_info: parsed.nutritionInfo ? JSON.stringify(parsed.nutritionInfo) : null,
+          is_ai_generated: true,
+          is_public: false,
+          model_used: MODELS.CLAUDE_SONNET_4_5,
+          source: url,
+          canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
+        },
+        userId
+      )
     );
+    if (!inserted.ok)
+      return { success: false as const, ...duplicateRefusal(inserted.duplicate, userId) };
+    const guarded = inserted.value;
     if (!guarded.allowed) {
       return pendingDeletionRefusal('import recipes');
     }

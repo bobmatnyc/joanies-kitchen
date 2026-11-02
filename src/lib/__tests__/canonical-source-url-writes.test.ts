@@ -1,7 +1,8 @@
 // @vitest-environment node
 /**
  * #142: every recipe write that sets `source` stores
- * `canonical_source_url = canonicalizeSourceUrl(source)`, and a write that
+ * `canonical_source_url = canonicalizeSourceUrl(source)` (a copy stores null,
+ * ruling D09), and a write that
  * changes `source` moves the column with it. A source that is not an absolute
  * http(s) URL stores null.
  *
@@ -304,12 +305,12 @@ describe('user recipe writes keep canonical_source_url in step with source (#142
     expect(await stored('r-1')).toEqual({ source: NOT_A_URL, canonical_source_url: null });
   });
 
-  it('copyRecipeToCollection writes the copy from the original source', async () => {
+  it('copyRecipeToCollection keeps the source and stores null: the original holds the key (D09)', async () => {
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source, is_public)
       VALUES ('pub-1', '${ADMIN}', 'Public Stew', '[]', '[]', '${VARIANT}', true)`);
     state.sessionUserId = USER;
     const res = await copyRecipeToCollection('pub-1');
-    expect(await stored(idOf(res))).toEqual(expected(VARIANT));
+    expect(await stored(idOf(res))).toEqual({ source: VARIANT, canonical_source_url: null });
   });
 
   it('cloneRecipe stores null: its source is the fork note, not the original URL', async () => {

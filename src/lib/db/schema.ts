@@ -147,6 +147,7 @@ export const recipes = pgTable(
     source: text('source'), // Recipe source (URL, chef name, etc.)
     // #142: canonicalizeSourceUrl(source), for indexed duplicate checks (D1b). Every recipe insert
     // that sets `source` writes it, and so do updateRecipe and the #135 merge's source override.
+    // Unique among live rows (D09); a copy (copyRecipeToCollection) stores null.
     canonical_source_url: text('canonical_source_url'),
 
     // License and usage rights
@@ -266,7 +267,11 @@ export const recipes = pgTable(
       table.discovery_week
     ),
     slugIdx: index('idx_recipes_slug').on(table.slug), // Index for slug-based lookups
-    canonicalSourceUrlIdx: index('idx_recipes_canonical_source_url').on(table.canonical_source_url), // #142: non-unique by ruling D1b; UNIQUE comes later
+    // #142 (ruling D09): one live recipe per canonical URL; soft-deleted rows and NULLs are exempt.
+    // Replaces 0007's non-unique idx_recipes_canonical_source_url (migration 0008).
+    canonicalSourceUrlLiveUnique: uniqueIndex('recipes_canonical_source_url_live_unique')
+      .on(table.canonical_source_url)
+      .where(sql`${table.deleted_at} IS NULL`),
     flaggedImageIdx: index('idx_recipes_flagged_images')
       .on(table.image_flagged_for_regeneration)
       .where(sql`(image_flagged_for_regeneration = true)`),

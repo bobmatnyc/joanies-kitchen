@@ -35,7 +35,12 @@ import {
   type RecipeMetadata,
 } from '@/lib/recipe-discovery-steps';
 import {
+  CanonicalUrlConflictError,
+  withCanonicalConflict,
+} from '@/lib/recipes/canonical-url-conflict';
+import {
   canonicalizeSourceUrl,
+  type DuplicateMatch,
   duplicateRefusal,
   duplicateSkipReason,
   findDuplicateRecipe,
@@ -127,40 +132,45 @@ async function saveDiscoveredRecipe(
   // Step 5: Save recipe with provenance
   // #220: refused in the insert statement itself for an account pending deletion; the
   // embedding row below is written only when the recipe landed.
-  const guarded = await insertUnlessPendingDeletion(
-    recipes,
-    {
-      user_id: userId,
-      chef_id: null,
-      name: recipe.name,
-      description: recipe.description,
-      ingredients: JSON.stringify(recipe.ingredients),
-      instructions: JSON.stringify(recipe.instructions),
-      // #12: LLM JSON is unvalidated ("4 to 6", or a bare number that broke .match).
-      prep_time: toRecipeInt(recipe.prepTime),
-      cook_time: toRecipeInt(recipe.cookTime),
-      servings: toRecipeInt(recipe.servings),
-      cuisine: metadata.cuisine,
-      tags: JSON.stringify(metadata.tags),
-      difficulty: metadata.difficulty,
-      source: source.url,
-      canonical_source_url: canonicalizeSourceUrl(source.url), // #142: indexed dedup key
-      search_query: source.searchQuery,
-      discovery_date: new Date(),
-      confidence_score: source.confidenceScore.toFixed(2),
-      validation_model: 'anthropic/claude-3-haiku',
-      // #96 D57: label from the embedder, not a stale MiniLM literal.
-      embedding_model: embeddingResult?.modelName ?? null,
-      is_ai_generated: false, // Discovered from web
-      // #259: userId is always set here (the guard above), so these were always false.
-      is_public: false,
-      is_system_recipe: false, // a discovery is the caller's own recipe, never a system recipe
-      nutrition_info: null,
-      image_url: null,
-      images: null,
-    },
-    userId
+  // #142 (D09): a URL another live recipe holds throws CanonicalUrlConflictError; callers skip it.
+  const inserted = await withCanonicalConflict(source.url, () =>
+    insertUnlessPendingDeletion(
+      recipes,
+      {
+        user_id: userId,
+        chef_id: null,
+        name: recipe.name,
+        description: recipe.description,
+        ingredients: JSON.stringify(recipe.ingredients),
+        instructions: JSON.stringify(recipe.instructions),
+        // #12: LLM JSON is unvalidated ("4 to 6", or a bare number that broke .match).
+        prep_time: toRecipeInt(recipe.prepTime),
+        cook_time: toRecipeInt(recipe.cookTime),
+        servings: toRecipeInt(recipe.servings),
+        cuisine: metadata.cuisine,
+        tags: JSON.stringify(metadata.tags),
+        difficulty: metadata.difficulty,
+        source: source.url,
+        canonical_source_url: canonicalizeSourceUrl(source.url), // #142: indexed dedup key
+        search_query: source.searchQuery,
+        discovery_date: new Date(),
+        confidence_score: source.confidenceScore.toFixed(2),
+        validation_model: 'anthropic/claude-3-haiku',
+        // #96 D57: label from the embedder, not a stale MiniLM literal.
+        embedding_model: embeddingResult?.modelName ?? null,
+        is_ai_generated: false, // Discovered from web
+        // #259: userId is always set here (the guard above), so these were always false.
+        is_public: false,
+        is_system_recipe: false, // a discovery is the caller's own recipe, never a system recipe
+        nutrition_info: null,
+        image_url: null,
+        images: null,
+      },
+      userId
+    )
   );
+  if (!inserted.ok) throw new CanonicalUrlConflictError(inserted.duplicate);
+  const guarded = inserted.value;
   if (!guarded.allowed) throw new AccountPendingDeletionError(SAVE_ACTION);
   const savedRecipe = guarded.row as Recipe; // allowed with no onConflict: the row is set
 
@@ -200,6 +210,11 @@ async function storedDuplicate(url: string, userId: string): Promise<StoredDupli
   );
   if (!match) return null;
   console.log(`${duplicateSkipReason(match)} (${match.reason}): ${url}`);
+  return duplicateOutcome(match, userId);
+}
+
+/** #135, #142: the refusal for `match`, plus the recipe to link when the caller may see it. */
+async function duplicateOutcome(match: DuplicateMatch, userId: string): Promise<StoredDuplicate> {
   const refusal = duplicateRefusal(match, userId);
   if (match.reason !== 'source-url' || !isDisclosableDuplicate(match, userId)) return { refusal };
   const recipe = await db.query.recipes.findFirst({
@@ -332,6 +347,10 @@ export async function discoverRecipes(
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       } catch (error) {
+        if (error instanceof CanonicalUrlConflictError) {
+          skipAsDuplicate(result.url, await duplicateOutcome(error.match, userId)); // #142
+          continue;
+        }
         if (isPaidCallBlocked(error)) throw error; // #57: stop the loop; the outer catch maps it
         if (error instanceof AccountPendingDeletionError) throw error; // #220: as above
         failed++;
@@ -437,6 +456,13 @@ export async function discoverRecipeFromUrl(url: string): Promise<{
       recipe: savedRecipe,
     };
   } catch (error) {
+    if (error instanceof CanonicalUrlConflictError) {
+      // #142: the same answer as the #135 pre-check above.
+      const dup = await duplicateOutcome(error.match, userId);
+      return dup.recipe
+        ? { success: true, recipe: dup.recipe, duplicateOf: dup.recipe.id }
+        : { success: false, ...dup.refusal };
+    }
     console.error('Single URL discovery error:', error);
     if (error instanceof AccountPendingDeletionError) return pendingDeletionRefusal(SAVE_ACTION); // #220
     const blocked = paidCallRefusal(error); // #57: typed cost-ceiling code

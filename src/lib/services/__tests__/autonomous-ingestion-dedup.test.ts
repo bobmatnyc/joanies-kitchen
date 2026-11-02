@@ -46,6 +46,7 @@ import {
 } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { applyMigration0008 } from '@/lib/recipes/__tests__/migration-0008';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import type { ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
@@ -64,6 +65,7 @@ beforeAll(async () => {
   const built = await createVisibilityDb(Object.values(tables), tables, { constraints: true });
   client = built.client;
   state.db = built.db;
+  await applyMigration0008(client); // #142: the D09 unique index, as on production
 });
 
 afterAll(async () => {
@@ -192,5 +194,38 @@ describe('AutonomousRecipeIngestionService duplicate guard (#135)', () => {
 
     expect(m.recipesSkipped).toBe(0);
     expect(m.itemUrls.size).toBe(0);
+  });
+});
+
+describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', () => {
+  it('counts a URL a hidden live recipe holds as a skipped duplicate, not a failure, and stores the rest', async () => {
+    // Another user's private recipe: the #135 pre-checks cannot see it, so the insert hits the index.
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url, is_public)
+      VALUES ('held-1', 'other-1', 'Private Stew', '[]', '[]', 'https://c.com/stew', 'https://c.com/stew', false)`);
+    const held = 'https://c.com/stew?utm_source=x';
+    const fresh = 'https://c.com/beef-stew';
+    const { service } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 5 });
+
+    expect(result).toMatchObject({
+      status: 'completed',
+      recipesStored: 1,
+      recipesSkipped: 1,
+      errors: [],
+    });
+    const items = await client.query<{ url: string; outcome: string; recipe_id: string | null }>(
+      'SELECT url, outcome, recipe_id FROM "recipe_discovery_run_items" ORDER BY url'
+    );
+    expect(items.rows.find((r) => r.url === held)).toMatchObject({
+      outcome: 'skipped_duplicate',
+      recipe_id: 'held-1',
+    });
+    expect(items.rows.find((r) => r.url === fresh)).toMatchObject({ outcome: 'stored' });
+    const n = await client.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM "recipes" WHERE canonical_source_url = 'https://c.com/stew'`
+    );
+    expect(n.rows[0].n).toBe(1);
   });
 });

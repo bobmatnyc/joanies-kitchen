@@ -20,6 +20,7 @@ import { db } from '@/lib/db';
 import { saveRecipeEmbedding } from '@/lib/db/embeddings';
 import { type Recipe, recipes } from '@/lib/db/schema';
 import type { ExtractedRecipe } from '@/lib/recipe-crawl-steps';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
 import {
   canonicalizeSourceUrl,
   type DuplicateMatch,
@@ -257,6 +258,7 @@ async function trySaveEmbedding(recipeId: string, embedding: RecipeEmbeddingResu
  * Why: both crawls store a recipe the same way; only their provenance differs (#142).
  * What: skips a duplicate (#135), rates the recipe, embeds it, inserts it, and
  * saves the embedding. An embedding failure stores the recipe without one; a
+ * URL a live recipe already holds (the D09 unique index, #142) is a skipped duplicate; a
  * DB failure returns `success: false` with the Postgres error (#12).
  * `searchQuery` fills `search_query`; `week` fills `discovery_week`,
  * `discovery_year` and `published_date`. Cron (no session) and an admin store
@@ -308,44 +310,52 @@ export async function storeCrawledRecipe(
       );
     }
 
-    const [savedRecipe] = await db
-      .insert(recipes)
-      .values({
-        user_id: userId || 'system',
-        chef_id: null,
-        name: recipe.name,
-        description: recipe.description || '',
-        ingredients: JSON.stringify(recipe.ingredients),
-        instructions: JSON.stringify(recipe.instructions),
-        prep_time: parseTimeToMinutes(recipe.prepTime),
-        cook_time: parseTimeToMinutes(recipe.cookTime),
-        // #12: LLM output may be a range string ("4 to 6"); write an integer or null.
-        servings: toRecipeInt(recipe.servings),
-        cuisine: recipe.cuisine || null,
-        tags: JSON.stringify(recipe.tags || []),
-        difficulty: recipe.difficulty || null,
-        images: JSON.stringify(storedImages),
-        source: metadata.sourceUrl,
-        canonical_source_url: canonicalizeSourceUrl(metadata.sourceUrl), // #142: indexed dedup key
-        search_query: metadata.searchQuery,
-        discovery_date: new Date(),
-        discovery_week: week?.info.week,
-        discovery_year: week?.info.year,
-        published_date: publishedDate,
-        confidence_score: recipe.confidenceScore.toString(),
-        validation_model: 'anthropic/claude-3-haiku',
-        // #96 D57: label from the embedder, not a stale MiniLM literal.
-        embedding_model: embeddingResult?.modelName ?? null,
-        is_ai_generated: false,
-        is_public: true,
-        is_system_recipe: isSystemRecipe,
-        // Quality rating fields
-        system_rating: qualityEval.rating.toFixed(1),
-        system_rating_reason: qualityEval.reasoning,
-        avg_user_rating: null,
-        total_user_ratings: 0,
-      })
-      .returning();
+    // #142 (D09): a URL another live recipe holds is skipped like a #135 pre-check match.
+    const inserted = await withCanonicalConflict(metadata.sourceUrl, () =>
+      db
+        .insert(recipes)
+        .values({
+          user_id: userId || 'system',
+          chef_id: null,
+          name: recipe.name,
+          description: recipe.description || '',
+          ingredients: JSON.stringify(recipe.ingredients),
+          instructions: JSON.stringify(recipe.instructions),
+          prep_time: parseTimeToMinutes(recipe.prepTime),
+          cook_time: parseTimeToMinutes(recipe.cookTime),
+          // #12: LLM output may be a range string ("4 to 6"); write an integer or null.
+          servings: toRecipeInt(recipe.servings),
+          cuisine: recipe.cuisine || null,
+          tags: JSON.stringify(recipe.tags || []),
+          difficulty: recipe.difficulty || null,
+          images: JSON.stringify(storedImages),
+          source: metadata.sourceUrl,
+          canonical_source_url: canonicalizeSourceUrl(metadata.sourceUrl), // #142: indexed dedup key
+          search_query: metadata.searchQuery,
+          discovery_date: new Date(),
+          discovery_week: week?.info.week,
+          discovery_year: week?.info.year,
+          published_date: publishedDate,
+          confidence_score: recipe.confidenceScore.toString(),
+          validation_model: 'anthropic/claude-3-haiku',
+          // #96 D57: label from the embedder, not a stale MiniLM literal.
+          embedding_model: embeddingResult?.modelName ?? null,
+          is_ai_generated: false,
+          is_public: true,
+          is_system_recipe: isSystemRecipe,
+          // Quality rating fields
+          system_rating: qualityEval.rating.toFixed(1),
+          system_rating_reason: qualityEval.reasoning,
+          avg_user_rating: null,
+          total_user_ratings: 0,
+        })
+        .returning()
+    );
+    if (!inserted.ok) {
+      const { duplicate: dup } = inserted;
+      return { success: false, error: duplicateSkipReason(dup), duplicate: dup };
+    }
+    const [savedRecipe] = inserted.value;
 
     await trySaveEmbedding(savedRecipe.id, embeddingResult);
 

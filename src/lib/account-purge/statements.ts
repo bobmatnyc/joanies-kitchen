@@ -59,6 +59,7 @@ import {
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
 import { ratingAggregateColumns } from '@/lib/recipe-rating-aggregates';
+import { canonicalUrlOnRestore } from '@/lib/recipes/canonical-url-conflict';
 
 /** `recipes.user_id` of recipes kept under the "keep" choice. No `users` row; no FK needs one. */
 export const DELETED_USER_ID = 'deleted-user';
@@ -225,7 +226,13 @@ export function purgeStatements(t: PurgeTarget) {
     // Kept recipes: credited to deleted-user and shown again.
     db
       .update(recipes)
-      .set({ user_id: DELETED_USER_ID, deleted_at: null, deleted_by: null })
+      // #142: a URL another live recipe took meanwhile is released, not a failed purge.
+      .set({
+        user_id: DELETED_USER_ID,
+        deleted_at: null,
+        deleted_by: null,
+        canonical_source_url: canonicalUrlOnRestore,
+      })
       .where(keptRecipe(t)),
     // Rows hanging off the user's own (deleted) recipes, including other users' rows.
     db

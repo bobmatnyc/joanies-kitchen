@@ -47,6 +47,7 @@ import { recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { paidCallRefusal, refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
+import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
 import {
   canonicalizeSourceUrl,
   type DuplicateMatch,
@@ -317,44 +318,49 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     console.log(`[Ingest API] Saving recipe to database`);
     // #220: refused in the insert statement itself for an account pending deletion;
     // the embedding below is saved only when the recipe landed.
-    const guarded = await insertUnlessPendingDeletion(
-      recipes,
-      {
-        user_id: userId,
-        chef_id: null,
-        source_id: null,
-        name: parsedRecipe.name,
-        description: parsedRecipe.description || '',
-        ingredients: ingredientsJson,
-        instructions: instructionsJson,
-        // #12: the parser accepts any number (4.5 fails an integer column).
-        prep_time: toRecipeInt(parsedRecipe.prep_time),
-        cook_time: toRecipeInt(parsedRecipe.cook_time),
-        servings: toRecipeInt(parsedRecipe.servings),
-        difficulty: parsedRecipe.difficulty || null,
-        cuisine: parsedRecipe.cuisine || null,
-        tags: tagsJson,
-        image_url: imageUrl, // #185
-        images: imagesJson,
-        video_url: parsedRecipe.video_url || null,
-        nutrition_info: parsedRecipe.nutritionInfo
-          ? JSON.stringify(parsedRecipe.nutritionInfo)
-          : null,
-        is_ai_generated: false,
-        is_public: true, // PUBLIC by default
-        is_system_recipe: true, // #233: the route is admin-only
-        license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
-        source: url,
-        canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
-        slug,
-        model_used: 'anthropic/claude-sonnet-4.5',
-        // #96 D57: label from the embedder, not a stale MiniLM literal.
-        embedding_model: embeddingResult?.modelName ?? null,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-      userId
+    // #142 (D09): a URL another live recipe holds answers as a #135 duplicate (409).
+    const inserted = await withCanonicalConflict(url, () =>
+      insertUnlessPendingDeletion(
+        recipes,
+        {
+          user_id: userId,
+          chef_id: null,
+          source_id: null,
+          name: parsedRecipe.name,
+          description: parsedRecipe.description || '',
+          ingredients: ingredientsJson,
+          instructions: instructionsJson,
+          // #12: the parser accepts any number (4.5 fails an integer column).
+          prep_time: toRecipeInt(parsedRecipe.prep_time),
+          cook_time: toRecipeInt(parsedRecipe.cook_time),
+          servings: toRecipeInt(parsedRecipe.servings),
+          difficulty: parsedRecipe.difficulty || null,
+          cuisine: parsedRecipe.cuisine || null,
+          tags: tagsJson,
+          image_url: imageUrl, // #185
+          images: imagesJson,
+          video_url: parsedRecipe.video_url || null,
+          nutrition_info: parsedRecipe.nutritionInfo
+            ? JSON.stringify(parsedRecipe.nutritionInfo)
+            : null,
+          is_ai_generated: false,
+          is_public: true, // PUBLIC by default
+          is_system_recipe: true, // #233: the route is admin-only
+          license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
+          source: url,
+          canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
+          slug,
+          model_used: 'anthropic/claude-sonnet-4.5',
+          // #96 D57: label from the embedder, not a stale MiniLM literal.
+          embedding_model: embeddingResult?.modelName ?? null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        userId
+      )
     );
+    if (!inserted.ok) return duplicateResult(url, inserted.duplicate, userId);
+    const guarded = inserted.value;
     if (!guarded.allowed) {
       return { url, ...pendingDeletionRefusal('import recipes') };
     }
