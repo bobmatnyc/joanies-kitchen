@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import type { DiscoveryRunStatus } from './discovery-run-store';
@@ -114,6 +115,7 @@ export async function storeIngestedRecipe(
       is_public: true,
       is_system_recipe: true,
       source: sourceUrl,
+      canonical_source_url: canonicalizeSourceUrl(sourceUrl), // #142: indexed dedup key
       search_query: searchQuery,
       discovery_date: new Date(),
       discovery_week: getISOWeek(new Date()),

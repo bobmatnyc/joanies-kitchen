@@ -73,6 +73,7 @@ import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db
 import { users } from '@/lib/db/auth-schema';
 import { recipes } from '@/lib/db/schema';
 import { usageCounters } from '@/lib/db/usage-counters-schema';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { POST } from '../route';
 
 const call = POST as unknown as (r: NextRequest, c: unknown) => Promise<Response>;
@@ -179,6 +180,19 @@ describe('POST /api/ingest-recipe duplicate guard (#135)', () => {
     expect(res.status).toBe(201);
     expect(res.body.recipe?.slug).toBe('beef-stew');
     expect(await count()).toBe(3);
+  });
+
+  // #142: the inserted row carries canonicalizeSourceUrl(source) in canonical_source_url.
+  it('stores the canonical form of the source URL', async () => {
+    const url = 'http://www.D.com/beef-stew/print/?utm_source=x#top';
+    const res = await ingest(url, 'Beef Stew');
+    expect(res.status).toBe(201);
+    const { rows } = await client.query<{ source: string; canonical_source_url: string | null }>(
+      'SELECT source, canonical_source_url FROM "recipes" WHERE id = $1',
+      [res.body.recipe?.id]
+    );
+    expect(rows).toEqual([{ source: url, canonical_source_url: canonicalizeSourceUrl(url) }]);
+    expect(rows[0].canonical_source_url).toBe('https://d.com/beef-stew');
   });
 
   it("ignores another user's private recipe and a soft-deleted one", async () => {

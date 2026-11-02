@@ -35,6 +35,7 @@ import {
   type RecipeMetadata,
 } from '@/lib/recipe-discovery-steps';
 import {
+  canonicalizeSourceUrl,
   duplicateRefusal,
   duplicateSkipReason,
   findDuplicateRecipe,
@@ -143,6 +144,7 @@ async function saveDiscoveredRecipe(
       tags: JSON.stringify(metadata.tags),
       difficulty: metadata.difficulty,
       source: source.url,
+      canonical_source_url: canonicalizeSourceUrl(source.url), // #142: indexed dedup key
       search_query: source.searchQuery,
       discovery_date: new Date(),
       confidence_score: source.confidenceScore.toFixed(2),

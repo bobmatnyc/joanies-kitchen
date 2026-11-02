@@ -48,6 +48,7 @@ import { scrapeRecipePage } from '@/lib/firecrawl';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { paidCallRefusal, refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
 import {
+  canonicalizeSourceUrl,
   type DuplicateMatch,
   duplicateRefusal,
   duplicateSkipReason,
@@ -344,6 +345,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
         is_system_recipe: true, // #233: the route is admin-only
         license: 'PUBLIC_DOMAIN', // PUBLIC_DOMAIN by default
         source: url,
+        canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
         slug,
         model_used: 'anthropic/claude-sonnet-4.5',
         // #96 D57: label from the embedder, not a stale MiniLM literal.

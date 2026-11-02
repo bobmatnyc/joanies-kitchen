@@ -186,7 +186,7 @@ const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$
  * count. A hidden (moderation-rejected) public recipe does count, so a
  * re-import cannot bring it back. Returns null when the candidate has no usable
  * source URL.
- * There is no canonical-URL column, so SQL narrows by host with an anchored
+ * It does not read `canonical_source_url` yet (#142), so SQL narrows by host with an anchored
  * regex on `lower(source)` (a sequential scan) and JS canonicalises the rest.
  * `titleRule` is required so every call site states which rule it applies.
  * Test: `src/app/api/ingest-recipe/__tests__/route-dedup.test.ts`

@@ -15,6 +15,7 @@ import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
 import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
+import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -218,6 +219,7 @@ export async function saveIngestedRecipe(recipeData: {
       image_url: recipeData.image_url,
       video_url: recipeData.video_url,
       source: recipeData.source,
+      canonical_source_url: canonicalizeSourceUrl(recipeData.source), // #142: indexed dedup key
       chef_id: recipeData.chef_id || null,
       slug,
       is_public: recipeData.is_public ?? true,

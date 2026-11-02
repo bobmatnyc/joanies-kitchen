@@ -16,7 +16,7 @@ import { db } from '@/lib/db';
 import { type NewScrapingJob, scrapingJobs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { crawlChefRecipes, scrapeRecipePage } from '@/lib/firecrawl';
-import type { DuplicateMatch } from '@/lib/recipes/dedup';
+import { canonicalizeSourceUrl, type DuplicateMatch } from '@/lib/recipes/dedup';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -200,6 +200,8 @@ async function scrapeAndParseRecipes(
             is_ai_generated: true,
             model_used: 'anthropic/claude-sonnet-4.5',
             source: page.url || params.sourceUrl,
+            // #142: indexed dedup key, from the same value as `source`
+            canonical_source_url: canonicalizeSourceUrl(page.url || params.sourceUrl),
           })
           .returning();
 
@@ -309,6 +311,7 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
         is_ai_generated: true,
         model_used: 'anthropic/claude-sonnet-4.5',
         source: params.url,
+        canonical_source_url: canonicalizeSourceUrl(params.url), // #142: indexed dedup key
       })
       .returning();
 
