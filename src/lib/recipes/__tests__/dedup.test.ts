@@ -138,7 +138,7 @@ describe('matchDuplicate', () => {
     expect(m).toMatchObject({ id: 'url', reason: 'source-url' });
   });
 
-  // #142 owner ruling B: one roundup URL holds several recipes.
+  // #142: one roundup URL holds several recipes.
   describe('a source-URL match needs the same name (#142)', () => {
     const roundup = [
       { id: 'first', name: 'Tomato Soup', source: 'https://r.com/10-soups' },

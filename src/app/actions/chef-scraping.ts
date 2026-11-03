@@ -179,7 +179,7 @@ async function scrapeAndParseRecipes(
         );
 
         // Create recipe in database
-        // #142 (D09): a URL another live recipe holds is skipped and linked like a #135 match;
+        // #142: a URL another live recipe holds is skipped and linked like a #135 match;
         // under another name (a roundup page) it is stored with a NULL key and linked below.
         const candidate = { sourceUrl: page.url, name: parsed.name };
         const inserted = await withCanonicalConflict(candidate, (key) =>
@@ -303,7 +303,7 @@ export async function scrapeSingleRecipe(params: { chefId: string; url: string }
     );
 
     // Create recipe
-    // #142 (D09): a URL another live recipe holds is skipped and linked like a #135 match;
+    // #142: a URL another live recipe holds is skipped and linked like a #135 match;
     // under another name (a roundup page) it is stored with a NULL key and linked below.
     const candidate = { sourceUrl: params.url, name: parsed.name };
     const inserted = await withCanonicalConflict(candidate, (key) =>

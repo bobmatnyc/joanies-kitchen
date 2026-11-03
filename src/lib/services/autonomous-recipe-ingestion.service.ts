@@ -420,7 +420,7 @@ export class AutonomousRecipeIngestionService {
       if (isReleased(m, url)) return;
       let recipeId: string | null = null;
       try {
-        // #142 (D09): a URL another live recipe holds is a skipped duplicate, not a failure;
+        // #142: a URL another live recipe holds is a skipped duplicate, not a failure;
         // under another name (a roundup page) it is stored with a NULL key and counted as stored.
         const candidate = { sourceUrl: url, name: recipe.title };
         const stored = await withCanonicalConflict(candidate, (key) =>

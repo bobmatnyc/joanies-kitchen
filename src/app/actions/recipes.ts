@@ -287,7 +287,7 @@ export async function createRecipe(
     };
 
     // #220: refused in the insert statement itself for an account pending deletion.
-    // #142 (D09): a source URL another live recipe holds is refused as a #135 duplicate;
+    // #142: a source URL another live recipe holds is refused as a #135 duplicate;
     // under another name (a roundup page) the recipe is stored with a NULL key.
     const candidate = { sourceUrl: recipeData.source, name: recipeData.name };
     const inserted = await withCanonicalConflict(candidate, (key) =>
@@ -376,7 +376,7 @@ export async function updateRecipe(
 
     updateData.updated_at = new Date(); // #33: server-set; was `updatedAt`, not a column
 
-    // #142 (D09): a new source URL another live recipe holds is refused, the recipe unchanged;
+    // #142: a new source URL another live recipe holds is refused, the recipe unchanged;
     // when that recipe has another name than this one will have, the key is stored NULL.
     const candidate = { sourceUrl: updateData.source, name: updateData.name ?? recipe.name };
     const updated = await withCanonicalConflict(candidate, (key) =>

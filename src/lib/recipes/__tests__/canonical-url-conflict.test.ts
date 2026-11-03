@@ -128,7 +128,7 @@ const count = async (where = 'true') =>
 
 /**
  * Another user's private live recipe holding HELD: invisible to every #135 pre-check.
- * #142 ruling B: give it the incoming recipe's name for the duplicate outcome; the
+ * #142: give it the incoming recipe's name for the duplicate outcome; the
  * default name differs from every incoming one, so the write stores a NULL key.
  */
 async function seedHiddenHolder(id = 'held-1', name = 'Private Stew') {
@@ -316,7 +316,7 @@ describe('withCanonicalConflict', () => {
     expect(write).toHaveBeenCalledTimes(1);
   });
 
-  // #142 owner ruling B.
+  // #142: a roundup page holds several recipes under one URL.
   it('a holder of the same normalised name is a duplicate: one write, no NULL key', async () => {
     await seedHiddenHolder();
     const write = clashingWrite(async () => 'stored');
@@ -370,7 +370,7 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     expect(await count()).toBe(1);
   });
 
-  // #142 owner ruling B: a roundup page holds several recipes under one URL.
+  // #142: a roundup page holds several recipes under one URL.
   it('storeCrawledRecipe stores a recipe of another name with a NULL key, keeping source', async () => {
     await seedHiddenHolder();
     const res = await storeCrawledRecipe(crawled, { sourceUrl: HELD_VARIANT });
@@ -474,7 +474,7 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     expect(holder.rows).toEqual([{ chef_id: null }]);
   });
 
-  // #142 owner ruling B.
+  // #142: a roundup page holds several recipes under one URL.
   it('scrapeSingleRecipe stores a recipe of another name with a NULL key and links it, not the holder', async () => {
     await seedHiddenHolder();
     state.sessionUserId = ADMIN;
@@ -552,7 +552,7 @@ describe('user paths refuse the conflicting URL without naming a hidden recipe (
     expect(await count()).toBe(1);
   });
 
-  // #142 owner ruling B.
+  // #142: a roundup page holds several recipes under one URL.
   it('createRecipe stores a recipe of another name with a NULL key and its source', async () => {
     await seedHiddenHolder();
     state.sessionUserId = USER;
@@ -603,6 +603,19 @@ describe('user paths refuse the conflicting URL without naming a hidden recipe (
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
   });
 
+  // #142: a manual import re-fetches; another name under a held URL is stored with a NULL key.
+  it('uploadRecipeFromUrl (#142) stores a recipe of another name with a NULL key and its source', async () => {
+    await seedHiddenHolder(); // 'Private Stew'; the parser answers 'Scraped Soup'
+    state.sessionUserId = USER;
+    const res = await uploadRecipeFromUrl(HELD_VARIANT);
+    expect(res).toMatchObject({
+      success: true,
+      recipe: { name: 'Scraped Soup', source: HELD_VARIANT, canonical_source_url: null },
+    });
+    expect(await storedAtVariant()).toHaveLength(1);
+    expect(await count(`canonical_source_url = '${HELD}'`)).toBe(1);
+  });
+
   it('discoverRecipeFromUrl refuses a same-name holder instead of failing with the Postgres error', async () => {
     await seedHiddenHolder('held-1', 'Chicken Soup'); // the extraction answers 'Chicken soup'
     state.sessionUserId = USER;
@@ -611,7 +624,7 @@ describe('user paths refuse the conflicting URL without naming a hidden recipe (
     expect(await count()).toBe(1);
   });
 
-  // #142 owner ruling B.
+  // #142: a roundup page holds several recipes under one URL.
   it('discoverRecipeFromUrl stores a recipe of another name with a NULL key', async () => {
     await seedHiddenHolder();
     state.sessionUserId = USER;

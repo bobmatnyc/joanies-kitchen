@@ -232,7 +232,7 @@ export async function saveIngestedRecipe(recipeData: {
     };
 
     // Insert recipe into database
-    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate; under
+    // #142: a URL another live recipe holds is refused as a #135 duplicate; under
     // another name (a roundup page) the recipe is stored with a NULL key.
     const candidate = { sourceUrl: recipeData.source, name: newRecipe.name };
     const inserted = await withCanonicalConflict(candidate, (key) =>

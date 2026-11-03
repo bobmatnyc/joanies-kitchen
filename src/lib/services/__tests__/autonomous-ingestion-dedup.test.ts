@@ -206,6 +206,16 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
     client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
         canonical_source_url, is_public)
       VALUES ('held-1', 'other-1', '${name}', '[]', '[]', 'https://c.com/stew', 'https://c.com/stew', false)`);
+  /** Every recipe stored under the held URL, keyed or not. */
+  const rowsAtHeldUrl = async () =>
+    (
+      await client.query<{ id: string; name: string; canonical_source_url: string | null }>(
+        `SELECT id, name, canonical_source_url FROM "recipes"
+          WHERE source IN ('https://c.com/stew', $1) OR canonical_source_url = 'https://c.com/stew'
+          ORDER BY id`,
+        [held]
+      )
+    ).rows;
 
   it('counts a URL a hidden same-name live recipe holds as a skipped duplicate, not a failure, and stores the rest', async () => {
     await seedHolder('LAMB stew');
@@ -238,12 +248,16 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
     expect(n.rows[0].n).toBe(1);
   });
 
-  // #142 owner ruling B: a roundup page holds several recipes under one URL.
-  it('stores a recipe of another name under a held URL with a NULL key, counted as stored', async () => {
+  // #142: a roundup page holds several recipes under one URL; a manual run re-fetches it.
+  it('manual run (#142): stores a recipe of another name under a held URL with a NULL key, counted as stored', async () => {
     await seedHolder('Private Stew');
     const { service } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
 
-    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 5 });
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'manual',
+    });
 
     expect(result).toMatchObject({
       status: 'completed',
@@ -261,6 +275,29 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
       [item.rows[0].recipe_id]
     );
     expect(row.rows).toEqual([{ name: 'Lamb Stew', source: held, canonical_source_url: null }]);
+  });
+
+  // #142: the cron crawl skips a stored URL before any fetch, whatever the holder's name.
+  it('cron run (#142): skips a URL a recipe of another name holds, and inserts no row for it', async () => {
+    await seedHolder('Private Stew');
+    const { service, extractRecipe } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'daily',
+    });
+
+    expect(extractRecipe.mock.calls.map(([u]) => u)).toEqual([fresh]);
+    expect(result).toMatchObject({
+      status: 'completed',
+      recipesStored: 1,
+      recipesSkipped: 1,
+      errors: [],
+    });
+    expect(await rowsAtHeldUrl()).toEqual([
+      { id: 'held-1', name: 'Private Stew', canonical_source_url: 'https://c.com/stew' },
+    ]);
   });
 });
 

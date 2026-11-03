@@ -12,7 +12,7 @@
  * `source-url` duplicate, the same shape the #135 pre-check answers. Any other
  * error is rethrown unchanged. Callers then skip (and link, where they already
  * link a #135 duplicate) exactly as they do for a pre-check match.
- * Owner ruling B (2026-11-03): a roundup page holds several recipes under one
+ * #142: a roundup page holds several recipes under one
  * URL, so a holder with a different name is not a duplicate. The write is then
  * repeated with a NULL `canonical_source_url` and stored.
  * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`,
@@ -95,9 +95,8 @@ async function liveHolder(url: string, database?: DedupDb): Promise<DuplicateMat
 
 /**
  * Why: every recipe write that sets `canonical_source_url` must treat the
- * D09 unique violation as a duplicate, never as a crash. A roundup page holds
- * several recipes under one URL, and only one of them can hold the key (#142,
- * owner ruling B).
+ * unique-index violation as a duplicate, never as a crash. A roundup page holds
+ * several recipes under one URL, and only one of them can hold the key (#142).
  * What: runs `write({})`. On success answers `{ ok: true, value }`. On a 23505
  * on `CANONICAL_SOURCE_URL_UNIQUE_INDEX`, loads the live holder of
  * `canonicalizeSourceUrl(candidate.sourceUrl)`:

@@ -145,7 +145,7 @@ export async function uploadRecipeFromUrl(url: string) {
 
     // Create recipe
     // #220: refused in the insert statement itself; the scrape and parse above still run.
-    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate; under
+    // #142: a URL another live recipe holds is refused as a #135 duplicate; under
     // another name (a roundup page) the recipe is stored with a NULL key.
     const inserted = await withCanonicalConflict({ sourceUrl: url, name: parsed.name }, (key) =>
       insertUnlessPendingDeletion(

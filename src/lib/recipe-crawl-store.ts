@@ -258,7 +258,7 @@ async function trySaveEmbedding(recipeId: string, embedding: RecipeEmbeddingResu
  * Why: both crawls store a recipe the same way; only their provenance differs (#142).
  * What: skips a duplicate (#135), rates the recipe, embeds it, inserts it, and
  * saves the embedding. An embedding failure stores the recipe without one; a
- * URL a live recipe of the same name already holds (the D09 unique index, #142) is a
+ * URL a live recipe of the same name already holds (the unique index, #142) is a
  * skipped duplicate, and one held under another name is stored with a NULL key; a
  * DB failure returns `success: false` with the Postgres error (#12).
  * `searchQuery` fills `search_query`; `week` fills `discovery_week`,
@@ -311,7 +311,7 @@ export async function storeCrawledRecipe(
       );
     }
 
-    // #142 (D09): a URL another live recipe holds is skipped like a #135 pre-check match;
+    // #142: a URL another live recipe holds is skipped like a #135 pre-check match;
     // under another name (a roundup page) the recipe is stored with a NULL key.
     const candidate = { sourceUrl: metadata.sourceUrl, name: recipe.name };
     const inserted = await withCanonicalConflict(candidate, (key) =>

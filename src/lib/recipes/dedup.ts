@@ -52,7 +52,7 @@ export function normalizeRecipeTitle(title: string | null | undefined): string {
 }
 
 /**
- * #142 (owner ruling B, 2026-11-03): true when two recipe names are the same
+ * #142: true when two recipe names are the same
  * recipe for the source-URL rule. One URL may hold several recipes (a roundup
  * page), so a URL match counts as a duplicate only when the names match.
  * Both names go through `normalizeRecipeTitle`. A name that normalises to ''
