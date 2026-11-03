@@ -600,7 +600,9 @@ describe('Tavily query tuning — single-recipe bias', () => {
     const chefQueries = queries.filter((q) => q.includes('site:'));
     expect(chefQueries.length).toBeGreaterThanOrEqual(2);
     for (const q of chefQueries) {
-      expect(q).toMatch(/site:\w+\.\w+/);
+      // CI red on PR #278: hyphenated chef domains
+      // A hostname is dot-separated labels of [a-z0-9-]; \w excludes the hyphen (bryant-terry.com).
+      expect(q).toMatch(/site:[a-z0-9-]+(\.[a-z0-9-]+)+/i);
     }
   });
 });
