@@ -49,7 +49,7 @@ export async function triggerManualCrawl(): Promise<TriggerCrawlResult> {
   after(async () => {
     try {
       const result = await getAutonomousRecipeIngestionService().runDailyDiscovery({
-        runType: 'manual',
+        runType: 'manual', // #142 (D7c): an admin run re-fetches known URLs
         deadlineAt,
       });
       console.log(`[CrawlMonitor] Manual run ${result.runId} finished: ${result.status}`);

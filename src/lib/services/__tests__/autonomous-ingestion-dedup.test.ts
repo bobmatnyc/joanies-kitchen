@@ -48,6 +48,7 @@ import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { applyMigration0008 } from '@/lib/recipes/__tests__/migration-0008';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import { skipsKnownUrls } from '@/lib/services/known-url-skip';
 import type { ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
 let client: PGlite;
@@ -207,7 +208,12 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
     const fresh = 'https://c.com/beef-stew';
     const { service } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
 
-    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 5 });
+    // #142 (D7c): a manual run re-fetches, so the URL reaches the insert and the index.
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'manual',
+    });
 
     expect(result).toMatchObject({
       status: 'completed',
@@ -227,5 +233,73 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
       `SELECT count(*)::int AS n FROM "recipes" WHERE canonical_source_url = 'https://c.com/stew'`
     );
     expect(n.rows[0].n).toBe(1);
+  });
+});
+
+describe('known-URL skip: cron only (#142 D7c)', () => {
+  const known = 'https://www.a.com/chicken-soup/';
+  const knownVariant = 'https://a.com/chicken-soup?utm_source=newsletter';
+
+  beforeEach(async () => {
+    // The key a recipe insert writes (9fc9245); the seed row of beforeEach has none.
+    await client.exec(
+      `UPDATE "recipes" SET canonical_source_url = 'https://a.com/chicken-soup' WHERE id = 'seed-1'`
+    );
+  });
+
+  it.each([
+    ['daily', true],
+    ['manual', false],
+    ['local', false],
+  ] as const)('skipsKnownUrls(%s) is %s', (runType, expected) => {
+    expect(skipsKnownUrls(runType)).toBe(expected);
+  });
+
+  it('cron run: a URL a live recipe holds is skipped without a fetch, and the count is logged', async () => {
+    const log = vi.spyOn(console, 'log');
+    const { service, extractRecipe } = buildService({ [knownVariant]: 'Chicken Soup' });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'daily',
+    });
+
+    expect(extractRecipe).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ recipesStored: 0, recipesSkipped: 1, errors: [] });
+    expect(log.mock.calls.flat().join('\n')).toContain('skipped 1 known URL(s) without fetching');
+  });
+
+  it('manual run: the same known URL is fetched again, and no duplicate is stored', async () => {
+    const { service, extractRecipe } = buildService({ [knownVariant]: 'Chicken Soup' });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'manual',
+    });
+
+    expect(extractRecipe).toHaveBeenCalledTimes(1);
+    expect(extractRecipe).toHaveBeenCalledWith(knownVariant);
+    expect(result).toMatchObject({ recipesStored: 0, recipesSkipped: 1, errors: [] });
+    const n = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"');
+    expect(n.rows[0].n).toBe(1);
+  });
+
+  it('cron run: an unknown URL is still fetched and stored', async () => {
+    const fresh = 'https://a.com/beef-stew';
+    const { service, extractRecipe } = buildService({
+      [known]: 'Chicken Soup',
+      [fresh]: 'Beef Stew',
+    });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'daily',
+    });
+
+    expect(extractRecipe.mock.calls.map(([u]) => u)).toEqual([fresh]);
+    expect(result).toMatchObject({ recipesStored: 1, recipesSkipped: 1 });
   });
 });

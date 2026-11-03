@@ -45,7 +45,6 @@ import {
 } from './autonomous-ingestion-run';
 import {
   buildRunResult,
-  checkUrlDuplicates,
   determineRunStatus,
   type IngestionRunResult,
   type RunMetrics,
@@ -60,6 +59,7 @@ import {
   isTrackedRunId,
   type RunItemOutcome,
 } from './discovery-run-store';
+import { findKnownUrls, skipsKnownUrls } from './known-url-skip';
 import {
   type DiscoveredRecipeUrl,
   getRecipeDiscoveryService,
@@ -242,7 +242,11 @@ export class AutonomousRecipeIngestionService {
         }
 
         // Step 3: Deduplicate against existing recipes.source + chefRecipes.original_url
-        const existingUrls = await checkUrlDuplicates(discoveredUrls.map((d) => d.url));
+        // #142 (D7c): only the cron run skips a known URL here; a manual run re-fetches.
+        const existingUrls = await findKnownUrls(
+          discoveredUrls.map((d) => d.url),
+          runType
+        );
         const newUrls = discoveredUrls.filter((d) => !existingUrls.has(d.url));
 
         for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
@@ -256,7 +260,7 @@ export class AutonomousRecipeIngestionService {
         }
         if (newUrls.length < m.urlsDiscovered) {
           console.log(
-            `[AutonomousIngestion] Skipped ${m.urlsDiscovered - newUrls.length} duplicate URLs`
+            `[AutonomousIngestion] #142: skipped ${m.urlsDiscovered - newUrls.length} known URL(s) without fetching (${runType} run)`
           );
         }
 
@@ -291,7 +295,7 @@ export class AutonomousRecipeIngestionService {
           }
 
           const processed = await raceDeadline(
-            this.processUrl(urlsToProcess[i], runId, isDryRun, m),
+            this.processUrl(urlsToProcess[i], runId, isDryRun, m, skipsKnownUrls(runType)),
             deadlineAt
           );
           if (processed === DEADLINE_HIT) {
@@ -354,7 +358,8 @@ export class AutonomousRecipeIngestionService {
     discovered: DiscoveredRecipeUrl,
     runId: string,
     isDryRun: boolean,
-    m: RunMetrics
+    m: RunMetrics,
+    skipKnownUrl = true
   ): Promise<void> {
     const url = discovered.url;
     let tier = 'none';
@@ -363,7 +368,9 @@ export class AutonomousRecipeIngestionService {
 
     try {
       // #135: a URL variant of a stored source is skipped before the paid extraction.
-      if (await skippedAsDuplicate(m, record, { sourceUrl: url })) return;
+      // #142 (D7c): the cron run only; a manual run fetches, and the checks after
+      // extraction and the D09 unique index still refuse a duplicate insert.
+      if (skipKnownUrl && (await skippedAsDuplicate(m, record, { sourceUrl: url }))) return;
 
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
       const recipe = await this.extractionService.extractRecipe(url);
