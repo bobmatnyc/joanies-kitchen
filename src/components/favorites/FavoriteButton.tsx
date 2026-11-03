@@ -20,6 +20,8 @@ const NO_USER_MESSAGE = 'Sign in to save favorites. If you are signed in, reload
 
 interface FavoriteButtonProps {
   recipeId: string;
+  /** #277: recipe title, used in the accessible name. */
+  recipeName?: string;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showLabel?: boolean;
@@ -27,6 +29,7 @@ interface FavoriteButtonProps {
 
 export function FavoriteButton({
   recipeId,
+  recipeName,
   variant = 'ghost',
   size = 'icon',
   showLabel = false,
@@ -58,6 +61,12 @@ export function FavoriteButton({
   const blockedMessage =
     userId === null ? NO_USER_MESSAGE : loadFailed ? LOAD_FAILED_MESSAGE : null;
 
+  // #277: the icon-only heart had no accessible name or pressed state.
+  const subject = recipeName?.trim() || 'recipe';
+  const accessibleName = favorited
+    ? `Remove ${subject} from favorites`
+    : `Save ${subject} to favorites`;
+
   const handleToggle = async () => {
     if (blockedMessage) {
       toast.error(blockedMessage);
@@ -88,8 +97,13 @@ export function FavoriteButton({
 
   if (isChecking) {
     return (
-      <Button variant={variant} size={size} disabled>
-        <Heart className="w-5 h-5" />
+      <Button
+        variant={variant}
+        size={size}
+        disabled
+        aria-label={`Loading favorite status for ${subject}`}
+      >
+        <Heart className="w-5 h-5" aria-hidden="true" />
         {showLabel && <span className="ml-2">Loading...</span>}
       </Button>
     );
@@ -104,6 +118,8 @@ export function FavoriteButton({
       // #269: aria-disabled, not disabled: ui/button gives disabled pointer-events-none,
       // which hides the title and lets a click through to the card link.
       aria-disabled={blockedMessage !== null}
+      aria-label={accessibleName}
+      aria-pressed={favorited}
       title={blockedMessage ?? undefined}
       className={
         favorited
@@ -114,6 +130,7 @@ export function FavoriteButton({
       }
     >
       <Heart
+        aria-hidden="true"
         className={`w-5 h-5 transition-all ${
           favorited ? 'fill-current' : ''
         } ${isLoading ? 'animate-pulse' : ''}`}

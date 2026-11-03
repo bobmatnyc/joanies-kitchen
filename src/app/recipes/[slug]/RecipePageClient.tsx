@@ -499,7 +499,7 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
         {/* Tool Buttons Row */}
         <div className="flex flex-wrap gap-2 mb-6">
           {/* Engagement Actions */}
-          {signedIn && <FavoriteButton recipeId={recipe.id} />}
+          {signedIn && <FavoriteButton recipeId={recipe.id} recipeName={recipe.name} />}
           {signedIn && <AddToCollectionButton recipeId={recipe.id} />}
           {!isOwner && (
             <CloneRecipeButton

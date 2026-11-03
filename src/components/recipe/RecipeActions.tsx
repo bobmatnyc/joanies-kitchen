@@ -34,7 +34,7 @@ export function RecipeActions({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Favorite - only for signed-in users */}
-      {signedIn && <FavoriteButton recipeId={recipeId} />}
+      {signedIn && <FavoriteButton recipeId={recipeId} recipeName={recipeName} />}
 
       {/* Add to Collection - only for signed-in users */}
       {signedIn && <AddToCollectionButton recipeId={recipeId} />}
