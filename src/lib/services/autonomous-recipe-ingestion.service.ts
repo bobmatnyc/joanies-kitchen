@@ -420,9 +420,11 @@ export class AutonomousRecipeIngestionService {
       if (isReleased(m, url)) return;
       let recipeId: string | null = null;
       try {
-        // #142 (D09): a URL another live recipe holds is a skipped duplicate, not a failure.
-        const stored = await withCanonicalConflict(url, () =>
-          storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery)
+        // #142 (D09): a URL another live recipe holds is a skipped duplicate, not a failure;
+        // under another name (a roundup page) it is stored with a NULL key and counted as stored.
+        const candidate = { sourceUrl: url, name: recipe.title };
+        const stored = await withCanonicalConflict(candidate, (key) =>
+          storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery, key)
         );
         if (!stored.ok) {
           await recordDuplicateSkip(m, record, stored.duplicate, url);

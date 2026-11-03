@@ -318,8 +318,10 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
     console.log(`[Ingest API] Saving recipe to database`);
     // #220: refused in the insert statement itself for an account pending deletion;
     // the embedding below is saved only when the recipe landed.
-    // #142 (D09): a URL another live recipe holds answers as a #135 duplicate (409).
-    const inserted = await withCanonicalConflict(url, () =>
+    // #142 (D09): a URL another live recipe holds answers as a #135 duplicate (409); under
+    // another name (a roundup page) the recipe is stored with a NULL key.
+    const candidate = { sourceUrl: url, name: parsedRecipe.name };
+    const inserted = await withCanonicalConflict(candidate, (key) =>
       insertUnlessPendingDeletion(
         recipes,
         {
@@ -355,6 +357,7 @@ async function ingestSingleRecipe(url: string, userId: string): Promise<RecipeIn
           embedding_model: embeddingResult?.modelName ?? null,
           created_at: new Date(),
           updated_at: new Date(),
+          ...key,
         },
         userId
       )

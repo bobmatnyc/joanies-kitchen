@@ -199,13 +199,16 @@ describe('AutonomousRecipeIngestionService duplicate guard (#135)', () => {
 });
 
 describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', () => {
-  it('counts a URL a hidden live recipe holds as a skipped duplicate, not a failure, and stores the rest', async () => {
-    // Another user's private recipe: the #135 pre-checks cannot see it, so the insert hits the index.
-    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+  const held = 'https://c.com/stew?utm_source=x';
+  const fresh = 'https://c.com/beef-stew';
+  /** Another user's private recipe: the #135 pre-checks cannot see it, so the insert hits the index. */
+  const seedHolder = (name: string) =>
+    client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
         canonical_source_url, is_public)
-      VALUES ('held-1', 'other-1', 'Private Stew', '[]', '[]', 'https://c.com/stew', 'https://c.com/stew', false)`);
-    const held = 'https://c.com/stew?utm_source=x';
-    const fresh = 'https://c.com/beef-stew';
+      VALUES ('held-1', 'other-1', '${name}', '[]', '[]', 'https://c.com/stew', 'https://c.com/stew', false)`);
+
+  it('counts a URL a hidden same-name live recipe holds as a skipped duplicate, not a failure, and stores the rest', async () => {
+    await seedHolder('LAMB stew');
     const { service } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
 
     // #142 (D7c): a manual run re-fetches, so the URL reaches the insert and the index.
@@ -233,6 +236,31 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
       `SELECT count(*)::int AS n FROM "recipes" WHERE canonical_source_url = 'https://c.com/stew'`
     );
     expect(n.rows[0].n).toBe(1);
+  });
+
+  // #142 owner ruling B: a roundup page holds several recipes under one URL.
+  it('stores a recipe of another name under a held URL with a NULL key, counted as stored', async () => {
+    await seedHolder('Private Stew');
+    const { service } = buildService({ [held]: 'Lamb Stew', [fresh]: 'Beef Stew' });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 5 });
+
+    expect(result).toMatchObject({
+      status: 'completed',
+      recipesStored: 2,
+      recipesSkipped: 0,
+      errors: [],
+    });
+    const item = await client.query<{ outcome: string; recipe_id: string | null }>(
+      'SELECT outcome, recipe_id FROM "recipe_discovery_run_items" WHERE url = $1',
+      [held]
+    );
+    expect(item.rows[0]).toMatchObject({ outcome: 'stored', recipe_id: expect.any(String) });
+    const row = await client.query<{ name: string; source: string; canonical_source_url: null }>(
+      'SELECT name, source, canonical_source_url FROM "recipes" WHERE id = $1',
+      [item.rows[0].recipe_id]
+    );
+    expect(row.rows).toEqual([{ name: 'Lamb Stew', source: held, canonical_source_url: null }]);
   });
 });
 

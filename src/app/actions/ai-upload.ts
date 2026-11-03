@@ -145,8 +145,9 @@ export async function uploadRecipeFromUrl(url: string) {
 
     // Create recipe
     // #220: refused in the insert statement itself; the scrape and parse above still run.
-    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate.
-    const inserted = await withCanonicalConflict(url, () =>
+    // #142 (D09): a URL another live recipe holds is refused as a #135 duplicate; under
+    // another name (a roundup page) the recipe is stored with a NULL key.
+    const inserted = await withCanonicalConflict({ sourceUrl: url, name: parsed.name }, (key) =>
       insertUnlessPendingDeletion(
         recipes,
         {
@@ -170,6 +171,7 @@ export async function uploadRecipeFromUrl(url: string) {
           model_used: MODELS.CLAUDE_SONNET_4_5,
           source: url,
           canonical_source_url: canonicalizeSourceUrl(url), // #142: indexed dedup key
+          ...key,
         },
         userId
       )

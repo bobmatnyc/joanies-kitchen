@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalizeSourceUrl,
+  isSameRecipeName,
   matchDuplicate,
   normalizeRecipeTitle,
   sourceHost,
@@ -118,7 +119,7 @@ describe('matchDuplicate', () => {
       matchDuplicate({ sourceUrl: 'https://a.com/other', title: 'Chicken Soup' }, rows, user)
     ).toBeNull();
     expect(
-      matchDuplicate({ sourceUrl: 'https://a.com/chicken-soup', title: 'x' }, rows, user)
+      matchDuplicate({ sourceUrl: 'https://a.com/chicken-soup', title: 'CHICKEN soup' }, rows, user)
     ).toMatchObject({ id: 'r1', reason: 'source-url' });
   });
 
@@ -131,10 +132,55 @@ describe('matchDuplicate', () => {
   it('prefers a URL match over an earlier title match', () => {
     const both = [
       { id: 'old', name: 'Stew', source: 'https://b.com/old-stew' },
-      { id: 'url', name: 'Other', source: 'https://b.com/stew' },
+      { id: 'url', name: 'STEW!', source: 'https://b.com/stew' },
     ];
     const m = matchDuplicate({ sourceUrl: 'https://b.com/stew/', title: 'Stew' }, both, BG);
     expect(m).toMatchObject({ id: 'url', reason: 'source-url' });
+  });
+
+  // #142 owner ruling B: one roundup URL holds several recipes.
+  describe('a source-URL match needs the same name (#142)', () => {
+    const roundup = [
+      { id: 'first', name: 'Tomato Soup', source: 'https://r.com/10-soups' },
+      { id: 'second', name: 'Leek Soup', source: 'https://r.com/10-soups/' },
+    ];
+
+    it.each([
+      ['background', BG],
+      ['user', { titleRule: false }],
+    ])('%s: another name under the URL is not a duplicate', (_label, rule) => {
+      expect(
+        matchDuplicate({ sourceUrl: 'https://r.com/10-soups', title: 'Pea Soup' }, roundup, rule)
+      ).toBeNull();
+    });
+
+    it('matches the row of the same normalised name, not the first row under the URL', () => {
+      const m = matchDuplicate(
+        { sourceUrl: 'https://www.r.com/10-soups?utm_source=x', title: '  leek   SOUP! ' },
+        roundup,
+        BG
+      );
+      expect(m).toMatchObject({ id: 'second', reason: 'source-url' });
+    });
+
+    it('a check without a title (before the scrape) still matches on the URL alone', () => {
+      expect(matchDuplicate({ sourceUrl: 'https://r.com/10-soups' }, roundup, BG)).toMatchObject({
+        id: 'first',
+        reason: 'source-url',
+      });
+    });
+  });
+
+  describe('isSameRecipeName (#142)', () => {
+    it.each([
+      ['case, spaces and punctuation', 'Leek Soup', '  LEEK   soup!! ', true],
+      ['an apostrophe', "Grandma's Pie", 'grandmas pie', true],
+      ['different words', 'Leek Soup', 'Pea Soup', false],
+      ['an unknown incoming name', '', 'Pea Soup', true],
+      ['a null incoming name', null, 'Pea Soup', true],
+    ])('%s', (_label, a, b, expected) => {
+      expect(isSameRecipeName(a, b)).toBe(expected);
+    });
   });
 
   it('never matches without a usable candidate URL or on an empty title', () => {

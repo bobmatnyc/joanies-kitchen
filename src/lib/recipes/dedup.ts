@@ -9,7 +9,7 @@
  * title match a duplicate.
  * What: two pure normalisers plus `findDuplicateRecipe`, which applies the rule:
  * a candidate duplicates an existing recipe when (a) the canonical source URLs
- * are equal, or (b) with `titleRule` on, the normalised titles are equal AND the
+ * are equal and, when the candidate has a title, the names match (#142), or (b) with `titleRule` on, the normalised titles are equal AND the
  * source hosts are equal. A title match across different hosts is NOT a
  * duplicate. User-initiated imports turn `titleRule` off: on user-submitted
  * hosts (food.com, allrecipes) different recipes share common titles.
@@ -49,6 +49,21 @@ export function normalizeRecipeTitle(title: string | null | undefined): string {
     .replace(/['‘’ʼ`´]/g, '')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+}
+
+/**
+ * #142 (owner ruling B, 2026-11-03): true when two recipe names are the same
+ * recipe for the source-URL rule. One URL may hold several recipes (a roundup
+ * page), so a URL match counts as a duplicate only when the names match.
+ * Both names go through `normalizeRecipeTitle`. A name that normalises to ''
+ * is unknown and matches any name, so an unnamed write keeps the old rule.
+ */
+export function isSameRecipeName(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  const left = normalizeRecipeTitle(a);
+  return left === '' || left === normalizeRecipeTitle(b);
 }
 
 /**
@@ -143,6 +158,9 @@ export interface DuplicateCandidate {
 /**
  * Applies the duplicate rule to rows already loaded. A source-URL match wins
  * over a title match; within each kind the first row wins, so pass rows oldest first.
+ * #142: a source-URL match also needs `isSameRecipeName(candidate.title, row.name)`,
+ * whatever `titleRule` says; a candidate without a title (a check before the
+ * scrape) matches on the URL alone.
  */
 export function matchDuplicate(
   candidate: DuplicateCandidate,
@@ -158,7 +176,10 @@ export function matchDuplicate(
   for (const row of rows) {
     const rowUrl = canonicalizeSourceUrl(row.source);
     if (!rowUrl) continue;
-    if (rowUrl === url) return { ...pick(row), reason: 'source-url' };
+    // #142: another recipe from the same roundup URL is not a duplicate.
+    if (rowUrl === url && isSameRecipeName(candidate.title, row.name)) {
+      return { ...pick(row), reason: 'source-url' };
+    }
     if (
       !titleMatch &&
       title !== '' &&
