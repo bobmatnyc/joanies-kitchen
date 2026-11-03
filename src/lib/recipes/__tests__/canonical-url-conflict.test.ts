@@ -511,9 +511,7 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
       });
       const [stored] = await storedAtVariant();
       expect(stored?.canonical_source_url).toBeNull();
-      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([
-        stored?.id,
-      ]);
+      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([stored?.id]);
     }
   );
 
