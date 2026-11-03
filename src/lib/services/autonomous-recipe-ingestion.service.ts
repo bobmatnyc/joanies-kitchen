@@ -421,10 +421,14 @@ export class AutonomousRecipeIngestionService {
       let recipeId: string | null = null;
       try {
         // #142: a URL another live recipe holds is a skipped duplicate, not a failure;
-        // under another name (a roundup page) it is stored with a NULL key and counted as stored.
+        // under another name (a roundup page) a manual run stores it with a NULL key.
+        // #142: the cron run skips it under any name, as its pre-check does.
         const candidate = { sourceUrl: url, name: recipe.title };
-        const stored = await withCanonicalConflict(candidate, (key) =>
-          storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery, key)
+        const stored = await withCanonicalConflict(
+          candidate,
+          (key) => storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery, key),
+          undefined,
+          { skipOtherName: skipKnownUrl }
         );
         if (!stored.ok) {
           await recordDuplicateSkip(m, record, stored.duplicate, url);

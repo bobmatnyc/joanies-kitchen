@@ -70,6 +70,15 @@ export interface CanonicalWriteCandidate {
  */
 export type CanonicalKeyOverride = { canonical_source_url?: null };
 
+/** How `withCanonicalConflict` treats a holder of the URL under another name. */
+export interface CanonicalConflictOptions {
+  /**
+   * #142: the cron crawl skips every stored URL, so a holder of any name is a
+   * skipped duplicate and no NULL-key row is written. Default false (manual imports).
+   */
+  skipOtherName?: boolean;
+}
+
 export type CanonicalWriteResult<T> =
   /** `storedWithoutKey`: the live holder of the URL; the row was written with a NULL key. */
   | { ok: true; value: T; storedWithoutKey?: DuplicateMatch }
@@ -103,6 +112,8 @@ async function liveHolder(url: string, database?: DedupDb): Promise<DuplicateMat
  * - same name (`isSameRecipeName`): logs the skip and answers `{ ok: false, duplicate }`;
  * - different name: logs it, runs `write({ canonical_source_url: null })` and
  *   answers `{ ok: true, value, storedWithoutKey: holder }`. `source` is kept.
+ *   With `options.skipOtherName` (the cron crawl) it answers
+ *   `{ ok: false, duplicate }` instead, and no second write runs.
  *
  * Rethrows the original error when it is any other error, or when the holder
  * cannot be loaded (deleted in between, or the lookup failed), so nothing is
@@ -113,7 +124,8 @@ async function liveHolder(url: string, database?: DedupDb): Promise<DuplicateMat
 export async function withCanonicalConflict<T>(
   candidate: CanonicalWriteCandidate,
   write: (key: CanonicalKeyOverride) => Promise<T>,
-  database?: DedupDb
+  database?: DedupDb,
+  options: CanonicalConflictOptions = {}
 ): Promise<CanonicalWriteResult<T>> {
   try {
     return { ok: true, value: await write({}) };
@@ -125,7 +137,8 @@ export async function withCanonicalConflict<T>(
       return null;
     });
     if (!holder) throw error;
-    if (isSameRecipeName(candidate.name, holder.name)) {
+    // #142: the cron crawl never stores a held URL, whatever the holder's name.
+    if (options.skipOtherName || isSameRecipeName(candidate.name, holder.name)) {
       console.warn(`[dedup] #142: ${url} is already live as ${holder.id}; write skipped`);
       return { ok: false, duplicate: holder };
     }

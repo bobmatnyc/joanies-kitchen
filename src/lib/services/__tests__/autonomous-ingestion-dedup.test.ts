@@ -11,8 +11,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 const state = vi.hoisted(() => ({
   db: undefined as unknown,
-  /** Runs inside every duplicate lookup, before it resolves; may throw. */
-  duringLookup: undefined as (() => void) | undefined,
+  /** Runs inside every duplicate lookup, before it resolves; may throw or be async. */
+  duringLookup: undefined as (() => void | Promise<void>) | undefined,
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -26,7 +26,7 @@ vi.mock('@/lib/recipes/dedup', async (importOriginal) => {
     ...actual,
     findDuplicateRecipe: async (...args: Parameters<typeof actual.findDuplicateRecipe>) => {
       const match = await actual.findDuplicateRecipe(...args);
-      state.duringLookup?.();
+      await state.duringLookup?.();
       return match;
     },
   };
@@ -295,6 +295,39 @@ describe('AutonomousRecipeIngestionService canonical URL conflict (#142 D09)', (
       recipesSkipped: 1,
       errors: [],
     });
+    expect(await rowsAtHeldUrl()).toEqual([
+      { id: 'held-1', name: 'Private Stew', canonical_source_url: 'https://c.com/stew' },
+    ]);
+  });
+  // #142: a holder that appears after the cron pre-check (here a manual import landing
+  // mid-run, invisible to the #135 checks) reaches the insert; the cron run still skips it.
+  it('cron run (#142): a URL another-name recipe takes between the pre-check and the insert is skipped, with no NULL-key row', async () => {
+    let seeded = false;
+    state.duringLookup = async () => {
+      if (seeded) return;
+      seeded = true;
+      await seedHolder('Private Stew');
+    };
+    const { service, extractRecipe } = buildService({ [held]: 'Lamb Stew' });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 5,
+      runType: 'daily',
+    });
+
+    expect(extractRecipe.mock.calls.map(([u]) => u)).toEqual([held]);
+    expect(result).toMatchObject({
+      status: 'completed',
+      recipesStored: 0,
+      recipesSkipped: 1,
+      errors: [],
+    });
+    const item = await client.query<{ outcome: string; recipe_id: string | null }>(
+      'SELECT outcome, recipe_id FROM "recipe_discovery_run_items" WHERE url = $1',
+      [held]
+    );
+    expect(item.rows).toEqual([{ outcome: 'skipped_duplicate', recipe_id: 'held-1' }]);
     expect(await rowsAtHeldUrl()).toEqual([
       { id: 'held-1', name: 'Private Stew', canonical_source_url: 'https://c.com/stew' },
     ]);
