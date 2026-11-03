@@ -12,7 +12,11 @@
  * `source-url` duplicate, the same shape the #135 pre-check answers. Any other
  * error is rethrown unchanged. Callers then skip (and link, where they already
  * link a #135 duplicate) exactly as they do for a pre-check match.
- * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`
+ * #142: a roundup page holds several recipes under one
+ * URL, so a holder with a different name is not a duplicate. The write is then
+ * repeated with a NULL `canonical_source_url` and stored.
+ * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`,
+ * `src/lib/services/__tests__/autonomous-ingestion-dedup.test.ts`
  */
 
 import { and, eq, isNull, type SQL, sql } from 'drizzle-orm';
@@ -23,6 +27,7 @@ import {
   type DedupDb,
   type DuplicateMatch,
   duplicateSkipReason,
+  isSameRecipeName,
 } from '@/lib/recipes/dedup';
 
 /** The index migration 0008 creates; Postgres reports it as the violated constraint. */
@@ -50,8 +55,33 @@ export class CanonicalUrlConflictError extends Error {
   }
 }
 
+/**
+ * The write's own URL and recipe name. `name` is the name the row has after
+ * the write; it decides whether a holder of the URL is the same recipe.
+ */
+export interface CanonicalWriteCandidate {
+  sourceUrl: string | null | undefined;
+  name: string | null | undefined;
+}
+
+/**
+ * Spread last into the written values. `{}` on the first attempt; on a
+ * different-name clash, `{ canonical_source_url: null }`.
+ */
+export type CanonicalKeyOverride = { canonical_source_url?: null };
+
+/** How `withCanonicalConflict` treats a holder of the URL under another name. */
+export interface CanonicalConflictOptions {
+  /**
+   * #142: the cron crawl skips every stored URL, so a holder of any name is a
+   * skipped duplicate and no NULL-key row is written. Default false (manual imports).
+   */
+  skipOtherName?: boolean;
+}
+
 export type CanonicalWriteResult<T> =
-  | { ok: true; value: T }
+  /** `storedWithoutKey`: the live holder of the URL; the row was written with a NULL key. */
+  | { ok: true; value: T; storedWithoutKey?: DuplicateMatch }
   | { ok: false; duplicate: DuplicateMatch };
 
 async function liveHolder(url: string, database?: DedupDb): Promise<DuplicateMatch | null> {
@@ -74,32 +104,50 @@ async function liveHolder(url: string, database?: DedupDb): Promise<DuplicateMat
 
 /**
  * Why: every recipe write that sets `canonical_source_url` must treat the
- * D09 unique violation as a duplicate, never as a crash or a stored recipe.
- * What: runs `write`. On success answers `{ ok: true, value }`. On a 23505 on
- * `CANONICAL_SOURCE_URL_UNIQUE_INDEX`, logs the skip and answers
- * `{ ok: false, duplicate }` naming the live holder of
- * `canonicalizeSourceUrl(sourceUrl)`. Rethrows the original error when it is
- * any other error, or when the holder cannot be loaded (deleted in between,
- * or the lookup failed), so that case is reported as a failure.
- * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`
+ * unique-index violation as a duplicate, never as a crash. A roundup page holds
+ * several recipes under one URL, and only one of them can hold the key (#142).
+ * What: runs `write({})`. On success answers `{ ok: true, value }`. On a 23505
+ * on `CANONICAL_SOURCE_URL_UNIQUE_INDEX`, loads the live holder of
+ * `canonicalizeSourceUrl(candidate.sourceUrl)`:
+ * - same name (`isSameRecipeName`): logs the skip and answers `{ ok: false, duplicate }`;
+ * - different name: logs it, runs `write({ canonical_source_url: null })` and
+ *   answers `{ ok: true, value, storedWithoutKey: holder }`. `source` is kept.
+ *   With `options.skipOtherName` (the cron crawl) it answers
+ *   `{ ok: false, duplicate }` instead, and no second write runs.
+ *
+ * Rethrows the original error when it is any other error, or when the holder
+ * cannot be loaded (deleted in between, or the lookup failed), so nothing is
+ * stored with a NULL key unseen. An error from the second write is rethrown.
+ * Test: `src/lib/recipes/__tests__/canonical-url-conflict.test.ts`,
+ * `src/lib/services/__tests__/autonomous-ingestion-dedup.test.ts`
  */
 export async function withCanonicalConflict<T>(
-  sourceUrl: string | null | undefined,
-  write: () => Promise<T>,
-  database?: DedupDb
+  candidate: CanonicalWriteCandidate,
+  write: (key: CanonicalKeyOverride) => Promise<T>,
+  database?: DedupDb,
+  options: CanonicalConflictOptions = {}
 ): Promise<CanonicalWriteResult<T>> {
   try {
-    return { ok: true, value: await write() };
+    return { ok: true, value: await write({}) };
   } catch (error) {
-    const url = canonicalizeSourceUrl(sourceUrl);
+    const url = canonicalizeSourceUrl(candidate.sourceUrl);
     if (!url || !isCanonicalSourceUrlConflict(error)) throw error;
-    const duplicate = await liveHolder(url, database).catch((lookupErr: unknown) => {
+    const holder = await liveHolder(url, database).catch((lookupErr: unknown) => {
       console.error(`[dedup] #142: holder lookup failed for ${url}:`, lookupErr);
       return null;
     });
-    if (!duplicate) throw error;
-    console.warn(`[dedup] #142: ${url} is already live as ${duplicate.id}; write skipped`);
-    return { ok: false, duplicate };
+    if (!holder) throw error;
+    // #142: the cron crawl never stores a held URL, whatever the holder's name.
+    if (options.skipOtherName || isSameRecipeName(candidate.name, holder.name)) {
+      console.warn(`[dedup] #142: ${url} is already live as ${holder.id}; write skipped`);
+      return { ok: false, duplicate: holder };
+    }
+    console.warn(
+      `[dedup] #142: ${url} is live as ${holder.id} under another name; storing with a NULL canonical_source_url`
+    );
+    // An error from this write propagates as is; it is never caught as a conflict.
+    const value = await write({ canonical_source_url: null });
+    return { ok: true, value, storedWithoutKey: holder };
   }
 }
 

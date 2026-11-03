@@ -133,7 +133,9 @@ async function saveDiscoveredRecipe(
   // #220: refused in the insert statement itself for an account pending deletion; the
   // embedding row below is written only when the recipe landed.
   // #142 (D09): a URL another live recipe holds throws CanonicalUrlConflictError; callers skip it.
-  const inserted = await withCanonicalConflict(source.url, () =>
+  // Under another name (a roundup page) the recipe is stored with a NULL key.
+  const candidate = { sourceUrl: source.url, name: recipe.name };
+  const inserted = await withCanonicalConflict(candidate, (key) =>
     insertUnlessPendingDeletion(
       recipes,
       {
@@ -165,6 +167,7 @@ async function saveDiscoveredRecipe(
         nutrition_info: null,
         image_url: null,
         images: null,
+        ...key,
       },
       userId
     )
