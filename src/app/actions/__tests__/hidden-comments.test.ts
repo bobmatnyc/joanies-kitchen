@@ -80,7 +80,7 @@ async function addNewerDismissedRows(n: number) {
 
 beforeAll(async () => {
   const made = await createVisibilityDb(
-    [schema.recipes, schema.recipeFlags, schema.recipeComments],
+    [schema.recipes, schema.recipeFlags, schema.recipeComments, schema.recipeRatings], // #270: getAllFlags joins the reported review
     {
       ...schema,
     }
