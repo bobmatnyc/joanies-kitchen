@@ -135,7 +135,12 @@ const RecipeCardComponent = ({
                 e.stopPropagation();
               }}
             >
-              <FavoriteButton recipeId={recipe.id} variant="default" size="icon" />
+              <FavoriteButton
+                recipeId={recipe.id}
+                recipeName={recipe.name}
+                variant="default"
+                size="icon"
+              />
             </div>
 
             {images.length > 1 && (
