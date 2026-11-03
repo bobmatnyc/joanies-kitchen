@@ -88,6 +88,9 @@ function upsertRatingUnlessPendingDeletion(
           user_id: sql`${userId}::text`.as('user_id'),
           rating: sql`${rating}::integer`.as('rating'),
           review: sql`${review}::text`.as('review'),
+          // #270: a new rating is never hidden. INSERT ... SELECT needs every column in table order;
+          // the conflict update below leaves `review_hidden` alone, so an edit keeps a hide.
+          review_hidden: sql`false`.as('review_hidden'),
           created_at: at.as('created_at'),
           updated_at: at.as('updated_at'),
         })
@@ -96,6 +99,7 @@ function upsertRatingUnlessPendingDeletion(
     )
     .onConflictDoUpdate({
       target: [recipeRatings.recipe_id, recipeRatings.user_id],
+      // #270: `review_hidden` is not in this set, so an author who edits a hidden review keeps it hidden.
       set: { rating, review, updated_at: now },
     })
     .returning({ id: recipeRatings.id });
@@ -218,6 +222,8 @@ export async function rateRecipe(
 export async function getUserRating(recipeId: string): Promise<{
   rating: number;
   review?: string;
+  /** #270: true while moderation hides the caller's own review text from others. */
+  reviewHidden?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 } | null> {
@@ -246,6 +252,8 @@ export async function getUserRating(recipeId: string): Promise<{
     return {
       rating: userRating[0].rating,
       review: userRating[0].review || undefined,
+      // #270: the author keeps their own text (the edit form needs it) and learns it is hidden.
+      reviewHidden: userRating[0].review_hidden,
       createdAt: userRating[0].created_at || undefined,
       updatedAt: userRating[0].updated_at || undefined,
     };
@@ -273,6 +281,8 @@ export async function getRecipeRatings(
     userId: string;
     rating: number;
     review: string | null;
+    /** #270: true only on the caller's own review, while moderation hides its text. */
+    reviewHidden: boolean;
     createdAt: Date;
     updatedAt: Date;
     userName: string;
@@ -285,6 +295,9 @@ export async function getRecipeRatings(
       return [];
     }
 
+    // #270: the author is told their review is hidden; nobody else sees the flag.
+    const viewerId = await getSessionUserId();
+
     // Get ratings with left join to user profiles for display names
     const ratingsWithProfiles = await db
       .select({
@@ -292,6 +305,7 @@ export async function getRecipeRatings(
         userId: recipeRatings.user_id,
         rating: recipeRatings.rating,
         review: recipeRatings.review,
+        reviewHidden: recipeRatings.review_hidden,
         createdAt: recipeRatings.created_at,
         updatedAt: recipeRatings.updated_at,
         displayName: userProfiles.display_name,
@@ -308,7 +322,9 @@ export async function getRecipeRatings(
       id: r.id,
       userId: r.userId,
       rating: r.rating,
-      review: r.review,
+      // #270: a hidden review reads as no text; the stars and the aggregates are untouched.
+      review: r.reviewHidden ? null : r.review,
+      reviewHidden: r.reviewHidden && viewerId === r.userId,
       createdAt: r.createdAt || new Date(),
       updatedAt: r.updatedAt || new Date(),
       userName: r.displayName || 'Anonymous User',
@@ -362,6 +378,7 @@ export async function deleteRating(
       return { success: true };
     }
 
+    // #270: the rating's reports go with it (recipe_flags.rating_id is ON DELETE CASCADE).
     // Delete and recompute in one atomic batch (a concurrent delete only makes the delete a no-op).
     // #197: no pending-deletion guard here. A delete creates no row and only
     // removes the caller's own rating, which the purge would delete anyway.

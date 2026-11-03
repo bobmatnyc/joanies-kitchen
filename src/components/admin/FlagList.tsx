@@ -6,6 +6,7 @@
  * - Links to flagged recipe
  * - Actions to dismiss, hide or remove the reported recipe (#59)
  * - #105: a comment report shows the comment and acts on the comment
+ * - #270: a review report shows the review text and acts on the text, never the rating
  */
 
 'use client';
@@ -37,6 +38,9 @@ interface FlagData {
   comment_id: string | null; // #105
   commentContent: string | null;
   commentHidden: boolean;
+  rating_id: string | null; // #270
+  reviewContent: string | null;
+  reviewHidden: boolean;
   user_id: string;
   reason: string;
   description: string | null;
@@ -104,9 +108,14 @@ function FlagCard({ flag }: { flag: FlagData }) {
 
   const isPending = flag.status === 'pending';
   // #105: comment reports act on the comment; button and dialog text name the target.
-  const target = flag.comment_id ? 'comment' : 'recipe';
-  const Target = flag.comment_id ? 'Comment' : 'Recipe';
-  const canUnhide = flag.comment_id ? flag.commentHidden : flag.status === 'resolved';
+  // #270: a review report acts on the review text.
+  const target = flag.comment_id ? 'comment' : flag.rating_id ? 'review' : 'recipe';
+  const Target = flag.comment_id ? 'Comment' : flag.rating_id ? 'Review' : 'Recipe';
+  const canUnhide = flag.comment_id
+    ? flag.commentHidden
+    : flag.rating_id
+      ? flag.reviewHidden
+      : flag.status === 'resolved';
 
   return (
     <>
@@ -151,6 +160,18 @@ function FlagCard({ flag }: { flag: FlagData }) {
               </div>
               <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-md whitespace-pre-wrap">
                 {flag.commentContent ?? '(comment deleted)'}
+              </p>
+            </div>
+          )}
+
+          {flag.rating_id && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline">Review report</Badge>
+                {flag.reviewHidden && <Badge variant="secondary">Review hidden</Badge>}
+              </div>
+              <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-md whitespace-pre-wrap">
+                {flag.reviewContent ?? '(review text removed)'}
               </p>
             </div>
           )}
@@ -248,13 +269,17 @@ function FlagCard({ flag }: { flag: FlagData }) {
                 (flag.comment_id
                   ? // #59: dismiss closes this report only and never un-hides the comment.
                     'Dismiss this report. The comment stays as it is; use Unhide to restore a hidden comment.'
-                  : 'Mark this report reviewed. The recipe is unchanged.')}
+                  : flag.rating_id
+                    ? 'Dismiss this report. The review stays as it is; use Unhide to restore a hidden review.'
+                    : 'Mark this report reviewed. The recipe is unchanged.')}
               {selectedAction === 'hide' &&
                 `Hide this ${target} from public view and resolve the report.`}
               {selectedAction === 'remove' &&
                 (flag.comment_id
                   ? 'Delete this comment and resolve its reports.'
-                  : 'Remove this recipe (soft delete) and resolve the report.')}
+                  : flag.rating_id
+                    ? 'Clear the review text, keep the star rating, and resolve its reports.'
+                    : 'Remove this recipe (soft delete) and resolve the report.')}
             </DialogDescription>
           </DialogHeader>
 

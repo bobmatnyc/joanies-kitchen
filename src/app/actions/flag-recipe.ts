@@ -23,9 +23,10 @@ import {
   STALE_REPORT_ERROR,
 } from '@/lib/comment-moderation';
 import { db } from '@/lib/db';
-import { recipeComments, recipeFlags, recipes } from '@/lib/db/schema';
+import { recipeComments, recipeFlags, recipeRatings, recipes } from '@/lib/db/schema';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { findViewableRecipe, getRecipeViewer } from '@/lib/recipe-visibility';
+import { applyReviewFlagAction } from '@/lib/review-moderation';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
@@ -108,7 +109,8 @@ export async function flagRecipe(
         and(
           eq(recipeFlags.recipe_id, recipeId),
           eq(recipeFlags.user_id, userId),
-          isNull(recipeFlags.comment_id)
+          isNull(recipeFlags.comment_id),
+          isNull(recipeFlags.rating_id) // #270: a review report is not a recipe report
         )
       )
       .limit(1);
@@ -172,7 +174,8 @@ export async function getFlagCount(recipeId: string): Promise<number> {
         and(
           eq(recipeFlags.recipe_id, recipeId),
           eq(recipeFlags.status, 'pending'),
-          isNull(recipeFlags.comment_id) // #105: recipe reports only
+          isNull(recipeFlags.comment_id), // #105: recipe reports only
+          isNull(recipeFlags.rating_id) // #270
         )
       );
 
@@ -205,7 +208,8 @@ export async function hasUserFlagged(recipeId: string): Promise<boolean> {
           eq(recipeFlags.recipe_id, recipeId),
           eq(recipeFlags.user_id, userId),
           eq(recipeFlags.status, 'pending'),
-          isNull(recipeFlags.comment_id) // #105: recipe reports only
+          isNull(recipeFlags.comment_id), // #105: recipe reports only
+          isNull(recipeFlags.rating_id) // #270
         )
       )
       .limit(1);
@@ -238,6 +242,12 @@ export async function getAllFlags(
     commentContent: string | null;
     /** #105: true while the reported comment is hidden. */
     commentHidden: boolean;
+    /** #270: set for a rating-review report. */
+    rating_id: string | null;
+    /** #270: the reported review's text; null when not a review report, or the text is gone. */
+    reviewContent: string | null;
+    /** #270: true while the reported review's text is hidden. */
+    reviewHidden: boolean;
     user_id: string;
     reason: string;
     description: string | null;
@@ -269,6 +279,9 @@ export async function getAllFlags(
         comment_id: recipeFlags.comment_id,
         commentContent: recipeComments.content,
         commentHidden: recipeComments.is_flagged,
+        rating_id: recipeFlags.rating_id,
+        reviewContent: recipeRatings.review,
+        reviewHidden: recipeRatings.review_hidden,
         user_id: recipeFlags.user_id,
         reason: recipeFlags.reason,
         description: recipeFlags.description,
@@ -281,6 +294,7 @@ export async function getAllFlags(
       .from(recipeFlags)
       .leftJoin(recipes, eq(recipeFlags.recipe_id, recipes.id))
       .leftJoin(recipeComments, eq(recipeFlags.comment_id, recipeComments.id)) // #105
+      .leftJoin(recipeRatings, eq(recipeFlags.rating_id, recipeRatings.id)) // #270
       .orderBy(desc(recipeFlags.created_at))
       .limit(limit);
 
@@ -294,6 +308,9 @@ export async function getAllFlags(
       comment_id: flag.comment_id,
       commentContent: flag.commentContent,
       commentHidden: flag.commentHidden ?? false,
+      rating_id: flag.rating_id,
+      reviewContent: flag.reviewContent,
+      reviewHidden: flag.reviewHidden ?? false,
       user_id: flag.user_id,
       reason: flag.reason || 'other',
       description: flag.description,
@@ -446,8 +463,10 @@ export type FlagQueueAction = 'dismiss' | 'hide' | 'remove' | 'unhide';
  * report that is no longer pending return `STALE_REPORT_ERROR` and write nothing;
  * `hide` and `remove` write the report and the recipe in one `db.batch`.
  * #105: a comment report (`comment_id` set) delegates to `applyCommentFlagAction`.
+ * #270: a rating-review report (`rating_id` set) delegates to `applyReviewFlagAction`.
  * Test: `src/app/actions/__tests__/report-moderation.test.ts`,
- * `src/app/actions/__tests__/comment-reports.test.ts`
+ * `src/app/actions/__tests__/comment-reports.test.ts`,
+ * `src/app/actions/__tests__/review-reports.test.ts`
  */
 export async function actOnRecipeFlag(
   flagId: string,
@@ -466,6 +485,7 @@ export async function actOnRecipeFlag(
         id: recipeFlags.id,
         recipe_id: recipeFlags.recipe_id,
         comment_id: recipeFlags.comment_id,
+        rating_id: recipeFlags.rating_id,
         status: recipeFlags.status,
         recipeRowId: recipes.id,
       })
@@ -488,6 +508,21 @@ export async function actOnRecipeFlag(
       );
       if (failure) return { success: false, error: failure };
       console.log(`[Flag Queue] Admin ${userId} applied ${action} to comment flag ${flagId}`);
+      revalidatePath('/admin/flags');
+      revalidatePath(`/recipes/${flag.recipe_id}`);
+      return { success: true };
+    }
+
+    // #270: a rating-review report acts on the review text, never on the recipe or the stars.
+    if (flag.rating_id) {
+      const failure = await applyReviewFlagAction(
+        { id: flag.id, rating_id: flag.rating_id },
+        action,
+        userId,
+        reviewNotes || null
+      );
+      if (failure) return { success: false, error: failure };
+      console.log(`[Flag Queue] Admin ${userId} applied ${action} to review flag ${flagId}`);
       revalidatePath('/admin/flags');
       revalidatePath(`/recipes/${flag.recipe_id}`);
       return { success: true };
