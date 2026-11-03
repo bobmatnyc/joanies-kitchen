@@ -130,6 +130,7 @@ export async function GET(request: NextRequest) {
       maxRecipes,
       dryRun: false,
       searchQuery,
+      // #142 (D7c): 'daily' is the only run type that skips known URLs without fetching.
       runType: 'daily',
       deadlineAt,
     });
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
       maxRecipes,
       searchQuery,
       budgetUsd,
+      // #142 (D7c): 'manual' re-fetches known URLs.
       runType: 'manual',
       deadlineAt,
     });
