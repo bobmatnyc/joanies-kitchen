@@ -69,8 +69,7 @@ export async function forkRecipeUnlessPendingDeletion(
 export class SocialService {
   // ==================
   // FAVORITES (LIKES)
-  // #167 (D26): every method here delegates to the favorites core (`favorites`
-  // table). `recipe_likes` is no longer read or written.
+  // #167: every method here delegates to the favorites core (`favorites` table).
   // ==================
 
   /**

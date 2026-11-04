@@ -17,10 +17,6 @@ import { forkRecipeUnlessPendingDeletion } from '@/lib/services/social-service';
 import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
-// #167 (D26): the recipe_likes actions (toggleRecipeLike, getRecipeLikesCount,
-// hasUserLikedRecipe, getUserLikedRecipes) are gone; likes are favorites now
-// (`@/app/actions/favorites`, `@/lib/favorites`).
-
 // ==================
 // TYPE DEFINITIONS
 // ==================

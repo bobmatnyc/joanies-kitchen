@@ -316,8 +316,8 @@ describe('runApply effect', () => {
       { from_recipe_id: 'c2', from_slug: null, to_recipe_id: 'c1', batch_id: 'b-test' },
       { from_recipe_id: 'e2', from_slug: null, to_recipe_id: 'e1', batch_id: 'b-test' },
     ]);
-    // Tables the fixture does not reference stay identical.
-    for (const t of ['recipe_likes', 'recipe_forks']) expect(after[t]).toEqual(before[t]);
+    // A table the fixture does not reference stays identical.
+    expect(after.recipe_forks).toEqual(before.recipe_forks);
   });
 
   it('records each change in the ledger, with the full row of each dropped collision', async () => {
