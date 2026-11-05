@@ -25,6 +25,7 @@ import {
 } from '@/lib/costs';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
+import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
 
 export interface ScrapedRecipe {
   url: string;
@@ -150,8 +151,8 @@ export class RecipeExtractionService {
           '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
         );
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`[RecipeExtraction] Tier1/Firecrawl failed: ${msg}`);
+        // #111: include URL (no query), status and cause so 403s are diagnosable.
+        console.warn(formatFirecrawlFailure(url, error, this.firecrawlApiKey));
       }
     } else {
       console.debug('[RecipeExtraction] Tier1/Firecrawl skipped — FIRECRAWL_API_KEY not set');
@@ -222,7 +223,12 @@ export class RecipeExtractionService {
     });
     const statusCode = (metadata?.statusCode as number) ?? 0;
     if (statusCode >= 400) {
-      throw new Error(`HTTP ${statusCode} from Firecrawl`);
+      // #111: keep the Firecrawl response `error` text for the warn line.
+      const respError = metadata?.error ?? result.error;
+      throw new FirecrawlHttpError(
+        statusCode,
+        typeof respError === 'string' ? respError : undefined
+      );
     }
 
     // Try schema.org Recipe markup first (rich structured data)

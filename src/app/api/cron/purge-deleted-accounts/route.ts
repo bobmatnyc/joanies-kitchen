@@ -23,8 +23,13 @@ export async function GET(request: NextRequest) {
   if (!isCronAuthorized(request, '[PurgeDeletedAccountsCron]')) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+  const startedAt = Date.now(); // #111
   try {
     const result = await purgeDueAccounts();
+    // #111: one summary line per run; counts only, no account ids.
+    console.info(
+      `[PurgeDeletedAccounts] Completed — purged=${result.purged.length}, skipped=${result.skipped.length}, failed=${result.failed.length}, durationMs=${Date.now() - startedAt}`
+    );
     if (result.failed.length > 0) {
       // #55: partial failure is a failure path; log counts only, no account ids.
       reportError(new Error(`${result.failed.length} account purge(s) failed`), {
@@ -42,6 +47,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(body, { status: result.failed.length === 0 ? 200 : 500 });
   } catch (error) {
     console.error('[PurgeDeletedAccountsCron] run failed:', error);
+    // #111: error-level outcome line with the message only.
+    console.error(
+      `[PurgeDeletedAccounts] Failed — ${error instanceof Error ? error.message : String(error)}, durationMs=${Date.now() - startedAt}`
+    );
     reportError(error, { source: 'cron', path: PURGE_PATH }); // #55
     return NextResponse.json({ success: false, error: 'Purge run failed' }, { status: 500 });
   }
