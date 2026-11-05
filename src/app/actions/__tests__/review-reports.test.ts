@@ -492,3 +492,95 @@ describe('deleting a rating', () => {
     expect(await rows('SELECT 1 FROM recipe_flags')).toHaveLength(1); // the recipe report stays
   });
 });
+
+// #283: the owner's report policy for an edit, a delete-and-repost, and a re-report.
+describe('#283 report policy', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  /** Every review-report row, as (rating_id, user_id, status). */
+  async function reviewReports() {
+    return rows(
+      'SELECT rating_id, user_id, status FROM recipe_flags WHERE rating_id IS NOT NULL ORDER BY user_id'
+    );
+  }
+
+  it('an edit keeps every report, pending and closed, and pending ones still count', async () => {
+    await reportEach(['u1', 'u2']);
+    await asAdmin(await flagIdOf('u1'), 'dismiss');
+    state.userId = AUTHOR;
+    expect(await rateRecipe(R1, 2, 'an edited review')).toMatchObject({ success: true });
+    expect(await reviewReports()).toEqual([
+      { rating_id: RATING, user_id: 'u1', status: 'dismissed' },
+      { rating_id: RATING, user_id: 'u2', status: 'pending' },
+    ]);
+    // u2's pending report survived the edit, so two more reporters make three pending.
+    expect(await reportAs('u3')).toMatchObject({ hidden: false });
+    expect(await reportAs('u4')).toEqual({ success: true, hidden: true });
+  });
+
+  it('an edit of a hidden review keeps its reports and its hidden state', async () => {
+    await reportEach(['u1', 'u2', 'u3']);
+    state.userId = AUTHOR;
+    expect(await rateRecipe(R1, 5, 'a kinder review')).toMatchObject({ success: true });
+    expect(await flagStatuses()).toEqual(['pending', 'pending', 'pending']);
+    expect(await isHidden()).toBe(true);
+  });
+
+  it('delete then repost starts visible with no reports carried over', async () => {
+    await reportEach(['u1', 'u2', 'u3']);
+    expect(await isHidden()).toBe(true);
+    state.userId = AUTHOR;
+    expect(await deleteRating(R1)).toEqual({ success: true });
+    expect(await rateRecipe(R1, 3, 'a fresh review')).toMatchObject({ success: true });
+
+    const [fresh] = await rows(
+      `SELECT id, review, review_hidden FROM recipe_ratings WHERE recipe_id = '${R1}' AND user_id = '${AUTHOR}'`
+    );
+    expect(fresh).toMatchObject({ review: 'a fresh review', review_hidden: false });
+    expect(fresh.id).not.toBe(RATING);
+    expect(await reviewReports()).toEqual([]);
+    state.userId = 'u9';
+    expect((await getRecipeRatings(R1))[0]).toMatchObject({ review: 'a fresh review' });
+
+    // The new review counts its reporters from zero: two reports do not hide it.
+    for (const u of ['u1', 'u2']) {
+      state.userId = u;
+      expect(await reportRatingReview(fresh.id as string, 'spam')).toEqual({
+        success: true,
+        hidden: false,
+      });
+    }
+  });
+
+  it('a re-report after dismissal is refused and does not reopen the report', async () => {
+    await reportAs('u1');
+    await asAdmin(await flagIdOf('u1'), 'dismiss');
+    expect(await reportAs('u1')).toEqual({ success: true, alreadyReported: true });
+    expect(await reviewReports()).toEqual([
+      { rating_id: RATING, user_id: 'u1', status: 'dismissed' },
+    ]);
+  });
+
+  it('a re-report of the same review after an edit is refused', async () => {
+    await reportAs('u1');
+    state.userId = AUTHOR;
+    expect(await rateRecipe(R1, 4, 'reworded review')).toMatchObject({ success: true });
+    expect(await reportAs('u1')).toEqual({ success: true, alreadyReported: true });
+    expect(await reviewReports()).toEqual([
+      { rating_id: RATING, user_id: 'u1', status: 'pending' },
+    ]);
+  });
+
+  it('a re-report after dismissal and then an edit is refused', async () => {
+    await reportAs('u1');
+    await asAdmin(await flagIdOf('u1'), 'dismiss');
+    state.userId = AUTHOR;
+    expect(await rateRecipe(R1, 4, 'reworded review')).toMatchObject({ success: true });
+    expect(await reportAs('u1')).toEqual({ success: true, alreadyReported: true });
+    expect(await reviewReports()).toEqual([
+      { rating_id: RATING, user_id: 'u1', status: 'dismissed' },
+    ]);
+  });
+});
