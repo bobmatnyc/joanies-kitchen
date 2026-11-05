@@ -86,6 +86,31 @@ describe('GET /api/cron/purge-deleted-accounts', () => {
     expect(calls.some((l) => l.includes('"tag":"app-error"') && l.includes('db down'))).toBe(true);
   });
 
+  it('logs one info summary with counts only and no account ids (#111)', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    mocks.purgeDueAccounts.mockResolvedValue({
+      purged: ['user-1@example.com', 'u2'],
+      failed: [],
+      skipped: ['u3'],
+    });
+    const res = await GET(request(`Bearer ${SECRET}`));
+    expect(res.status).toBe(200);
+    expect(info).toHaveBeenCalledTimes(1);
+    const line = String(info.mock.calls[0]?.[0]);
+    expect(line).toMatch(
+      /^\[PurgeDeletedAccounts\] Completed — purged=2, skipped=1, failed=0, durationMs=\d+$/
+    );
+    expect(line).not.toMatch(/u2|u3|@example|SECRET|test-cron/);
+  });
+
+  it('logs an error-level outcome line with the message when the run throws (#111)', async () => {
+    mocks.purgeDueAccounts.mockRejectedValue(new Error('db down'));
+    await GET(request(`Bearer ${SECRET}`));
+    const lines = vi.mocked(console.error).mock.calls.map((c) => String(c[0]));
+    const line = lines.find((l) => l.startsWith('[PurgeDeletedAccounts] Failed'));
+    expect(line).toMatch(/Failed — db down, durationMs=\d+$/);
+  });
+
   it('is scheduled in vercel.json', () => {
     expect(vercelConfig.crons.map((c) => c.path)).toContain('/api/cron/purge-deleted-accounts');
   });
