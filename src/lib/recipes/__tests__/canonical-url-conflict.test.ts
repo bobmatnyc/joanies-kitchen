@@ -103,6 +103,7 @@ import { userProfiles } from '@/lib/db/user-discovery-schema';
 import { storeCrawledRecipe } from '@/lib/recipe-crawl-store';
 import {
   CANONICAL_SOURCE_URL_UNIQUE_INDEX,
+  type CanonicalKeyOverride,
   isCanonicalSourceUrlConflict,
   withCanonicalConflict,
 } from '@/lib/recipes/canonical-url-conflict';
@@ -125,12 +126,25 @@ const count = async (where = 'true') =>
       .rows[0]?.n
   );
 
-/** Another user's private live recipe holding HELD: invisible to every #135 pre-check. */
-async function seedHiddenHolder(id = 'held-1') {
+/**
+ * Another user's private live recipe holding HELD: invisible to every #135 pre-check.
+ * #142: give it the incoming recipe's name for the duplicate outcome; the
+ * default name differs from every incoming one, so the write stores a NULL key.
+ */
+async function seedHiddenHolder(id = 'held-1', name = 'Private Stew') {
   await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
       canonical_source_url, is_public)
-    VALUES ('${id}', '${OTHER}', 'Private Stew', '[]', '[]', '${HELD}', '${HELD}', false)`);
+    VALUES ('${id}', '${OTHER}', '${name}', '[]', '[]', '${HELD}', '${HELD}', false)`);
 }
+
+/** The single recipe at HELD_VARIANT other than `held-1`. */
+const storedAtVariant = async () =>
+  (
+    await client.query<{ id: string; source: string; canonical_source_url: string | null }>(
+      `SELECT id, source, canonical_source_url FROM "recipes" WHERE id <> 'held-1' AND source = $1`,
+      [HELD_VARIANT]
+    )
+  ).rows;
 
 beforeAll(async () => {
   const tables = { users, recipes, scrapingJobs, chefs, chefRecipes, userProfiles };
@@ -254,14 +268,25 @@ describe('migration 0008 (#142 D09)', () => {
 });
 
 describe('withCanonicalConflict', () => {
+  const violation = { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX };
+  /** A write that hits the index once, then answers each later attempt from `later`. */
+  const clashingWrite = (...later: Array<() => Promise<string>>) => {
+    let calls = 0;
+    return vi.fn(async (_key: CanonicalKeyOverride): Promise<string> => {
+      calls++;
+      if (calls === 1) throw violation;
+      return later[calls - 2]();
+    });
+  };
+
   it('rethrows any error other than this index violation', async () => {
     const other = Object.assign(new Error('x'), {
       code: '23505',
       constraint: 'recipes_slug_unique',
     });
-    await expect(withCanonicalConflict(HELD, async () => Promise.reject(other))).rejects.toBe(
-      other
-    );
+    const write = vi.fn(async () => Promise.reject(other));
+    await expect(withCanonicalConflict({ sourceUrl: HELD, name: 'A' }, write)).rejects.toBe(other);
+    expect(write).toHaveBeenCalledTimes(1);
     expect(
       isCanonicalSourceUrlConflict({
         cause: { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX },
@@ -269,41 +294,74 @@ describe('withCanonicalConflict', () => {
     ).toBe(true);
   });
 
-  it('rethrows the violation when the holder lookup itself rejects', async () => {
-    await seedHiddenHolder();
-    const violation = { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX };
+  it('rethrows the violation when the holder lookup itself rejects, and never writes a NULL key', async () => {
+    await seedHiddenHolder(); // another name: a lookup that answered would store a NULL key
     const failingDb = {
       select: () => {
         throw new Error('lookup down');
       },
     } as unknown as Parameters<typeof withCanonicalConflict>[2];
+    const write = clashingWrite(async () => 'stored');
     await expect(
-      withCanonicalConflict(HELD, async () => Promise.reject(violation), failingDb)
+      withCanonicalConflict({ sourceUrl: HELD, name: 'Lamb Stew' }, write, failingDb)
     ).rejects.toBe(violation);
+    expect(write).toHaveBeenCalledTimes(1);
   });
 
   it('rethrows the violation when no live recipe holds the URL any more', async () => {
-    const violation = { code: '23505', constraint: CANONICAL_SOURCE_URL_UNIQUE_INDEX };
-    await expect(withCanonicalConflict(HELD, async () => Promise.reject(violation))).rejects.toBe(
+    const write = clashingWrite(async () => 'stored');
+    await expect(withCanonicalConflict({ sourceUrl: HELD, name: 'Lamb Stew' }, write)).rejects.toBe(
       violation
     );
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  // #142: a roundup page holds several recipes under one URL.
+  it('a holder of the same normalised name is a duplicate: one write, no NULL key', async () => {
+    await seedHiddenHolder();
+    const write = clashingWrite(async () => 'stored');
+    const candidate = { sourceUrl: HELD_VARIANT, name: ' PRIVATE  stew!' };
+    const res = await withCanonicalConflict(candidate, write);
+    expect(res).toEqual({ ok: false, duplicate: expect.objectContaining({ id: 'held-1' }) });
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it('a holder of another name: writes again with a NULL key and answers it stored', async () => {
+    await seedHiddenHolder();
+    const write = clashingWrite(async () => 'stored');
+    const res = await withCanonicalConflict({ sourceUrl: HELD_VARIANT, name: 'Lamb Stew' }, write);
+    expect(res).toEqual({
+      ok: true,
+      value: 'stored',
+      storedWithoutKey: expect.objectContaining({ id: 'held-1' }),
+    });
+    expect(write.mock.calls).toEqual([[{}], [{ canonical_source_url: null }]]);
+  });
+
+  it('rethrows the NULL-key write own error, never answering it a duplicate or stored', async () => {
+    await seedHiddenHolder();
+    const diskFull = new Error('disk full');
+    const write = clashingWrite(async () => Promise.reject(diskFull));
+    await expect(
+      withCanonicalConflict({ sourceUrl: HELD_VARIANT, name: 'Lamb Stew' }, write)
+    ).rejects.toBe(diskFull);
+    expect(write).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('background paths skip the conflicting URL and keep going (#142 D09)', () => {
-  it('storeCrawledRecipe answers a skipped duplicate naming the holder, and inserts nothing', async () => {
-    await seedHiddenHolder();
-    const res = await storeCrawledRecipe(
-      {
-        name: 'Crawled Stew',
-        description: 'A stew',
-        ingredients: ['beef'],
-        instructions: ['Simmer'],
-        confidenceScore: 0.9,
-        isValid: true,
-      },
-      { sourceUrl: HELD_VARIANT }
-    );
+  const crawled = {
+    name: 'Crawled Stew',
+    description: 'A stew',
+    ingredients: ['beef'],
+    instructions: ['Simmer'],
+    confidenceScore: 0.9,
+    isValid: true,
+  };
+
+  it('storeCrawledRecipe answers a skipped duplicate naming the same-name holder, and inserts nothing', async () => {
+    await seedHiddenHolder('held-1', 'Crawled Stew');
+    const res = await storeCrawledRecipe(crawled, { sourceUrl: HELD_VARIANT });
     expect(res).toMatchObject({
       success: false,
       error: 'skipped: duplicate of held-1',
@@ -312,13 +370,63 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     expect(await count()).toBe(1);
   });
 
+  // #142: a roundup page holds several recipes under one URL.
+  it('storeCrawledRecipe stores a recipe of another name with a NULL key, keeping source', async () => {
+    await seedHiddenHolder();
+    const res = await storeCrawledRecipe(crawled, { sourceUrl: HELD_VARIANT });
+    expect(res).toMatchObject({ success: true, recipeId: expect.any(String) });
+    expect(await storedAtVariant()).toEqual([
+      { id: res.recipeId, source: HELD_VARIANT, canonical_source_url: null },
+    ]);
+  });
+
+  it('storeCrawledRecipe: the #135 pre-check does not skip a visible holder of another name', async () => {
+    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url, is_public, moderation_status)
+      VALUES ('held-1', 'system', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
+    const res = await storeCrawledRecipe(crawled, { sourceUrl: HELD_VARIANT });
+    expect(res).toMatchObject({ success: true });
+    expect(await storedAtVariant()).toEqual([
+      { id: res.recipeId, source: HELD_VARIANT, canonical_source_url: null },
+    ]);
+    // The same name is still skipped by the pre-check.
+    const again = await storeCrawledRecipe(
+      { ...crawled, name: 'public STEW' },
+      { sourceUrl: HELD_VARIANT }
+    );
+    expect(again).toMatchObject({ success: false, duplicate: { id: 'held-1' } });
+    // The index cannot see a NULL-key row; the pre-check reads `source`, so a re-crawl is skipped.
+    const recrawl = await storeCrawledRecipe(crawled, { sourceUrl: HELD });
+    expect(recrawl).toMatchObject({ success: false, duplicate: { id: res.recipeId } });
+    expect(await count()).toBe(2);
+  });
+
+  it('storeCrawledRecipe fails, storing nothing, when the NULL-key write itself fails', async () => {
+    await seedHiddenHolder();
+    // A real database error on the second write only: the first one carries the key.
+    await client.exec(`CREATE FUNCTION refuse_unkeyed() RETURNS trigger AS $$
+      BEGIN RAISE EXCEPTION 'unkeyed insert refused'; END $$ LANGUAGE plpgsql;
+      CREATE TRIGGER refuse_unkeyed BEFORE INSERT ON "recipes"
+        FOR EACH ROW WHEN (NEW.canonical_source_url IS NULL) EXECUTE FUNCTION refuse_unkeyed();`);
+    try {
+      const res = await storeCrawledRecipe(crawled, { sourceUrl: HELD_VARIANT });
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('unkeyed insert refused');
+      expect(await count()).toBe(1);
+    } finally {
+      await client.exec(
+        'DROP TRIGGER refuse_unkeyed ON "recipes"; DROP FUNCTION refuse_unkeyed();'
+      );
+    }
+  });
+
   it(
     'startChefScraping skips the held page, stores the next, and URL-less pages do not collide',
     {
       timeout: 10_000,
     },
     async () => {
-      await seedHiddenHolder();
+      await seedHiddenHolder('held-1', 'Scraped Soup'); // every page parses to this name
       state.sessionUserId = ADMIN;
       state.crawl.mockResolvedValue({
         data: [
@@ -355,19 +463,62 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
   );
 
   it('scrapeSingleRecipe answers the skip instead of the raw Postgres error', async () => {
-    await seedHiddenHolder();
+    await seedHiddenHolder('held-1', 'Scraped Soup');
     state.sessionUserId = ADMIN;
     const res = await scrapeSingleRecipe({ chefId: CHEF, url: HELD_VARIANT });
-    // #142: a holder the system may not see is neither named nor linked.
+    // #142: a same-name holder the system may not see is neither named nor linked.
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
     expect(linkRecipeToChef).not.toHaveBeenCalled();
     expect(await count()).toBe(1);
+    const holder = await client.query(`SELECT chef_id FROM "recipes" WHERE id = 'held-1'`);
+    expect(holder.rows).toEqual([{ chef_id: null }]);
   });
+
+  // #142: a roundup page holds several recipes under one URL.
+  it('scrapeSingleRecipe stores a recipe of another name with a NULL key and links it, not the holder', async () => {
+    await seedHiddenHolder();
+    state.sessionUserId = ADMIN;
+    const res = (await scrapeSingleRecipe({ chefId: CHEF, url: HELD_VARIANT })) as {
+      success: boolean;
+      recipe?: { id: string; canonical_source_url: string | null; source: string };
+    };
+    expect(res.success).toBe(true);
+    expect(res.recipe).toMatchObject({ source: HELD_VARIANT, canonical_source_url: null });
+    expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([
+      res.recipe?.id,
+    ]);
+  });
+
+  it(
+    'startChefScraping stores a page of another name as scraped, not skipped',
+    { timeout: 10_000 },
+    async () => {
+      await seedHiddenHolder();
+      state.sessionUserId = ADMIN;
+      state.crawl.mockResolvedValue({ data: [{ url: HELD_VARIANT, markdown: '# held' }] });
+      await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' });
+      await vi.waitFor(
+        async () => {
+          const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
+          expect(job.rows[0]?.status).toBe('completed');
+        },
+        { timeout: 8_000, interval: 50 }
+      );
+      const job = await client.query('SELECT recipes_scraped, metadata FROM "scraping_jobs"');
+      expect(job.rows[0]).toMatchObject({
+        recipes_scraped: 1,
+        metadata: { recipes_skipped: 0 },
+      });
+      const [stored] = await storedAtVariant();
+      expect(stored?.canonical_source_url).toBeNull();
+      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([stored?.id]);
+    }
+  );
 
   it('scrapeSingleRecipe links a conflict holder the system may see (pre-check raced)', async () => {
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
         canonical_source_url, is_public, moderation_status)
-      VALUES ('pub-held', '${OTHER}', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
+      VALUES ('pub-held', '${OTHER}', 'Scraped Soup', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
     state.sessionUserId = ADMIN;
     state.skipPrecheck = true;
     const res = await scrapeSingleRecipe({ chefId: CHEF, url: HELD_VARIANT });
@@ -381,42 +532,108 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
 describe('user paths refuse the conflicting URL without naming a hidden recipe (#142 D09)', () => {
   const content = { name: 'My Stew', ingredients: '[]', instructions: '[]' };
 
-  it('createRecipe refuses and inserts nothing', async () => {
-    await seedHiddenHolder();
+  const create = (source: string) =>
+    createRecipe({ ...content, source } as Parameters<typeof createRecipe>[0]);
+  const seedMine = () =>
+    client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
+        canonical_source_url) VALUES ('mine', '${USER}', 'Toast', '[]', '[]', 'https://b.com/t', 'https://b.com/t')`);
+  const mine = async () =>
+    (
+      await client.query<{ source: string; canonical_source_url: string | null }>(
+        `SELECT source, canonical_source_url FROM "recipes" WHERE id = 'mine'`
+      )
+    ).rows[0];
+
+  it('createRecipe refuses a same-name holder and inserts nothing', async () => {
+    await seedHiddenHolder('held-1', 'my stew');
     state.sessionUserId = USER;
-    const res = await createRecipe({ ...content, source: HELD_VARIANT } as Parameters<
-      typeof createRecipe
-    >[0]);
+    const res = await create(HELD_VARIANT);
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
     expect(await count()).toBe(1);
   });
 
-  it('updateRecipe refuses a source another live recipe holds and leaves the row as it was', async () => {
+  // #142: a roundup page holds several recipes under one URL.
+  it('createRecipe stores a recipe of another name with a NULL key and its source', async () => {
     await seedHiddenHolder();
-    await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
-        canonical_source_url) VALUES ('mine', '${USER}', 'Toast', '[]', '[]', 'https://b.com/t', 'https://b.com/t')`);
+    state.sessionUserId = USER;
+    const res = (await create(HELD_VARIANT)) as { success: boolean; data?: { id: string } };
+    expect(res.success).toBe(true);
+    expect(await storedAtVariant()).toEqual([
+      { id: res.data?.id, source: HELD_VARIANT, canonical_source_url: null },
+    ]);
+  });
+
+  it('updateRecipe refuses a source a same-name live recipe holds and leaves the row as it was', async () => {
+    await seedHiddenHolder('held-1', 'Toast');
+    await seedMine();
     state.sessionUserId = USER;
     const res = await updateRecipe('mine', { source: HELD_VARIANT });
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
-    const row = await client.query<{ source: string }>(
-      `SELECT source FROM "recipes" WHERE id = 'mine'`
-    );
-    expect(row.rows[0]?.source).toBe('https://b.com/t');
+    const unchanged = { source: 'https://b.com/t', canonical_source_url: 'https://b.com/t' };
+    expect(await mine()).toEqual(unchanged);
   });
 
-  it('uploadRecipeFromUrl refuses instead of failing with the Postgres error', async () => {
+  it('updateRecipe compares the name the row will have: a rename onto the holder name is refused', async () => {
     await seedHiddenHolder();
+    await seedMine();
+    state.sessionUserId = USER;
+    const res = await updateRecipe('mine', { source: HELD_VARIANT, name: 'Private Stew' });
+    expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
+    expect((await mine())?.source).toBe('https://b.com/t');
+  });
+
+  it('updateRecipe stores a held source under another name with a NULL key; a later edit with that source is not refused', async () => {
+    await seedHiddenHolder();
+    await seedMine();
+    state.sessionUserId = USER;
+    expect(await updateRecipe('mine', { source: HELD_VARIANT })).toMatchObject({ success: true });
+    expect(await mine()).toEqual({ source: HELD_VARIANT, canonical_source_url: null });
+    // #142: the unchanged-source rule keeps the NULL key, so this edit never reaches the index.
+    vi.mocked(console.warn).mockClear();
+    const again = await updateRecipe('mine', { source: HELD_VARIANT, description: 'edited' });
+    expect(again).toMatchObject({ success: true });
+    expect(await mine()).toEqual({ source: HELD_VARIANT, canonical_source_url: null });
+    expect(vi.mocked(console.warn).mock.calls.flat().join(' ')).not.toContain('[dedup] #142');
+  });
+
+  it('uploadRecipeFromUrl refuses a same-name holder instead of failing with the Postgres error', async () => {
+    await seedHiddenHolder('held-1', 'Scraped Soup');
     state.sessionUserId = USER;
     const res = await uploadRecipeFromUrl(HELD_VARIANT);
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
   });
 
-  it('discoverRecipeFromUrl refuses instead of failing with the Postgres error', async () => {
-    await seedHiddenHolder();
+  // #142: a manual import re-fetches; another name under a held URL is stored with a NULL key.
+  it('uploadRecipeFromUrl (#142) stores a recipe of another name with a NULL key and its source', async () => {
+    await seedHiddenHolder(); // 'Private Stew'; the parser answers 'Scraped Soup'
+    state.sessionUserId = USER;
+    const res = await uploadRecipeFromUrl(HELD_VARIANT);
+    expect(res).toMatchObject({
+      success: true,
+      recipe: { name: 'Scraped Soup', source: HELD_VARIANT, canonical_source_url: null },
+    });
+    expect(await storedAtVariant()).toHaveLength(1);
+    expect(await count(`canonical_source_url = '${HELD}'`)).toBe(1);
+  });
+
+  it('discoverRecipeFromUrl refuses a same-name holder instead of failing with the Postgres error', async () => {
+    await seedHiddenHolder('held-1', 'Chicken Soup'); // the extraction answers 'Chicken soup'
     state.sessionUserId = USER;
     const res = await discoverRecipeFromUrl(HELD_VARIANT);
     expect(res).toEqual({ success: false, error: DUPLICATE_EXISTS_MESSAGE });
     expect(await count()).toBe(1);
+  });
+
+  // #142: a roundup page holds several recipes under one URL.
+  it('discoverRecipeFromUrl stores a recipe of another name with a NULL key', async () => {
+    await seedHiddenHolder();
+    state.sessionUserId = USER;
+    const res = await discoverRecipeFromUrl(HELD_VARIANT);
+    expect(res).toMatchObject({
+      success: true,
+      recipe: { source: HELD_VARIANT, canonical_source_url: null },
+    });
+    expect(await storedAtVariant()).toHaveLength(1);
   });
 
   it('updateRecipe on a copy that re-sends its unchanged source succeeds and keeps the key NULL', async () => {
@@ -525,7 +742,7 @@ describe('discoverRecipes: a failed holder lookup fails one item (#142)', () => 
   it('counts the item as failed and still saves the next one', async () => {
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,
         canonical_source_url, is_public, moderation_status)
-      VALUES ('pub-held', '${OTHER}', 'Public Stew', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
+      VALUES ('pub-held', '${OTHER}', 'Chicken Soup', '[]', '[]', '${HELD}', '${HELD}', true, 'approved')`);
     state.sessionUserId = USER;
     state.skipPrecheck = true; // the insert, not the pre-check, finds the holder
     state.search.mockResolvedValue([

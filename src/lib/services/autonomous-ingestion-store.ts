@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { recipeOfTheDay } from '@/lib/db/autonomous-scraper-schema';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import type { CanonicalKeyOverride } from '@/lib/recipes/canonical-url-conflict';
 import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -86,12 +87,15 @@ export async function recordRecipeOfTheDay(recipeId: string, sourceUrl: string):
  * Throws on DB errors so the caller (runDailyDiscovery) can surface the real
  * error message into errors[] and distinguish "extracted but not stored" cases.
  * The caller is responsible for catching and continuing to the next URL.
+ * `key` is `withCanonicalConflict`'s override (#142): `{ canonical_source_url: null }`
+ * stores a roundup recipe whose URL a recipe of another name holds.
  */
 export async function storeIngestedRecipe(
   recipe: ScrapedRecipe,
   chefId: string | null,
   sourceUrl: string,
-  searchQuery: string
+  searchQuery: string,
+  key: CanonicalKeyOverride = {}
 ): Promise<string | null> {
   // #185: last check before the write; a site asset is stored as no image (NULL).
   const imageUrl = pickRecipeImage({ contentImages: recipe.image_url }, sourceUrl);
@@ -127,6 +131,7 @@ export async function storeIngestedRecipe(
       // Zero-waste enrichment — all scraped recipes get baseline score/tags
       resourcefulness_score: 3, // Default mid-range; enrichment job can refine later
       waste_reduction_tags: JSON.stringify(['zero-waste', 'scraped', 'no-waste']),
+      ...key, // #142: last, so a name clash's NULL key wins
     })
     .returning({ id: recipes.id });
 
