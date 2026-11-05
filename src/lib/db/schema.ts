@@ -343,6 +343,8 @@ export const recipeRatings = pgTable(
     user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
     rating: integer('rating').notNull(), // 0-5 star rating
     review: text('review'), // Optional review text
+    // #270: true while moderation hides `review`; the stars and the aggregates stay as they are.
+    review_hidden: boolean('review_hidden').notNull().default(false),
     created_at: timestamp('created_at').defaultNow(),
     updated_at: timestamp('updated_at').defaultNow(),
   },
@@ -366,6 +368,8 @@ export const recipeFlags = pgTable(
     user_id: text('user_id').notNull(), // users.id of reporter
     // #103: set for a comment report (S6); null for a recipe report.
     comment_id: uuid('comment_id'),
+    // #270: set for a rating-review report; null otherwise. The FK cascade removes a rating's reports with it.
+    rating_id: uuid('rating_id').references(() => recipeRatings.id, { onDelete: 'cascade' }),
     reason: text('reason', {
       enum: ['inappropriate', 'spam', 'copyright', 'quality', 'harassment', 'other'],
     }).notNull(),
@@ -391,6 +395,16 @@ export const recipeFlags = pgTable(
     commentUserUnique: uniqueIndex('recipe_flags_comment_user_unique')
       .on(table.comment_id, table.user_id)
       .where(sql`${table.comment_id} IS NOT NULL`),
+    // #270: one report per user per rating review (NULLs stay distinct, so recipe/comment rows are free).
+    ratingUserUnique: uniqueIndex('recipe_flags_rating_user_unique').on(
+      table.rating_id,
+      table.user_id
+    ),
+    // #270: a report targets a comment or a rating review, never both (a recipe report has neither).
+    singleTargetCheck: check(
+      'recipe_flags_single_target_check',
+      sql`num_nonnulls(comment_id, rating_id) <= 1`
+    ),
   })
 );
 

@@ -82,7 +82,14 @@ async function hideAsAdmin() {
 
 beforeAll(async () => {
   const made = await createVisibilityDb(
-    [schema.recipes, schema.recipeFlags, schema.recipeComments, userProfiles, users],
+    [
+      schema.recipes,
+      schema.recipeFlags,
+      schema.recipeComments,
+      schema.recipeRatings, // #270: getAllFlags joins the reported review
+      userProfiles,
+      users,
+    ],
     { ...schema, userProfiles, users }
   );
   client = made.client;
