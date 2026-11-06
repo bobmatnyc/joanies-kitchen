@@ -155,7 +155,7 @@ export const POST = deprecated(
         }
 
         // Like the recipe (idempotent operation)
-        // #167 (D26): writes `favorites` (was `recipe_likes`), creating the profile if missing.
+        // #167: writes `favorites`, creating the profile if missing.
         await socialService.likeRecipe(auth.userId!, recipeId);
 
         // Get updated like count

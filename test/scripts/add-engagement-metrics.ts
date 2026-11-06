@@ -4,7 +4,7 @@
  * Add engagement metrics to recipes table
  *
  * Adds like_count, fork_count, and collection_count fields to recipes table
- * and backfills from existing data in recipeLikes, recipeForks, and collectionRecipes
+ * and backfills from existing data in favorites, recipeForks, and collectionRecipes
  */
 
 import { sql } from 'drizzle-orm';

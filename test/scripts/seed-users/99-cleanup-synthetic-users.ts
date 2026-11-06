@@ -20,6 +20,7 @@ import {
 } from '@/lib/db/user-discovery-schema';
 import {
   recipeRatings,
+  recipes,
   recipeComments,
   recipeLikes,
 } from '@/lib/db/schema';
@@ -102,6 +103,7 @@ async function getSyntheticUserStats() {
     .innerJoin(userProfiles, eq(recipeComments.user_id, userProfiles.user_id))
     .where(eq(userProfiles.is_synthetic_user, true));
 
+  // #167: keep until recipe_likes is dropped (PR3b); user_id has no FK, so rows would orphan.
   const [likesResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(recipeLikes)
@@ -277,8 +279,21 @@ async function deleteSyntheticUsers(deleteActive: boolean = false) {
   await db.delete(meals).where(sql`${meals.user_id} = ANY(${userIds})`);
   console.log('   ✅ Deleted meals');
 
-  // 5. Favorites
-  await db.delete(favorites).where(sql`${favorites.user_id} = ANY(${userIds})`);
+  // 5. Favorites. #167: like_count counts favorites, so each recipe drops by
+  // the favorites removed here, in the same statement (as `removeFavorite`).
+  await db.execute(sql`
+    WITH removed AS (
+      DELETE FROM ${favorites}
+      WHERE ${favorites.user_id} = ANY(${userIds})
+      RETURNING recipe_id
+    ), per_recipe AS (
+      SELECT recipe_id, count(*)::int AS n FROM removed GROUP BY recipe_id
+    )
+    UPDATE ${recipes}
+    SET like_count = GREATEST(COALESCE(${recipes.like_count}, 0) - per_recipe.n, 0)
+    FROM per_recipe
+    WHERE ${recipes.id} = per_recipe.recipe_id
+  `);
   console.log('   ✅ Deleted favorites');
 
   // 6. Recipe views
@@ -286,6 +301,7 @@ async function deleteSyntheticUsers(deleteActive: boolean = false) {
   console.log('   ✅ Deleted recipe views');
 
   // 7. Recipe likes
+  // #167: keep until recipe_likes is dropped (PR3b); user_id has no FK, so rows would orphan.
   await db.delete(recipeLikes).where(sql`${recipeLikes.user_id} = ANY(${userIds})`);
   console.log('   ✅ Deleted recipe likes');
 

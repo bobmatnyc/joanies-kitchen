@@ -4,7 +4,7 @@
  * purge column-inventory test; `lists every schema module` keeps it complete.
  */
 import { is } from 'drizzle-orm';
-import { PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import * as apiKeysSchema from '@/lib/db/api-keys-schema';
 import * as authSchema from '@/lib/db/auth-schema';
 import * as scraperSchema from '@/lib/db/autonomous-scraper-schema';
@@ -31,9 +31,18 @@ export const SCHEMA_MODULES: Record<string, Record<string, unknown>> = {
   'user-discovery-schema.ts': discoverySchema,
 };
 
-/** Every drizzle table exported by a schema module. */
+/**
+ * #167: tables still defined in the schema but no longer read or written, kept
+ * only until the DROP migration (PR3b) removes them. Export and purge skip them.
+ */
+const PENDING_DROP_TABLES = new Set(['recipe_likes']);
+
+/** Every drizzle table exported by a schema module, minus `PENDING_DROP_TABLES`. */
 export function allSchemaTables(): PgTable[] {
   return Object.values(SCHEMA_MODULES).flatMap((mod) =>
-    Object.values(mod).filter((value): value is PgTable => is(value, PgTable))
+    Object.values(mod).filter(
+      (value): value is PgTable =>
+        is(value, PgTable) && !PENDING_DROP_TABLES.has(getTableConfig(value).name)
+    )
   );
 }

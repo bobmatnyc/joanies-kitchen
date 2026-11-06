@@ -19,7 +19,6 @@ import {
   recipeComments,
   recipeFlags,
   recipeForks,
-  recipeLikes,
   recipeRatings,
   recipes,
   recipeTasks,
@@ -47,7 +46,6 @@ export const EXPORT_TABLES: PgTable[] = [
   recipeTools,
   recipeComments,
   recipeRatings,
-  recipeLikes,
   recipeForks,
   recipeFlags,
   meals,
@@ -120,7 +118,7 @@ async function seedUser(client: PGlite, userId: string, tag: string): Promise<st
   for (const table of ['recipe_ingredients', 'recipe_tasks', 'recipe_tools']) {
     await insert(client, table, { id: id(), recipe_id: recipeId });
   }
-  for (const table of ['recipe_comments', 'recipe_ratings', 'recipe_likes', 'recipe_forks']) {
+  for (const table of ['recipe_comments', 'recipe_ratings', 'recipe_forks']) {
     await insert(client, table, { id: id(), recipe_id: recipeId, user_id: userId });
   }
   await insert(client, 'recipe_flags', {

@@ -99,7 +99,6 @@ export const TOUCHED_TABLES = [
   'chef_recipes',
   'meal_recipes',
   'recipe_tools',
-  'recipe_likes',
   'recipe_forks',
   'recipe_redirects',
   'chefs',
