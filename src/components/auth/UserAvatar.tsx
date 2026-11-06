@@ -42,12 +42,12 @@ export function UserAvatar({
         alt={name ?? email ?? 'Account'}
         referrerPolicy="no-referrer"
         onError={() => setFailedSrc(image)}
-        className="h-8 w-8 object-cover"
+        className="h-8 w-8 shrink-0 object-cover"
       />
     );
   }
   return (
-    <span className="flex h-8 w-8 items-center justify-center text-xs font-medium text-foreground">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium text-foreground">
       {getInitials(name, email)}
     </span>
   );
