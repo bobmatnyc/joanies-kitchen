@@ -1,9 +1,10 @@
 'use client';
 
-import { Edit2, Star, Trash2, User } from 'lucide-react';
+import { Edit2, Flag, Star, Trash2, User } from 'lucide-react';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteRating, getRecipeRatings, rateRecipe } from '@/app/actions/rate-recipe';
+import { ReportReviewDialog } from '@/components/recipe/ReportReviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +15,8 @@ interface Review {
   userId: string;
   rating: number;
   review: string | null;
+  /** #270: true only on the caller's own review, while moderation hides its text. */
+  reviewHidden?: boolean;
   createdAt: Date;
   updatedAt: Date;
   userName: string;
@@ -57,6 +60,7 @@ export function ReviewsList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRating, setEditRating] = useState(0);
   const [editReview, setEditReview] = useState('');
+  const [reportingId, setReportingId] = useState<string | null>(null); // #270
   const [isPending, startTransition] = useTransition();
 
   const REVIEWS_PER_PAGE = 10;
@@ -195,6 +199,8 @@ export function ReviewsList({
       {reviews.map((review) => {
         const isEditing = editingId === review.id;
         const isOwner = currentUserId === review.userId;
+        // #270: signed-in non-owners can report a review that has text; the server re-checks all of it.
+        const canReport = Boolean(currentUserId) && !isOwner && Boolean(review.review);
 
         return (
           <Card key={review.id}>
@@ -325,6 +331,18 @@ export function ReviewsList({
                         </Button>
                       </div>
                     )}
+
+                    {canReport && (
+                      <Button
+                        onClick={() => setReportingId(review.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground flex-shrink-0"
+                        aria-label="Report review"
+                      >
+                        <Flag className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {/* Rating Stars */}
@@ -341,6 +359,11 @@ export function ReviewsList({
                     ))}
                   </div>
 
+                  {/* #270: the author is told, with no reporter details. */}
+                  {isOwner && review.reviewHidden && (
+                    <p className="text-sm italic text-muted-foreground">Hidden by moderation</p>
+                  )}
+
                   {/* Review Text */}
                   {review.review && (
                     <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
@@ -350,6 +373,16 @@ export function ReviewsList({
                 </div>
               )}
             </CardContent>
+            {canReport && (
+              <ReportReviewDialog
+                ratingId={review.id}
+                open={reportingId === review.id}
+                onOpenChange={(open) => setReportingId(open ? review.id : null)}
+                onReported={(hidden) => {
+                  if (hidden) void loadReviews(0); // #270: refresh so the hidden text drops out
+                }}
+              />
+            )}
           </Card>
         );
       })}

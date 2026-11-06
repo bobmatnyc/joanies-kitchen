@@ -30,6 +30,7 @@ interface Review {
   userId: string;
   rating: number;
   review: string | null;
+  reviewHidden?: boolean; // #270
   createdAt: Date;
   updatedAt: Date;
   userName: string;

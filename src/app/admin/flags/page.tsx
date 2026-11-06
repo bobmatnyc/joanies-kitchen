@@ -16,6 +16,7 @@ import { Suspense } from 'react';
 import { getAllFlags } from '@/app/actions/flag-recipe';
 import { FlagList } from '@/components/admin/FlagList';
 import { HiddenCommentsPanel } from '@/components/admin/HiddenCommentsPanel';
+import { HiddenReviewsPanel } from '@/components/admin/HiddenReviewsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -137,9 +138,11 @@ async function FlagsContent({
 export default async function AdminFlagsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ hiddenPage?: string | string[] }>;
+  searchParams: Promise<{ hiddenPage?: string | string[]; hiddenReviewsPage?: string | string[] }>;
 }) {
-  const hiddenPage = Number((await searchParams).hiddenPage);
+  const params = await searchParams;
+  const hiddenPage = Number(params.hiddenPage);
+  const hiddenReviewsPage = Number(params.hiddenReviewsPage); // #270
 
   return (
     <div className="space-y-6">
@@ -172,6 +175,11 @@ export default async function AdminFlagsPage({
       {/* #59: outside the tabs, so no tab or report row decides whether a hidden comment shows. */}
       <Suspense fallback={<LoadingSkeleton />}>
         <HiddenCommentsPanel page={hiddenPage} />
+      </Suspense>
+
+      {/* #270: rating reviews hidden by reports or an admin, beside the hidden comments. */}
+      <Suspense fallback={<LoadingSkeleton />}>
+        <HiddenReviewsPanel page={hiddenReviewsPage} />
       </Suspense>
 
       {/* Flags List with Tabs */}
