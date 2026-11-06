@@ -48,7 +48,7 @@ export function AuthButtons() {
         <button
           type="button"
           aria-label="Account menu"
-          className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border bg-muted"
+          className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted"
         >
           <UserAvatar image={user.image ?? null} name={name} email={email} />
         </button>
