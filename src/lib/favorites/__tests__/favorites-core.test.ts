@@ -6,7 +6,7 @@
  * `/recipes/:id/like` alias against real Postgres (PGlite) with real rows.
  * The API caller is an API-key context with no session and, at the start, no
  * `user_profiles` row: the path must create the profile (the `favorites` FK
- * needs it) and must never touch `recipe_likes`.
+ * needs it).
  */
 
 import type { PGlite } from '@electric-sql/pglite';
@@ -98,7 +98,8 @@ async function read(response: Response) {
 
 beforeAll(async () => {
   const built = await createVisibilityDb(
-    [schema.recipes, userProfiles, favorites, schema.recipeLikes, users],
+    // #167: no recipe_likes table here, so a stray write to it fails the test.
+    [schema.recipes, userProfiles, favorites, users],
     { ...schema, userProfiles, favorites },
     { constraints: true }
   );
@@ -111,7 +112,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   state.apiUser = API_USER;
   await client.exec(
-    'DELETE FROM "favorites"; DELETE FROM "recipe_likes"; DELETE FROM "user_profiles"; DELETE FROM "recipes"; DELETE FROM "users";'
+    'DELETE FROM "favorites"; DELETE FROM "user_profiles"; DELETE FROM "recipes"; DELETE FROM "users";'
   );
   await db.insert(schema.recipes).values({
     id: RECIPE,
@@ -274,7 +275,6 @@ describe('#167 /api/v1/recipes/:id/like is a deprecated alias over favorites', (
       data: { message: 'Recipe liked', recipeId: RECIPE, isLiked: true, likeCount: 1 },
     });
     expect(await count('favorites', `WHERE user_id = '${API_USER}'`)).toBe(1);
-    expect(await count('recipe_likes')).toBe(0);
     expect(await count('user_profiles', `WHERE user_id = '${API_USER}'`)).toBe(1);
     expect(await likeCount()).toBe(1);
 
@@ -341,7 +341,6 @@ describe('#167 /api/v1/favorites/:recipeId writes favorites', () => {
     expect(res.deprecation).toBeNull();
     expect(await count('favorites', `WHERE user_id = '${API_USER}'`)).toBe(1);
     expect(await count('user_profiles', `WHERE user_id = '${API_USER}'`)).toBe(1);
-    expect(await count('recipe_likes')).toBe(0);
     expect(await likeCount()).toBe(1);
   });
 

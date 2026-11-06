@@ -51,7 +51,10 @@ const NEON_PROJECT = 'autumn-forest-97440143';
 const NEON_BRANCH = 'br-super-hall-adskawq1';
 const NEON_ENDPOINT = 'ep-jolly-snow-addxski4';
 
-/** Report §6/§7: the rows that count as user references in the keeper rule. */
+/**
+ * Report §6/§7: the rows that count as user references in the keeper rule.
+ * #167: `favorites` is the one like store, so likes count through it alone.
+ */
 const USER_REF_TABLES = [
   'favorites',
   'collection_recipes',
@@ -59,7 +62,6 @@ const USER_REF_TABLES = [
   'recipe_ratings',
   'recipe_comments',
   'joanie_comments',
-  'recipe_likes',
 ];
 /** Report §7: the keeper keeps its own; the loser's stay attached to the soft-deleted loser. */
 const STAY_WITH_LOSER = new Set(['recipe_embeddings', 'recipe_ingredients']);

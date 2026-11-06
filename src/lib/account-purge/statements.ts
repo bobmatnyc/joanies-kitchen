@@ -45,7 +45,6 @@ import {
   recipeEmbeddings,
   recipeFlags,
   recipeForks,
-  recipeLikes,
   recipeRatings,
   recipes,
   recipeTasks,
@@ -85,7 +84,6 @@ export const PURGE_COLUMN_PLAN: Readonly<Record<string, string>> = {
   'recipes.image_regeneration_requested_by': 'anonymize',
   'recipe_comments.user_id': 'delete',
   'recipe_ratings.user_id': 'delete; recompute the rated recipes’ rating aggregates',
-  'recipe_likes.user_id': 'delete',
   'recipe_forks.user_id': 'delete',
   'recipe_flags.user_id': 'delete',
   'recipe_flags.reviewed_by': 'anonymize',
@@ -100,7 +98,6 @@ export const PURGE_COLUMN_PLAN: Readonly<Record<string, string>> = {
   'recipe_embeddings.recipe_id': 'delete for own recipes',
   'recipe_comments.recipe_id': 'delete for own recipes',
   'recipe_ratings.recipe_id': 'delete for own recipes',
-  'recipe_likes.recipe_id': 'delete for own recipes',
   'recipe_flags.recipe_id': 'delete for own recipes',
   'recipe_forks.recipe_id': 'delete for own recipes',
   'recipe_forks.original_recipe_id': 'delete for own recipes',
@@ -243,7 +240,6 @@ export function purgeStatements(t: PurgeTarget) {
     db.delete(recipeEmbeddings).where(own(recipeEmbeddings.recipe_id)),
     db.delete(recipeComments).where(own(recipeComments.recipe_id)),
     db.delete(recipeRatings).where(own(recipeRatings.recipe_id)),
-    db.delete(recipeLikes).where(own(recipeLikes.recipe_id)),
     db.delete(recipeFlags).where(own(recipeFlags.recipe_id)),
     db
       .delete(recipeForks)
@@ -275,7 +271,6 @@ export function purgeStatements(t: PurgeTarget) {
       .update(recipes)
       .set(ratingAggregateColumns(uid))
       .where(inArray(recipes.id, db.select({ id: purgedRatings.recipeId }).from(purgedRatings))),
-    db.delete(recipeLikes).where(eq(recipeLikes.user_id, uid)),
     db.delete(recipeForks).where(eq(recipeForks.user_id, uid)),
     db.delete(recipeFlags).where(eq(recipeFlags.user_id, uid)),
     db.delete(recipes).where(eq(recipes.user_id, uid)),

@@ -4,7 +4,7 @@
  * Creates authentic platform engagement for synthetic users:
  * - Recipe ratings (upvote highly-ranked recipes)
  * - Comments with thoughtful feedback
- * - Recipe favorites
+ * - Recipe favorites (#167: favorites is the one like store; no `recipe_likes` writes)
  * - Meal plans
  * - Collections
  *
@@ -23,7 +23,6 @@ import {
   recipes,
   recipeRatings,
   recipeComments,
-  recipeLikes,
 } from '@/lib/db/schema';
 import {
   userProfiles,
@@ -52,8 +51,8 @@ const ACTIVITY_RANGES = {
 const ACTIVITY_DISTRIBUTION = {
   rating: 0.40,      // 40% - rate recipes
   comment: 0.25,     // 25% - comment on recipes
-  like: 0.15,        // 15% - like recipes
-  favorite: 0.10,    // 10% - favorite recipes
+  // #167: likes are favorites; the former 15% like share is folded in here.
+  favorite: 0.25,    // 25% - favorite (like) recipes
   collection: 0.05,  // 5% - add to collections
   meal: 0.05,        // 5% - create meal plans
 };
@@ -207,7 +206,6 @@ async function generateUserActivity(
   const stats = {
     ratings: 0,
     comments: 0,
-    likes: 0,
     favorites: 0,
     collections: 0,
     meals: 0,
@@ -227,14 +225,8 @@ async function generateUserActivity(
           stats.comments++;
           break;
 
-        case 'like':
-          await generateLikeActivity(profile, topRecipes);
-          stats.likes++;
-          break;
-
         case 'favorite':
-          await generateFavoriteActivity(profile, topRecipes);
-          stats.favorites++;
+          if (await generateFavoriteActivity(profile, topRecipes)) stats.favorites++;
           break;
 
         case 'collection':
@@ -295,32 +287,39 @@ async function generateCommentActivity(profile: SyntheticUserProfile, recipes: a
   });
 }
 
-async function generateLikeActivity(profile: SyntheticUserProfile, recipes: any[]) {
-  const recipe = randomChoice(recipes);
+/**
+ * #167: mirrors `addFavorite` (src/lib/favorites): the favorite insert and the
+ * `like_count` bump run in one statement, and a repeat favorite changes neither.
+ * It keeps the backdated `created_at`, which `addFavorite` cannot set.
+ * Returns whether a favorite was added.
+ */
+async function generateFavoriteActivity(
+  profile: SyntheticUserProfile,
+  pool: any[]
+): Promise<boolean> {
+  // `pool`, not `recipes`: the SQL below needs the `recipes` table.
+  const recipe = randomChoice(pool);
 
   const createdAt = new Date(
     profile.created_at.getTime() + Math.random() * (Date.now() - profile.created_at.getTime())
   );
 
-  await db.insert(recipeLikes).values({
-    recipe_id: recipe.id,
-    user_id: profile.user_id,
-    created_at: createdAt,
-  });
-}
-
-async function generateFavoriteActivity(profile: SyntheticUserProfile, recipes: any[]) {
-  const recipe = randomChoice(recipes);
-
-  const createdAt = new Date(
-    profile.created_at.getTime() + Math.random() * (Date.now() - profile.created_at.getTime())
-  );
-
-  await db.insert(favorites).values({
-    user_id: profile.user_id,
-    recipe_id: recipe.id,
-    created_at: createdAt,
-  });
+  const result = await db.execute(sql`
+    WITH inserted AS (
+      INSERT INTO ${favorites} (user_id, recipe_id, created_at)
+      VALUES (${profile.user_id}, ${recipe.id}, ${createdAt})
+      ON CONFLICT DO NOTHING
+      RETURNING 1
+    ), bumped AS (
+      UPDATE ${recipes}
+      SET like_count = COALESCE(${recipes.like_count}, 0) + 1
+      WHERE ${recipes.id} = ${recipe.id} AND EXISTS (SELECT 1 FROM inserted)
+      RETURNING 1
+    )
+    SELECT EXISTS (SELECT 1 FROM inserted) AS added
+  `);
+  const row = (result.rows as unknown as Array<{ added: boolean }>)[0];
+  return !!row?.added;
 }
 
 async function generateCollectionActivity(profile: SyntheticUserProfile, recipes: any[]) {
@@ -451,7 +450,6 @@ async function main() {
   const totalStats = {
     ratings: 0,
     comments: 0,
-    likes: 0,
     favorites: 0,
     collections: 0,
     meals: 0,
@@ -463,7 +461,6 @@ async function main() {
     if (stats) {
       totalStats.ratings += stats.ratings;
       totalStats.comments += stats.comments;
-      totalStats.likes += stats.likes;
       totalStats.favorites += stats.favorites;
       totalStats.collections += stats.collections;
       totalStats.meals += stats.meals;
@@ -482,7 +479,6 @@ async function main() {
   console.log(`👥 Users processed: ${processedCount}`);
   console.log(`⭐ Ratings created: ${totalStats.ratings}`);
   console.log(`💬 Comments created: ${totalStats.comments}`);
-  console.log(`👍 Likes created: ${totalStats.likes}`);
   console.log(`❤️ Favorites created: ${totalStats.favorites}`);
   console.log(`📁 Collections created: ${totalStats.collections}`);
   console.log(`🍽️ Meals created: ${totalStats.meals}`);
