@@ -22,7 +22,6 @@ import {
   recipeRatings,
   recipes,
   recipeComments,
-  recipeLikes,
 } from '@/lib/db/schema';
 import { meals, mealRecipes } from '@/lib/db/meals-schema';
 
@@ -103,13 +102,6 @@ async function getSyntheticUserStats() {
     .innerJoin(userProfiles, eq(recipeComments.user_id, userProfiles.user_id))
     .where(eq(userProfiles.is_synthetic_user, true));
 
-  // #167: keep until recipe_likes is dropped (PR3b); user_id has no FK, so rows would orphan.
-  const [likesResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipeLikes)
-    .innerJoin(userProfiles, eq(recipeLikes.user_id, userProfiles.user_id))
-    .where(eq(userProfiles.is_synthetic_user, true));
-
   const [favoritesResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(favorites)
@@ -136,7 +128,6 @@ async function getSyntheticUserStats() {
     data: {
       ratings: ratingsResult.count,
       comments: commentsResult.count,
-      likes: likesResult.count,
       favorites: favoritesResult.count,
       collections: collectionsResult.count,
       meals: mealsResult.count,
@@ -159,7 +150,6 @@ function displayStats(stats: any) {
   console.log('\nAssociated Data:');
   console.log(`  └─ Ratings:              ${stats.data.ratings}`);
   console.log(`  └─ Comments:             ${stats.data.comments}`);
-  console.log(`  └─ Likes:                ${stats.data.likes}`);
   console.log(`  └─ Favorites:            ${stats.data.favorites}`);
   console.log(`  └─ Collections:          ${stats.data.collections}`);
   console.log(`  └─ Meals:                ${stats.data.meals}`);
@@ -300,20 +290,15 @@ async function deleteSyntheticUsers(deleteActive: boolean = false) {
   await db.delete(recipeViews).where(sql`${recipeViews.user_id} = ANY(${userIds})`);
   console.log('   ✅ Deleted recipe views');
 
-  // 7. Recipe likes
-  // #167: keep until recipe_likes is dropped (PR3b); user_id has no FK, so rows would orphan.
-  await db.delete(recipeLikes).where(sql`${recipeLikes.user_id} = ANY(${userIds})`);
-  console.log('   ✅ Deleted recipe likes');
-
-  // 8. Recipe comments
+  // 7. Recipe comments
   await db.delete(recipeComments).where(sql`${recipeComments.user_id} = ANY(${userIds})`);
   console.log('   ✅ Deleted recipe comments');
 
-  // 9. Recipe ratings
+  // 8. Recipe ratings
   await db.delete(recipeRatings).where(sql`${recipeRatings.user_id} = ANY(${userIds})`);
   console.log('   ✅ Deleted recipe ratings');
 
-  // 10. User profiles (last)
+  // 9. User profiles (last)
   await db.delete(userProfiles).where(and(...conditions));
   console.log('   ✅ Deleted user profiles');
 

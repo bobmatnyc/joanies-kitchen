@@ -71,6 +71,13 @@
       "when": 1793719983843,
       "tag": "0009_recipe_rating_review_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793990515131,
+      "tag": "0010_drop_recipe_likes",
+      "breakpoints": true
     }
   ]
 }
