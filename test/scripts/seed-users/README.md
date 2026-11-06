@@ -341,7 +341,6 @@ The cleanup script removes:
 - ✅ User profiles
 - ✅ Recipe ratings
 - ✅ Recipe comments
-- ✅ Recipe likes
 - ✅ Favorites
 - ✅ Collections and collection recipes
 - ✅ Meals and meal recipes

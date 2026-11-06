@@ -451,27 +451,6 @@ export const heroBackgrounds = pgTable(
 // SOCIAL FEATURES (v0.6.0)
 // ====================
 
-// Recipe Likes table - thumbs-up/like system
-export const recipeLikes = pgTable(
-  'recipe_likes',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    recipe_id: text('recipe_id')
-      .notNull()
-      .references(() => recipes.id, { onDelete: 'cascade' }),
-    user_id: text('user_id').notNull(), // users.id (legacy rows keep their Clerk id, #22)
-    created_at: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    // Unique constraint: one like per user per recipe
-    recipeUserUnique: unique().on(table.recipe_id, table.user_id),
-    // Indexes for efficient queries
-    recipeIdIdx: index('recipe_likes_recipe_id_idx').on(table.recipe_id),
-    userIdIdx: index('recipe_likes_user_id_idx').on(table.user_id),
-    createdAtIdx: index('recipe_likes_created_at_idx').on(table.created_at.desc()),
-  })
-);
-
 // Recipe Forks table - recipe copying with attribution
 export const recipeForks = pgTable(
   'recipe_forks',
@@ -781,8 +760,6 @@ export type SlideshowPhoto = typeof slideshowPhotos.$inferSelect;
 export type NewSlideshowPhoto = typeof slideshowPhotos.$inferInsert;
 export type HeroBackground = typeof heroBackgrounds.$inferSelect;
 export type NewHeroBackground = typeof heroBackgrounds.$inferInsert;
-export type RecipeLike = typeof recipeLikes.$inferSelect;
-export type NewRecipeLike = typeof recipeLikes.$inferInsert;
 export type RecipeFork = typeof recipeForks.$inferSelect;
 export type NewRecipeFork = typeof recipeForks.$inferInsert;
 export type RecipeComment = typeof recipeComments.$inferSelect;
