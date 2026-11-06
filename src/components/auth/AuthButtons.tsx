@@ -48,7 +48,9 @@ export function AuthButtons() {
         <button
           type="button"
           aria-label="Account menu"
-          className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted"
+          // globals.css `button` base rule adds 44px min size and padding;
+          // p-0 + relative let the avatar fill the circle (follow-up to #288).
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted p-0"
         >
           <UserAvatar image={user.image ?? null} name={name} email={email} />
         </button>
