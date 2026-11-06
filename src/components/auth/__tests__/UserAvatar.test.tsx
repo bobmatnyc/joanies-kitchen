@@ -10,7 +10,8 @@ describe('UserAvatar', () => {
     const img = screen.getByRole('img', { name: 'Ada Lovelace' });
     expect(img.getAttribute('src')).toBe(IMG);
     expect(img.getAttribute('referrerpolicy')).toBe('no-referrer');
-    expect(img.className).toContain('shrink-0');
+    for (const cls of ['absolute', 'inset-0', 'h-full', 'w-full', 'max-w-none', 'object-cover'])
+      expect(img.classList).toContain(cls);
   });
 
   it('falls back to name initials when the image fails to load', () => {
@@ -26,6 +27,8 @@ describe('UserAvatar', () => {
   ])('uses initials with no image (name=%s, email=%s)', (name, email, initials) => {
     render(<UserAvatar image={null} name={name} email={email} />);
     expect(screen.queryByRole('img')).toBeNull();
-    expect(screen.getByText(initials).className).toContain('shrink-0');
+    const span = screen.getByText(initials);
+    expect(span.classList).toContain('h-full');
+    expect(span.classList).toContain('w-full');
   });
 });

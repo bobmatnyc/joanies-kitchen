@@ -66,6 +66,14 @@ describe('AuthButtons', () => {
     expect(container.querySelector('.animate-pulse')).not.toBeNull();
   });
 
+  it('signed in: the trigger has no padding and anchors the avatar', () => {
+    auth.value = { isLoaded: true, user: ADA };
+    render(<AuthButtons />);
+    const trigger = screen.getByRole('button', { name: 'Account menu' });
+    for (const cls of ['relative', 'p-0', 'overflow-hidden', 'rounded-full'])
+      expect(trigger.classList).toContain(cls);
+  });
+
   it.each([
     [true, 1],
     [false, 0],

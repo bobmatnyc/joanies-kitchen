@@ -19,7 +19,8 @@ export function getInitials(name: string | null, email: string | null): string {
  * Why: the header showed a generic icon; owners asked for Google avatars.
  * What: plain `<img>` with `referrerPolicy="no-referrer"` (lh3.googleusercontent.com
  * can 403 with a referrer; no `next/image` host allowlist needed). Falls back to
- * initials with no image or on load error. Same 32px box either way, so no layout shift.
+ * initials with no image or on load error. Both fill the parent (which must be `relative`),
+ * so the face fills the circle at any trigger size (32px, or 44px under the touch-target rule).
  * Test: `src/components/auth/__tests__/UserAvatar.test.tsx`
  */
 export function UserAvatar({
@@ -42,12 +43,12 @@ export function UserAvatar({
         alt={name ?? email ?? 'Account'}
         referrerPolicy="no-referrer"
         onError={() => setFailedSrc(image)}
-        className="h-8 w-8 shrink-0 object-cover"
+        className="absolute inset-0 h-full w-full max-w-none shrink-0 object-cover"
       />
     );
   }
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium text-foreground">
+    <span className="flex h-full w-full shrink-0 items-center justify-center text-xs font-medium text-foreground">
       {getInitials(name, email)}
     </span>
   );
