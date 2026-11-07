@@ -24,14 +24,14 @@ const results = await semanticSearchRecipes(query, options);
 
 ## Cache Instances
 
-| Cache | Max Size | TTL | Purpose |
-|-------|----------|-----|---------|
-| `semantic` | 100 | 1 hour | Vector embedding searches |
-| `ingredient` | 50 | 30 min | Ingredient-based searches |
-| `similar` | 200 | 2 hours | Similar recipe lookups |
-| `popularIngredients` | 50 | 1 hour | Popular ingredient lists |
-| `ingredientSuggestions` | 100 | 1 hour | Autocomplete suggestions |
-| `hybrid` | 100 | 1 hour | Hybrid search results |
+| Cache                   | Max Size | TTL     | Purpose                   |
+| ----------------------- | -------- | ------- | ------------------------- |
+| `semantic`              | 100      | 1 hour  | Vector embedding searches |
+| `ingredient`            | 50       | 30 min  | Ingredient-based searches |
+| `similar`               | 200      | 2 hours | Similar recipe lookups    |
+| `popularIngredients`    | 50       | 1 hour  | Popular ingredient lists  |
+| `ingredientSuggestions` | 100      | 1 hour  | Autocomplete suggestions  |
+| `hybrid`                | 100      | 1 hour  | Hybrid search results     |
 
 ## Usage Examples
 
@@ -110,12 +110,14 @@ logCacheStats();
 ### Environment-Based Settings
 
 **Production** (long TTLs, larger sizes):
+
 ```typescript
 // In CACHE_CONFIG
 semanticSearch: { maxSize: 100, ttl: 3600 }  // 1 hour
 ```
 
 **Development** (short TTLs for faster feedback):
+
 ```typescript
 // In DEV_CACHE_CONFIG
 semanticSearch: { maxSize: 50, ttl: 300 }  // 5 minutes
@@ -128,8 +130,8 @@ Edit `/src/lib/cache/cache-config.ts`:
 ```typescript
 export const CACHE_CONFIG = {
   semanticSearch: {
-    maxSize: 150,  // Increase capacity
-    ttl: 7200,     // 2 hours
+    maxSize: 150, // Increase capacity
+    ttl: 7200, // 2 hours
   },
 };
 ```
@@ -138,13 +140,14 @@ export const CACHE_CONFIG = {
 
 Expected improvements with cache enabled:
 
-| Operation | Without Cache | With Cache | Speedup |
-|-----------|---------------|------------|---------|
-| Semantic Search | 250-400ms | 2-5ms | **50-200x** |
-| Ingredient Search | 150-300ms | 1-3ms | **50-300x** |
-| Similar Recipes | 200-350ms | 2-4ms | **50-175x** |
+| Operation         | Without Cache | With Cache | Speedup     |
+| ----------------- | ------------- | ---------- | ----------- |
+| Semantic Search   | 250-400ms     | 2-5ms      | **50-200x** |
+| Ingredient Search | 150-300ms     | 1-3ms      | **50-300x** |
+| Similar Recipes   | 200-350ms     | 2-4ms      | **50-175x** |
 
 Target cache hit rates:
+
 - Semantic: 60-80%
 - Ingredient: 40-60%
 - Similar: 70-90%
@@ -166,15 +169,15 @@ Keys are MD5 hashes of normalized parameters:
 
 ```typescript
 // Semantic search
-generateSemanticSearchKey(query, options)
+generateSemanticSearchKey(query, options);
 // → "semantic:a3f2b1...:c9e4d2..."
 
 // Ingredient search
-generateIngredientSearchKey(ingredients, options)
+generateIngredientSearchKey(ingredients, options);
 // → "ingredient:d8f9a2...:b7c3e1..."
 
 // Similar recipes
-generateSimilarRecipesKey(recipeId, limit)
+generateSimilarRecipesKey(recipeId, limit);
 // → "similar:recipe-uuid:10"
 ```
 
@@ -223,6 +226,7 @@ In development mode (`NODE_ENV=development`), cache operations are logged:
 **Causes**: Query diversity too high, TTL too short, cache too small
 
 **Solutions**:
+
 - Increase `maxSize` in config
 - Increase `ttl` for stable data
 - Normalize query parameters
@@ -232,6 +236,7 @@ In development mode (`NODE_ENV=development`), cache operations are logged:
 **Causes**: TTL too long, missing invalidation
 
 **Solutions**:
+
 - Decrease `ttl` in config
 - Add invalidation after mutations
 - Force clear: `searchCaches.semantic.clear()`
@@ -241,6 +246,7 @@ In development mode (`NODE_ENV=development`), cache operations are logged:
 **Causes**: Cache sizes too large, cleanup not running
 
 **Solutions**:
+
 - Decrease `maxSize` in config
 - Verify cleanup timer
 - Monitor: `getAllCacheStats()`

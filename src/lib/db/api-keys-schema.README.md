@@ -11,6 +11,7 @@ This schema provides a complete infrastructure for API key authentication and ma
 Secure storage and management of API authentication keys.
 
 **Key Features:**
+
 - ✅ SHA-256 hashed keys (never stores plaintext)
 - ✅ Scoped permissions for fine-grained access control
 - ✅ Soft revocation without data loss
@@ -18,6 +19,7 @@ Secure storage and management of API authentication keys.
 - ✅ Usage tracking (denormalized for performance)
 
 **Fields:**
+
 ```typescript
 {
   id: uuid,                    // Primary key
@@ -43,6 +45,7 @@ Secure storage and management of API authentication keys.
 ```
 
 **Indexes:**
+
 - `user_id` - Find all keys for a user
 - `key_hash` - Fast authentication lookup
 - `key_prefix` - Display/search by prefix
@@ -56,12 +59,14 @@ Secure storage and management of API authentication keys.
 Detailed tracking and analytics for API key activity.
 
 **Purpose:**
+
 - Security audit trail
 - Usage analytics and monitoring
 - Rate limiting and abuse detection
 - Future billing/quota tracking
 
 **Fields:**
+
 ```typescript
 {
   id: uuid,                    // Primary key
@@ -82,6 +87,7 @@ Detailed tracking and analytics for API key activity.
 ```
 
 **Indexes:**
+
 - `api_key_id` - All usage for a key
 - `requested_at` - Time-based queries
 - `endpoint` - Per-endpoint analytics
@@ -90,6 +96,7 @@ Detailed tracking and analytics for API key activity.
 - Composite: `(endpoint, status_code)` - Endpoint error rates
 
 **Data Retention:**
+
 - Implement 90-day retention policy in production
 - Aggregate to summary tables for long-term analytics
 
@@ -103,7 +110,9 @@ import { apiKeys, type NewApiKey } from '@/lib/db/api-keys-schema';
 import { randomBytes, createHash } from 'crypto';
 
 // Generate a new API key
-function generateApiKey(environment: 'production' | 'staging' | 'development' = 'production'): string {
+function generateApiKey(
+  environment: 'production' | 'staging' | 'development' = 'production'
+): string {
   const prefix = environment === 'production' ? 'jk_live_' : 'jk_test_';
   const randomPart = randomBytes(32).toString('hex');
   return `${prefix}${randomPart}`;
@@ -131,15 +140,18 @@ async function createApiKey(
   const keyHash = hashApiKey(apiKey);
 
   // Store in database
-  const [newKey] = await db.insert(apiKeys).values({
-    user_id: userId,
-    name,
-    key_hash: keyHash,
-    key_prefix: keyPrefix,
-    scopes,
-    environment,
-    created_by: userId,
-  }).returning();
+  const [newKey] = await db
+    .insert(apiKeys)
+    .values({
+      user_id: userId,
+      name,
+      key_hash: keyHash,
+      key_prefix: keyPrefix,
+      scopes,
+      environment,
+      created_by: userId,
+    })
+    .returning();
 
   // Return the full key ONCE (never stored!)
   return {
@@ -174,11 +186,7 @@ async function authenticateApiKey(providedKey: string) {
   const keyHash = createHash('sha256').update(providedKey).digest('hex');
 
   // Find matching key
-  const [key] = await db
-    .select()
-    .from(apiKeys)
-    .where(eq(apiKeys.key_hash, keyHash))
-    .limit(1);
+  const [key] = await db.select().from(apiKeys).where(eq(apiKeys.key_hash, keyHash)).limit(1);
 
   if (!key) {
     return { valid: false, reason: 'Invalid API key' };
@@ -254,11 +262,7 @@ import { db } from '@/lib/db';
 import { apiKeys } from '@/lib/db/api-keys-schema';
 import { eq } from 'drizzle-orm';
 
-async function revokeApiKey(
-  keyId: string,
-  revokedBy: string,
-  reason: string
-) {
+async function revokeApiKey(keyId: string, revokedBy: string, reason: string) {
   await db
     .update(apiKeys)
     .set({
@@ -336,12 +340,7 @@ async function getKeyUsageStats(apiKeyId: string, daysBack: number = 30) {
       unique_ips: sql<number>`COUNT(DISTINCT ${apiKeyUsage.ip_address})`,
     })
     .from(apiKeyUsage)
-    .where(
-      and(
-        eq(apiKeyUsage.api_key_id, apiKeyId),
-        gte(apiKeyUsage.requested_at, cutoffDate)
-      )
-    );
+    .where(and(eq(apiKeyUsage.api_key_id, apiKeyId), gte(apiKeyUsage.requested_at, cutoffDate)));
 
   return stats[0];
 }
@@ -478,7 +477,7 @@ API_KEY_SCOPES = {
   // Admin scopes
   ADMIN: 'admin:all',
   READ_ANALYTICS: 'read:analytics',
-}
+};
 ```
 
 ## Future Enhancements

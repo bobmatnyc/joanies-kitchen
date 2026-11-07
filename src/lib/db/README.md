@@ -8,11 +8,11 @@ This layer provides type-safe transformations between PostgreSQL/Drizzle databas
 
 PostgreSQL returns certain types differently than what TypeScript components expect:
 
-| Database Type | Drizzle Returns | Frontend Expects | Issue |
-|---------------|----------------|------------------|-------|
-| `NUMERIC/DECIMAL` | `string` | `number` | Type mismatch causes runtime errors |
-| `TEXT` (JSON) | `string` | `object[]` or `string[]` | Need JSON parsing |
-| `JSONB` | `any` | Typed objects | Need type safety |
+| Database Type     | Drizzle Returns | Frontend Expects         | Issue                               |
+| ----------------- | --------------- | ------------------------ | ----------------------------------- |
+| `NUMERIC/DECIMAL` | `string`        | `number`                 | Type mismatch causes runtime errors |
+| `TEXT` (JSON)     | `string`        | `object[]` or `string[]` | Need JSON parsing                   |
+| `JSONB`           | `any`           | Typed objects            | Need type safety                    |
 
 ### The Solution
 
@@ -35,9 +35,11 @@ recipe.images.map(img => ...)              // ✓ string[] is iterable
 ## Files
 
 ### `transformers.ts`
+
 Core transformation functions and parsed type definitions.
 
 **Exported Functions:**
+
 - `parseDecimal(value)` - Convert NUMERIC/DECIMAL string → number
 - `parseInteger(value)` - Convert integer string → number
 - `parseJsonField<T>(value, default)` - Parse JSON text → typed value
@@ -56,6 +58,7 @@ Core transformation functions and parsed type definitions.
 - `parseInventoryItems(items[])` - Batch transform inventory items
 
 **Exported Types:**
+
 - `ParsedRecipe` - Frontend-ready recipe type
 - `ParsedMeal` - Frontend-ready meal type
 - `ParsedChef` - Frontend-ready chef type
@@ -66,15 +69,18 @@ Core transformation functions and parsed type definitions.
 - `ParsedNutrition` - Recipe nutrition structure
 
 ### `transformed-types.ts`
+
 Re-exports transformers with type guards and usage examples.
 
 **Type Guards:**
+
 - `isParsedRecipe(value)` - Runtime check if recipe is parsed
 - `isParsedMeal(value)` - Runtime check if meal is parsed
 - `isParsedChef(value)` - Runtime check if chef is parsed
 - `isParsedIngredient(value)` - Runtime check if ingredient is parsed
 
 ### `index.ts`
+
 Barrel export for convenient imports.
 
 ## Usage Examples
@@ -90,7 +96,7 @@ import { eq } from 'drizzle-orm';
 // Single recipe
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const rawRecipe = await db.query.recipes.findFirst({
-    where: eq(recipes.id, params.id)
+    where: eq(recipes.id, params.id),
   });
 
   if (!rawRecipe) {
@@ -105,7 +111,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function GET(request: Request) {
   const rawRecipes = await db.query.recipes.findMany({
     where: eq(recipes.is_public, true),
-    limit: 20
+    limit: 20,
   });
 
   const recipes = parseRecipes(rawRecipes);
@@ -127,7 +133,7 @@ export class RecipeService {
    */
   async findById(id: string): Promise<ParsedRecipe | null> {
     const rawRecipe = await db.query.recipes.findFirst({
-      where: eq(recipes.id, id)
+      where: eq(recipes.id, id),
     });
 
     return rawRecipe ? parseRecipe(rawRecipe) : null;
@@ -138,7 +144,7 @@ export class RecipeService {
    */
   async findPublic(): Promise<ParsedRecipe[]> {
     const rawRecipes = await db.query.recipes.findMany({
-      where: eq(recipes.is_public, true)
+      where: eq(recipes.is_public, true),
     });
 
     return parseRecipes(rawRecipes);
@@ -212,7 +218,7 @@ export async function getRecipeById(id: string): Promise<ParsedRecipe | null> {
   }
 
   const rawRecipe = await db.query.recipes.findFirst({
-    where: eq(recipes.id, id)
+    where: eq(recipes.id, id),
   });
 
   return rawRecipe ? parseRecipe(rawRecipe) : null;
@@ -223,57 +229,57 @@ export async function getRecipeById(id: string): Promise<ParsedRecipe | null> {
 
 ### Recipe Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `confidence_score` | NUMERIC | `string \| null` | `number \| null` |
-| `system_rating` | NUMERIC | `string \| null` | `number \| null` |
-| `avg_user_rating` | NUMERIC | `string \| null` | `number \| null` |
-| `images` | TEXT (JSON) | `string \| null` | `string[]` |
-| `ingredients` | TEXT (JSON) | `string` | `ParsedIngredientEntry[]` |
-| `nutrition_info` | TEXT (JSON) | `string \| null` | `ParsedNutrition \| null` |
-| `tags` | TEXT (JSON) | `string \| null` | `string[]` |
-| `dominant_textures` | TEXT (JSON) | `string \| null` | `string[]` |
-| `dominant_flavors` | TEXT (JSON) | `string \| null` | `string[]` |
-| `waste_reduction_tags` | TEXT (JSON) | `string \| null` | `string[]` |
+| Field                  | DB Type     | Raw Type         | Parsed Type               |
+| ---------------------- | ----------- | ---------------- | ------------------------- |
+| `confidence_score`     | NUMERIC     | `string \| null` | `number \| null`          |
+| `system_rating`        | NUMERIC     | `string \| null` | `number \| null`          |
+| `avg_user_rating`      | NUMERIC     | `string \| null` | `number \| null`          |
+| `images`               | TEXT (JSON) | `string \| null` | `string[]`                |
+| `ingredients`          | TEXT (JSON) | `string`         | `ParsedIngredientEntry[]` |
+| `nutrition_info`       | TEXT (JSON) | `string \| null` | `ParsedNutrition \| null` |
+| `tags`                 | TEXT (JSON) | `string \| null` | `string[]`                |
+| `dominant_textures`    | TEXT (JSON) | `string \| null` | `string[]`                |
+| `dominant_flavors`     | TEXT (JSON) | `string \| null` | `string[]`                |
+| `waste_reduction_tags` | TEXT (JSON) | `string \| null` | `string[]`                |
 
 ### Meal Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `estimated_total_cost` | NUMERIC | `string \| null` | `number \| null` |
-| `estimated_cost_per_serving` | NUMERIC | `string \| null` | `number \| null` |
-| `price_estimation_confidence` | NUMERIC | `string \| null` | `number \| null` |
-| `tags` | TEXT (JSON) | `string \| null` | `string[]` |
+| Field                         | DB Type     | Raw Type         | Parsed Type      |
+| ----------------------------- | ----------- | ---------------- | ---------------- |
+| `estimated_total_cost`        | NUMERIC     | `string \| null` | `number \| null` |
+| `estimated_cost_per_serving`  | NUMERIC     | `string \| null` | `number \| null` |
+| `price_estimation_confidence` | NUMERIC     | `string \| null` | `number \| null` |
+| `tags`                        | TEXT (JSON) | `string \| null` | `string[]`       |
 
 ### Chef Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `latitude` | NUMERIC | `string \| null` | `number \| null` |
-| `longitude` | NUMERIC | `string \| null` | `number \| null` |
-| `social_links` | JSONB | `any` | `unknown \| null` |
+| Field          | DB Type | Raw Type         | Parsed Type       |
+| -------------- | ------- | ---------------- | ----------------- |
+| `latitude`     | NUMERIC | `string \| null` | `number \| null`  |
+| `longitude`    | NUMERIC | `string \| null` | `number \| null`  |
+| `social_links` | JSONB   | `any`            | `unknown \| null` |
 
 ### Ingredient Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `aliases` | TEXT (JSON) | `string \| null` | `string[]` |
-| `common_units` | TEXT (JSON) | `string \| null` | `string[]` |
-| `substitutions` | TEXT (JSON) | `string \| null` | `string[]` |
+| Field           | DB Type     | Raw Type         | Parsed Type |
+| --------------- | ----------- | ---------------- | ----------- |
+| `aliases`       | TEXT (JSON) | `string \| null` | `string[]`  |
+| `common_units`  | TEXT (JSON) | `string \| null` | `string[]`  |
+| `substitutions` | TEXT (JSON) | `string \| null` | `string[]`  |
 
 ### Tool Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `typical_price_usd` | NUMERIC | `string \| null` | `number \| null` |
-| `alternatives` | TEXT (JSON) | `string \| null` | `string[]` |
+| Field               | DB Type     | Raw Type         | Parsed Type      |
+| ------------------- | ----------- | ---------------- | ---------------- |
+| `typical_price_usd` | NUMERIC     | `string \| null` | `number \| null` |
+| `alternatives`      | TEXT (JSON) | `string \| null` | `string[]`       |
 
 ### Inventory Item Fields
 
-| Field | DB Type | Raw Type | Parsed Type |
-|-------|---------|----------|-------------|
-| `quantity` | NUMERIC | `string` | `number` (defaults to 0 if null) |
-| `cost_usd` | NUMERIC | `string \| null` | `number \| null` |
+| Field      | DB Type | Raw Type         | Parsed Type                      |
+| ---------- | ------- | ---------------- | -------------------------------- |
+| `quantity` | NUMERIC | `string`         | `number` (defaults to 0 if null) |
+| `cost_usd` | NUMERIC | `string \| null` | `number \| null`                 |
 
 ## Error Handling
 
@@ -281,19 +287,19 @@ All transformers handle invalid data gracefully:
 
 ```typescript
 // Decimal parsing
-parseDecimal('invalid')  // → null
-parseDecimal(null)       // → null
-parseDecimal('3.14')     // → 3.14
+parseDecimal('invalid'); // → null
+parseDecimal(null); // → null
+parseDecimal('3.14'); // → 3.14
 
 // JSON parsing
-parseJsonArray('invalid')         // → []
-parseJsonArray(null)              // → []
-parseJsonArray('["a","b"]')       // → ['a', 'b']
+parseJsonArray('invalid'); // → []
+parseJsonArray(null); // → []
+parseJsonArray('["a","b"]'); // → ['a', 'b']
 
 // JSON objects with defaults
-parseJsonField('invalid', {})     // → {}
-parseJsonField(null, { key: 1 })  // → { key: 1 }
-parseJsonField('{"a":1}', {})     // → { a: 1 }
+parseJsonField('invalid', {}); // → {}
+parseJsonField(null, { key: 1 }); // → { key: 1 }
+parseJsonField('{"a":1}', {}); // → { a: 1 }
 ```
 
 ## Testing
@@ -301,11 +307,13 @@ parseJsonField('{"a":1}', {})     // → { a: 1 }
 Tests are located in `__tests__/transformers.test.ts`.
 
 Run tests:
+
 ```bash
 npm test src/lib/db/__tests__/transformers.test.ts
 ```
 
 Test coverage includes:
+
 - ✓ Decimal parsing (valid and invalid inputs)
 - ✓ Integer parsing (strings and numbers)
 - ✓ JSON field parsing (objects, arrays, primitives)

@@ -57,9 +57,9 @@ The `InventoryMatchSection` component enhances the recipe viewing experience by 
 
 ```typescript
 interface InventoryMatchSectionProps {
-  recipeId: string;      // Recipe ID (used for sign-in redirect)
+  recipeId: string; // Recipe ID (used for sign-in redirect)
   ingredients: string[]; // Array of ingredient strings from recipe
-  className?: string;    // Optional additional CSS classes
+  className?: string; // Optional additional CSS classes
 }
 ```
 
@@ -85,10 +85,7 @@ export function RecipePage({ recipe }) {
     <div>
       <h1>{recipe.name}</h1>
 
-      <InventoryMatchSection
-        recipeId={recipe.id}
-        ingredients={ingredients}
-      />
+      <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} />
 
       {/* Rest of recipe content */}
     </div>
@@ -99,11 +96,7 @@ export function RecipePage({ recipe }) {
 ### With Custom Styling
 
 ```tsx
-<InventoryMatchSection
-  recipeId={recipe.id}
-  ingredients={ingredients}
-  className="my-8 shadow-xl"
-/>
+<InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} className="my-8 shadow-xl" />;
 ```
 
 ### In Recipe Detail Page
@@ -120,10 +113,7 @@ export default async function RecipeDetailPage({ params }) {
       </header>
 
       {/* Prominent placement near top of page */}
-      <InventoryMatchSection
-        recipeId={recipe.id}
-        ingredients={ingredients}
-      />
+      <InventoryMatchSection recipeId={recipe.id} ingredients={ingredients} />
 
       <section>
         <h2>Instructions</h2>
@@ -154,6 +144,7 @@ function parseIngredientName(ingredient: string): string {
 ```
 
 **Examples**:
+
 - `"2 cups all-purpose flour"` → `"flour"`
 - `"400g spaghetti"` → `"spaghetti"`
 - `"3 large eggs, beaten"` → `"eggs"`
@@ -163,16 +154,14 @@ function parseIngredientName(ingredient: string): string {
 
 ```typescript
 // Fuzzy match: Check if inventory item name contains parsed ingredient or vice versa
-const match = inventoryItems.find(item => {
+const match = inventoryItems.find((item) => {
   const inventoryName = item.ingredient.name.toLowerCase();
-  return (
-    inventoryName.includes(parsedIngredient) ||
-    parsedIngredient.includes(inventoryName)
-  );
+  return inventoryName.includes(parsedIngredient) || parsedIngredient.includes(inventoryName);
 });
 ```
 
 This approach handles:
+
 - Plural/singular variations (egg vs eggs)
 - Partial matches (cheddar vs cheddar cheese)
 - Case insensitivity
@@ -210,17 +199,20 @@ Show sign-in  getUserInventory()
 ## Dependencies
 
 ### Required Packages
+
 - `next-auth` (via `useSessionUser`) - Authentication
 - `lucide-react` - Icons
 - `next` - Link component
 - `react` - Hooks (useState, useEffect)
 
 ### Required UI Components
+
 - `@/components/ui/badge` - Match percentage badge
 - `@/components/ui/button` - Action buttons
 - `@/components/ui/card` - Card container
 
 ### Required Actions
+
 - `@/app/actions/inventory` - `getUserInventory()` server action
 
 ---
@@ -230,11 +222,13 @@ Show sign-in  getUserInventory()
 ### Color Scheme
 
 **Primary Colors**:
+
 - Brand color: `jk-sage` (used for borders, buttons)
 - Success: Green (`green-50`, `green-200`, `green-700`)
 - Warning: Orange (`orange-50`, `orange-200`, `orange-700`)
 
 **Badge Colors**:
+
 ```typescript
 matchPercentage >= 70 → 'bg-green-600'
 matchPercentage >= 50 → 'bg-orange-500'
@@ -244,11 +238,13 @@ matchPercentage < 50  → 'bg-gray-500'
 ### Responsive Design
 
 **Mobile (< 640px)**:
+
 - Full width cards
 - Stacked buttons (flex-col)
 - Compact spacing
 
 **Desktop (≥ 640px)**:
+
 - Side-by-side buttons (sm:flex-row)
 - Expanded spacing
 - Comfortable reading width
@@ -258,16 +254,19 @@ matchPercentage < 50  → 'bg-gray-500'
 ## Accessibility
 
 ### Keyboard Navigation
+
 - All interactive elements (buttons) are keyboard accessible
 - Logical tab order (header → badge → buttons)
 - Enter/Space activates buttons
 
 ### Screen Readers
+
 - Icons have semantic meaning (CheckCircle2 = have, XCircle = need)
 - Descriptive text for all states
 - ARIA labels on interactive elements
 
 ### Visual
+
 - High contrast text (green-900, orange-900 on light backgrounds)
 - Icon + text patterns (not color-only)
 - Touch-friendly targets (44x44px minimum)
@@ -277,12 +276,14 @@ matchPercentage < 50  → 'bg-gray-500'
 ## Performance
 
 ### Optimization Strategies
+
 - **Client-side component**: Renders after authentication check
 - **Single API call**: Fetches all inventory once
 - **Efficient matching**: O(n*m) where n=recipes, m=inventory (acceptable for typical sizes)
 - **No unnecessary re-renders**: Only updates when inventory changes
 
 ### Expected Load Times
+
 - Initial render: < 50ms
 - Inventory fetch: 200-500ms (depends on database)
 - Matching calculation: < 100ms (for typical recipe sizes)
@@ -294,6 +295,7 @@ matchPercentage < 50  → 'bg-gray-500'
 See `InventoryMatchSection.test.md` for comprehensive test cases.
 
 ### Key Test Areas
+
 1. **Ingredient parsing** - Verify correct extraction of ingredient names
 2. **Matching logic** - Test exact, fuzzy, and no-match scenarios
 3. **State transitions** - All 5 states (loading, not signed in, empty, has matches, error)
@@ -306,6 +308,7 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 ## Future Enhancements
 
 ### Planned Features
+
 - [ ] **Smart suggestions**: "You can substitute X for Y"
 - [ ] **Quantity comparison**: "You have 1 cup, recipe needs 2 cups"
 - [ ] **Expiring soon indicator**: Highlight ingredients expiring soon
@@ -315,6 +318,7 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 - [ ] **Unit conversion**: Compare different units (cups vs grams)
 
 ### Technical Improvements
+
 - [ ] **Caching**: Cache inventory data for session
 - [ ] **Optimistic updates**: Update UI before server response
 - [ ] **Real-time sync**: WebSocket updates when inventory changes
@@ -328,15 +332,19 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 ### Common Issues
 
 #### "Component shows empty inventory but I have items"
+
 **Solution**: Verify inventory items are linked to correct `ingredient_id` in database.
 
 #### "Matching is not working for some ingredients"
+
 **Solution**: Check ingredient parsing logic. Some complex ingredient strings may need manual adjustment.
 
 #### "Sign-in redirect not working"
+
 **Solution**: The sign-in link points to `/sign-in`; verify that page loads and Auth.js is configured (`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`).
 
 #### "Component stuck on loading"
+
 **Solution**: Check network tab for failed API calls. Ensure `getUserInventory()` server action is working.
 
 ---
@@ -352,6 +360,7 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 ## Contributing
 
 ### Adding New Features
+
 1. Create feature branch
 2. Update component logic
 3. Add tests to `InventoryMatchSection.test.md`
@@ -359,6 +368,7 @@ See `InventoryMatchSection.test.md` for comprehensive test cases.
 5. Submit PR with screenshots
 
 ### Code Style
+
 - Follow existing patterns (use TypeScript strict mode)
 - Add JSDoc comments for complex functions
 - Use Tailwind utility classes (no inline styles)
