@@ -59,6 +59,7 @@
         "noUnsafeOptionalChaining": "error",
         "noUnusedLabels": "error",
         "noUnusedVariables": "error",
+        "useUniqueElementIds": "error",
         "useIsNan": "error",
         "useValidForDirection": "error",
         "useYield": "error",
