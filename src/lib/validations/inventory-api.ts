@@ -21,13 +21,7 @@ export const inventoryStatusEnum = z.enum([
   'wasted',
 ]);
 
-export const usageActionEnum = z.enum([
-  'cooked',
-  'eaten_raw',
-  'composted',
-  'trashed',
-  'donated',
-]);
+export const usageActionEnum = z.enum(['cooked', 'eaten_raw', 'composted', 'trashed', 'donated']);
 
 // ============================================================================
 // REQUEST SCHEMAS - INVENTORY ITEMS

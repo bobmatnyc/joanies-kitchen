@@ -27,6 +27,7 @@ The AI Prompt Store provides a centralized system for managing AI prompts across
 - **Metadata**: Cost estimates, latency expectations, and usage notes
 
 **Current Stats**:
+
 - **Total Prompts**: 15
 - **Categories**: 4 (Meal, Recipe, Nutrition, Analysis)
 - **Average Cost**: $0.001-$0.01 per call
@@ -93,7 +94,9 @@ const response = await client.chat.completions.create({
 ## Prompt Categories
 
 ### 1. **Meal** (`category: 'meal'`)
+
 Prompts for meal planning and generation:
+
 - Complete meal building
 - Complementary side dish generation
 - Themed/occasion-based meals
@@ -102,19 +105,25 @@ Prompts for meal planning and generation:
 - Budget-friendly meals
 
 ### 2. **Recipe** (`category: 'recipe'`)
+
 Prompts for recipe creation and modification:
+
 - Recipe variation generation
 - (More to be added)
 
 ### 3. **Nutrition** (`category: 'nutrition'`)
+
 Prompts for nutritional analysis:
+
 - Comprehensive nutrition calculation
 - Healthier substitution suggestions
 - Allergen detection
 - Macro-friendly optimization
 
 ### 4. **Analysis** (`category: 'analysis'`)
+
 Prompts for recipe analysis and improvement:
+
 - Recipe improvement suggestions
 - Missing ingredient detection
 - Difficulty estimation
@@ -127,9 +136,11 @@ Prompts for recipe analysis and improvement:
 ### Meal Generation Prompts
 
 #### 1. `meal-builder-complete`
+
 **Generate a complete multi-course meal**
 
 **Variables**:
+
 - `mainDish` (required): Main dish name or "surprise me"
 - `cuisine` (required): Cuisine type (e.g., "Italian", "Mexican")
 - `dietaryRestrictions` (required): Restrictions or "none"
@@ -141,6 +152,7 @@ Prompts for recipe analysis and improvement:
 **Model**: Google Gemini 2.0 Flash (primary)
 
 **Example**:
+
 ```typescript
 const meal = await generateCompleteMeal({
   mainDish: 'Beef Wellington',
@@ -154,9 +166,11 @@ const meal = await generateCompleteMeal({
 ---
 
 #### 2. `complementary-sides`
+
 **Generate side dishes that complement a main dish**
 
 **Variables**:
+
 - `mainDish` (required): Name of main dish
 - `mainDescription` (required): Description of main dish
 - `cuisine` (required): Cuisine type
@@ -170,6 +184,7 @@ const meal = await generateCompleteMeal({
 **Model**: Google Gemini 2.0 Flash (primary)
 
 **Example**:
+
 ```typescript
 const sides = await generateComplementarySides({
   mainDish: 'Grilled Ribeye Steak',
@@ -184,9 +199,11 @@ const sides = await generateComplementarySides({
 ---
 
 #### 3. `themed-meal`
+
 **Create meals based on themes or cultural events**
 
 **Variables**:
+
 - `theme` (required): Theme or occasion (e.g., "Thanksgiving", "Italian Night")
 - `cuisine` (required): Cuisine/culture
 - `servings` (required): Number of guests
@@ -199,6 +216,7 @@ const sides = await generateComplementarySides({
 **Model**: Claude 3.5 Sonnet (primary) - better cultural knowledge
 
 **Example**:
+
 ```typescript
 const themedMeal = await generateThemedMeal({
   theme: 'Día de los Muertos celebration',
@@ -213,9 +231,11 @@ const themedMeal = await generateThemedMeal({
 ---
 
 #### 4. `dietary-meal-builder`
+
 **Build meals adhering to strict dietary requirements**
 
 **Variables**:
+
 - `dietType` (required): Primary diet (e.g., "vegan", "keto", "paleo")
 - `restrictions` (required): Additional restrictions
 - `allergies` (required): Allergen list or "none"
@@ -228,6 +248,7 @@ const themedMeal = await generateThemedMeal({
 **Model**: Claude 3.5 Sonnet (primary) - most accurate for compliance
 
 **Example**:
+
 ```typescript
 const dietaryMeal = await generateDietaryMeal({
   dietType: 'vegan',
@@ -242,9 +263,11 @@ const dietaryMeal = await generateDietaryMeal({
 ---
 
 #### 5. `seasonal-meal`
+
 **Generate meals using peak seasonal ingredients**
 
 **Variables**:
+
 - `season` (required): "spring", "summer", "fall", or "winter"
 - `region` (required): Geographic region (e.g., "Pacific Northwest", "Mediterranean")
 - `cuisine` (required): Preferred cuisine
@@ -257,6 +280,7 @@ const dietaryMeal = await generateDietaryMeal({
 **Model**: Google Gemini 2.0 Flash (primary)
 
 **Example**:
+
 ```typescript
 const seasonalMeal = await generateSeasonalMeal({
   season: 'fall',
@@ -271,9 +295,11 @@ const seasonalMeal = await generateSeasonalMeal({
 ---
 
 #### 6. `budget-meal-planner`
+
 **Create cost-effective meals**
 
 **Variables**:
+
 - `budgetPerServing` (required): Budget (e.g., "$3", "$5")
 - `servings` (required): Servings
 - `dietaryRestrictions` (required): Restrictions
@@ -285,6 +311,7 @@ const seasonalMeal = await generateSeasonalMeal({
 **Model**: Google Gemini 2.0 Flash (primary) - cost-effective choice
 
 **Example**:
+
 ```typescript
 const budgetMeal = await generateBudgetMeal({
   budgetPerServing: '$4',
@@ -300,9 +327,11 @@ const budgetMeal = await generateBudgetMeal({
 ### Recipe Analysis Prompts
 
 #### 7. `recipe-improvement-analyzer`
+
 **Suggest improvements to existing recipes**
 
 **Variables**:
+
 - `recipeName`, `cuisine`, `difficulty`
 - `ingredients`, `instructions`, `tags`
 - `userFeedback` (optional), `commonIssues` (optional)
@@ -312,9 +341,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 8. `recipe-variation-generator`
+
 **Create creative variations of recipes**
 
 **Variables**:
+
 - `recipeName`, `cuisine`, `technique`
 - `keyIngredients`, `dietaryBase`
 - `variationTypes` (e.g., "cuisine-fusion, dietary-adaptation")
@@ -325,9 +356,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 9. `missing-ingredient-identifier`
+
 **Detect missing or forgotten ingredients**
 
 **Variables**:
+
 - `recipeName`, `cuisine`, `dishType`
 - `ingredients`, `instructions`
 
@@ -336,9 +369,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 10. `cooking-difficulty-estimator`
+
 **Accurately rate recipe difficulty**
 
 **Variables**:
+
 - `recipeName`, `currentDifficulty`
 - `ingredients`, `instructions`
 - `prepTime`, `cookTime`, `equipment`
@@ -348,9 +383,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 11. `recipe-scaling-optimizer`
+
 **Scale recipes intelligently**
 
 **Variables**:
+
 - `recipeName`, `originalServings`, `targetServings`
 - `ingredients`, `instructions`, `equipment`
 
@@ -361,9 +398,11 @@ const budgetMeal = await generateBudgetMeal({
 ### Nutritional Estimation Prompts
 
 #### 12. `comprehensive-nutrition-calculator`
+
 **Estimate complete nutritional profile**
 
 **Variables**:
+
 - `recipeName`, `servings`, `ingredients`
 - `cookingMethod` (optional), `prepMethod` (optional)
 
@@ -372,9 +411,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 13. `healthier-substitution-suggester`
+
 **Suggest healthier ingredient swaps**
 
 **Variables**:
+
 - `recipeName`, `ingredients`
 - `healthGoals` (e.g., "lower fat, increase fiber")
 - `mustMaintain` (e.g., "creamy texture, rich flavor")
@@ -384,9 +425,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 14. `allergen-detector`
+
 **Identify all allergens including hidden sources**
 
 **Variables**:
+
 - `recipeName`, `ingredients`, `processedIngredients`
 - `preparationEnvironment` (optional)
 
@@ -395,9 +438,11 @@ const budgetMeal = await generateBudgetMeal({
 ---
 
 #### 15. `macro-friendly-optimizer`
+
 **Optimize recipes for specific macro targets**
 
 **Variables**:
+
 - `recipeName`, `ingredients`, `currentMacros`
 - `targetCalories`, `targetProtein`, `targetCarbs`, `targetFat`
 - `dietPreference`, `mustKeepIngredients`
@@ -576,9 +621,7 @@ import { myPromptCategory } from './my-prompt-category';
 
 export const promptStore: Record<string, PromptTemplate> = {
   // ... existing prompts
-  ...Object.fromEntries(
-    Object.entries(myPromptCategory).map(([, prompt]) => [prompt.id, prompt])
-  ),
+  ...Object.fromEntries(Object.entries(myPromptCategory).map(([, prompt]) => [prompt.id, prompt])),
 };
 ```
 
@@ -609,9 +652,8 @@ export async function myNewFunction(params: {
     ],
     temperature: rendered.config.temperature,
     max_tokens: rendered.config.maxTokens,
-    response_format: rendered.config.responseFormat === 'json_object'
-      ? { type: 'json_object' }
-      : undefined,
+    response_format:
+      rendered.config.responseFormat === 'json_object' ? { type: 'json_object' } : undefined,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -675,6 +717,7 @@ try {
 ### 7. **Versioning**
 
 When updating prompts:
+
 - Increment patch version (1.0.0 → 1.0.1) for minor wording changes
 - Increment minor version (1.0.0 → 1.1.0) for new variables or significant improvements
 - Increment major version (1.0.0 → 2.0.0) for breaking changes
@@ -684,6 +727,7 @@ When updating prompts:
 ## Model Selection Guide
 
 ### Google Gemini 2.0 Flash (Free)
+
 **Best For**: High-volume, creative tasks, budget-conscious operations
 
 - **Pros**: Free, fast, good creative output, handles JSON well
@@ -692,6 +736,7 @@ When updating prompts:
 - **Cost**: Free (with rate limits)
 
 ### Anthropic Claude 3.5 Sonnet
+
 **Best For**: Accuracy-critical, safety-sensitive, complex reasoning
 
 - **Pros**: Most accurate, excellent reasoning, very safe outputs, best for nuanced tasks
@@ -700,6 +745,7 @@ When updating prompts:
 - **Cost**: ~$0.003-$0.015 per call
 
 ### OpenAI GPT-4o / GPT-4o-mini
+
 **Best For**: General-purpose tasks, strong world knowledge
 
 - **Pros**: Excellent general knowledge, good at creative and analytical tasks, reliable
@@ -714,27 +760,35 @@ When updating prompts:
 ### Core Functions
 
 #### `getPrompt(id: string): PromptTemplate | undefined`
+
 Get a prompt template by ID.
 
 #### `getPromptsByCategory(category: PromptCategory): PromptTemplate[]`
+
 Get all prompts in a category.
 
 #### `searchPromptsByTag(tag: string): PromptTemplate[]`
+
 Search prompts by tag.
 
 #### `renderPrompt(template: PromptTemplate, options: PromptRenderOptions): RenderedPrompt`
+
 Render a prompt with variable substitution.
 
 #### `renderPromptById(promptId: string, options: PromptRenderOptions): RenderedPrompt`
+
 Render a prompt by ID.
 
 #### `validatePromptVariables(template: PromptTemplate, variables: Record<string, string>): PromptValidationResult`
+
 Validate that all required variables are provided.
 
 #### `listPromptIds(): string[]`
+
 List all prompt IDs.
 
 #### `listPromptsWithInfo(): Array<{id, name, description, category, version}>`
+
 List all prompts with metadata.
 
 ### Meal Generator Functions
@@ -751,6 +805,7 @@ See [Available Prompts](#available-prompts) section for detailed parameter lists
 ### Generic Caller
 
 #### `callPrompt<T>(promptId, variables, options?): Promise<T>`
+
 Generic function to call any prompt with optional Zod validation.
 
 ---
@@ -758,13 +813,16 @@ Generic function to call any prompt with optional Zod validation.
 ## Support & Contributing
 
 ### Reporting Issues
+
 If a prompt is producing poor results:
+
 1. Note the prompt ID and version
 2. Provide example inputs and outputs
 3. Describe expected vs. actual behavior
 4. Suggest prompt improvements
 
 ### Contributing New Prompts
+
 1. Follow the template structure in [Adding New Prompts](#adding-new-prompts)
 2. Test with multiple models and scenarios
 3. Document expected inputs/outputs

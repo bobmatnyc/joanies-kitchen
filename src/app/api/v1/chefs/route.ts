@@ -23,9 +23,9 @@ import {
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { chefService } from '@/lib/services/chef-service';
 import {
+  type CreateChefInput,
   createChefSchema,
   listChefsQuerySchema,
-  type CreateChefInput,
 } from '@/lib/validations/chef-api';
 
 /**

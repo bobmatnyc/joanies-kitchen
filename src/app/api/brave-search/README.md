@@ -6,6 +6,7 @@
 **Auth:** Required (Auth.js session)
 
 ## Request
+
 ```json
 {
   "query": "recipe search term",
@@ -14,6 +15,7 @@
 ```
 
 ## Response
+
 ```json
 {
   "web": {
@@ -29,6 +31,7 @@
 ```
 
 ## Security Features
+
 - ✅ Signed-in session required
 - ✅ Input validation (query, count)
 - ✅ API key protection (never exposed)
@@ -37,6 +40,7 @@
 - ✅ Method restriction (POST only)
 
 ## Error Codes
+
 - `401` - Not authenticated
 - `400` - Invalid request
 - `429` - Rate limit exceeded
@@ -44,6 +48,7 @@
 - `500` - Server error
 
 ## Environment Setup
+
 ```bash
 # .env.local
 BRAVE_SEARCH_API_KEY=your_api_key_here

@@ -1,7 +1,6 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { getSessionUserId } from '@/lib/session-user';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import {
@@ -10,12 +9,9 @@ import {
 } from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { type NewRecipe, type Recipe, recipes } from '@/lib/db/schema';
-import {
-  canViewRecipe,
-  getRecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
+import { canViewRecipe, getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
+import { getSessionUserId } from '@/lib/session-user';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { addFavorite } from './favorites';

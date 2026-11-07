@@ -8,9 +8,9 @@ import {
   Database,
   Globe,
   Loader2,
+  type LucideIcon,
   Search,
   XCircle,
-  type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import {

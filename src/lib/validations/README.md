@@ -55,6 +55,7 @@ await saveRecipe(parsed);
 TypeScript types and error code enums.
 
 **Key Types:**
+
 - `ValidationResult` - Standard validation result structure
 - `ValidationError` - Error with field, code, message, severity
 - `ValidationWarning` - Non-blocking warning
@@ -62,6 +63,7 @@ TypeScript types and error code enums.
 - `SanitizationResult` - Auto-sanitization result
 
 **Error Code Namespaces:**
+
 - `SV-xxx` - Structure validation errors
 - `IV-xxx` - Ingredient validation errors
 - `IN-xxx` - Instruction validation errors
@@ -78,12 +80,14 @@ Structure validation and auto-sanitization.
 Validates recipe structure after LLM parsing.
 
 **Checks:**
+
 - Recipe name is valid string
 - Ingredients is array of objects with `name` property
 - Instructions is array of strings
 - No `[object Object]` in any field
 
 **Returns:**
+
 ```typescript
 {
   isValid: boolean,
@@ -98,11 +102,13 @@ Validates recipe structure after LLM parsing.
 Auto-fixes common ingredient issues.
 
 **Fixes:**
+
 - Converts string ingredients to objects
 - Maps alternate properties (`ingredient`, `item`) to `name`
 - Handles non-object values
 
 **Returns:**
+
 ```typescript
 {
   sanitized: IngredientObject[],
@@ -116,6 +122,7 @@ Auto-fixes common ingredient issues.
 Auto-fixes instruction array issues.
 
 **Fixes:**
+
 - Converts non-string instructions to strings
 
 ### serialization-validation.ts
@@ -129,12 +136,14 @@ JSON serialization safety checks.
 Validates recipe can be safely serialized to JSON.
 
 **Checks:**
+
 - No `[object Object]` in serialized JSON
 - Round-trip serialization works
 - Doesn't exceed database limits (50,000 chars)
 - All ingredients have `name` after deserialization
 
 **Returns:**
+
 ```typescript
 {
   isValid: boolean,
@@ -160,47 +169,47 @@ Tests serialization round-trip safety.
 
 ### Structure Validation (SV-xxx)
 
-| Code | Description |
-|------|-------------|
-| SV-001 | Missing recipe name |
-| SV-002 | Invalid recipe name |
-| SV-003 | Missing ingredients array |
-| SV-004 | Invalid ingredients array type |
-| SV-005 | Missing instructions array |
+| Code   | Description                     |
+| ------ | ------------------------------- |
+| SV-001 | Missing recipe name             |
+| SV-002 | Invalid recipe name             |
+| SV-003 | Missing ingredients array       |
+| SV-004 | Invalid ingredients array type  |
+| SV-005 | Missing instructions array      |
 | SV-006 | Invalid instructions array type |
 
 ### Ingredient Validation (IV-xxx)
 
-| Code | Description |
-|------|-------------|
-| IV-001 | Missing ingredient name property |
-| IV-002 | Empty ingredient name |
-| IV-003 | Invalid ingredient structure |
+| Code   | Description                        |
+| ------ | ---------------------------------- |
+| IV-001 | Missing ingredient name property   |
+| IV-002 | Empty ingredient name              |
+| IV-003 | Invalid ingredient structure       |
 | IV-004 | [object Object] in ingredient name |
-| IV-005 | Invalid quantity type |
-| IV-006 | Invalid unit type |
-| IV-007 | Duplicate ingredient |
-| IV-008 | Excessive preparation text |
+| IV-005 | Invalid quantity type              |
+| IV-006 | Invalid unit type                  |
+| IV-007 | Duplicate ingredient               |
+| IV-008 | Excessive preparation text         |
 
 ### Instruction Validation (IN-xxx)
 
-| Code | Description |
-|------|-------------|
-| IN-001 | Invalid instruction type |
+| Code   | Description                    |
+| ------ | ------------------------------ |
+| IN-001 | Invalid instruction type       |
 | IN-002 | [object Object] in instruction |
-| IN-003 | Empty instruction |
-| IN-004 | Instruction too short |
-| IN-005 | Instruction too long |
+| IN-003 | Empty instruction              |
+| IN-004 | Instruction too short          |
+| IN-005 | Instruction too long           |
 
 ### Serialization Validation (SR-xxx)
 
-| Code | Description |
-|------|-------------|
-| SR-001 | Serialization failed |
+| Code   | Description                    |
+| ------ | ------------------------------ |
+| SR-001 | Serialization failed           |
 | SR-002 | [object Object] in JSON output |
-| SR-003 | Missing name after parse |
-| SR-004 | Instructions corruption |
-| SR-005 | Exceeds database limit |
+| SR-003 | Missing name after parse       |
+| SR-004 | Instructions corruption        |
+| SR-005 | Exceeds database limit         |
 
 ## Examples
 
@@ -211,12 +220,9 @@ const recipe = {
   name: 'Chocolate Chip Cookies',
   ingredients: [
     { name: 'flour', quantity: '2', unit: 'cups' },
-    { name: 'chocolate chips', quantity: '2', unit: 'cups' }
+    { name: 'chocolate chips', quantity: '2', unit: 'cups' },
   ],
-  instructions: [
-    'Mix ingredients',
-    'Bake at 375F for 12 minutes'
-  ]
+  instructions: ['Mix ingredients', 'Bake at 375F for 12 minutes'],
 };
 
 const result = validateParsedRecipe(recipe);
@@ -229,9 +235,9 @@ const result = validateParsedRecipe(recipe);
 const recipe = {
   name: 'Bad Recipe',
   ingredients: [
-    { name: '[object Object]' }  // INVALID
+    { name: '[object Object]' }, // INVALID
   ],
-  instructions: ['Step 1']
+  instructions: ['Step 1'],
 };
 
 const result = validateParsedRecipe(recipe);
@@ -257,9 +263,7 @@ const { sanitized, modified, changes } = sanitizeIngredients(ingredients);
 ### Example 4: Alternate Property Names
 
 ```typescript
-const ingredients = [
-  { ingredient: 'flour', quantity: '2', unit: 'cups' }
-];
+const ingredients = [{ ingredient: 'flour', quantity: '2', unit: 'cups' }];
 
 const { sanitized } = sanitizeIngredients(ingredients);
 // sanitized[0].name === 'flour'

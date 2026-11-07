@@ -35,13 +35,7 @@ export class IngredientService {
     limit?: number;
     offset?: number;
   }): Promise<Ingredient[]> {
-    const {
-      category,
-      search,
-      sort = 'alphabetical',
-      limit = 100,
-      offset = 0,
-    } = options || {};
+    const { category, search, sort = 'alphabetical', limit = 100, offset = 0 } = options || {};
 
     const conditions = [];
 
@@ -105,11 +99,7 @@ export class IngredientService {
    * Find ingredient by ID
    */
   async findById(id: string): Promise<Ingredient | null> {
-    const [ingredient] = await db
-      .select()
-      .from(ingredients)
-      .where(eq(ingredients.id, id))
-      .limit(1);
+    const [ingredient] = await db.select().from(ingredients).where(eq(ingredients.id, id)).limit(1);
 
     return ingredient || null;
   }
@@ -167,7 +157,7 @@ export class IngredientService {
     },
     // #32: the caller decides which private recipes are visible; default is public-only.
     viewer: RecipeViewer = ANONYMOUS_VIEWER
-  ): Promise<typeof recipes.$inferSelect[]> {
+  ): Promise<(typeof recipes.$inferSelect)[]> {
     const { limit = 50, offset = 0, sortBy = 'popular' } = options || {};
 
     // Get recipe IDs using this ingredient
@@ -252,11 +242,7 @@ export class IngredientService {
   /**
    * Get ingredients by type (ontology)
    */
-  async findByType(
-    type: string,
-    subtype?: string,
-    limit = 100
-  ): Promise<Ingredient[]> {
+  async findByType(type: string, subtype?: string, limit = 100): Promise<Ingredient[]> {
     const conditions = [eq(ingredients.type, type)];
 
     if (subtype) {
@@ -274,7 +260,9 @@ export class IngredientService {
   /**
    * Get ingredient statistics
    */
-  async getStatistics(ingredientId: string): Promise<typeof ingredientStatistics.$inferSelect | null> {
+  async getStatistics(
+    ingredientId: string
+  ): Promise<typeof ingredientStatistics.$inferSelect | null> {
     const [stats] = await db
       .select()
       .from(ingredientStatistics)

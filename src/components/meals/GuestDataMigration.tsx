@@ -1,6 +1,5 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { CheckCircle, Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useSessionUser } from '@/lib/use-session-user';
 import {
   clearGuestData,
   exportGuestData,

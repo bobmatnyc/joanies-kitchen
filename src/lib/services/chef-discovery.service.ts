@@ -54,11 +54,7 @@ export class ChefDiscoveryService {
     const slug = this.nameToSlug(chefName);
 
     // Check if chef exists
-    const [existing] = await db
-      .select()
-      .from(chefs)
-      .where(eq(chefs.slug, slug))
-      .limit(1);
+    const [existing] = await db.select().from(chefs).where(eq(chefs.slug, slug)).limit(1);
 
     if (existing) {
       return {
@@ -185,8 +181,7 @@ ${pageContent.substring(0, 3000)}`,
     });
     await trackLlmResponse('anthropic', message, { model: 'claude-haiku-4-5', kind: 'messages' });
 
-    const bio =
-      message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
+    const bio = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
 
     return bio || `${chefName} is a chef and recipe developer.`;
   }

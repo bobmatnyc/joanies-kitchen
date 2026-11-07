@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { convertUrlToRecipe } from '@/lib/recipe-crawl';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
+import { convertUrlToRecipe } from '@/lib/recipe-crawl';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 
 export async function POST(request: NextRequest) {

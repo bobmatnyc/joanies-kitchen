@@ -326,39 +326,46 @@ describe('using a key', () => {
 
 describe('chef write routes', () => {
   const chefBody = { slug: 'new-chef', name: 'New Chef' };
+  // #296: lowercase keys; Biome's noComponentHookFactories reads a capitalized
+  // property holding a function as a React component. Titles show the uppercase method.
   const calls = {
-    POST: (apiKey?: string) =>
+    post: (apiKey?: string) =>
       chefsPOST(jsonRequest('POST', '/api/v1/chefs', chefBody, apiKey), noParams),
-    PATCH: (apiKey?: string) =>
+    patch: (apiKey?: string) =>
       chefPATCH(
         jsonRequest('PATCH', '/api/v1/chefs/existing', { name: 'Renamed' }, apiKey),
         withParams({ slug: 'existing' })
       ),
-    DELETE: (apiKey?: string) =>
+    delete: (apiKey?: string) =>
       chefDELETE(
         jsonRequest('DELETE', '/api/v1/chefs/existing', undefined, apiKey),
         withParams({ slug: 'existing' })
       ),
   };
-  const methods = Object.keys(calls) as Array<keyof typeof calls>;
+  const methods = (Object.keys(calls) as Array<keyof typeof calls>).map(
+    (m) => [m.toUpperCase(), m] as const
+  );
 
-  it.each(methods)('%s answers 403 to a non-admin key holding chef write scopes', async (m) => {
-    const key = await storeKey(MEMBER, ['chefs:*', 'write:chefs', 'delete:chefs']);
+  it.each(methods)(
+    '%s answers 403 to a non-admin key holding chef write scopes',
+    async (_method, m) => {
+      const key = await storeKey(MEMBER, ['chefs:*', 'write:chefs', 'delete:chefs']);
 
-    expect((await calls[m](key)).status).toBe(403);
-  });
+      expect((await calls[m](key)).status).toBe(403);
+    }
+  );
 
-  it.each(methods)('%s answers 403 to a non-admin session', async (m) => {
+  it.each(methods)('%s answers 403 to a non-admin session', async (_method, m) => {
     state.sessionUserId = MEMBER;
 
     expect((await calls[m]()).status).toBe(403);
   });
 
   it.each([
-    ['POST', 201],
-    ['PATCH', 200],
-    ['DELETE', 200],
-  ] as const)('%s works for an admin key', async (m, status) => {
+    ['POST', 'post', 201],
+    ['PATCH', 'patch', 200],
+    ['DELETE', 'delete', 200],
+  ] as const)('%s works for an admin key', async (_method, m, status) => {
     const key = await createdKey(ADMIN, ['write:chefs', 'delete:chefs']);
 
     expect((await calls[m](key)).status).toBe(status);

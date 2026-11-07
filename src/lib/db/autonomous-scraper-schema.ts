@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -8,9 +9,8 @@ import {
   serial,
   text,
   timestamp,
-  uuid,
-  index,
   unique,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { recipes } from './schema';

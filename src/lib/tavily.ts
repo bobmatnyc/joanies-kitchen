@@ -192,8 +192,10 @@ export async function searchRecipesWithTavily(
     }));
 
     console.log(`[Tavily] Success! Found ${results.length} results`);
-    console.log(`[Tavily] Top result:`, results[0] ?
-      `${results[0].title} (score: ${results[0].score.toFixed(2)})` : 'none');
+    console.log(
+      `[Tavily] Top result:`,
+      results[0] ? `${results[0].title} (score: ${results[0].score.toFixed(2)})` : 'none'
+    );
 
     return {
       success: true,

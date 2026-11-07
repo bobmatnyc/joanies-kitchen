@@ -274,7 +274,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.6",
+    "@biomejs/biome": "^2.6.6",
     "@electric-sql/pglite": "^0.5.15",
     "@next/bundle-analyzer": "^15.5.29",
     "@playwright/test": "^1.64.1",

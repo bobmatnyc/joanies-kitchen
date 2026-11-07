@@ -63,7 +63,10 @@ describe('installConsoleRedaction', () => {
     expect(() => target.error(circular, hostile)).not.toThrow();
     expect(error.mock.calls[0]).toEqual([circular, hostile]);
     expect(() => target.error(looped)).not.toThrow();
-    expect((error.mock.calls[1]?.[0] as Error).message).toBe('loop [email]');
+    // #296: destructure with a fallback, as above, instead of `?.` then `.message`
+    // (noUnsafeOptionalChaining). A missing call still throws a TypeError.
+    const [loggedLoop] = error.mock.calls[1] ?? [];
+    expect((loggedLoop as Error).message).toBe('loop [email]');
   });
 
   it('keeps the app-error JSON line valid and does not wrap twice', () => {
@@ -97,7 +100,9 @@ describe('installConsoleRedaction', () => {
     try {
       register();
       console.error(new Error(`boom ${EMAIL}`));
-      expect((sink.mock.calls[0]?.[0] as Error).message).toBe('boom [email]');
+      // #296: same fallback pattern as above (noUnsafeOptionalChaining).
+      const [logged] = sink.mock.calls[0] ?? [];
+      expect((logged as Error).message).toBe('boom [email]');
     } finally {
       console.error = before;
       vi.unstubAllEnvs();

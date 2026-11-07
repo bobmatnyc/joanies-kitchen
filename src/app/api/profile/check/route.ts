@@ -1,6 +1,6 @@
-import { getSessionUserId } from '@/lib/session-user';
 import { NextResponse } from 'next/server';
 import { getCurrentUserProfile } from '@/app/actions/user-profiles';
+import { getSessionUserId } from '@/lib/session-user';
 
 /**
  * Check if current user has a profile

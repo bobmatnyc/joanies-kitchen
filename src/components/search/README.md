@@ -7,12 +7,14 @@ Comprehensive search interface components for the Recipe Manager application, in
 This directory contains React components for searching recipes through multiple approaches:
 
 ### 🎯 Semantic Search (NEW)
+
 - AI-powered natural language understanding
 - Three search modes: Semantic, Text, Hybrid
 - Advanced relevance scoring and ranking
 - Transparent similarity badges
 
 ### 🥕 Ingredient Search (EXISTING)
+
 - Autocomplete ingredient search with fuzzy matching
 - Category-based ingredient browsing
 - Visual ingredient match indicators
@@ -29,6 +31,7 @@ This directory contains React components for searching recipes through multiple 
 Main search interface with AI-powered mode switching and intelligent suggestions.
 
 **Features:**
+
 - Three search modes with visual mode selector
 - Debounced search suggestions (300ms)
 - Recent searches (stored in localStorage)
@@ -46,10 +49,11 @@ import { SemanticSearchBar } from '@/components/search';
   onSearch={(query, mode) => handleSearch(query, mode)}
   showExamples
   autoFocus
-/>
+/>;
 ```
 
 **Props:**
+
 - `defaultQuery?`: Initial search query (string)
 - `defaultMode?`: Initial search mode ('semantic' | 'text' | 'hybrid')
 - `onSearch?`: Callback when search is submitted
@@ -59,6 +63,7 @@ import { SemanticSearchBar } from '@/components/search';
 - `showExamples?`: Show example queries (default: true)
 
 **Search Modes:**
+
 - **Semantic**: AI-powered understanding of natural language ("comfort food for cold weather")
 - **Text**: Traditional keyword matching ("chocolate chip cookies")
 - **Hybrid**: Combined approach for best results (recommended)
@@ -70,6 +75,7 @@ import { SemanticSearchBar } from '@/components/search';
 Display search results with relevance scoring and sorting options.
 
 **Features:**
+
 - Multiple sort options: Relevance, Rating, Recent, Popular
 - Similarity badges for each result
 - Empty state with refinement suggestions
@@ -87,10 +93,11 @@ import { SearchResults } from '@/components/search';
   showSimilarity
   defaultSort="relevance"
   onRefineSearch={() => scrollToTop()}
-/>
+/>;
 ```
 
 **Props:**
+
 - `recipes`: Search results (RecipeWithSimilarity[] | RankedRecipe[])
 - `query`: Search query string for display
 - `loading?`: Loading state (default: false)
@@ -106,11 +113,7 @@ import { SearchResults } from '@/components/search';
 ```tsx
 import { CompactSearchResults } from '@/components/search';
 
-<CompactSearchResults
-  recipes={results}
-  query="pasta"
-  loading={false}
-/>
+<CompactSearchResults recipes={results} query="pasta" loading={false} />;
 ```
 
 ---
@@ -120,6 +123,7 @@ import { CompactSearchResults } from '@/components/search';
 Visual indicator of search relevance with color-coded similarity scoring.
 
 **Features:**
+
 - Color-coded by match quality:
   - Green (80-100%): Excellent match
   - Blue (60-80%): Good match
@@ -139,13 +143,14 @@ import { SimilarityBadge } from '@/components/search';
     similarity: 0.87,
     quality: 0.78,
     engagement: 0.65,
-    recency: 0.92
+    recency: 0.92,
   }}
   showTooltip
-/>
+/>;
 ```
 
 **Props:**
+
 - `similarity`: Similarity score 0-1 (required)
 - `rankingScore?`: Overall ranking score 0-1
 - `scoreComponents?`: Score breakdown object
@@ -177,7 +182,7 @@ Helper component explaining each search mode with examples.
 ```tsx
 import { SearchModeTooltip } from '@/components/search';
 
-<SearchModeTooltip mode="hybrid" />
+<SearchModeTooltip mode="hybrid" />;
 ```
 
 **Comparison View:**
@@ -186,7 +191,7 @@ import { SearchModeTooltip } from '@/components/search';
 import { SearchModeComparison } from '@/components/search';
 
 // Displays all three modes side-by-side
-<SearchModeComparison />
+<SearchModeComparison />;
 ```
 
 ---
@@ -198,6 +203,7 @@ import { SearchModeComparison } from '@/components/search';
 Autocomplete search input for selecting ingredients.
 
 **Features:**
+
 - Debounced search (300ms) to reduce API calls
 - Fuzzy matching with category badges
 - Multi-select with removable tags
@@ -207,6 +213,7 @@ Autocomplete search input for selecting ingredients.
 - Fully accessible (ARIA labels and roles)
 
 **Usage:**
+
 ```tsx
 import { IngredientSearchBar } from '@/components/search';
 import type { Ingredient } from '@/lib/db/schema';
@@ -231,6 +238,7 @@ function RecipeSearch() {
 ```
 
 **Props:**
+
 - `selectedIngredients`: Array of currently selected ingredients
 - `onIngredientsChange`: Callback when selection changes
 - `onSearch`: Callback when search button is clicked
@@ -244,6 +252,7 @@ function RecipeSearch() {
 Category-based ingredient selection with collapsible sections.
 
 **Features:**
+
 - Grouped by ingredient categories (vegetables, proteins, etc.)
 - Popular ingredients section at top
 - Select all / Clear all per category
@@ -253,6 +262,7 @@ Category-based ingredient selection with collapsible sections.
 - Scrollable ingredient lists (max 264px)
 
 **Usage:**
+
 ```tsx
 import { IngredientFilter } from '@/components/search';
 import type { Ingredient } from '@/lib/db/schema';
@@ -260,21 +270,18 @@ import type { Ingredient } from '@/lib/db/schema';
 function RecipeFilterPanel() {
   const [selected, setSelected] = useState<Ingredient[]>([]);
 
-  return (
-    <IngredientFilter
-      selectedIngredients={selected}
-      onIngredientsChange={setSelected}
-    />
-  );
+  return <IngredientFilter selectedIngredients={selected} onIngredientsChange={setSelected} />;
 }
 ```
 
 **Props:**
+
 - `selectedIngredients`: Array of currently selected ingredients
 - `onIngredientsChange`: Callback when selection changes
 - `className?`: Additional CSS classes
 
 **Categories:**
+
 - vegetables, fruits, proteins, dairy, grains
 - herbs, spices, seafood, meat, poultry
 - legumes, nuts, oils, sweeteners, baking
@@ -287,6 +294,7 @@ function RecipeFilterPanel() {
 Display ingredient match percentage on recipe cards.
 
 **Features:**
+
 - Color-coded badges (green ≥80%, yellow 50-80%, gray <50%)
 - Shows matched count (e.g., "8/10 ingredients")
 - Tooltip with matched ingredient names
@@ -295,6 +303,7 @@ Display ingredient match percentage on recipe cards.
 **Usage:**
 
 **Default Badge (with tooltip):**
+
 ```tsx
 import { IngredientMatchBadge } from '@/components/search';
 
@@ -307,16 +316,15 @@ import { IngredientMatchBadge } from '@/components/search';
 ```
 
 **Compact Badge (for tight spaces):**
+
 ```tsx
 import { CompactIngredientMatchBadge } from '@/components/search';
 
-<CompactIngredientMatchBadge
-  matchedCount={8}
-  totalCount={10}
-/>
+<CompactIngredientMatchBadge matchedCount={8} totalCount={10} />;
 ```
 
 **Detailed Badge (for recipe detail pages):**
+
 ```tsx
 import { DetailedIngredientMatchBadge } from '@/components/search';
 
@@ -328,6 +336,7 @@ import { DetailedIngredientMatchBadge } from '@/components/search';
 ```
 
 **Props:**
+
 - `matchedCount`: Number of matched ingredients (required)
 - `totalCount`: Total ingredients in recipe (required)
 - `matchedIngredients?`: Array of matched ingredient names for tooltip
@@ -345,6 +354,7 @@ import { DetailedIngredientMatchBadge } from '@/components/search';
 The semantic search components use server actions from `@/app/actions/semantic-search`:
 
 #### semanticSearchRecipes
+
 ```typescript
 import { semanticSearchRecipes } from '@/app/actions/semantic-search';
 
@@ -360,6 +370,7 @@ const result = await semanticSearchRecipes('comfort food for cold weather', {
 ```
 
 #### hybridSearchRecipes
+
 ```typescript
 import { hybridSearchRecipes } from '@/app/actions/semantic-search';
 
@@ -372,6 +383,7 @@ const result = await hybridSearchRecipes('spicy pasta', {
 ```
 
 #### findSimilarToRecipe
+
 ```typescript
 import { findSimilarToRecipe } from '@/app/actions/semantic-search';
 
@@ -380,6 +392,7 @@ const result = await findSimilarToRecipe('recipe-id', 10);
 ```
 
 #### getSearchSuggestions
+
 ```typescript
 import { getSearchSuggestions } from '@/app/actions/semantic-search';
 
@@ -392,39 +405,45 @@ const result = await getSearchSuggestions('chick', 10);
 The ingredient search components use server actions from `@/app/actions/ingredient-search`:
 
 ### getIngredientSuggestions
+
 ```typescript
 const result = await getIngredientSuggestions('toma', 10);
 // Returns: { success: true, suggestions: [...] }
 ```
 
 ### getIngredientsByCategory
+
 ```typescript
 const result = await getIngredientsByCategory('vegetables');
 // Returns: { success: true, ingredients: [...] }
 ```
 
 ### getPopularIngredients
+
 ```typescript
 const result = await getPopularIngredients(15);
 // Returns: { success: true, ingredients: [...] }
 ```
 
 ### searchRecipesByIngredients
+
 ```typescript
 const result = await searchRecipesByIngredients(['tomatoes', 'basil'], {
   minMatchPercentage: 50,
-  limit: 20
+  limit: 20,
 });
 // Returns: { success: true, recipes: [...], totalCount: 42 }
 ```
 
 ### getIngredientCategories
+
 ```typescript
 const result = await getIngredientCategories();
 // Returns: { success: true, categories: [...] }
 ```
 
 ### getMatchedIngredients
+
 ```typescript
 const result = await getMatchedIngredients('recipe-id', ['ing-1', 'ing-2']);
 // Returns: { success: true, ingredients: [...] }
@@ -462,9 +481,10 @@ export function SemanticSearchPage() {
         includeScoreBreakdown: true,
       };
 
-      const result = mode === 'semantic'
-        ? await semanticSearchRecipes(searchQuery, options)
-        : await hybridSearchRecipes(searchQuery, options);
+      const result =
+        mode === 'semantic'
+          ? await semanticSearchRecipes(searchQuery, options)
+          : await hybridSearchRecipes(searchQuery, options);
 
       if (result.success) {
         setResults(result.recipes);
@@ -480,15 +500,9 @@ export function SemanticSearchPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-heading text-jk-olive mb-8">
-        AI-Powered Recipe Search
-      </h1>
+      <h1 className="text-3xl font-heading text-jk-olive mb-8">AI-Powered Recipe Search</h1>
 
-      <SemanticSearchBar
-        onSearch={handleSearch}
-        defaultMode="hybrid"
-        showExamples
-      />
+      <SemanticSearchBar onSearch={handleSearch} defaultMode="hybrid" showExamples />
 
       <div className="mt-8">
         <SearchResults
@@ -528,7 +542,7 @@ export function IngredientSearchPage() {
 
     setLoading(true);
     try {
-      const ingredientIds = selectedIngredients.map(i => i.id);
+      const ingredientIds = selectedIngredients.map((i) => i.id);
       const result = await searchRecipesByIngredients(ingredientIds, {
         minMatchPercentage: 50,
         includePublic: true,
@@ -547,9 +561,7 @@ export function IngredientSearchPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-heading text-jk-olive mb-8">
-        Search Recipes by Ingredients
-      </h1>
+      <h1 className="text-3xl font-heading text-jk-olive mb-8">Search Recipes by Ingredients</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left sidebar - Filters */}
@@ -599,15 +611,11 @@ export function IngredientSearchPage() {
               </>
             ) : selectedIngredients.length > 0 ? (
               <div className="text-center py-12">
-                <p className="text-jk-charcoal/60">
-                  No recipes found with selected ingredients.
-                </p>
+                <p className="text-jk-charcoal/60">No recipes found with selected ingredients.</p>
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-jk-charcoal/60">
-                  Select ingredients to search for recipes.
-                </p>
+                <p className="text-jk-charcoal/60">Select ingredients to search for recipes.</p>
               </div>
             )}
           </div>
@@ -623,6 +631,7 @@ export function IngredientSearchPage() {
 ## Styling
 
 All components follow the project's design system:
+
 - **Colors**: jk-olive, jk-clay, jk-sage, jk-tomato, jk-charcoal
 - **Fonts**: font-heading (headings), font-ui (UI elements), font-body (body text)
 - **Mobile-first**: Responsive layouts with Tailwind breakpoints
@@ -644,6 +653,7 @@ All components follow the project's design system:
 ## Database Schema
 
 Components expect the following database tables:
+
 - `ingredients` - Master ingredient list with categories
 - `recipe_ingredients` - Many-to-many recipe-ingredient relationships
 - `ingredient_statistics` - Usage statistics for popularity sorting
@@ -655,6 +665,7 @@ See `src/lib/db/ingredients-schema.ts` for full schema definitions.
 ## Testing
 
 Test with various scenarios:
+
 - Empty state (no ingredients selected)
 - Single ingredient search
 - Multiple ingredients (2-10+)
@@ -668,6 +679,7 @@ Test with various scenarios:
 ## Future Enhancements
 
 Potential improvements:
+
 - Ingredient substitution suggestions
 - Dietary restriction filters (vegan, gluten-free, etc.)
 - Ingredient exclusion (recipes WITHOUT certain ingredients)
@@ -681,5 +693,6 @@ Potential improvements:
 **Version**: 2.0.0
 
 **Changelog:**
+
 - **v2.0.0** (2025-01-17): Added comprehensive semantic search components
 - **v1.0.0** (2025-10-17): Initial ingredient search components

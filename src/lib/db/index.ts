@@ -64,17 +64,16 @@ export const db: Db = new Proxy({} as Db, {
   getPrototypeOf: () => Reflect.getPrototypeOf(getDb()),
 });
 
-// Export all schemas for external use
-export {
-  schema,
-  userDiscoverySchema,
-  chefSchema,
-  ingredientsSchema,
-  apiKeysSchema,
-  autonomousScraperSchema,
-  authSchema,
-};
-
 export * from './transformed-types';
 // Export type transformers and parsed types
 export * from './transformers';
+// Export all schemas for external use
+export {
+  apiKeysSchema,
+  authSchema,
+  autonomousScraperSchema,
+  chefSchema,
+  ingredientsSchema,
+  schema,
+  userDiscoverySchema,
+};

@@ -1,12 +1,12 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { Plus, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Meal } from '@/lib/db/schema';
+import { useSessionUser } from '@/lib/use-session-user';
 import { type GuestMeal, getGuestMeals } from '@/lib/utils/guest-meals';
 import { MealCard } from './MealCard';
 import { GuestMealBanner } from './SignInToSaveDialog';

@@ -1,6 +1,5 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -10,6 +9,7 @@ import { getRecipes } from '@/app/actions/recipes';
 import { Button } from '@/components/ui/button';
 import type { Recipe } from '@/lib/db/schema';
 import { isValidCourseCategory, isValidMealType } from '@/lib/meals/type-guards';
+import { useSessionUser } from '@/lib/use-session-user';
 import {
   addRecipeToGuestMeal,
   createGuestMeal,

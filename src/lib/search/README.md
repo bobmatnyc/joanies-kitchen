@@ -33,7 +33,7 @@ const rankedRecipes = rankRecipes(searchResults, {
 });
 
 // Access score breakdown
-rankedRecipes.forEach(recipe => {
+rankedRecipes.forEach((recipe) => {
   console.log(recipe.scoreComponents);
   // {
   //   similarity: 0.85,
@@ -47,36 +47,42 @@ rankedRecipes.forEach(recipe => {
 ## Ranking Modes
 
 ### Balanced (Default)
+
 ```typescript
 { similarity: 0.6, quality: 0.2, engagement: 0.15, recency: 0.05 }
 ```
 Best for general-purpose search results.
 
 ### Semantic
+
 ```typescript
 { similarity: 0.8, quality: 0.1, engagement: 0.1, recency: 0.0 }
 ```
 Prioritizes similarity - best for "find similar recipes" features.
 
 ### Quality
+
 ```typescript
 { similarity: 0.3, quality: 0.4, engagement: 0.2, recency: 0.1 }
 ```
 Prioritizes highly-rated recipes - best for "best recipes" pages.
 
 ### Popular
+
 ```typescript
 { similarity: 0.3, quality: 0.15, engagement: 0.5, recency: 0.05 }
 ```
 Prioritizes user engagement - best for trending/popular sections.
 
 ### Trending
+
 ```typescript
 { similarity: 0.3, quality: 0.1, engagement: 0.2, recency: 0.4 }
 ```
 Prioritizes recent activity - best for "what's new" feeds.
 
 ### Discovery
+
 ```typescript
 { similarity: 0.35, quality: 0.35, engagement: 0.1, recency: 0.2 }
 ```
@@ -89,7 +95,7 @@ Balanced for exploration - surfaces diverse, quality recipes.
 ```typescript
 import { semanticSearchRecipes } from '@/app/actions/semantic-search';
 
-const result = await semanticSearchRecipes("spicy pasta", {
+const result = await semanticSearchRecipes('spicy pasta', {
   limit: 20,
   rankingMode: 'balanced', // Apply weighted ranking
   includeScoreBreakdown: true,
@@ -104,13 +110,10 @@ console.log(result.recipes[0].rankingScore); // 0.87
 ```typescript
 import { searchRecipesByIngredients } from '@/app/actions/ingredient-search';
 
-const result = await searchRecipesByIngredients(
-  ['tomatoes', 'basil', 'mozzarella'],
-  {
-    matchMode: 'all',
-    rankingMode: 'quality', // Prioritize best recipes
-  }
-);
+const result = await searchRecipesByIngredients(['tomatoes', 'basil', 'mozzarella'], {
+  matchMode: 'all',
+  rankingMode: 'quality', // Prioritize best recipes
+});
 
 // Recipes ranked by match + quality
 ```
@@ -120,12 +123,15 @@ const result = await searchRecipesByIngredients(
 ```typescript
 import { mergeAndRankResults } from '@/lib/search';
 
-const merged = mergeAndRankResults([
-  { results: semanticResults, weight: 0.6 },
-  { results: ingredientResults, weight: 0.4 },
-], {
-  mode: 'balanced',
-});
+const merged = mergeAndRankResults(
+  [
+    { results: semanticResults, weight: 0.6 },
+    { results: ingredientResults, weight: 0.4 },
+  ],
+  {
+    mode: 'balanced',
+  }
+);
 ```
 
 ## Personalization (Future)
@@ -208,9 +214,9 @@ normalizeRating(3.0); // 0.6 (3.0/5)
 ```typescript
 import { normalizeCount } from '@/lib/search';
 
-normalizeCount(10);    // ~0.35
-normalizeCount(100);   // ~0.67
-normalizeCount(1000);  // ~0.82
+normalizeCount(10); // ~0.35
+normalizeCount(100); // ~0.67
+normalizeCount(1000); // ~0.82
 ```
 
 Prevents high-count recipes from dominating rankings.
@@ -221,9 +227,9 @@ Prevents high-count recipes from dominating rankings.
 import { calculateRecencyScore } from '@/lib/search';
 
 const now = new Date();
-const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000);
+const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-calculateRecencyScore(now);           // 1.0
+calculateRecencyScore(now); // 1.0
 calculateRecencyScore(thirtyDaysAgo); // 0.5 (half-life)
 ```
 
@@ -271,10 +277,10 @@ Search results with rankings are cached:
 
 ```typescript
 // First request: calculates ranking
-const result1 = await semanticSearchRecipes("pasta");
+const result1 = await semanticSearchRecipes('pasta');
 
 // Second request: uses cached ranked results
-const result2 = await semanticSearchRecipes("pasta");
+const result2 = await semanticSearchRecipes('pasta');
 ```
 
 ### Batch Processing
@@ -286,7 +292,7 @@ Ranking is optimized for batch operations:
 const ranked = rankRecipes(recipes, options);
 
 // Inefficient: Individual ranking
-recipes.forEach(recipe => {
+recipes.forEach((recipe) => {
   calculateRecipeScore(recipe, similarity);
 });
 ```
@@ -331,41 +337,36 @@ npm run test:coverage src/lib/search
 ### From Simple Similarity Sorting
 
 **Before:**
+
 ```typescript
 const results = recipes
-  .map(recipe => ({ ...recipe, similarity }))
+  .map((recipe) => ({ ...recipe, similarity }))
   .sort((a, b) => b.similarity - a.similarity);
 ```
 
 **After:**
+
 ```typescript
 import { rankRecipes } from '@/lib/search';
 
-const results = rankRecipes(
-  recipes.map(r => ({ ...r, similarity }))
-);
+const results = rankRecipes(recipes.map((r) => ({ ...r, similarity })));
 // Now includes quality, engagement, and recency
 ```
 
 ### From Manual Scoring
 
 **Before:**
+
 ```typescript
-const score =
-  similarity * 0.6 +
-  (systemRating / 5) * 0.3 +
-  (userRating / 5) * 0.1;
+const score = similarity * 0.6 + (systemRating / 5) * 0.3 + (userRating / 5) * 0.1;
 ```
 
 **After:**
+
 ```typescript
 import { calculateRecipeScore } from '@/lib/search';
 
-const { finalScore, components } = calculateRecipeScore(
-  recipe,
-  similarity,
-  weights
-);
+const { finalScore, components } = calculateRecipeScore(recipe, similarity, weights);
 // Includes completeness, confidence, recency, etc.
 ```
 
@@ -378,6 +379,7 @@ const { finalScore, components } = calculateRecipeScore(
 Rank recipes using weighted algorithm.
 
 **Parameters:**
+
 - `recipes: RecipeWithSimilarity[]` - Recipes with similarity scores
 - `options?: RankingOptions` - Ranking configuration
 
@@ -390,6 +392,7 @@ Rank recipes using weighted algorithm.
 Calculate ranking score for a single recipe.
 
 **Parameters:**
+
 - `recipe: Recipe` - Recipe to score
 - `similarity: number` - Similarity score (0-1)
 - `weights?: RankingWeights` - Weight configuration
@@ -404,6 +407,7 @@ Calculate ranking score for a single recipe.
 Apply personalization boost to score.
 
 **Parameters:**
+
 - `score: number` - Base score (0-1)
 - `recipe: Recipe` - Recipe to evaluate
 - `preferences?: UserPreferences` - User preferences

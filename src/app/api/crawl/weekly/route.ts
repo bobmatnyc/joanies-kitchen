@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 import { authorizeAdminOrCronSecret } from '@/lib/admin';
+import { crawlWeeklyRecipes } from '@/lib/recipe-crawl';
 
 export async function POST(request: NextRequest) {
   // #13: paid crawl — admin session or CRON_SECRET bearer only; replaces the spoofable Host-header check.

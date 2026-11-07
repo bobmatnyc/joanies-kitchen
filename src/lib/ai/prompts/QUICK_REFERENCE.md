@@ -35,11 +35,11 @@ import {
 
 ```typescript
 const meal = await generateCompleteMeal({
-  mainDish: 'Grilled Salmon',           // or 'surprise me'
-  cuisine: 'Mediterranean',             // or 'any'
-  dietaryRestrictions: 'gluten-free',   // or 'none'
+  mainDish: 'Grilled Salmon', // or 'surprise me'
+  cuisine: 'Mediterranean', // or 'any'
+  dietaryRestrictions: 'gluten-free', // or 'none'
   servings: 4,
-  occasion: 'dinner party',             // or 'weeknight'
+  occasion: 'dinner party', // or 'weeknight'
 });
 // Returns: Array of 5 dishes [main, side1, side2, appetizer, dessert]
 ```
@@ -53,7 +53,7 @@ const sides = await generateComplementarySides({
   cuisine: 'American',
   cookingMethod: 'grilled',
   servings: 4,
-  count: 3,  // Number of sides to generate
+  count: 3, // Number of sides to generate
 });
 // Returns: Array of 3 side dishes
 ```
@@ -61,14 +61,11 @@ const sides = await generateComplementarySides({
 ### 3. Calculate Nutrition Info
 
 ```typescript
-const nutrition = await callPrompt(
-  'comprehensive-nutrition-calculator',
-  {
-    recipeName: recipe.name,
-    servings: String(recipe.servings),
-    ingredients: JSON.stringify(recipe.ingredients),
-  }
-);
+const nutrition = await callPrompt('comprehensive-nutrition-calculator', {
+  recipeName: recipe.name,
+  servings: String(recipe.servings),
+  ingredients: JSON.stringify(recipe.ingredients),
+});
 // Returns: { macronutrients, dietary_flags, allergens, ... }
 ```
 
@@ -86,7 +83,7 @@ const analysis = await callPrompt(
     tags: JSON.stringify(recipe.tags),
   },
   {
-    modelOverride: 'anthropic/claude-3.5-sonnet',  // Best for analysis
+    modelOverride: 'anthropic/claude-3.5-sonnet', // Best for analysis
   }
 );
 ```
@@ -95,41 +92,44 @@ const analysis = await callPrompt(
 
 ## All 15 Prompts at a Glance
 
-| Prompt ID | Category | Use Case | Best Model |
-|-----------|----------|----------|------------|
-| `meal-builder-complete` | Meal | Full multi-course meal | Gemini Flash |
-| `complementary-sides` | Meal | Side dish pairing | Gemini Flash |
-| `themed-meal` | Meal | Occasion/cultural meals | Claude Sonnet |
-| `dietary-meal-builder` | Meal | Strict dietary compliance | Claude Sonnet |
-| `seasonal-meal` | Meal | Seasonal ingredients | Gemini Flash |
-| `budget-meal-planner` | Meal | Cost-effective meals | Gemini Flash |
-| `recipe-improvement-analyzer` | Analysis | Suggest improvements | Claude Sonnet |
-| `recipe-variation-generator` | Recipe | Create variations | Gemini Flash |
-| `missing-ingredient-identifier` | Analysis | Find missing items | Claude Sonnet |
-| `cooking-difficulty-estimator` | Analysis | Rate difficulty | Claude Sonnet |
-| `recipe-scaling-optimizer` | Analysis | Scale recipes | Claude Sonnet |
-| `comprehensive-nutrition-calculator` | Nutrition | Full nutrition info | Claude Sonnet |
-| `healthier-substitution-suggester` | Nutrition | Healthier swaps | Claude Sonnet |
-| `allergen-detector` | Nutrition | Find allergens | Claude Sonnet |
-| `macro-friendly-optimizer` | Nutrition | Hit macro targets | Claude Sonnet |
+| Prompt ID                            | Category  | Use Case                  | Best Model    |
+| ------------------------------------ | --------- | ------------------------- | ------------- |
+| `meal-builder-complete`              | Meal      | Full multi-course meal    | Gemini Flash  |
+| `complementary-sides`                | Meal      | Side dish pairing         | Gemini Flash  |
+| `themed-meal`                        | Meal      | Occasion/cultural meals   | Claude Sonnet |
+| `dietary-meal-builder`               | Meal      | Strict dietary compliance | Claude Sonnet |
+| `seasonal-meal`                      | Meal      | Seasonal ingredients      | Gemini Flash  |
+| `budget-meal-planner`                | Meal      | Cost-effective meals      | Gemini Flash  |
+| `recipe-improvement-analyzer`        | Analysis  | Suggest improvements      | Claude Sonnet |
+| `recipe-variation-generator`         | Recipe    | Create variations         | Gemini Flash  |
+| `missing-ingredient-identifier`      | Analysis  | Find missing items        | Claude Sonnet |
+| `cooking-difficulty-estimator`       | Analysis  | Rate difficulty           | Claude Sonnet |
+| `recipe-scaling-optimizer`           | Analysis  | Scale recipes             | Claude Sonnet |
+| `comprehensive-nutrition-calculator` | Nutrition | Full nutrition info       | Claude Sonnet |
+| `healthier-substitution-suggester`   | Nutrition | Healthier swaps           | Claude Sonnet |
+| `allergen-detector`                  | Nutrition | Find allergens            | Claude Sonnet |
+| `macro-friendly-optimizer`           | Nutrition | Hit macro targets         | Claude Sonnet |
 
 ---
 
 ## Model Selection Cheat Sheet
 
 **Use Google Gemini 2.0 Flash when**:
+
 - Creative meal generation ✓
 - Recipe variations ✓
 - Budget is tight ✓
 - Speed is important ✓
 
 **Use Claude 3.5 Sonnet when**:
+
 - Dietary compliance (safety-critical) ✓
 - Nutritional accuracy matters ✓
 - Complex reasoning needed ✓
 - Recipe analysis/improvements ✓
 
 **Use GPT-4o/GPT-4o-mini when**:
+
 - Claude fails (fallback) ✓
 - Cultural/world knowledge needed ✓
 
@@ -137,11 +137,11 @@ const analysis = await callPrompt(
 
 ## Temperature Guide
 
-| Task Type | Temperature | Example |
-|-----------|------------|---------|
-| Factual/Math | 0.1-0.3 | Nutrition calculation, allergen detection |
-| Analysis | 0.4-0.6 | Recipe improvements, difficulty rating |
-| Creative | 0.7-0.9 | Meal generation, recipe variations |
+| Task Type    | Temperature | Example                                   |
+| ------------ | ----------- | ----------------------------------------- |
+| Factual/Math | 0.1-0.3     | Nutrition calculation, allergen detection |
+| Analysis     | 0.4-0.6     | Recipe improvements, difficulty rating    |
+| Creative     | 0.7-0.9     | Meal generation, recipe variations        |
 
 ---
 
@@ -166,22 +166,22 @@ Prompts use `{{variable}}` placeholders:
 
 ```typescript
 // In prompt template:
-"Generate a meal for {{servings}} people with {{cuisine}} cuisine."
+'Generate a meal for {{servings}} people with {{cuisine}} cuisine.';
 
 // Gets rendered as:
-"Generate a meal for 4 people with Italian cuisine."
+'Generate a meal for 4 people with Italian cuisine.';
 ```
 
 ---
 
 ## Cost Estimates (per call)
 
-| Model | Cost Range | Best For |
-|-------|------------|----------|
-| Gemini Flash | Free - $0.003 | Most tasks |
+| Model         | Cost Range      | Best For          |
+| ------------- | --------------- | ----------------- |
+| Gemini Flash  | Free - $0.003   | Most tasks        |
 | Claude Sonnet | $0.003 - $0.015 | Critical accuracy |
-| GPT-4o-mini | $0.002 - $0.005 | General purpose |
-| GPT-4o | $0.005 - $0.015 | Complex tasks |
+| GPT-4o-mini   | $0.002 - $0.005 | General purpose   |
+| GPT-4o        | $0.005 - $0.015 | Complex tasks     |
 
 **Average cost per prompt call**: ~$0.002-$0.005
 
@@ -190,17 +190,15 @@ Prompts use `{{variable}}` placeholders:
 ## Common Patterns
 
 ### Pattern 1: Override Default Model
+
 ```typescript
-const result = await callPrompt(
-  'meal-builder-complete',
-  variables,
-  {
-    modelOverride: 'anthropic/claude-3.5-sonnet',  // Force different model
-  }
-);
+const result = await callPrompt('meal-builder-complete', variables, {
+  modelOverride: 'anthropic/claude-3.5-sonnet', // Force different model
+});
 ```
 
 ### Pattern 2: Validate with Zod
+
 ```typescript
 import { z } from 'zod';
 
@@ -213,11 +211,12 @@ const MealSchema = z.array(
 );
 
 const meal = await callPrompt('meal-builder-complete', variables, {
-  zodSchema: MealSchema,  // Automatic validation
+  zodSchema: MealSchema, // Automatic validation
 });
 ```
 
 ### Pattern 3: List All Available Prompts
+
 ```typescript
 import { listPromptsWithInfo } from '@/lib/ai/prompts';
 
@@ -237,10 +236,7 @@ prompts.forEach((p) => {
 import { getSessionUserId } from '@/lib/session-user';
 import { generateCompleteMeal } from '@/lib/ai/meal-generator';
 
-export async function createMealPlanAction(params: {
-  cuisine: string;
-  servings: number;
-}) {
+export async function createMealPlanAction(params: { cuisine: string; servings: number }) {
   const userId = await getSessionUserId();
   if (!userId) throw new Error('Unauthorized');
 
@@ -267,17 +263,21 @@ export async function createMealPlanAction(params: {
 ## Debug Tips
 
 ### Check Available Prompts
+
 ```typescript
 import { promptStore } from '@/lib/ai/prompts';
 console.log('Available prompts:', Object.keys(promptStore));
 ```
 
 ### Inspect Rendered Prompt
+
 ```typescript
 import { renderPromptById } from '@/lib/ai/prompts';
 
 const rendered = renderPromptById('meal-builder-complete', {
-  variables: { /* ... */ },
+  variables: {
+    /* ... */
+  },
 });
 
 console.log('System:', rendered.system);
@@ -286,6 +286,7 @@ console.log('Model:', rendered.config.model);
 ```
 
 ### Validate Variables Before Calling
+
 ```typescript
 import { getPrompt, validatePromptVariables } from '@/lib/ai/prompts';
 

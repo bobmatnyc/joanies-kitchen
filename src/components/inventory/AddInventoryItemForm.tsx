@@ -2,8 +2,8 @@
 
 import { Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { addInventoryItem } from '@/app/actions/inventory';
 import { getIngredientSuggestions } from '@/app/actions/ingredient-search';
+import { addInventoryItem } from '@/app/actions/inventory';
 import { FieldError } from '@/components/errors/ErrorFallback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,9 +48,9 @@ export function AddInventoryItemForm() {
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientSuggestion | null>(null);
   const [suggestions, setSuggestions] = useState<IngredientSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [storageLocation, setStorageLocation] = useState<
-    'fridge' | 'freezer' | 'pantry' | 'other'
-  >('fridge');
+  const [storageLocation, setStorageLocation] = useState<'fridge' | 'freezer' | 'pantry' | 'other'>(
+    'fridge'
+  );
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -361,9 +361,7 @@ export function AddInventoryItemForm() {
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={
-          !selectedIngredient || !unit.trim() || parseFloat(quantity) <= 0 || submitting
-        }
+        disabled={!selectedIngredient || !unit.trim() || parseFloat(quantity) <= 0 || submitting}
         className="w-full gap-2"
       >
         {submitting ? (

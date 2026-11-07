@@ -31,15 +31,9 @@
  */
 
 // Export service classes (for testing/dependency injection)
-export { ChefService } from './chef-service';
-export { CollectionService } from './collection-service';
-export { InventoryService } from './inventory-service';
-export { IngredientService } from './ingredient-service';
-export { SocialService } from './social-service';
-
 // Export singleton instances (for production use)
-export { chefService } from './chef-service';
-export { collectionService } from './collection-service';
-export { inventoryService } from './inventory-service';
-export { ingredientService } from './ingredient-service';
-export { socialService } from './social-service';
+export { ChefService, chefService } from './chef-service';
+export { CollectionService, collectionService } from './collection-service';
+export { IngredientService, ingredientService } from './ingredient-service';
+export { InventoryService, inventoryService } from './inventory-service';
+export { SocialService, socialService } from './social-service';

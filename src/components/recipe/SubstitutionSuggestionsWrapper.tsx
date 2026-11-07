@@ -12,9 +12,9 @@
  * This keeps the SubstitutionSuggestions component pure and testable.
  */
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { useEffect, useState } from 'react';
 import { getUserInventory } from '@/app/actions/inventory';
+import { useSessionUser } from '@/lib/use-session-user';
 import { SubstitutionSuggestions } from './SubstitutionSuggestions';
 
 interface SubstitutionSuggestionsWrapperProps {

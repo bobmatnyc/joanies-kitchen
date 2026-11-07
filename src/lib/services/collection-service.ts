@@ -6,12 +6,6 @@ import {
 } from '@/lib/account-deletion/guarded-insert';
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
-import { lockRecipeForRating } from '@/lib/recipe-rating-aggregates';
-import {
-  ANONYMOUS_VIEWER,
-  type RecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
 import {
   type Collection,
   collectionRecipes,
@@ -19,6 +13,12 @@ import {
   type NewCollection,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import { lockRecipeForRating } from '@/lib/recipe-rating-aggregates';
+import {
+  ANONYMOUS_VIEWER,
+  type RecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 
 /**
  * CollectionService - Business logic for recipe collections
@@ -64,11 +64,7 @@ export class CollectionService {
    * Find collection by ID
    */
   async findById(id: string): Promise<Collection | null> {
-    const [collection] = await db
-      .select()
-      .from(collections)
-      .where(eq(collections.id, id))
-      .limit(1);
+    const [collection] = await db.select().from(collections).where(eq(collections.id, id)).limit(1);
 
     return collection || null;
   }
@@ -95,10 +91,7 @@ export class CollectionService {
    * #208: throws `AccountPendingDeletionError` when the account has a pending
    * deletion; the guard is in the insert statement and nothing is written.
    */
-  async create(
-    userId: string,
-    data: Omit<NewCollection, 'user_id' | 'slug'>
-  ): Promise<Collection> {
+  async create(userId: string, data: Omit<NewCollection, 'user_id' | 'slug'>): Promise<Collection> {
     // Generate slug from name
     const slug = data.name
       .toLowerCase()
@@ -279,7 +272,7 @@ export class CollectionService {
   async getRecipes(
     collectionId: string,
     viewer: RecipeViewer = ANONYMOUS_VIEWER
-  ): Promise<typeof recipes.$inferSelect[]> {
+  ): Promise<(typeof recipes.$inferSelect)[]> {
     const collectionRecipesList = await db
       .select({
         recipe: recipes,

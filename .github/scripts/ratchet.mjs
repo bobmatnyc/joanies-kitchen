@@ -57,7 +57,9 @@ export function parseBiome(text, rc) {
   if (fatal) return { failure: `biome reported a fatal diagnostic (${fatal.category ?? 'unknown'}); not ratcheted` };
   const keys = [];
   for (const d of j.diagnostics.filter((x) => x.severity === 'error')) {
-    const file = d.location?.path?.file;
+    // #296: Biome 2.6 reports `location.path` as a string; 2.2 used `{ file }`. Accept both.
+    const path = d.location?.path;
+    const file = typeof path === 'string' ? path : path?.file;
     if (typeof file !== 'string' || typeof d.category !== 'string') {
       return { failure: 'biome error diagnostic without file or category' };
     }

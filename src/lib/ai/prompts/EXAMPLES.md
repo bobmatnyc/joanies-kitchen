@@ -152,10 +152,7 @@ export async function analyzeAndImproveRecipe(recipeId: string) {
   }
 
   // Fetch recipe from database
-  const [recipe] = await db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, recipeId));
+  const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
 
   if (!recipe) {
     throw new Error('Recipe not found');
@@ -350,10 +347,7 @@ export async function calculateRecipeNutrition(recipeId: string) {
     throw new Error('Unauthorized');
   }
 
-  const [recipe] = await db
-    .select()
-    .from(recipes)
-    .where(eq(recipes.id, recipeId));
+  const [recipe] = await db.select().from(recipes).where(eq(recipes.id, recipeId));
 
   if (!recipe) {
     throw new Error('Recipe not found');
@@ -689,10 +683,7 @@ export async function batchProcessPrompts<T>(
 
 // Usage: Analyze multiple recipes in batch
 export async function analyzeRecipesBatch(recipeIds: string[]) {
-  const recipes = await db
-    .select()
-    .from(recipes)
-    .where(inArray(recipes.id, recipeIds));
+  const recipes = await db.select().from(recipes).where(inArray(recipes.id, recipeIds));
 
   const batchItems: BatchItem[] = recipes.map((recipe) => ({
     promptId: 'recipe-improvement-analyzer',
@@ -726,11 +717,7 @@ export async function analyzeRecipesBatch(recipeIds: string[]) {
 ```typescript
 // src/lib/ai/prompts/__tests__/prompt-rendering.test.ts
 import { describe, it, expect } from 'vitest';
-import {
-  getPrompt,
-  renderPrompt,
-  validatePromptVariables,
-} from '@/lib/ai/prompts';
+import { getPrompt, renderPrompt, validatePromptVariables } from '@/lib/ai/prompts';
 
 describe('Prompt Rendering', () => {
   it('should render meal-builder-complete correctly', () => {

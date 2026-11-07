@@ -100,7 +100,8 @@ export function isDatabaseError(error: unknown): error is { code: string; detail
  */
 export function isUniqueViolation(error: unknown): boolean {
   const code = (e: unknown) => (isErrorWithCode(e) ? e.code : undefined);
-  const cause = typeof error === 'object' && error !== null ? (error as { cause?: unknown }).cause : undefined;
+  const cause =
+    typeof error === 'object' && error !== null ? (error as { cause?: unknown }).cause : undefined;
   return code(cause) === '23505' || code(error) === '23505';
 }
 

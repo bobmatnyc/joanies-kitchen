@@ -15,8 +15,8 @@ import {
   apiForbidden,
   apiNotFound,
   apiSuccess,
-  parseJsonBody,
   getRequiredParam,
+  parseJsonBody,
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { collectionService } from '@/lib/services/collection-service';

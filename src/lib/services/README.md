@@ -5,6 +5,7 @@ Type-safe business logic layer for Joanie's Kitchen. Services provide stateless,
 ## Overview
 
 The service layer separates business logic from presentation logic, making the codebase:
+
 - **More maintainable**: Business logic is centralized and reusable
 - **More testable**: Services can be tested independently without HTTP mocking
 - **Type-safe**: All operations use Drizzle ORM types for compile-time safety
@@ -13,7 +14,9 @@ The service layer separates business logic from presentation logic, making the c
 ## Architecture Principles
 
 ### 1. Authentication-Free
+
 Services don't handle authentication. The caller (API route or server action) is responsible for:
+
 - Authenticating the user
 - Verifying permissions
 - Providing userId when needed
@@ -36,7 +39,9 @@ export async function POST(request: NextRequest) {
 ```
 
 ### 2. Error Throwing
+
 Services throw errors for exceptional cases. The caller is responsible for:
+
 - Catching errors
 - Formatting error responses
 - Logging errors
@@ -68,18 +73,24 @@ export async function POST(request: NextRequest) {
 ```
 
 ### 3. Type Safety
+
 Services use Drizzle ORM types directly - no extra mapping layers:
 
 ```typescript
 import { type Chef, type NewChef } from '@/lib/db/chef-schema';
 
 class ChefService {
-  async findById(id: string): Promise<Chef | null> { /* ... */ }
-  async create(data: NewChef): Promise<Chef> { /* ... */ }
+  async findById(id: string): Promise<Chef | null> {
+    /* ... */
+  }
+  async create(data: NewChef): Promise<Chef> {
+    /* ... */
+  }
 }
 ```
 
 ### 4. Stateless
+
 Services have no instance state. All data is passed as parameters:
 
 ```typescript
@@ -94,6 +105,7 @@ async findMine(): Promise<Collection[]>
 ## Available Services
 
 ### ChefService
+
 Chef CRUD operations and recipe associations.
 
 ```typescript
@@ -113,6 +125,7 @@ const recipes = await chefService.findRecipesByChef(chef.id, { limit: 12 });
 ```
 
 ### CollectionService
+
 User recipe collections (themed groupings).
 
 ```typescript
@@ -139,6 +152,7 @@ await collectionService.removeRecipe(collection.id, recipeId);
 ```
 
 ### InventoryService
+
 Kitchen inventory management and recipe matching.
 
 ```typescript
@@ -175,6 +189,7 @@ await inventoryService.markAsUsed(item.id, 1.0, 'cooked', recipeId);
 ```
 
 ### IngredientService
+
 Ingredient browsing and search (read-only for most operations).
 
 ```typescript
@@ -201,6 +216,7 @@ const recipes = await ingredientService.getRecipesUsingIngredient(ingredient.id,
 ```
 
 ### SocialService
+
 Social features: likes, comments, forks.
 
 ```typescript
@@ -316,6 +332,7 @@ To migrate existing server actions to use services:
 4. **Services throw errors** - actions catch and format them
 
 Before:
+
 ```typescript
 'use server';
 export async function getChefBySlug(slug: string) {
@@ -330,6 +347,7 @@ export async function getChefBySlug(slug: string) {
 ```
 
 After:
+
 ```typescript
 'use server';
 import { chefService } from '@/lib/services';
