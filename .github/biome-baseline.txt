@@ -155,7 +155,6 @@ src/components/search/SemanticSearchBar.tsx:lint/suspicious/noArrayIndexKey 3
 src/components/search/VectorSearchBar.tsx:lint/suspicious/noArrayIndexKey 1
 src/lib/ai/instruction-classifier.ts:lint/suspicious/useIterableCallbackReturn 1
 src/lib/ai/meal-pairing-engine.ts:lint/suspicious/noImplicitAnyLet 1
-src/lib/api-auth/__tests__/api-key-scope-roles.test.ts:lint/correctness/noComponentHookFactories 3
 src/lib/db/embeddings.ts:lint/suspicious/noImplicitAnyLet 1
 src/lib/ingredients/fuzzy-matching.ts:lint/suspicious/useIterableCallbackReturn 1
 src/lib/services/ingredient-service.ts:lint/suspicious/noImplicitAnyLet 2
