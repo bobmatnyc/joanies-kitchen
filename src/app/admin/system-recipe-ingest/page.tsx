@@ -1,10 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ingestSystemRecipe } from '@/app/actions/system-recipe-ingestion';
 import { getChefsList, saveIngestedRecipe } from '@/app/actions/recipe-ingestion';
+import { ingestSystemRecipe } from '@/app/actions/system-recipe-ingestion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -552,7 +552,9 @@ export default function SystemRecipeIngestPage() {
                 <button
                   onClick={() => {
                     setInputType('url');
-                    setUrlInput('https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/');
+                    setUrlInput(
+                      'https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/'
+                    );
                   }}
                   className="text-red-600 hover:text-red-700 underline"
                 >

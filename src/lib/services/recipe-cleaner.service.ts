@@ -16,15 +16,15 @@
 
 import 'server-only';
 import { and, isNull, lt, or, sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { recipes } from '@/lib/db/schema';
 import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
-import { isOllamaAvailable, ollamaGenerate, DEFAULT_OLLAMA_MODEL } from '@/lib/ai/ollama-client';
+import { DEFAULT_OLLAMA_MODEL, isOllamaAvailable, ollamaGenerate } from '@/lib/ai/ollama-client';
 import {
+  DEFAULT_OPENROUTER_MODEL,
   isOpenRouterAvailable,
   openrouterGenerate,
-  DEFAULT_OPENROUTER_MODEL,
 } from '@/lib/ai/openrouter-client';
+import { db } from '@/lib/db';
+import { recipes } from '@/lib/db/schema';
 
 const DELAY_BETWEEN_RECIPES_MS = 1000; // 1 second delay between recipes
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -157,9 +157,7 @@ async function resolveAIProvider(): Promise<{
  * Uses OpenRouter (Claude Haiku) in production or local Ollama (Gemma) as fallback.
  * Processes recipes where last_cleaned_at IS NULL or last_cleaned_at < 30 days ago.
  */
-export async function cleanRecipesWithOllama(
-  limit: number = 5
-): Promise<CleanRecipesResult> {
+export async function cleanRecipesWithOllama(limit: number = 5): Promise<CleanRecipesResult> {
   const result: CleanRecipesResult = { processed: 0, skipped: 0, errors: [] };
 
   // Resolve AI provider (throws if neither is available)
@@ -181,10 +179,7 @@ export async function cleanRecipesWithOllama(
     .where(
       and(
         isNull(recipes.deleted_at),
-        or(
-          isNull(recipes.last_cleaned_at),
-          lt(recipes.last_cleaned_at, thirtyDaysAgo)
-        )
+        or(isNull(recipes.last_cleaned_at), lt(recipes.last_cleaned_at, thirtyDaysAgo))
       )
     )
     .limit(limit);
@@ -239,7 +234,9 @@ export async function cleanRecipesWithOllama(
       })
       .where(sql`${recipes.id} = ${recipe.id}`);
 
-    console.info(`[recipe-cleaner] Cleaned recipe "${recipe.name}" (${recipe.id}) via ${modelName}`);
+    console.info(
+      `[recipe-cleaner] Cleaned recipe "${recipe.name}" (${recipe.id}) via ${modelName}`
+    );
     result.processed++;
 
     await sleep(DELAY_BETWEEN_RECIPES_MS);

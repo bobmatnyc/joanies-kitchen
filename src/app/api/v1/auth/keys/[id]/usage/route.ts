@@ -15,13 +15,13 @@
  * - Error rate
  */
 
-import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getApiKeyById } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { apiKeyUsage } from '@/lib/db/api-keys-schema';
+import { getSessionUserId } from '@/lib/session-user';
 import { type UsageQueryParams, usageQuerySchema } from '@/lib/validations/api-key-validation';
 
 /**

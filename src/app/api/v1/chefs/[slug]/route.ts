@@ -13,17 +13,11 @@
  */
 
 import type { NextRequest } from 'next/server';
-import {
-  apiError,
-  apiNotFound,
-  apiSuccess,
-  getRequiredParam,
-  parseParamAndBody,
-} from '@/lib/api';
+import { apiError, apiNotFound, apiSuccess, getRequiredParam, parseParamAndBody } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';
 import { chefService } from '@/lib/services/chef-service';
-import { updateChefSchema, type UpdateChefInput } from '@/lib/validations/chef-api';
+import { type UpdateChefInput, updateChefSchema } from '@/lib/validations/chef-api';
 
 /**
  * GET /api/v1/chefs/:slug

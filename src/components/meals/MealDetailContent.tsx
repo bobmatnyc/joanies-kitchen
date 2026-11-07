@@ -1,6 +1,5 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { Clock, DollarSign, Edit, ShoppingCart, Users, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MealWithRecipes, Recipe, ShoppingList } from '@/lib/db/schema';
+import { useSessionUser } from '@/lib/use-session-user';
 import {
   createGuestShoppingList,
   type GuestMealWithRecipes,

@@ -492,8 +492,8 @@ export async function generateMeal(request: SimpleMealRequest): Promise<MealGene
 // ============================================================================
 
 export {
-  generateMealWithSemanticSearch,
-  searchRecipesByCourse,
   buildDatabaseContext,
   enrichWithRecipeLinks,
+  generateMealWithSemanticSearch,
+  searchRecipesByCourse,
 };

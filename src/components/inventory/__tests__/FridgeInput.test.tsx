@@ -11,7 +11,13 @@ vi.mock('@/app/actions/ingredient-search', () => ({
   getIngredientSuggestions: vi.fn(async () => ({
     success: true,
     suggestions: [
-      { id: '1', name: 'frying-chicken', displayName: 'Frying Chicken', category: 'proteins', isCommon: true },
+      {
+        id: '1',
+        name: 'frying-chicken',
+        displayName: 'Frying Chicken',
+        category: 'proteins',
+        isCommon: true,
+      },
     ],
   })),
 }));

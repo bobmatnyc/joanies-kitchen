@@ -9,8 +9,8 @@
  * - ExpiringItemsAlert: Alert for expiring items
  */
 
-export { FridgeInput } from './FridgeInput';
 export { AddInventoryItemForm } from './AddInventoryItemForm';
-export { InventoryList } from './InventoryList';
-export { InventoryItemCard } from './InventoryItemCard';
 export { ExpiringItemsAlert } from './ExpiringItemsAlert';
+export { FridgeInput } from './FridgeInput';
+export { InventoryItemCard } from './InventoryItemCard';
+export { InventoryList } from './InventoryList';

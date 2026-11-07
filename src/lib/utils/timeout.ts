@@ -71,10 +71,7 @@ export async function withTimeout<T>(
  *   { maxAttempts: 3, initialDelay: 1000 }
  * );
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {
     maxAttempts = 3,
     initialDelay = 1000,
@@ -138,20 +135,17 @@ export async function withTimeoutAndRetry<T>(
   timeoutMs: number,
   retryOptions: RetryOptions = {}
 ): Promise<T> {
-  return withRetry(
-    () => withTimeout(fn(), timeoutMs, `Request timeout after ${timeoutMs}ms`),
-    {
-      ...retryOptions,
-      // Don't retry on timeout errors by default (override if needed)
-      shouldRetry: (error) => {
-        // Don't retry timeouts unless explicitly configured
-        if (error instanceof Error && error.message.includes('timeout')) {
-          return retryOptions.shouldRetry ? retryOptions.shouldRetry(error) : false;
-        }
-        return retryOptions.shouldRetry ? retryOptions.shouldRetry(error) : true;
-      },
-    }
-  );
+  return withRetry(() => withTimeout(fn(), timeoutMs, `Request timeout after ${timeoutMs}ms`), {
+    ...retryOptions,
+    // Don't retry on timeout errors by default (override if needed)
+    shouldRetry: (error) => {
+      // Don't retry timeouts unless explicitly configured
+      if (error instanceof Error && error.message.includes('timeout')) {
+        return retryOptions.shouldRetry ? retryOptions.shouldRetry(error) : false;
+      }
+      return retryOptions.shouldRetry ? retryOptions.shouldRetry(error) : true;
+    },
+  });
 }
 
 /**

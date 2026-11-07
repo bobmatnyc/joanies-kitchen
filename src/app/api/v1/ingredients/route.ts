@@ -52,7 +52,9 @@ export const GET = requireScopes([SCOPES.READ_INGREDIENTS], async (request: Next
     // Parse query parameters
     const category = searchParams.get('category') || undefined;
     const search = searchParams.get('search') || undefined;
-    const sort = (searchParams.get('sort') as 'alphabetical' | 'most-used' | 'recently-added') || 'alphabetical';
+    const sort =
+      (searchParams.get('sort') as 'alphabetical' | 'most-used' | 'recently-added') ||
+      'alphabetical';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100', 10)));
 

@@ -123,7 +123,9 @@ export function InventoryList() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-jk-charcoal/60">Loading inventory...</CardContent>
+        <CardContent className="py-12 text-center text-jk-charcoal/60">
+          Loading inventory...
+        </CardContent>
       </Card>
     );
   }
@@ -167,10 +169,7 @@ export function InventoryList() {
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Storage Filter */}
             <div className="flex-1">
-              <Select
-                value={storageFilter}
-                onValueChange={(v: any) => setStorageFilter(v)}
-              >
+              <Select value={storageFilter} onValueChange={(v: any) => setStorageFilter(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

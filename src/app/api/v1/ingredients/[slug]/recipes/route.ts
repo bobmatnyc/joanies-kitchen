@@ -7,7 +7,7 @@
  * Authorization: Scope-based permissions
  */
 
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { apiError, getRequiredParam } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import type { RouteContext } from '@/lib/api-auth/types';

@@ -15,10 +15,10 @@
  * - Key hash and user_id cannot be modified
  */
 
-import { getSessionUserId } from '@/lib/session-user';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { getApiKeyById, revokeApiKey, updateApiKey } from '@/lib/api-auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { type UpdateApiKeyInput, updateApiKeySchema } from '@/lib/validations/api-key-validation';
 
 /**

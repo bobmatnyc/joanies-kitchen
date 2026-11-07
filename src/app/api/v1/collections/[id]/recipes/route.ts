@@ -17,9 +17,9 @@ import {
   apiSuccess,
   apiSuccessPaginated,
   applyPagination,
+  getRequiredParam,
   parseJsonBody,
   parseQueryParams,
-  getRequiredParam,
 } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { findViewableRecipe } from '@/lib/recipe-visibility';
@@ -98,7 +98,12 @@ export const GET = requireScopes(
         validatedQuery.limit!
       );
 
-      return apiSuccessPaginated(paginatedRecipes, validatedQuery.page!, validatedQuery.limit!, total);
+      return apiSuccessPaginated(
+        paginatedRecipes,
+        validatedQuery.page!,
+        validatedQuery.limit!,
+        total
+      );
     } catch (error) {
       console.error('Error fetching collection recipes:', error);
       return apiError('Internal server error');

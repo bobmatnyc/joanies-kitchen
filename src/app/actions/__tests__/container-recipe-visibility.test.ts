@@ -71,6 +71,7 @@ vi.mock('@/lib/api-auth/middleware', () => ({
   authHasAnyScope: () => true,
 }));
 
+import { getChefBySlug } from '@/app/actions/chefs';
 import {
   addRecipeToCollection,
   getCollectionById,
@@ -80,7 +81,6 @@ import {
 } from '@/app/actions/collections';
 import { addFavorite, getUserFavorites, toggleFavorite } from '@/app/actions/favorites';
 import { flagRecipe } from '@/app/actions/flag-recipe';
-import { getChefBySlug } from '@/app/actions/chefs';
 import { saveMealPlanFromPairing } from '@/app/actions/meal-pairing';
 import { addRecipeToMeal, getMealById, getMealBySlug } from '@/app/actions/meals';
 import {

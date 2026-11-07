@@ -113,15 +113,9 @@
       { "size": 2.25, "unit": "jar", "category": "spice" },
       { "size": 8.75, "unit": "jar", "category": "spice", "note": "Large size" }
     ],
-    "onion powder": [
-      { "size": 7.62, "unit": "jar", "category": "spice" }
-    ],
-    "paprika": [
-      { "size": 2.1, "unit": "jar", "category": "spice" }
-    ],
-    "cumin": [
-      { "size": 1.5, "unit": "jar", "category": "spice" }
-    ],
+    "onion powder": [{ "size": 7.62, "unit": "jar", "category": "spice" }],
+    "paprika": [{ "size": 2.1, "unit": "jar", "category": "spice" }],
+    "cumin": [{ "size": 1.5, "unit": "jar", "category": "spice" }],
     "oregano": [
       { "size": 0.5, "unit": "jar", "category": "spice" },
       { "size": 0.75, "unit": "jar", "category": "spice" }
@@ -134,50 +128,26 @@
       { "size": 0.5, "unit": "jar", "category": "spice" },
       { "size": 0.65, "unit": "jar", "category": "spice" }
     ],
-    "rosemary": [
-      { "size": 0.5, "unit": "jar", "category": "spice" }
-    ],
-    "cayenne pepper": [
-      { "size": 1, "unit": "jar", "category": "spice" }
-    ],
+    "rosemary": [{ "size": 0.5, "unit": "jar", "category": "spice" }],
+    "cayenne pepper": [{ "size": 1, "unit": "jar", "category": "spice" }],
     "chili powder": [
       { "size": 2.89, "unit": "jar", "category": "spice" },
       { "size": 7.5, "unit": "jar", "category": "spice", "note": "Large size" }
     ],
-    "ground cinnamon": [
-      { "size": 2.45, "unit": "jar", "category": "spice" }
-    ],
-    "ground nutmeg": [
-      { "size": 1, "unit": "jar", "category": "spice" }
-    ],
+    "ground cinnamon": [{ "size": 2.45, "unit": "jar", "category": "spice" }],
+    "ground nutmeg": [{ "size": 1, "unit": "jar", "category": "spice" }],
     "italian seasoning": [
       { "size": 0.55, "unit": "jar", "category": "spice" },
       { "size": 2, "unit": "jar", "category": "spice" }
     ],
-    "bay leaves": [
-      { "size": 0.5, "unit": "jar", "category": "spice" }
-    ],
-    "parsley": [
-      { "size": 0.5, "unit": "jar", "category": "spice" }
-    ],
-    "dill": [
-      { "size": 0.5, "unit": "jar", "category": "spice" }
-    ],
-    "sage": [
-      { "size": 0.5, "unit": "jar", "category": "spice" }
-    ],
-    "red pepper flakes": [
-      { "size": 1, "unit": "jar", "category": "spice" }
-    ],
-    "ginger": [
-      { "size": 1.5, "unit": "jar", "category": "spice" }
-    ],
-    "turmeric": [
-      { "size": 2, "unit": "jar", "category": "spice" }
-    ],
-    "coriander": [
-      { "size": 1.5, "unit": "jar", "category": "spice" }
-    ],
+    "bay leaves": [{ "size": 0.5, "unit": "jar", "category": "spice" }],
+    "parsley": [{ "size": 0.5, "unit": "jar", "category": "spice" }],
+    "dill": [{ "size": 0.5, "unit": "jar", "category": "spice" }],
+    "sage": [{ "size": 0.5, "unit": "jar", "category": "spice" }],
+    "red pepper flakes": [{ "size": 1, "unit": "jar", "category": "spice" }],
+    "ginger": [{ "size": 1.5, "unit": "jar", "category": "spice" }],
+    "turmeric": [{ "size": 2, "unit": "jar", "category": "spice" }],
+    "coriander": [{ "size": 1.5, "unit": "jar", "category": "spice" }],
     "vanilla extract": [
       { "size": 1, "unit": "bottle", "category": "spice" },
       { "size": 2, "unit": "bottle", "category": "spice" },
@@ -200,7 +170,12 @@
     ],
     "brown sugar": [
       { "size": 16, "unit": "bag", "category": "oz" },
-      { "size": 32, "unit": "bag", "category": "oz", "note": "2 lb - very common with resealable zipper" }
+      {
+        "size": 32,
+        "unit": "bag",
+        "category": "oz",
+        "note": "2 lb - very common with resealable zipper"
+      }
     ],
     "powdered sugar": [
       { "size": 16, "unit": "bag", "category": "oz" },
@@ -232,29 +207,89 @@
     ]
   },
   "produce": {
-    "apple": { "slicesPerUnit": 8, "unit": "apple", "note": "8-12 range; consider cups as better metric" },
-    "apples": { "slicesPerUnit": 8, "unit": "apple", "note": "8-12 range; consider cups as better metric" },
+    "apple": {
+      "slicesPerUnit": 8,
+      "unit": "apple",
+      "note": "8-12 range; consider cups as better metric"
+    },
+    "apples": {
+      "slicesPerUnit": 8,
+      "unit": "apple",
+      "note": "8-12 range; consider cups as better metric"
+    },
     "onion": { "slicesPerUnit": 10, "unit": "onion", "note": "10-12 at 1/8\" thickness" },
     "onions": { "slicesPerUnit": 10, "unit": "onion", "note": "10-12 at 1/8\" thickness" },
-    "tomato": { "slicesPerUnit": 8, "unit": "tomato", "note": "8-10 for medium at 1/8\" thickness" },
-    "tomatoes": { "slicesPerUnit": 8, "unit": "tomato", "note": "8-10 for medium at 1/8\" thickness" },
-    "lemon": { "slicesPerUnit": 6, "unit": "lemon", "note": "6-8 cross-sections; juice/zest is primary use" },
-    "lemons": { "slicesPerUnit": 6, "unit": "lemon", "note": "6-8 cross-sections; juice/zest is primary use" },
-    "lime": { "slicesPerUnit": 6, "unit": "lime", "note": "6-8 cross-sections; juice/wedges primary use" },
-    "limes": { "slicesPerUnit": 6, "unit": "lime", "note": "6-8 cross-sections; juice/wedges primary use" },
+    "tomato": {
+      "slicesPerUnit": 8,
+      "unit": "tomato",
+      "note": "8-10 for medium at 1/8\" thickness"
+    },
+    "tomatoes": {
+      "slicesPerUnit": 8,
+      "unit": "tomato",
+      "note": "8-10 for medium at 1/8\" thickness"
+    },
+    "lemon": {
+      "slicesPerUnit": 6,
+      "unit": "lemon",
+      "note": "6-8 cross-sections; juice/zest is primary use"
+    },
+    "lemons": {
+      "slicesPerUnit": 6,
+      "unit": "lemon",
+      "note": "6-8 cross-sections; juice/zest is primary use"
+    },
+    "lime": {
+      "slicesPerUnit": 6,
+      "unit": "lime",
+      "note": "6-8 cross-sections; juice/wedges primary use"
+    },
+    "limes": {
+      "slicesPerUnit": 6,
+      "unit": "lime",
+      "note": "6-8 cross-sections; juice/wedges primary use"
+    },
     "orange": { "slicesPerUnit": 10, "unit": "orange", "note": "10-12 segments or round slices" },
     "oranges": { "slicesPerUnit": 10, "unit": "orange", "note": "10-12 segments or round slices" },
-    "potato": { "slicesPerUnit": 15, "unit": "potato", "note": "15-25; highly variable; cups preferred" },
-    "potatoes": { "slicesPerUnit": 15, "unit": "potato", "note": "15-25; highly variable; cups preferred" },
+    "potato": {
+      "slicesPerUnit": 15,
+      "unit": "potato",
+      "note": "15-25; highly variable; cups preferred"
+    },
+    "potatoes": {
+      "slicesPerUnit": 15,
+      "unit": "potato",
+      "note": "15-25; highly variable; cups preferred"
+    },
     "carrot": { "slicesPerUnit": 20, "unit": "carrot", "note": "20-30 round slices" },
     "carrots": { "slicesPerUnit": 20, "unit": "carrot", "note": "20-30 round slices" },
     "cucumber": { "slicesPerUnit": 30, "unit": "cucumber", "note": "30-40 at 1/4\" thickness" },
     "cucumbers": { "slicesPerUnit": 30, "unit": "cucumber", "note": "30-40 at 1/4\" thickness" },
-    "zucchini": { "slicesPerUnit": 15, "unit": "zucchini", "note": "15-25; also spiralized/diced/shredded" },
-    "avocado": { "slicesPerUnit": 9, "unit": "avocado", "note": "9-15; fractions or cups preferred" },
-    "avocados": { "slicesPerUnit": 9, "unit": "avocado", "note": "9-15; fractions or cups preferred" },
-    "banana": { "slicesPerUnit": 15, "unit": "banana", "note": "15-20 at 1/4\" thickness; consumed whole" },
-    "bananas": { "slicesPerUnit": 15, "unit": "banana", "note": "15-20 at 1/4\" thickness; consumed whole" }
+    "zucchini": {
+      "slicesPerUnit": 15,
+      "unit": "zucchini",
+      "note": "15-25; also spiralized/diced/shredded"
+    },
+    "avocado": {
+      "slicesPerUnit": 9,
+      "unit": "avocado",
+      "note": "9-15; fractions or cups preferred"
+    },
+    "avocados": {
+      "slicesPerUnit": 9,
+      "unit": "avocado",
+      "note": "9-15; fractions or cups preferred"
+    },
+    "banana": {
+      "slicesPerUnit": 15,
+      "unit": "banana",
+      "note": "15-20 at 1/4\" thickness; consumed whole"
+    },
+    "bananas": {
+      "slicesPerUnit": 15,
+      "unit": "banana",
+      "note": "15-20 at 1/4\" thickness; consumed whole"
+    }
   },
   "_metadata": {
     "version": "2.0",
@@ -268,4 +303,4 @@
       "Critical correction: sugar substitute changed from 9.8 to 9.7 oz"
     ]
   }
-} 
+}

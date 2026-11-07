@@ -194,10 +194,7 @@ export function purgeStatements(t: PurgeTarget) {
 
   return [
     // Guard: 1/0 aborts the whole batch when the account is no longer due.
-    db
-      .select({ ok: sql<number>`1 / count(*)::int` })
-      .from(users)
-      .where(stillDue(t)),
+    db.select({ ok: sql<number>`1 / count(*)::int` }).from(users).where(stillDue(t)),
     // #158: lock every recipes row this batch writes, in id order, before any
     // recipe_ratings delete: rateRecipe/deleteRating lock the recipe row first.
     // FOR UPDATE (the batch deletes recipes) also queues their FOR NO KEY UPDATE.
@@ -232,9 +229,7 @@ export function purgeStatements(t: PurgeTarget) {
       })
       .where(keptRecipe(t)),
     // Rows hanging off the user's own (deleted) recipes, including other users' rows.
-    db
-      .delete(recipeIngredients)
-      .where(own(recipeIngredients.recipe_id)),
+    db.delete(recipeIngredients).where(own(recipeIngredients.recipe_id)),
     db.delete(recipeTasks).where(own(recipeTasks.recipe_id)),
     db.delete(recipeTools).where(own(recipeTools.recipe_id)),
     db.delete(recipeEmbeddings).where(own(recipeEmbeddings.recipe_id)),
@@ -260,9 +255,7 @@ export function purgeStatements(t: PurgeTarget) {
       .set({ recipe_id: null })
       .where(own(recipeDiscoveryRunItems.recipe_id)),
     // The user's own rows on anyone's recipes (others' comments on kept recipes stay).
-    db
-      .delete(recipeComments)
-      .where(eq(recipeComments.user_id, uid)),
+    db.delete(recipeComments).where(eq(recipeComments.user_id, uid)),
     // #141: delete the user's ratings and, in the same statement, recompute the
     // aggregates of every recipe they rated from the remaining ratings. The
     // UPDATE shares the DELETE's snapshot, so it leaves the user's rows out itself.
@@ -275,9 +268,7 @@ export function purgeStatements(t: PurgeTarget) {
     db.delete(recipeFlags).where(eq(recipeFlags.user_id, uid)),
     db.delete(recipes).where(eq(recipes.user_id, uid)),
     // Meals, collections, inventory and keys: children before parents.
-    db
-      .delete(mealRecipes)
-      .where(inArray(mealRecipes.meal_id, ownMealIds)),
+    db.delete(mealRecipes).where(inArray(mealRecipes.meal_id, ownMealIds)),
     db.delete(joanieComments).where(inArray(joanieComments.meal_id, ownMealIds)),
     db.delete(shoppingLists).where(eq(shoppingLists.user_id, uid)),
     db.delete(meals).where(eq(meals.user_id, uid)),
@@ -324,10 +315,7 @@ export function purgeStatements(t: PurgeTarget) {
     db.delete(apiKeys).where(eq(apiKeys.user_id, uid)),
     db.delete(userProfiles).where(eq(userProfiles.user_id, uid)),
     // Actor columns that name the user on rows that are not theirs.
-    db
-      .update(recipes)
-      .set({ deleted_by: DELETED_USER_ID })
-      .where(eq(recipes.deleted_by, uid)),
+    db.update(recipes).set({ deleted_by: DELETED_USER_ID }).where(eq(recipes.deleted_by, uid)),
     db.update(recipes).set({ moderated_by: DELETED_USER_ID }).where(eq(recipes.moderated_by, uid)),
     db
       .update(recipes)
@@ -344,9 +332,7 @@ export function purgeStatements(t: PurgeTarget) {
       .set({ created_by: DELETED_USER_ID })
       .where(eq(mealTemplates.created_by, uid)),
     // Auth rows, then the users row last.
-    db
-      .delete(accounts)
-      .where(eq(accounts.userId, uid)),
+    db.delete(accounts).where(eq(accounts.userId, uid)),
     ...(t.email
       ? [db.delete(verificationTokens).where(eq(verificationTokens.identifier, t.email))]
       : []),

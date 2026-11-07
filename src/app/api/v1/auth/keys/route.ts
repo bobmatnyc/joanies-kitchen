@@ -14,10 +14,10 @@
  * - After creation, only key prefix is visible
  */
 
-import { getSessionUserId } from '@/lib/session-user';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { createApiKey, listUserApiKeys } from '@/lib/api-auth';
+import { getSessionUserId } from '@/lib/session-user';
 import { type CreateApiKeyInput, createApiKeySchema } from '@/lib/validations/api-key-validation';
 
 /**

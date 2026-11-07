@@ -151,11 +151,7 @@ export async function measurePerformance<T>(
  * @param budget - Optional performance budget in milliseconds
  * @returns Result of the function
  */
-export function measurePerformanceSync<T>(
-  operation: string,
-  fn: () => T,
-  budget?: number
-): T {
+export function measurePerformanceSync<T>(operation: string, fn: () => T, budget?: number): T {
   const startTime = performance.now();
 
   try {
@@ -197,18 +193,17 @@ export function logSlowQuery(operation: string, duration: number, budget?: numbe
   const isCritical = duration > PERFORMANCE_THRESHOLDS.CRITICAL;
   const level = isCritical ? 'error' : 'warn';
 
-  const budgetInfo = budget ? ` (budget: ${budget}ms, exceeded by ${(duration - budget).toFixed(2)}ms)` : '';
+  const budgetInfo = budget
+    ? ` (budget: ${budget}ms, exceeded by ${(duration - budget).toFixed(2)}ms)`
+    : '';
 
-  console[level](
-    `[Performance Alert] ${operation} took ${duration.toFixed(2)}ms${budgetInfo}`,
-    {
-      operation,
-      duration: `${duration.toFixed(2)}ms`,
-      threshold: `${PERFORMANCE_THRESHOLDS.SLOW}ms`,
-      critical: isCritical,
-      timestamp: new Date().toISOString(),
-    }
-  );
+  console[level](`[Performance Alert] ${operation} took ${duration.toFixed(2)}ms${budgetInfo}`, {
+    operation,
+    duration: `${duration.toFixed(2)}ms`,
+    threshold: `${PERFORMANCE_THRESHOLDS.SLOW}ms`,
+    critical: isCritical,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 /**

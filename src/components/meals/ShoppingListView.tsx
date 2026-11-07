@@ -292,18 +292,24 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                                 <span className="font-semibold">{item.name}</span>
                                 <span className="text-jk-charcoal/60 text-sm ml-1">(to taste)</span>
                               </>
-                            ) : (() => {
-                                const retailPackage = item.quantity > 0 ? convertToRetailPackaging(item.name, item.quantity, item.unit) : null;
+                            ) : (
+                              (() => {
+                                const retailPackage =
+                                  item.quantity > 0
+                                    ? convertToRetailPackaging(item.name, item.quantity, item.unit)
+                                    : null;
 
                                 if (retailPackage) {
                                   return (
                                     <>
                                       <span className="font-semibold">
-                                        {retailPackage.quantity} {retailPackage.unit}{retailPackage.quantity > 1 ? 's' : ''}{' '}
+                                        {retailPackage.quantity} {retailPackage.unit}
+                                        {retailPackage.quantity > 1 ? 's' : ''}{' '}
                                       </span>
                                       {item.name}
                                       <span className="text-jk-charcoal/60 text-sm ml-1">
-                                        (need {formatQuantity(retailPackage.originalQuantity)} {retailPackage.originalUnit})
+                                        (need {formatQuantity(retailPackage.originalQuantity)}{' '}
+                                        {retailPackage.originalUnit})
                                       </span>
                                     </>
                                   );
@@ -319,7 +325,8 @@ export function ShoppingListView({ shoppingList, onUpdate }: ShoppingListViewPro
                                     {item.name}
                                   </>
                                 );
-                              })()}
+                              })()
+                            )}
                           </div>
                           {item.estimated_price && (
                             <div className="text-xs text-jk-charcoal/60 mt-1 font-ui">

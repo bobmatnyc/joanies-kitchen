@@ -19,8 +19,8 @@ import { getRecipesOfTheDay } from '@/app/actions/recipes';
 import { HeroBackgroundSlideshow } from '@/components/hero/HeroBackgroundSlideshow';
 import { FridgeInput } from '@/components/inventory';
 import { MobileContainer, MobileSpacer } from '@/components/mobile';
-import { RecipeOfTheDay } from '@/components/recipe-of-the-day';
 import { SharedRecipeCarousel } from '@/components/recipe/SharedRecipeCarousel';
+import { RecipeOfTheDay } from '@/components/recipe-of-the-day';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Recipe } from '@/lib/db/schema';
@@ -51,13 +51,22 @@ export default function Home() {
           : [];
 
       if (recipesOfTheDayResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch recipes of the day:', recipesOfTheDayResult.reason);
+        console.error(
+          '[Homepage] Failed to fetch recipes of the day:',
+          recipesOfTheDayResult.reason
+        );
       }
       if (backgroundImagesResult.status === 'rejected') {
-        console.error('[Homepage] Failed to fetch background images:', backgroundImagesResult.reason);
+        console.error(
+          '[Homepage] Failed to fetch background images:',
+          backgroundImagesResult.reason
+        );
       } else if (!backgroundImagesResult.value.success) {
         // #38: surface a failed load instead of silently showing no slideshow.
-        console.error('[Homepage] Background images unavailable:', backgroundImagesResult.value.error);
+        console.error(
+          '[Homepage] Background images unavailable:',
+          backgroundImagesResult.value.error
+        );
       }
 
       setRecipesOfTheDay(recipesOfTheDayData);

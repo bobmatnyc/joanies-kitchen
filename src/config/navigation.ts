@@ -7,9 +7,9 @@ import {
   CalendarDays,
   GraduationCap,
   Leaf,
+  type LucideIcon,
   Package,
   Sparkles,
-  type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {

@@ -146,7 +146,9 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
 
       let result;
       try {
-        result = await Promise.race([recipePromise, timeoutPromise]) as Awaited<ReturnType<typeof getRecipe>>;
+        result = (await Promise.race([recipePromise, timeoutPromise])) as Awaited<
+          ReturnType<typeof getRecipe>
+        >;
       } catch (error) {
         console.error('Recipe fetch error:', error);
         showNotFound();
@@ -191,7 +193,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       // NON-BLOCKING: Fetch view count (with timeout)
       Promise.race([
         getRecipeViewCount(result.data.id),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('View count timeout')), 2000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('View count timeout')), 2000)),
       ])
         .then((count) => {
           setViewCount(count as number);
@@ -204,7 +206,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       // NON-BLOCKING: Fetch author profile (with timeout)
       Promise.race([
         getProfileByUserId(result.data.user_id),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 2000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 2000)),
       ])
         .then((profile) => {
           setAuthorProfile(profile);
@@ -218,7 +220,9 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       if (result.data.source?.includes('Forked from recipe ID:')) {
         Promise.race([
           getOriginalRecipe(result.data.id),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Original recipe timeout')), 2000))
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Original recipe timeout')), 2000)
+          ),
         ])
           .then((original: any) => {
             if (original) {

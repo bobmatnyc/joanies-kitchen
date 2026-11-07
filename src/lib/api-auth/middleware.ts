@@ -13,8 +13,8 @@
  * 4. Unauthenticated
  */
 
-import { checkAdminAccess } from '@/lib/admin';
 import type { NextRequest } from 'next/server';
+import { checkAdminAccess } from '@/lib/admin';
 import { validateApiKey } from './key-service';
 import { allowedScopesForRole, hasScope, SCOPE_GROUPS } from './scopes';
 import type { AuthContext, AuthFailureReason, AuthMetadata, AuthType } from './types';
