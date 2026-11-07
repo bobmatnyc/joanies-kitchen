@@ -57,13 +57,20 @@ function recipe(id: string): Recipe {
 const recipes = (count: number, start = 0) =>
   Array.from({ length: count }, (_, i) => recipe(`r${start + i}`));
 
-const Cards = ({ list }: { list: Recipe[] }) => (
-  <>
-    {list.map((r, i) => (
-      <RecipeCard key={`${r.id}-${i}`} recipe={r} />
-    ))}
-  </>
-);
+const Cards = ({ list }: { list: Recipe[] }) => {
+  // #296: a list may repeat a recipe on purpose, so key each copy by id plus its
+  // occurrence of that id, not by array index (noArrayIndexKey).
+  const seen = new Map<string, number>();
+  return (
+    <>
+      {list.map((r) => {
+        const copy = seen.get(r.id) ?? 0;
+        seen.set(r.id, copy + 1);
+        return <RecipeCard key={`${r.id}-${copy}`} recipe={r} />;
+      })}
+    </>
+  );
+};
 
 const stateCalls = () =>
   mocks.isFavorited.mock.calls.length + mocks.getUserFavoriteIds.mock.calls.length;
@@ -93,6 +100,15 @@ const heartOf = (name: string, index = 0) => {
 
 const isShownFavorited = (button: HTMLElement) =>
   button.querySelector('svg.lucide-heart')?.classList.contains('fill-current') ?? false;
+
+/** Records, at every commit, whether the first heart shows as favorited. */
+// #296: module level, so React sees one component type (noComponentHookFactories).
+function CommitProbe({ commits, children }: { commits: boolean[]; children: ReactNode }) {
+  useLayoutEffect(() => {
+    commits.push(isShownFavorited(hearts()[0]));
+  });
+  return <>{children}</>;
+}
 
 // The shared state outlives a test by design; a new user starts it fresh.
 let userCounter = 0;
@@ -198,16 +214,10 @@ describe('favorite-state server calls (#269)', () => {
     mocks.getUserFavoriteIds.mockReturnValue(new Promise(() => undefined));
     // Layout effects see the first commit, before the load effect replaces the state.
     const commits: boolean[] = [];
-    const Probe = ({ children }: { children: ReactNode }) => {
-      useLayoutEffect(() => {
-        commits.push(isShownFavorited(hearts()[0]));
-      });
-      return <>{children}</>;
-    };
     render(
-      <Probe>
+      <CommitProbe commits={commits}>
         <FavoriteButton recipeId="r0" />
-      </Probe>
+      </CommitProbe>
     );
     await flush();
 
