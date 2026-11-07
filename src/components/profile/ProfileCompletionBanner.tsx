@@ -1,10 +1,10 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { UserCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useSessionUser } from '@/lib/use-session-user';
 
 /**
  * Profile Completion Banner

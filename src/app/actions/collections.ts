@@ -1,6 +1,5 @@
 'use server';
 
-import { getSessionUserId } from '@/lib/session-user';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { authorNotPendingDeletion, ownerVisibleTo } from '@/lib/account-deletion';
@@ -11,11 +10,6 @@ import {
 import { db } from '@/lib/db';
 import { recipes } from '@/lib/db/schema';
 import {
-  findViewableRecipe,
-  getRecipeViewer,
-  recipeVisibilityCondition,
-} from '@/lib/recipe-visibility';
-import {
   type Collection,
   collectionRecipes,
   collections,
@@ -23,7 +17,13 @@ import {
   insertCollectionSchema,
   userProfiles,
 } from '@/lib/db/user-discovery-schema';
+import {
+  findViewableRecipe,
+  getRecipeViewer,
+  recipeVisibilityCondition,
+} from '@/lib/recipe-visibility';
 import { collectionService } from '@/lib/services/collection-service';
+import { getSessionUserId } from '@/lib/session-user';
 import { isUniqueViolation, toErrorMessage } from '@/lib/utils/error-handling';
 
 /**

@@ -151,8 +151,7 @@ function FridgeResultsContent() {
           errorMessage =
             'The search is taking longer than expected. This might be due to high server load. Please try again in a moment.';
         } else if (err.message.includes('network') || err.message.includes('fetch')) {
-          errorMessage =
-            'Network error. Please check your internet connection and try again.';
+          errorMessage = 'Network error. Please check your internet connection and try again.';
         } else if (err.message.includes('validation')) {
           errorMessage = err.message; // Use validation error as-is
         } else {

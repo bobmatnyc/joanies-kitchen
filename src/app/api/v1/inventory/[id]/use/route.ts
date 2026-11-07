@@ -8,7 +8,13 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { apiError, apiSuccess, getRouteParams, parseJsonBody, verifyResourceOwnership } from '@/lib/api';
+import {
+  apiError,
+  apiSuccess,
+  getRouteParams,
+  parseJsonBody,
+  verifyResourceOwnership,
+} from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { inventoryService } from '@/lib/services/inventory-service';
 import { markAsUsedSchema } from '@/lib/validations/inventory-api';

@@ -136,7 +136,8 @@ export const PATCH = requireScopes(
 
       // Map Zod-validated partial input to the Recipe update format.
       // Serialize array/object fields to JSON strings to match the DB column types.
-      const { ingredients, instructions, tags, images, nutrition_info, ...restData } = validatedData;
+      const { ingredients, instructions, tags, images, nutrition_info, ...restData } =
+        validatedData;
       const updateInput: Partial<Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'userId'>> = {
         ...restData,
         ...(ingredients !== undefined && { ingredients: JSON.stringify(ingredients) }),

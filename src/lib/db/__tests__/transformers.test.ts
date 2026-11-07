@@ -6,19 +6,19 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { Chef, Ingredient, InventoryItem, Meal, Recipe, Tool } from '../schema';
 import {
+  parseChef,
   parseDecimal,
+  parseIngredient,
   parseInteger,
+  parseInventoryItem,
   parseJsonArray,
   parseJsonField,
-  parseRecipe,
-  parseIngredient,
   parseMeal,
-  parseChef,
+  parseRecipe,
   parseTool,
-  parseInventoryItem,
 } from '../transformers';
-import type { Recipe, Ingredient, Meal, Chef, Tool, InventoryItem } from '../schema';
 
 describe('Type Transformers', () => {
   describe('parseDecimal', () => {

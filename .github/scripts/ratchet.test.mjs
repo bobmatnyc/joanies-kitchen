@@ -72,6 +72,24 @@ describe('parsing', () => {
     );
     expect(formatBaseline(counts)).toBe('a.ts:lint/r 2\n');
   });
+  // #296: Biome 2.2 nests the file as `location.path.file`; 2.6 makes `location.path` the string.
+  it('biome keys read both the 2.2 and the 2.6 location.path shapes', () => {
+    const t = JSON.stringify({
+      summary: { errors: 2 },
+      diagnostics: [
+        { category: 'lint/r', severity: 'error', location: { path: { file: 'old.ts' } } },
+        { category: 'lint/r', severity: 'error', location: { path: 'new.ts' } },
+      ],
+    });
+    expect(formatBaseline(parseBiome(t, 1).counts)).toBe('new.ts:lint/r 1\nold.ts:lint/r 1\n');
+  });
+  it('biome: an error diagnostic with no usable path still fails', () => {
+    const t = JSON.stringify({
+      summary: { errors: 1 },
+      diagnostics: [{ category: 'lint/r', severity: 'error', location: { path: 42 } }],
+    });
+    expect(parseBiome(t, 1).failure).toMatch(/without file or category/);
+  });
   it('baseline round-trips', () => {
     const t = 'a:TS1 3\nb:TS2 1\n';
     expect(formatBaseline(parseBaseline(t))).toBe(t);

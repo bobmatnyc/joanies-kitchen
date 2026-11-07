@@ -12,6 +12,7 @@ Autocomplete ingredient selection component for "What's in Your Fridge?" feature
 ### Features
 
 ✅ **Implemented (Phase 1 - MVP)**:
+
 - Debounced autocomplete search (300ms)
 - Ingredient suggestions from database
 - Popular ingredients shown when empty
@@ -22,6 +23,7 @@ Autocomplete ingredient selection component for "What's in Your Fridge?" feature
 - Max ingredients limit (default: 20)
 
 🚧 **Future (Phase 2)**:
+
 - Quantity input per ingredient
 - Expiry date picker
 - Storage location selection (fridge/freezer/pantry)
@@ -88,7 +90,7 @@ function FridgeMatchPage() {
   placeholder="Enter your ingredients..."
   maxIngredients={15}
   className="max-w-2xl"
-/>
+/>;
 ```
 
 ---
@@ -179,12 +181,12 @@ const result = await matchRecipesToInventory({
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `Arrow Down` | Navigate down suggestions |
-| `Arrow Up` | Navigate up suggestions |
-| `Enter` | Select highlighted suggestion OR submit search |
-| `Escape` | Close suggestions dropdown |
+| Key          | Action                                         |
+| ------------ | ---------------------------------------------- |
+| `Arrow Down` | Navigate down suggestions                      |
+| `Arrow Up`   | Navigate up suggestions                        |
+| `Enter`      | Select highlighted suggestion OR submit search |
+| `Escape`     | Close suggestions dropdown                     |
 
 ---
 
@@ -235,12 +237,14 @@ See `FridgeInput.example.tsx` for comprehensive usage examples including:
 ## Dependencies
 
 Required UI components from shadcn/ui:
+
 - `Badge` - Selected ingredient chips
 - `Button` - Action buttons
 - `Command` - Autocomplete command palette
 - `Popover` - Dropdown suggestions
 
 Icons from lucide-react:
+
 - `Search` - Search icon
 - `X` - Remove/clear icons
 - `ChefHat` - Find recipes button icon
@@ -284,16 +288,19 @@ Future enhancements planned:
 ## Troubleshooting
 
 ### Autocomplete not working
+
 - Verify database connection to `ingredients` table
 - Check `getIngredientSuggestions` server action is available
 - Ensure pg_trgm extension enabled in PostgreSQL
 
 ### No suggestions appearing
+
 - Check database has ingredients seeded
 - Verify ingredient names are normalized (lowercase)
 - Ensure minimum 2 characters typed
 
 ### Search not triggering
+
 - Verify `onSearch` prop is provided
 - Check that ingredients are selected before clicking
 - Ensure `onSearch` returns a Promise

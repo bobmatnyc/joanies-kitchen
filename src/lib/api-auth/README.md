@@ -85,36 +85,42 @@ await trackApiUsage({
 ## Available Scopes
 
 ### Recipe Scopes
+
 - `read:recipes` - Read recipes
 - `write:recipes` - Create and update recipes
 - `delete:recipes` - Delete recipes
 - `recipes:*` - Full access to recipes (wildcard)
 
 ### Ingredient Scopes
+
 - `read:ingredients`
 - `write:ingredients`
 - `delete:ingredients`
 - `ingredients:*`
 
 ### Meal Scopes
+
 - `read:meals`
 - `write:meals`
 - `delete:meals`
 - `meals:*`
 
 ### Collection Scopes
+
 - `read:collections`
 - `write:collections`
 - `delete:collections`
 - `collections:*`
 
 ### Admin Scopes
+
 - `admin:users` - Manage user accounts
 - `admin:content` - Manage site content
 - `admin:system` - Manage system settings
 - `admin:*` - Full admin access
 
 ### Global Wildcard
+
 - `*` - Full access to all resources (use with extreme caution)
 
 ## Scope Groups
@@ -125,16 +131,16 @@ Pre-defined permission sets for common use cases:
 import { SCOPE_GROUPS } from '@/lib/api-auth';
 
 // Read-only access
-SCOPE_GROUPS.READ_ONLY
+SCOPE_GROUPS.READ_ONLY;
 
 // Full user access
-SCOPE_GROUPS.USER
+SCOPE_GROUPS.USER;
 
 // Content creator access
-SCOPE_GROUPS.CREATOR
+SCOPE_GROUPS.CREATOR;
 
 // Admin access
-SCOPE_GROUPS.ADMIN
+SCOPE_GROUPS.ADMIN;
 ```
 
 ## API Reference
@@ -142,6 +148,7 @@ SCOPE_GROUPS.ADMIN
 ### Key Generation
 
 #### `generateApiKey(environment?, lengthBytes?)`
+
 Generate a cryptographically secure API key.
 
 ```typescript
@@ -150,6 +157,7 @@ const generated = generateApiKey('production', 32);
 ```
 
 #### `hashApiKey(apiKey)`
+
 Hash an API key using SHA-256 for secure storage.
 
 ```typescript
@@ -157,6 +165,7 @@ const hash = hashApiKey('jk_live_abc123...');
 ```
 
 #### `validateApiKeyFormat(apiKey)`
+
 Validate API key format without database lookup.
 
 ```typescript
@@ -169,6 +178,7 @@ if (validation.valid) {
 ### Key Management
 
 #### `createApiKey(params)`
+
 Create and store a new API key.
 
 ```typescript
@@ -183,6 +193,7 @@ const result = await createApiKey({
 ```
 
 #### `validateApiKey(providedKey)`
+
 Validate an API key during authentication.
 
 ```typescript
@@ -194,6 +205,7 @@ if (auth.valid) {
 ```
 
 #### `revokeApiKey(keyId, revokedBy, reason?)`
+
 Revoke an API key (soft delete).
 
 ```typescript
@@ -201,16 +213,18 @@ await revokeApiKey('key_uuid', 'user_123', 'Key compromised');
 ```
 
 #### `listUserApiKeys(userId, includeInactive?)`
+
 List all API keys for a user.
 
 ```typescript
 const keys = await listUserApiKeys('user_123');
-keys.forEach(key => {
+keys.forEach((key) => {
   console.log(`${key.name}: ${key.key_prefix}...`);
 });
 ```
 
 #### `updateApiKey(keyId, updates)`
+
 Update API key metadata.
 
 ```typescript
@@ -224,6 +238,7 @@ await updateApiKey('key_uuid', {
 ### Usage Tracking
 
 #### `trackApiUsage(params)`
+
 Record API usage for analytics and audit.
 
 ```typescript
@@ -238,6 +253,7 @@ await trackApiUsage({
 ```
 
 #### `getApiKeyUsage(keyId, startDate?, endDate?)`
+
 Get usage statistics for an API key.
 
 ```typescript
@@ -250,6 +266,7 @@ console.log('Error rate:', stats.errorRate);
 ### Permission Checking
 
 #### `hasScope(userScopes, requiredScope)`
+
 Check if user has a specific scope.
 
 ```typescript
@@ -264,6 +281,7 @@ if (hasScope(['recipes:*'], 'read:recipes')) {
 ```
 
 #### `hasAllScopes(userScopes, requiredScopes)`
+
 Check if user has ALL required scopes.
 
 ```typescript
@@ -273,6 +291,7 @@ if (hasAllScopes(userScopes, ['read:recipes', 'write:recipes'])) {
 ```
 
 #### `hasAnyScope(userScopes, requiredScopes)`
+
 Check if user has ANY of the required scopes.
 
 ```typescript
@@ -362,10 +381,7 @@ export async function GET(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: 'API key required' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'API key required' }, { status: 401 });
   }
 
   // Validate API key
@@ -374,10 +390,7 @@ export async function GET(request: NextRequest) {
 
   if (!auth.valid) {
     // Track failed authentication
-    return NextResponse.json(
-      { error: 'Invalid or expired API key' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Invalid or expired API key' }, { status: 401 });
   }
 
   // Check permissions
@@ -391,10 +404,7 @@ export async function GET(request: NextRequest) {
       responseTimeMs: Date.now() - startTime,
     });
 
-    return NextResponse.json(
-      { error: 'Insufficient permissions' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
   // Fetch recipes...
@@ -432,6 +442,7 @@ console.log('Environment:', validation.environment);
 ## Support
 
 For issues or questions:
+
 - Check the inline documentation in the source files
 - Review the type definitions for detailed parameter info
 - Consult the integration tests for usage examples

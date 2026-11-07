@@ -508,9 +508,9 @@ const quickDinner = await generateMeal({
 // ============================================================================
 
 export {
+  buildMealPairingPrompt,
   generateMeal,
   generateMealWithSemanticSearch,
-  buildMealPairingPrompt,
   MEAL_PAIRING_SYSTEM_PROMPT,
   type MealPairingInput,
   type MealPlan,

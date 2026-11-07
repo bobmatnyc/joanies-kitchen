@@ -265,8 +265,8 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
               <Calendar className="w-4 h-4" />
               {daysUntilExpiry !== null && daysUntilExpiry < 0 ? (
                 <span className="font-medium">
-                  Expired {Math.abs(daysUntilExpiry)} {Math.abs(daysUntilExpiry) === 1 ? 'day' : 'days'}{' '}
-                  ago
+                  Expired {Math.abs(daysUntilExpiry)}{' '}
+                  {Math.abs(daysUntilExpiry) === 1 ? 'day' : 'days'} ago
                 </span>
               ) : daysUntilExpiry !== null && daysUntilExpiry === 0 ? (
                 <span className="font-medium">Expires today</span>

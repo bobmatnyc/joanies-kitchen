@@ -67,11 +67,7 @@ export const GET = requireScopes([SCOPES.READ_FAVORITES], async (request: NextRe
     );
 
     // Apply sorting (defaults guaranteed by schema)
-    let sortedFavorites = applySorting(
-      favorites,
-      validatedQuery.sortBy!,
-      validatedQuery.order!
-    );
+    let sortedFavorites = applySorting(favorites, validatedQuery.sortBy!, validatedQuery.order!);
 
     // Apply pagination (defaults guaranteed by schema)
     const { items: paginatedFavorites, total } = applyPagination(

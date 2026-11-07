@@ -30,7 +30,10 @@ interface ChefCardProps {
 export function ChefCard({ chef }: ChefCardProps) {
   return (
     // Accessibility: descriptive aria-label so screen readers announce the destination
-    <Link href={`/chef/${chef.slug}`} aria-label={`View ${chef.displayName || chef.name}'s profile`}>
+    <Link
+      href={`/chef/${chef.slug}`}
+      aria-label={`View ${chef.displayName || chef.name}'s profile`}
+    >
       <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer border-jk-olive/20">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">

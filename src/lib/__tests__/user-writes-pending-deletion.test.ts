@@ -14,7 +14,17 @@ import type { PGlite } from '@electric-sql/pglite';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { NextRequest } from 'next/server';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  assert,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const state = vi.hoisted(() => ({ db: undefined as unknown, userId: null as string | null }));
 
@@ -424,10 +434,12 @@ describe('#208 guarded writes are unchanged for other accounts', () => {
       const { id: _id, created_at: _c, updated_at: _u, ...rest } = r ?? {};
       return rest;
     };
-    expect(viaGuard).not.toBeNull();
+    // #296: assert() narrows the type, so the reads below need no `?.`
+    // (noUnsafeOptionalChaining). A null row still fails here, as the old expect did.
+    assert(viaGuard !== null, 'insertUnlessPendingDeletion returned no row');
     expect(strip(viaGuard)).toEqual(strip(viaDrizzle));
-    expect(viaGuard?.published_date).toEqual(new Date('2026-01-02T03:04:05.000Z'));
-    expect(Number.isNaN((viaGuard?.created_at as Date).getTime())).toBe(false);
+    expect(viaGuard.published_date).toEqual(new Date('2026-01-02T03:04:05.000Z'));
+    expect(Number.isNaN((viaGuard.created_at as Date).getTime())).toBe(false);
   });
 
   it('an add bumps recipe_count and collection_count once', async () => {

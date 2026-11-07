@@ -8,13 +8,7 @@
  */
 
 import type { NextRequest } from 'next/server';
-import {
-  apiError,
-  apiForbidden,
-  apiNotFound,
-  apiSuccess,
-  getRequiredParam,
-} from '@/lib/api';
+import { apiError, apiForbidden, apiNotFound, apiSuccess, getRequiredParam } from '@/lib/api';
 import { requireScopes, SCOPES } from '@/lib/api-auth';
 import { collectionService } from '@/lib/services/collection-service';
 

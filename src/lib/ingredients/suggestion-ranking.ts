@@ -49,7 +49,10 @@ function matchTier(s: RankableSuggestion, query: string): number {
   // #47: tier by the text the user SEES. Production has a row name='chicken'
   // with display_name='Frying Chicken'; matching on `name` ranked it as exact.
   for (const field of [s.displayName || s.name]) {
-    const v = field.toLowerCase().replace(/[-_\s]+/g, ' ').trim();
+    const v = field
+      .toLowerCase()
+      .replace(/[-_\s]+/g, ' ')
+      .trim();
     const key = suggestionDedupKey(field);
     if (key === q || v === query) return 0;
     if (v.startsWith(query) || key.startsWith(q)) best = Math.min(best, 1);
@@ -71,7 +74,10 @@ export function rankAndDedupeSuggestions<T extends RankableSuggestion>(
   query: string,
   limit: number
 ): T[] {
-  const q = query.toLowerCase().replace(/[-_\s]+/g, ' ').trim();
+  const q = query
+    .toLowerCase()
+    .replace(/[-_\s]+/g, ' ')
+    .trim();
   const ranked = rows
     .map((row) => ({ row, tier: matchTier(row, q) }))
     .sort(
@@ -90,7 +96,10 @@ export function rankAndDedupeSuggestions<T extends RankableSuggestion>(
     if (seenIds.has(row.id) || seenKeys.has(key)) continue;
     seenIds.add(row.id);
     seenKeys.add(key);
-    out.push({ ...row, category: correctSuggestionCategory(row.displayName || row.name, row.category) });
+    out.push({
+      ...row,
+      category: correctSuggestionCategory(row.displayName || row.name, row.category),
+    });
     if (out.length >= limit) break;
   }
   return out;

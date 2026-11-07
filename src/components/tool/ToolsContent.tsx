@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import type { SortOption } from '@/app/actions/tools';
 import { ToolFilters } from './ToolFilters';
 import { ToolList } from './ToolList';
-import type { SortOption } from '@/app/actions/tools';
 
 // Serialized tool type (dates as strings)
 export interface SerializedTool {

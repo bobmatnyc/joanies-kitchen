@@ -8,8 +8,8 @@ import {
 import { requireAuth } from '@/lib/auth-guard';
 import { recipes } from '@/lib/db/schema';
 import { toErrorMessage } from '@/lib/utils/error-handling';
-import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { parseMarkdownRecipe } from '@/lib/utils/markdown-parser';
+import { toRecipeInt } from '@/lib/utils/recipe-int';
 
 /**
  * Import a single recipe from markdown

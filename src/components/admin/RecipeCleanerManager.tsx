@@ -81,9 +81,7 @@ export function RecipeCleanerManager() {
           )}
         </Button>
 
-        <p className="text-sm text-gray-500">
-          Uses local Gemma model — requires Ollama running
-        </p>
+        <p className="text-sm text-gray-500">Uses local Gemma model — requires Ollama running</p>
       </div>
 
       {result && (

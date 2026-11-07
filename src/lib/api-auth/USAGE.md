@@ -88,12 +88,14 @@ export const GET = optionalAuth(async (request, auth) => {
 ### 1. API Key (Bearer Token)
 
 **Client Request:**
+
 ```bash
 curl -H "Authorization: Bearer jk_prod_AbCd123..." \
      https://api.example.com/api/recipes
 ```
 
 **Characteristics:**
+
 - Highest priority (checked first)
 - Validated against database
 - Tracks usage automatically
@@ -103,6 +105,7 @@ curl -H "Authorization: Bearer jk_prod_AbCd123..." \
 ### 2. Basic Auth (Username:Password)
 
 **Client Request:**
+
 ```bash
 curl -u "username:password" \
      https://api.example.com/api/recipes
@@ -113,6 +116,7 @@ curl -H "Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=" \
 ```
 
 **Characteristics:**
+
 - Second priority
 - Not yet fully implemented (placeholder)
 - Best for: Simple authentication, legacy systems
@@ -120,6 +124,7 @@ curl -H "Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=" \
 ### 3. Auth.js Session
 
 **Client Request:**
+
 ```bash
 # No special headers needed - uses cookies
 curl --cookie "authjs.session-token=..." \
@@ -127,6 +132,7 @@ curl --cookie "authjs.session-token=..." \
 ```
 
 **Characteristics:**
+
 - Lowest priority (fallback)
 - Uses the existing Auth.js session from the browser
 - Returns standard user scopes or admin scopes
@@ -139,15 +145,19 @@ curl --cookie "authjs.session-token=..." \
 Requires any valid authentication.
 
 ```typescript
-export const GET = requireAuth(async (request, auth) => {
-  // Handler code
-}, {
-  trackUsage: true, // Track API key usage (default: true)
-  usageMetadata: { endpoint: 'recipes-list' }
-});
+export const GET = requireAuth(
+  async (request, auth) => {
+    // Handler code
+  },
+  {
+    trackUsage: true, // Track API key usage (default: true)
+    usageMetadata: { endpoint: 'recipes-list' },
+  }
+);
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - Calls handler with `AuthContext` if authenticated
 
@@ -165,6 +175,7 @@ export const POST = requireScopes(
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - `403 Forbidden` if missing required scopes
 - Calls handler if all scopes present
@@ -183,6 +194,7 @@ export const GET = requireAnyScope(
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - `403 Forbidden` if no matching scopes
 - Calls handler if any scope matches
@@ -215,10 +227,7 @@ export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request, auth) 
 
     // Validate input
     if (!data.title || !data.ingredients) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Create recipe for authenticated user
@@ -231,10 +240,7 @@ export const POST = requireScopes([SCOPES.WRITE_RECIPES], async (request, auth) 
     return NextResponse.json(recipe, { status: 201 });
   } catch (error) {
     console.error('Recipe creation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create recipe' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create recipe' }, { status: 500 });
   }
 });
 ```
@@ -258,10 +264,7 @@ export const DELETE = requireScopes([SCOPES.ADMIN_USERS], async (request, auth) 
 
   // Prevent self-deletion
   if (userId === auth.userId) {
-    return NextResponse.json(
-      { error: 'Cannot delete your own account' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
   }
 
   await deleteUser(userId);
@@ -293,10 +296,7 @@ export const GET = optionalAuth(async (request, auth, params) => {
   }
 
   if (recipe.userId !== auth.userId && !recipe.isPublic) {
-    return NextResponse.json(
-      { error: 'Access denied' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
   // Log analytics based on auth type
@@ -349,9 +349,7 @@ export const GET = requireAnyScope(
     // User has at least one of the required scopes
     const isAdmin = auth.scopes.includes(SCOPES.ADMIN_CONTENT);
 
-    const content = isAdmin
-      ? await getAllContent()
-      : await getUserContent(auth.userId);
+    const content = isAdmin ? await getAllContent() : await getUserContent(auth.userId);
 
     return NextResponse.json(content);
   }
@@ -363,6 +361,7 @@ export const GET = requireAnyScope(
 ### Standard Error Responses
 
 **401 Unauthorized:**
+
 ```json
 {
   "error": "Authentication required",
@@ -372,6 +371,7 @@ export const GET = requireAnyScope(
 ```
 
 **403 Forbidden:**
+
 ```json
 {
   "error": "Insufficient permissions",
@@ -385,20 +385,23 @@ export const GET = requireAnyScope(
 ### Custom Error Handling
 
 ```typescript
-export const GET = requireAuth(async (request, auth) => {
-  // Handler
-}, {
-  onError: (error) => {
-    // Custom error response
-    return NextResponse.json(
-      {
-        error: 'Custom error message',
-        details: error.message
-      },
-      { status: error.statusCode || 401 }
-    );
+export const GET = requireAuth(
+  async (request, auth) => {
+    // Handler
+  },
+  {
+    onError: (error) => {
+      // Custom error response
+      return NextResponse.json(
+        {
+          error: 'Custom error message',
+          details: error.message,
+        },
+        { status: error.statusCode || 401 }
+      );
+    },
   }
-});
+);
 ```
 
 ## Testing
@@ -436,28 +439,28 @@ curl http://localhost:3002/api/recipes
 ```typescript
 import { SCOPES } from '@/lib/api-auth';
 
-SCOPES.READ_RECIPES      // 'read:recipes'
-SCOPES.WRITE_RECIPES     // 'write:recipes'
-SCOPES.DELETE_RECIPES    // 'delete:recipes'
-SCOPES.RECIPES_ALL       // 'recipes:*'
+SCOPES.READ_RECIPES; // 'read:recipes'
+SCOPES.WRITE_RECIPES; // 'write:recipes'
+SCOPES.DELETE_RECIPES; // 'delete:recipes'
+SCOPES.RECIPES_ALL; // 'recipes:*'
 
-SCOPES.READ_INGREDIENTS  // 'read:ingredients'
-SCOPES.WRITE_INGREDIENTS // 'write:ingredients'
+SCOPES.READ_INGREDIENTS; // 'read:ingredients'
+SCOPES.WRITE_INGREDIENTS; // 'write:ingredients'
 
-SCOPES.READ_MEALS        // 'read:meals'
-SCOPES.WRITE_MEALS       // 'write:meals'
+SCOPES.READ_MEALS; // 'read:meals'
+SCOPES.WRITE_MEALS; // 'write:meals'
 
-SCOPES.READ_COLLECTIONS  // 'read:collections'
-SCOPES.WRITE_COLLECTIONS // 'write:collections'
+SCOPES.READ_COLLECTIONS; // 'read:collections'
+SCOPES.WRITE_COLLECTIONS; // 'write:collections'
 
-SCOPES.READ_INVENTORY    // 'read:inventory'
-SCOPES.WRITE_INVENTORY   // 'write:inventory'
+SCOPES.READ_INVENTORY; // 'read:inventory'
+SCOPES.WRITE_INVENTORY; // 'write:inventory'
 
-SCOPES.ADMIN_USERS       // 'admin:users'
-SCOPES.ADMIN_CONTENT     // 'admin:content'
-SCOPES.ADMIN_SYSTEM      // 'admin:system'
+SCOPES.ADMIN_USERS; // 'admin:users'
+SCOPES.ADMIN_CONTENT; // 'admin:content'
+SCOPES.ADMIN_SYSTEM; // 'admin:system'
 
-SCOPES.ALL               // '*' (use with caution)
+SCOPES.ALL; // '*' (use with caution)
 ```
 
 ## AuthContext Structure
@@ -503,6 +506,7 @@ interface AuthContext {
 ## Migration from Direct Session Checks
 
 **Before:**
+
 ```typescript
 import { getSessionUserId } from '@/lib/session-user';
 
@@ -516,6 +520,7 @@ export async function GET(request: NextRequest) {
 ```
 
 **After:**
+
 ```typescript
 import { requireAuth } from '@/lib/api-auth';
 
@@ -526,6 +531,7 @@ export const GET = requireAuth(async (request, auth) => {
 ```
 
 **Benefits:**
+
 - Supports multiple auth methods
 - Automatic usage tracking
 - Consistent error responses

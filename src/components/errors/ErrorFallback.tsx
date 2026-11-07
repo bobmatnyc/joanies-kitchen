@@ -138,7 +138,11 @@ export interface FieldErrorProps {
 
 export function FieldError({ fieldId, message, className = '' }: FieldErrorProps) {
   return (
-    <p id={`${fieldId}-error`} className={`text-sm text-destructive mt-1 ${className}`} role="alert">
+    <p
+      id={`${fieldId}-error`}
+      className={`text-sm text-destructive mt-1 ${className}`}
+      role="alert"
+    >
       {message}
     </p>
   );

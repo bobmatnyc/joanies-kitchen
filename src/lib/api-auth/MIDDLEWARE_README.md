@@ -79,12 +79,14 @@ The middleware checks authentication in this priority order:
 ### 1. API Key (Bearer Token) - Highest Priority
 
 **Client Request:**
+
 ```bash
 curl -H "Authorization: Bearer jk_prod_..." \
      https://api.example.com/api/recipes
 ```
 
 **Characteristics:**
+
 - Validated against database
 - Tracks usage automatically
 - Returns custom scopes from key configuration
@@ -93,6 +95,7 @@ curl -H "Authorization: Bearer jk_prod_..." \
 ### 2. Basic Auth (Username:Password) - Medium Priority
 
 **Client Request:**
+
 ```bash
 curl -u "username:password" \
      https://api.example.com/api/recipes
@@ -103,12 +106,14 @@ curl -u "username:password" \
 ### 3. Auth.js Session - Lowest Priority (Fallback)
 
 **Client Request:**
+
 ```javascript
 // Uses existing session cookies
 fetch('/api/recipes', { credentials: 'include' });
 ```
 
 **Characteristics:**
+
 - Automatic for web app requests
 - Returns `SCOPE_GROUPS.USER` or `SCOPE_GROUPS.ADMIN` scopes
 - Best for: Internal web app API calls
@@ -149,6 +154,7 @@ export const GET = requireAuth(async (request, auth, context) => {
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - Calls handler with `AuthContext` if authenticated
 
@@ -166,6 +172,7 @@ export const POST = requireScopes(
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - `403 Forbidden` if missing required scopes
 - Calls handler if all scopes present
@@ -184,6 +191,7 @@ export const GET = requireAnyScope(
 ```
 
 **Returns:**
+
 - `401 Unauthorized` if not authenticated
 - `403 Forbidden` if no matching scopes
 - Calls handler if any scope matches
@@ -214,6 +222,7 @@ export const GET = optionalAuth(async (request, auth, context) => {
 ```
 
 With `WWW-Authenticate` header:
+
 ```
 WWW-Authenticate: Bearer realm="API", charset="UTF-8"
 ```
@@ -236,30 +245,30 @@ WWW-Authenticate: Bearer realm="API", charset="UTF-8"
 import { SCOPES } from '@/lib/api-auth';
 
 // Recipe scopes
-SCOPES.READ_RECIPES       // 'read:recipes'
-SCOPES.WRITE_RECIPES      // 'write:recipes'
-SCOPES.DELETE_RECIPES     // 'delete:recipes'
-SCOPES.RECIPES_ALL        // 'recipes:*'
+SCOPES.READ_RECIPES; // 'read:recipes'
+SCOPES.WRITE_RECIPES; // 'write:recipes'
+SCOPES.DELETE_RECIPES; // 'delete:recipes'
+SCOPES.RECIPES_ALL; // 'recipes:*'
 
 // Ingredient scopes
-SCOPES.READ_INGREDIENTS   // 'read:ingredients'
-SCOPES.WRITE_INGREDIENTS  // 'write:ingredients'
+SCOPES.READ_INGREDIENTS; // 'read:ingredients'
+SCOPES.WRITE_INGREDIENTS; // 'write:ingredients'
 
 // Meal scopes
-SCOPES.READ_MEALS         // 'read:meals'
-SCOPES.WRITE_MEALS        // 'write:meals'
+SCOPES.READ_MEALS; // 'read:meals'
+SCOPES.WRITE_MEALS; // 'write:meals'
 
 // Collection scopes
-SCOPES.READ_COLLECTIONS   // 'read:collections'
-SCOPES.WRITE_COLLECTIONS  // 'write:collections'
+SCOPES.READ_COLLECTIONS; // 'read:collections'
+SCOPES.WRITE_COLLECTIONS; // 'write:collections'
 
 // Admin scopes
-SCOPES.ADMIN_USERS        // 'admin:users'
-SCOPES.ADMIN_CONTENT      // 'admin:content'
-SCOPES.ADMIN_SYSTEM       // 'admin:system'
+SCOPES.ADMIN_USERS; // 'admin:users'
+SCOPES.ADMIN_CONTENT; // 'admin:content'
+SCOPES.ADMIN_SYSTEM; // 'admin:system'
 
 // Global wildcard
-SCOPES.ALL                // '*' (use with caution)
+SCOPES.ALL; // '*' (use with caution)
 ```
 
 ## Usage Tracking
@@ -274,6 +283,7 @@ For API key authentication, every request is automatically tracked:
 - Error details (if failed)
 
 This data is used for:
+
 - Usage analytics
 - Rate limiting
 - Security audits
@@ -282,6 +292,7 @@ This data is used for:
 ## Migration from Direct Session Checks
 
 **Before:**
+
 ```typescript
 import { getSessionUserId } from '@/lib/session-user';
 import { NextRequest, NextResponse } from 'next/server';
@@ -296,6 +307,7 @@ export async function GET(request: NextRequest) {
 ```
 
 **After:**
+
 ```typescript
 import { requireAuth } from '@/lib/api-auth';
 
@@ -306,6 +318,7 @@ export const GET = requireAuth(async (request, auth, context) => {
 ```
 
 **Benefits:**
+
 - 60% less boilerplate
 - Supports multiple auth methods
 - Automatic usage tracking
@@ -326,7 +339,7 @@ curl -H "Authorization: Bearer $API_KEY" http://localhost:3002/api/recipes
 ```javascript
 // In browser (has cookies)
 const response = await fetch('/api/recipes', {
-  credentials: 'include'
+  credentials: 'include',
 });
 ```
 
@@ -428,6 +441,7 @@ curl -H "X-API-Key: jk_prod_..." http://localhost:3002/api/recipes
 ## Support
 
 For issues or questions:
+
 1. Check USAGE.md for examples
 2. Review type definitions in types.ts
 3. Check existing implementations in the codebase

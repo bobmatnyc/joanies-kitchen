@@ -1,6 +1,5 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import {
   CheckCircle2,
   ChefHat,
@@ -17,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useSessionUser } from '@/lib/use-session-user';
 
 interface IngredientMatch {
   ingredient: string;

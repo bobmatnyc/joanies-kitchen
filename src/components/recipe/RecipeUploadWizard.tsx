@@ -1,6 +1,5 @@
 'use client';
 
-import { useSessionUser } from '@/lib/use-session-user';
 import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Save, Upload, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -15,6 +14,7 @@ import {
   useRecipeDraftAutoSave,
 } from '@/hooks/useRecipeDraftAutoSave';
 import { toast } from '@/lib/toast';
+import { useSessionUser } from '@/lib/use-session-user';
 import { DraftResumeDialog } from './DraftResumeDialog';
 import { RecipeStepBasicInfo } from './RecipeStepBasicInfo';
 import { RecipeStepImages } from './RecipeStepImages';

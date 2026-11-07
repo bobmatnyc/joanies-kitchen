@@ -1,9 +1,9 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { deleteChefLockingRecipesFirst } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
-import { chefRecipes, chefs, type Chef, type NewChef } from '@/lib/db/chef-schema';
-import { parseChef, parseRecipe, type ParsedChef, type ParsedRecipe } from '@/lib/db/transformers';
+import { type Chef, chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
+import { type ParsedChef, type ParsedRecipe, parseChef, parseRecipe } from '@/lib/db/transformers';
 import {
   ANONYMOUS_VIEWER,
   type RecipeViewer,
@@ -40,7 +40,10 @@ export class ChefService {
   /**
    * Get all chefs (including inactive) - for admin use
    */
-  async findAllIncludingInactive(options?: { limit?: number; offset?: number }): Promise<ParsedChef[]> {
+  async findAllIncludingInactive(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<ParsedChef[]> {
     const { limit, offset = 0 } = options || {};
 
     const rows = await db.query.chefs.findMany({

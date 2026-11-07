@@ -13,6 +13,7 @@ These components provide a complete wizard-based UI for generating balanced mult
 **Main entry point** - Multi-step wizard for meal generation.
 
 **Features:**
+
 - 4-step wizard (Mode → Constraints → Generation → Results)
 - 4 generation modes: Cuisine, Theme, Main-First, Freestyle
 - Dietary restrictions and ingredient preferences
@@ -22,6 +23,7 @@ These components provide a complete wizard-based UI for generating balanced mult
 - Regenerate and save options
 
 **Usage:**
+
 ```tsx
 import { MealPairingWizard } from '@/components/meals';
 
@@ -31,16 +33,12 @@ function MealPairingPage() {
     console.log('Generated meal:', mealPlan);
   };
 
-  return (
-    <MealPairingWizard
-      onComplete={handleComplete}
-      onCancel={() => router.back()}
-    />
-  );
+  return <MealPairingWizard onComplete={handleComplete} onCancel={() => router.back()} />;
 }
 ```
 
 **Props:**
+
 - `onComplete?: (mealPlan: MealPlan) => void` - Called when user saves the meal plan
 - `onCancel?: () => void` - Called when user cancels the wizard
 
@@ -51,26 +49,24 @@ function MealPairingPage() {
 **Results viewer** - Displays the complete generated meal plan.
 
 **Features:**
+
 - Responsive grid layout for all 4 courses
 - Integrated MealBalanceDashboard
 - Chef's notes section
 - Visual course organization
 
 **Usage:**
+
 ```tsx
 import { MealPlanDisplay } from '@/components/meals';
 
 function MealResultsPage({ mealPlan }: { mealPlan: MealPlan }) {
-  return (
-    <MealPlanDisplay
-      mealPlan={mealPlan}
-      showAnalysis={true}
-    />
-  );
+  return <MealPlanDisplay mealPlan={mealPlan} showAnalysis={true} />;
 }
 ```
 
 **Props:**
+
 - `mealPlan: MealPlan` - The generated meal plan to display
 - `showAnalysis?: boolean` - Whether to show the balance dashboard (default: true)
 
@@ -81,6 +77,7 @@ function MealResultsPage({ mealPlan }: { mealPlan: MealPlan }) {
 **Individual course display** - Shows details for a single course.
 
 **Features:**
+
 - Temperature indicators (hot/cold/room)
 - Pairing rationale explanation
 - Key ingredients and textures
@@ -89,20 +86,17 @@ function MealResultsPage({ mealPlan }: { mealPlan: MealPlan }) {
 - Prep time and metadata
 
 **Usage:**
+
 ```tsx
 import { CourseCard } from '@/components/meals';
 
 function CourseDetail({ course }: { course: MealPlanCourse }) {
-  return (
-    <CourseCard
-      course={course}
-      courseType="main"
-    />
-  );
+  return <CourseCard course={course} courseType="main" />;
 }
 ```
 
 **Props:**
+
 - `course: MealPlanCourse` - Course data to display
 - `courseType: 'appetizer' | 'main' | 'side' | 'dessert'` - Course category
 
@@ -113,6 +107,7 @@ function CourseDetail({ course }: { course: MealPlanCourse }) {
 **Analytics visualization** - Shows meal balance and nutritional metrics.
 
 **Features:**
+
 - Total preparation time
 - Texture variety score with progress bar
 - Cultural coherence indicator
@@ -121,17 +116,17 @@ function CourseDetail({ course }: { course: MealPlanCourse }) {
 - Macronutrient balance (carbs/protein/fat)
 
 **Usage:**
+
 ```tsx
 import { MealBalanceDashboard } from '@/components/meals';
 
 function AnalyticsView({ mealPlan }: { mealPlan: MealPlan }) {
-  return (
-    <MealBalanceDashboard mealPlan={mealPlan} />
-  );
+  return <MealBalanceDashboard mealPlan={mealPlan} />;
 }
 ```
 
 **Props:**
+
 - `mealPlan: MealPlan` - Meal plan to analyze and visualize
 
 ---
@@ -151,7 +146,7 @@ const result = await generateMealPairing({
   cuisine: 'Italian',
   servings: 4,
   dietary: ['vegetarian'],
-  maxTime: 90
+  maxTime: 90,
 });
 
 if (result.success) {
@@ -166,11 +161,7 @@ Save a generated meal plan to the database.
 ```typescript
 import { saveMealPlanFromPairing } from '@/app/actions/meal-pairing';
 
-const result = await saveMealPlanFromPairing(
-  mealPlan,
-  'Italian Date Night',
-  'date night'
-);
+const result = await saveMealPlanFromPairing(mealPlan, 'Italian Date Night', 'date night');
 
 if (result.success) {
   console.log('Saved meal ID:', result.data);
@@ -337,11 +328,7 @@ export default function MealBuilderPage() {
   const handleComplete = async (mealPlan: MealPlan) => {
     const mealName = `${mealPlan.meal_analysis.cultural_coherence} Meal`;
 
-    const result = await saveMealPlanFromPairing(
-      mealPlan,
-      mealName,
-      'generated'
-    );
+    const result = await saveMealPlanFromPairing(mealPlan, mealName, 'generated');
 
     if (result.success) {
       toast.success('Meal plan saved!');
@@ -354,10 +341,7 @@ export default function MealBuilderPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Meal Builder</h1>
-      <MealPairingWizard
-        onComplete={handleComplete}
-        onCancel={() => router.push('/meals')}
-      />
+      <MealPairingWizard onComplete={handleComplete} onCancel={() => router.push('/meals')} />
     </div>
   );
 }
@@ -400,6 +384,7 @@ pnpm dev
 ## Support
 
 For issues or questions:
+
 - Check the main project README.md
 - Review the meal pairing engine documentation in `src/lib/ai/meal-pairing-engine.ts`
 - Consult the prompt engineering guide in `src/lib/ai/prompts/meal-pairing.ts`

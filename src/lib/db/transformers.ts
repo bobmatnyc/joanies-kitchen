@@ -11,11 +11,11 @@
  * frontend-friendly TypeScript types with proper type safety.
  */
 
-import type { Recipe, Tool } from './schema';
 import type { Chef } from './chef-schema';
 import type { Ingredient } from './ingredients-schema';
-import type { Meal } from './meals-schema';
 import type { InventoryItem } from './inventory-schema';
+import type { Meal } from './meals-schema';
+import type { Recipe, Tool } from './schema';
 
 /**
  * Parse decimal string from DB to number
@@ -101,19 +101,21 @@ export interface ParsedNutrition {
 /**
  * Frontend-ready recipe type with corrected type conversions
  */
-export interface ParsedRecipe extends Omit<Recipe,
-  | 'confidence_score'
-  | 'system_rating'
-  | 'avg_user_rating'
-  | 'images'
-  | 'ingredients'
-  | 'nutrition_info'
-  | 'tags'
-  | 'instruction_metadata'
-  | 'dominant_textures'
-  | 'dominant_flavors'
-  | 'waste_reduction_tags'
-> {
+export interface ParsedRecipe
+  extends Omit<
+    Recipe,
+    | 'confidence_score'
+    | 'system_rating'
+    | 'avg_user_rating'
+    | 'images'
+    | 'ingredients'
+    | 'nutrition_info'
+    | 'tags'
+    | 'instruction_metadata'
+    | 'dominant_textures'
+    | 'dominant_flavors'
+    | 'waste_reduction_tags'
+  > {
   // Numeric fields (NUMERIC/DECIMAL → string → number)
   confidence_score: number | null;
   system_rating: number | null;
@@ -164,12 +166,11 @@ export function parseRecipe(recipe: Recipe): ParsedRecipe {
 /**
  * Frontend-ready meal type with corrected type conversions
  */
-export interface ParsedMeal extends Omit<Meal,
-  | 'estimated_total_cost'
-  | 'estimated_cost_per_serving'
-  | 'price_estimation_confidence'
-  | 'tags'
-> {
+export interface ParsedMeal
+  extends Omit<
+    Meal,
+    'estimated_total_cost' | 'estimated_cost_per_serving' | 'price_estimation_confidence' | 'tags'
+  > {
   // Numeric fields (NUMERIC/DECIMAL → string → number)
   estimated_total_cost: number | null;
   estimated_cost_per_serving: number | null;
@@ -236,11 +237,8 @@ export function parseChef(chef: Chef): ParsedChef {
 /**
  * Frontend-ready ingredient type with corrected type conversions
  */
-export interface ParsedIngredient extends Omit<Ingredient,
-  | 'aliases'
-  | 'common_units'
-  | 'substitutions'
-> {
+export interface ParsedIngredient
+  extends Omit<Ingredient, 'aliases' | 'common_units' | 'substitutions'> {
   // JSON text fields
   aliases: string[];
   common_units: string[];
@@ -270,10 +268,7 @@ export function parseIngredient(ingredient: Ingredient): ParsedIngredient {
 /**
  * Frontend-ready tool type with corrected type conversions
  */
-export interface ParsedTool extends Omit<Tool,
-  | 'typical_price_usd'
-  | 'alternatives'
-> {
+export interface ParsedTool extends Omit<Tool, 'typical_price_usd' | 'alternatives'> {
   // Numeric fields (NUMERIC/DECIMAL → string → number)
   typical_price_usd: number | null;
 
@@ -305,10 +300,7 @@ export function parseTool(tool: Tool): ParsedTool {
 /**
  * Frontend-ready inventory item type with corrected type conversions
  */
-export interface ParsedInventoryItem extends Omit<InventoryItem,
-  | 'quantity'
-  | 'cost_usd'
-> {
+export interface ParsedInventoryItem extends Omit<InventoryItem, 'quantity' | 'cost_usd'> {
   // Numeric fields (NUMERIC/DECIMAL → string → number)
   quantity: number;
   cost_usd: number | null;

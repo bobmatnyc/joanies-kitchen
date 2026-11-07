@@ -6,7 +6,13 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Row = { id: string; name: string; displayName: string; category: string | null; isCommon: boolean };
+type Row = {
+  id: string;
+  name: string;
+  displayName: string;
+  category: string | null;
+  isCommon: boolean;
+};
 
 const mocks = vi.hoisted(() => ({ rows: [] as Row[] }));
 
@@ -132,26 +138,35 @@ describe('getIngredientSuggestions (#47)', () => {
       ],
       'Vegetable or Chicken Stock',
     ],
-  ] as const)('ranks prefix before word-prefix on the production path: %s', async (q, data, wordPrefix) => {
-    mocks.rows = data.map(([name, displayName, isCommon], i) => ({
-      id: String(i),
-      name,
-      displayName,
-      category: null,
-      isCommon,
-    }));
-    const got = await names(q, 9);
-    const prefixCount = data.filter(([, d]) => d.toLowerCase().startsWith(q)).length;
-    // Every prefix match (up to the limit) precedes every word-prefix match.
-    expect(got.slice(0, prefixCount).every((n) => n.toLowerCase().startsWith(q))).toBe(true);
-    expect(got).toContain(wordPrefix);
-    expect(got.indexOf(wordPrefix)).toBeGreaterThanOrEqual(prefixCount);
-  });
+  ] as const)(
+    'ranks prefix before word-prefix on the production path: %s',
+    async (q, data, wordPrefix) => {
+      mocks.rows = data.map(([name, displayName, isCommon], i) => ({
+        id: String(i),
+        name,
+        displayName,
+        category: null,
+        isCommon,
+      }));
+      const got = await names(q, 9);
+      const prefixCount = data.filter(([, d]) => d.toLowerCase().startsWith(q)).length;
+      // Every prefix match (up to the limit) precedes every word-prefix match.
+      expect(got.slice(0, prefixCount).every((n) => n.toLowerCase().startsWith(q))).toBe(true);
+      expect(got).toContain(wordPrefix);
+      expect(got.indexOf(wordPrefix)).toBeGreaterThanOrEqual(prefixCount);
+    }
+  );
 
   // #47: matchTier falls back to name when display_name is empty.
   it('ranks an exact name match with empty display_name as exact', async () => {
     mocks.rows = [
-      { id: 'a', name: 'chicken breast', displayName: 'Chicken Breast', category: null, isCommon: true },
+      {
+        id: 'a',
+        name: 'chicken breast',
+        displayName: 'Chicken Breast',
+        category: null,
+        isCommon: true,
+      },
       { id: 'b', name: 'chicken', displayName: '', category: null, isCommon: false },
     ];
     const result = await getIngredientSuggestions('chicken', { limit: 2 });

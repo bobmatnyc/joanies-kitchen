@@ -420,47 +420,41 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     }
   });
 
-  it(
-    'startChefScraping skips the held page, stores the next, and URL-less pages do not collide',
-    {
-      timeout: 10_000,
-    },
-    async () => {
-      await seedHiddenHolder('held-1', 'Scraped Soup'); // every page parses to this name
-      state.sessionUserId = ADMIN;
-      state.crawl.mockResolvedValue({
-        data: [
-          { url: HELD_VARIANT, markdown: '# held' },
-          { url: 'https://a.com/soup', markdown: '# soup' },
-          { markdown: '# no url 1' },
-          { markdown: '# no url 2' },
-        ],
-      });
-      await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' });
-      await vi.waitFor(
-        async () => {
-          const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
-          expect(job.rows[0]?.status).toBe('completed');
-        },
-        { timeout: 8_000, interval: 50 }
-      );
-      const job = await client.query<{
-        recipes_scraped: number;
-        recipes_failed: number;
-        metadata: unknown;
-      }>('SELECT recipes_scraped, recipes_failed, metadata FROM "scraping_jobs"');
-      expect(job.rows[0]).toMatchObject({
-        recipes_scraped: 3,
-        recipes_failed: 0,
-        metadata: { recipes_skipped: 1 },
-      });
-      expect(await count(`canonical_source_url = '${HELD}'`)).toBe(1);
-      // #142: the private holder gets no chef link (chef_recipes row or chef_id).
-      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).not.toContain(
-        'held-1'
-      );
-    }
-  );
+  it('startChefScraping skips the held page, stores the next, and URL-less pages do not collide', {
+    timeout: 10_000,
+  }, async () => {
+    await seedHiddenHolder('held-1', 'Scraped Soup'); // every page parses to this name
+    state.sessionUserId = ADMIN;
+    state.crawl.mockResolvedValue({
+      data: [
+        { url: HELD_VARIANT, markdown: '# held' },
+        { url: 'https://a.com/soup', markdown: '# soup' },
+        { markdown: '# no url 1' },
+        { markdown: '# no url 2' },
+      ],
+    });
+    await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' });
+    await vi.waitFor(
+      async () => {
+        const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
+        expect(job.rows[0]?.status).toBe('completed');
+      },
+      { timeout: 8_000, interval: 50 }
+    );
+    const job = await client.query<{
+      recipes_scraped: number;
+      recipes_failed: number;
+      metadata: unknown;
+    }>('SELECT recipes_scraped, recipes_failed, metadata FROM "scraping_jobs"');
+    expect(job.rows[0]).toMatchObject({
+      recipes_scraped: 3,
+      recipes_failed: 0,
+      metadata: { recipes_skipped: 1 },
+    });
+    expect(await count(`canonical_source_url = '${HELD}'`)).toBe(1);
+    // #142: the private holder gets no chef link (chef_recipes row or chef_id).
+    expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).not.toContain('held-1');
+  });
 
   it('scrapeSingleRecipe answers the skip instead of the raw Postgres error', async () => {
     await seedHiddenHolder('held-1', 'Scraped Soup');
@@ -489,31 +483,29 @@ describe('background paths skip the conflicting URL and keep going (#142 D09)', 
     ]);
   });
 
-  it(
-    'startChefScraping stores a page of another name as scraped, not skipped',
-    { timeout: 10_000 },
-    async () => {
-      await seedHiddenHolder();
-      state.sessionUserId = ADMIN;
-      state.crawl.mockResolvedValue({ data: [{ url: HELD_VARIANT, markdown: '# held' }] });
-      await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' });
-      await vi.waitFor(
-        async () => {
-          const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
-          expect(job.rows[0]?.status).toBe('completed');
-        },
-        { timeout: 8_000, interval: 50 }
-      );
-      const job = await client.query('SELECT recipes_scraped, metadata FROM "scraping_jobs"');
-      expect(job.rows[0]).toMatchObject({
-        recipes_scraped: 1,
-        metadata: { recipes_skipped: 0 },
-      });
-      const [stored] = await storedAtVariant();
-      expect(stored?.canonical_source_url).toBeNull();
-      expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([stored?.id]);
-    }
-  );
+  it('startChefScraping stores a page of another name as scraped, not skipped', {
+    timeout: 10_000,
+  }, async () => {
+    await seedHiddenHolder();
+    state.sessionUserId = ADMIN;
+    state.crawl.mockResolvedValue({ data: [{ url: HELD_VARIANT, markdown: '# held' }] });
+    await startChefScraping({ chefId: CHEF, sourceUrl: 'https://chef.com' });
+    await vi.waitFor(
+      async () => {
+        const job = await client.query<{ status: string }>('SELECT status FROM "scraping_jobs"');
+        expect(job.rows[0]?.status).toBe('completed');
+      },
+      { timeout: 8_000, interval: 50 }
+    );
+    const job = await client.query('SELECT recipes_scraped, metadata FROM "scraping_jobs"');
+    expect(job.rows[0]).toMatchObject({
+      recipes_scraped: 1,
+      metadata: { recipes_skipped: 0 },
+    });
+    const [stored] = await storedAtVariant();
+    expect(stored?.canonical_source_url).toBeNull();
+    expect(vi.mocked(linkRecipeToChef).mock.calls.map(([a]) => a.recipeId)).toEqual([stored?.id]);
+  });
 
   it('scrapeSingleRecipe links a conflict holder the system may see (pre-check raced)', async () => {
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source,

@@ -1,9 +1,9 @@
 import 'server-only';
 import { sanitizeIngredients, validateParsedRecipe } from '@/lib/validations/recipe-validation';
 import { validateSerialization } from '@/lib/validations/serialization-validation';
-import { type IngestedRecipe } from './recipe-ingestion-parser';
 import { MODELS } from './openrouter';
 import { getOpenRouterClient } from './openrouter-server';
+import { type IngestedRecipe } from './recipe-ingestion-parser';
 
 /**
  * Response from recipe detection
@@ -36,13 +36,16 @@ function normalizeRecipeData(recipe: any): IngestedRecipe {
   if (typeof recipe.ingredients === 'string') {
     // Convert string to array if LLM returned a string
     console.warn('[normalizeRecipeData] Converting ingredients from string to array');
-    recipe.ingredients = recipe.ingredients.split('\n').filter((i: string) => i.trim()).map((i: string) => ({
-      name: i.trim(),
-      quantity: '',
-      unit: '',
-      notes: '',
-      preparation: '',
-    }));
+    recipe.ingredients = recipe.ingredients
+      .split('\n')
+      .filter((i: string) => i.trim())
+      .map((i: string) => ({
+        name: i.trim(),
+        quantity: '',
+        unit: '',
+        notes: '',
+        preparation: '',
+      }));
   } else if (!Array.isArray(recipe.ingredients)) {
     console.warn('[normalizeRecipeData] Invalid ingredients format, setting to empty array');
     recipe.ingredients = [];
@@ -63,10 +66,14 @@ function normalizeRecipeData(recipe: any): IngestedRecipe {
     // Convert all fields to strings and ensure they exist
     return {
       name: String(ing.name || '').trim(),
-      quantity: ing.quantity !== null && ing.quantity !== undefined ? String(ing.quantity).trim() : '',
+      quantity:
+        ing.quantity !== null && ing.quantity !== undefined ? String(ing.quantity).trim() : '',
       unit: ing.unit !== null && ing.unit !== undefined ? String(ing.unit).trim() : '',
       notes: ing.notes !== null && ing.notes !== undefined ? String(ing.notes).trim() : '',
-      preparation: ing.preparation !== null && ing.preparation !== undefined ? String(ing.preparation).trim() : '',
+      preparation:
+        ing.preparation !== null && ing.preparation !== undefined
+          ? String(ing.preparation).trim()
+          : '',
     };
   });
 
@@ -133,7 +140,9 @@ function normalizeRecipeData(recipe: any): IngestedRecipe {
 
   // Validate and normalize difficulty
   if (recipe.difficulty && !['easy', 'medium', 'hard'].includes(recipe.difficulty)) {
-    console.warn(`[normalizeRecipeData] Invalid difficulty "${recipe.difficulty}", setting to null`);
+    console.warn(
+      `[normalizeRecipeData] Invalid difficulty "${recipe.difficulty}", setting to null`
+    );
     recipe.difficulty = null;
   }
 
@@ -149,7 +158,10 @@ function normalizeRecipeData(recipe: any): IngestedRecipe {
       }
 
       // Validate numbers
-      if (nutrition[field] !== null && (typeof nutrition[field] !== 'number' || nutrition[field] < 0)) {
+      if (
+        nutrition[field] !== null &&
+        (typeof nutrition[field] !== 'number' || nutrition[field] < 0)
+      ) {
         nutrition[field] = null;
       }
     });
