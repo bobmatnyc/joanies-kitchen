@@ -127,3 +127,38 @@ describe('#300: daily-recipe cron summary line', () => {
     }
   );
 });
+
+describe('#302: daily-recipe cron stage timing', () => {
+  it('returns the run stage totals as stageMs in the JSON response', async () => {
+    const stageMs = {
+      discoveryMs: 4100,
+      firecrawlMs: 90000,
+      jinaMs: 60000,
+      tavilyMs: 30000,
+      llmMs: 50000,
+      storeMs: 900,
+      delayMs: 30000,
+      urlTimed: 16,
+      otherMs: 4000,
+      runMs: 269800,
+    };
+    mocks.runDailyDiscovery.mockResolvedValueOnce({
+      runId: 'r1',
+      status: 'partial',
+      urlsDiscovered: 20,
+      recipesExtracted: 1,
+      recipesStored: 1,
+      recipesSkipped: 11,
+      chefsCreated: 0,
+      errors: [],
+      durationMs: 269800,
+      tracked: true,
+      stopReason: 'deadline',
+      stageMs,
+    });
+
+    const res = await GET(request('GET'));
+
+    expect((await res.json()).stageMs).toEqual(stageMs);
+  });
+});
