@@ -42,3 +42,23 @@ export interface FirecrawlRecipeSchema {
   author?: string | { name?: string };
   difficulty?: string;
 }
+
+/**
+ * #300: what one extraction tier saw when it returned no viable recipe.
+ * - `no_recipe`: it read the page and found no recipe schema, ingredients or instructions;
+ * - `recipe_partial`: it saw a schema.org Recipe, or some ingredients or instructions;
+ * - `empty`: it got no content, or too little to judge;
+ * - `error`: the fetch or the LLM structuring step threw (network, HTTP status, rate limit).
+ */
+export type ExtractionTierResult = 'no_recipe' | 'recipe_partial' | 'empty' | 'error';
+
+/** #300: one tier's miss, in the order the tiers ran. */
+export interface ExtractionTierAttempt {
+  tier: 'firecrawl' | 'jina' | 'tavily_extract';
+  result: ExtractionTierResult;
+}
+
+/** #300: filled by `extractRecipe` with each configured tier that ran and missed. */
+export interface ExtractionReport {
+  attempts: ExtractionTierAttempt[];
+}

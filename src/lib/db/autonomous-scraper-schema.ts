@@ -72,7 +72,7 @@ export const recipeDiscoveryRunItems = pgTable(
     source_domain: text('source_domain'),
     // 'firecrawl' | 'jina' | 'tavily-extract' | 'claude-structured' | 'fallback' | 'none' | 'unknown'
     extraction_tier: text('extraction_tier').notNull().default('none'),
-    // 'stored' | 'skipped_duplicate' | 'skipped_quality' | 'failed' | 'budget_stopped'
+    // 'stored' | 'skipped_duplicate' | 'skipped_quality' | 'skipped_non_recipe' (#300) | 'failed' | 'budget_stopped'
     outcome: text('outcome').notNull(),
     error: text('error'),
     recipe_id: text('recipe_id'),

@@ -106,9 +106,35 @@ vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
 
 import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
-import type { ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
+import type { ExtractionReport, ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
-type Plan = 'stored' | 'no-recipe' | 'low-quality' | 'store-fails' | 'hang' | 'late';
+type Plan =
+  | 'stored'
+  | 'no-recipe'
+  | 'low-quality'
+  | 'store-fails'
+  | 'hang'
+  | 'late'
+  // #300: extraction misses, with what the tiers saw (see ExtractionTierResult).
+  | 'non-recipe'
+  | 'rate-limited'
+  | 'parse-fails';
+
+/** #300: the report each miss plan's tiers write. */
+const MISS_REPORTS: Partial<Record<Plan, ExtractionReport['attempts']>> = {
+  // Firecrawl hit its rate limit; Jina read the page and found no recipe (the 11-07 run).
+  'non-recipe': [
+    { tier: 'firecrawl', result: 'error' },
+    { tier: 'jina', result: 'no_recipe' },
+  ],
+  // Rate limit with no fallback configured.
+  'rate-limited': [{ tier: 'firecrawl', result: 'error' }],
+  // A recipe page: Firecrawl saw the Recipe schema but it parsed short.
+  'parse-fails': [
+    { tier: 'firecrawl', result: 'recipe_partial' },
+    { tier: 'jina', result: 'no_recipe' },
+  ],
+};
 
 const url = (slug: string) => `https://www.example-kitchen.com/recipes/${slug}`;
 
@@ -135,13 +161,18 @@ function buildService(opts: {
   lateMs?: number;
 }) {
   const service = new AutonomousRecipeIngestionService();
-  const extractRecipe = vi.fn(async (u: string) => {
+  const extractRecipe = vi.fn(async (u: string, report?: ExtractionReport) => {
     await trackCost({
       provider: 'firecrawl',
       operation: 'scrape',
       measuredUsd: opts.extractUsd ?? 0.01,
     });
     const plan = opts.plans[u] ?? 'stored';
+    const miss = MISS_REPORTS[plan];
+    if (miss) {
+      report?.attempts.push(...miss);
+      return null;
+    }
     // An extraction that outlives the function limit (the 2026-10-29 run).
     if (plan === 'hang') return new Promise<never>(() => undefined);
     // Resolves after the deadline with a storable recipe.
@@ -422,6 +453,168 @@ describe('#6: work that resolves after the deadline', () => {
     expect(runUpdate()).toMatchObject({ recipes_stored: 1, recipes_extracted: 1 });
     expect(result.recipesStored).toBe(1);
   }, 2000);
+});
+
+/** #300: the `[AutonomousIngestion] Completed —` summary line of the last run. */
+function summaryLine(): string {
+  const lines = vi
+    .mocked(console.log)
+    .mock.calls.map((c) => String(c[0]))
+    .filter((l) => l.startsWith('[AutonomousIngestion] Completed —'));
+  expect(lines).toHaveLength(1);
+  return lines[0];
+}
+
+describe('#300 (a): fragment variants', () => {
+  it('fragment variants of one post are fetched once, and a known URL is still skipped on the fragment-free URL', async () => {
+    const post = url('broth');
+    fake.state.dupUrls = [url('known')];
+    const { service, extractRecipe } = buildService({
+      urls: [
+        `${post}#`,
+        `${post}#subscribe`,
+        `${post}#respond`,
+        `${url('stew')}/#x`,
+        url('stew'),
+        `${url('known')}#respond`,
+      ],
+      plans: {},
+    });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(extractRecipe.mock.calls.map(([u]) => u)).toEqual([post, `${url('stew')}/`]);
+    const rows = items();
+    expect(rows.map((r) => [r.url, r.outcome])).toEqual([
+      [url('known'), 'skipped_duplicate'],
+      [post, 'stored'],
+      [`${url('stew')}/`, 'stored'],
+    ]);
+    // The stored source is the fragment-free URL.
+    expect(
+      fake.state.inserts.filter((i) => i.table === 'recipes').map((i) => i.values.source)
+    ).toEqual([post, `${url('stew')}/`]);
+    expect(result).toMatchObject({ urlsDiscovered: 6, recipesStored: 2, recipesSkipped: 1 });
+    expect(summaryLine()).toContain('dupUrls=3');
+  });
+});
+
+describe('#300 (b): non-recipe pages are skipped, real failures stay errors', () => {
+  it('a hub page with no recipe is skipped with a reason, not counted as an error', async () => {
+    const hub = 'https://www.example-kitchen.com/blogs/food/root-stem-recipes';
+    const { service } = buildService({
+      urls: [hub, url('ok')],
+      plans: { [hub]: 'non-recipe' },
+    });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(items().find((r) => r.url === hub)).toMatchObject({
+      outcome: 'skipped_non_recipe',
+      extraction_tier: 'none',
+      error:
+        'hub/listicle page: no recipe schema, ingredients or instructions (read by jina; firecrawl error)',
+    });
+    expect(result).toMatchObject({ status: 'completed', recipesSkipped: 1, errors: [] });
+    expect(runUpdate()).toMatchObject({ status: 'completed', recipes_skipped: 1, errors: [] });
+    expect(summaryLine()).toContain(
+      'skipped=1, errors=0, status=completed, stop=exhausted, nonRecipe=1'
+    );
+  });
+
+  // Fail-Open Check: next to a skipped non-recipe page, each real failure stays an error.
+  it('a recipe page that fails extraction, a rate limit with no fallback, a bare miss and a DB error stay errors', async () => {
+    const urls = ['hub', 'parse-fails', 'rate-limited', 'no-recipe', 'store-fail'].map(url);
+    fake.state.storeFailUrls = [url('store-fail')];
+    const { service } = buildService({
+      urls,
+      plans: {
+        [url('hub')]: 'non-recipe',
+        [url('parse-fails')]: 'parse-fails',
+        [url('rate-limited')]: 'rate-limited',
+        [url('no-recipe')]: 'no-recipe',
+      },
+    });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    const outcome = Object.fromEntries(items().map((r) => [r.url, r.outcome]));
+    expect(outcome).toEqual({
+      [url('hub')]: 'skipped_non_recipe',
+      [url('parse-fails')]: 'failed',
+      [url('rate-limited')]: 'failed',
+      [url('no-recipe')]: 'failed',
+      [url('store-fail')]: 'failed',
+    });
+    expect(result.errors).toEqual([
+      `Extraction failed (all tiers): ${url('parse-fails')}`,
+      `Extraction failed (all tiers): ${url('rate-limited')}`,
+      `Extraction failed (all tiers): ${url('no-recipe')}`,
+      expect.stringMatching(/^Store failed for .*store-fail.*duplicate key/),
+    ]);
+    expect(result).toMatchObject({ status: 'failed', recipesStored: 0, recipesSkipped: 1 });
+  });
+});
+
+describe('#300 (c): store target', () => {
+  it('a run that reaches its store target is completed even with an error on another URL', async () => {
+    const urls = ['store-fail', 'ok-1', 'ok-2', 'ok-3'].map(url);
+    fake.state.storeFailUrls = [url('store-fail')];
+    const { service } = buildService({ urls, plans: {} });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 2, budgetUsd: 100 });
+
+    expect(result.recipesStored).toBe(2);
+    expect(result.errors).toHaveLength(1); // the failure is still reported...
+    expect(result.status).toBe('completed'); // ...but does not make the run partial
+    expect(runUpdate()).toMatchObject({ status: 'completed', recipes_stored: 2 });
+    expect(result.stopReason).toBe('target');
+    expect(summaryLine()).toContain('errors=1, status=completed, stop=target');
+  });
+
+  it('a run short of its target with an error is still partial', async () => {
+    const urls = ['store-fail', 'ok-1'].map(url);
+    fake.state.storeFailUrls = [url('store-fail')];
+    const { service } = buildService({ urls, plans: {} });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(result).toMatchObject({ status: 'partial', recipesStored: 1, stopReason: 'exhausted' });
+  });
+});
+
+describe('#300 (d): deadline cut vs clean finish', () => {
+  it('a deadline cut reads stop=deadline in the summary line, and the run row keeps the deadline entry', async () => {
+    const urls = ['a', 'hang', 'b'].map(url);
+    const { service } = buildService({ urls, plans: { [url('hang')]: 'hang' } });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 100,
+    });
+
+    expect(result.stopReason).toBe('deadline');
+    expect(summaryLine()).toMatch(
+      /^\[AutonomousIngestion\] Completed — stored=1, extracted=1, skipped=0, errors=1, status=partial, stop=deadline, /
+    );
+    const run = runUpdate();
+    expect(run.status).toBe('partial');
+    expect(run.errors).toEqual([expect.stringMatching(/^deadline: stopped after \d+s/)]);
+  }, 2000);
+
+  it('a clean finish reads stop=exhausted and carries no deadline entry', async () => {
+    const { service } = buildService({ urls: [url('a')], plans: {} });
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 60_000,
+    });
+
+    expect(result).toMatchObject({ status: 'completed', stopReason: 'exhausted', errors: [] });
+    expect(summaryLine()).toContain('status=completed, stop=exhausted');
+  });
 });
 
 describe('#6: abandoned-row claim race', () => {

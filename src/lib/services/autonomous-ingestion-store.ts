@@ -41,7 +41,14 @@ export interface RunMetrics {
   closed: boolean;
   /** #6: URLs that already have (or are writing) their item row. */
   itemUrls: Set<string>;
+  /** #300: discovered URLs dropped as variants of an earlier one (no item row). */
+  urlsDeduped: number;
+  /** #300: pages counted in `recipesSkipped` as having no recipe (`skipped_non_recipe`). */
+  nonRecipeSkipped: number;
 }
+
+/** #300: why a run stopped; see `runStopReason`. Logged and returned, not stored. */
+export type RunStopReason = 'target' | 'deadline' | 'budget' | 'exhausted' | 'error';
 
 export interface IngestionRunResult {
   runId: string;
@@ -55,6 +62,8 @@ export interface IngestionRunResult {
   durationMs: number;
   /** False when no `recipe_discovery_runs` row backs this run. */
   tracked: boolean;
+  /** #300: set once the pipeline returns; absent on a result built mid-run. */
+  stopReason?: RunStopReason;
 }
 
 /**

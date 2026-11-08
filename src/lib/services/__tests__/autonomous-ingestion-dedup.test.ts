@@ -378,7 +378,8 @@ describe('known-URL skip: cron only (#142 D7c)', () => {
     });
 
     expect(extractRecipe).toHaveBeenCalledTimes(1);
-    expect(extractRecipe).toHaveBeenCalledWith(knownVariant);
+    // #300: the second argument is the extraction report the run reads on a miss.
+    expect(extractRecipe).toHaveBeenCalledWith(knownVariant, { attempts: [] });
     expect(result).toMatchObject({ recipesStored: 0, recipesSkipped: 1, errors: [] });
     const n = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"');
     expect(n.rows[0].n).toBe(1);

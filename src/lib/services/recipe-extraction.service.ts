@@ -26,15 +26,33 @@ import {
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
-import type { FirecrawlRecipeSchema, ScrapedRecipe } from './recipe-extraction.types';
+import type {
+  ExtractionReport,
+  ExtractionTierAttempt,
+  ExtractionTierResult,
+  FirecrawlRecipeSchema,
+  ScrapedRecipe,
+} from './recipe-extraction.types';
 import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
 
 // #298: re-exported so callers keep importing it from this module.
-export type { ScrapedRecipe } from './recipe-extraction.types';
+export type { ExtractionReport, ScrapedRecipe } from './recipe-extraction.types';
 
 const MIN_INGREDIENTS = 3;
 const MIN_INSTRUCTIONS = 2;
 const MIN_TITLE_LENGTH = 5;
+
+/** #300: true when a non-viable parse still found any ingredient or instruction. */
+function hasRecipeContent(recipe: Partial<ScrapedRecipe> | null | undefined): boolean {
+  return (recipe?.ingredients?.length ?? 0) > 0 || (recipe?.instructions?.length ?? 0) > 0;
+}
+
+/** #300: a Jina/Tavily tier read real content and found no viable recipe in it. */
+function rawContentMiss(parsed: ScrapedRecipe | null, llmFailed: boolean): ExtractionTierResult {
+  if (hasRecipeContent(parsed)) return 'recipe_partial';
+  // The LLM could not judge the page, so its miss proves nothing.
+  return llmFailed ? 'error' : 'no_recipe';
+}
 
 export class RecipeExtractionService {
   private _firecrawl: Firecrawl | null = null;
@@ -97,24 +115,41 @@ export class RecipeExtractionService {
   }
 
   /**
-   * Extract a structured recipe from a URL
-   * Tries each extraction method in order until one succeeds
+   * Why: the crawl must tell a page with no recipe from a recipe page that
+   * failed, and only the tiers see the page (#300).
+   * What: tries each configured tier in order and returns the first viable
+   * recipe, or null. When `report` is given, each tier that ran and missed
+   * appends what it saw (`ExtractionTierResult`); the return value is unchanged.
+   * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`
    */
-  async extractRecipe(url: string): Promise<ScrapedRecipe | null> {
+  async extractRecipe(url: string, report?: ExtractionReport): Promise<ScrapedRecipe | null> {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
+    const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) =>
+      report?.attempts.push({ tier, result });
 
     // Tier 1: Firecrawl (primary — structured JSON schema extraction)
     if (this.firecrawlApiKey) {
       try {
-        const result = await this.extractWithFirecrawl(url);
+        const seen = { recipeSchema: false };
+        const result = await this.extractWithFirecrawl(url, seen);
         if (result && this.isViableRecipe(result)) {
           console.log(`[RecipeExtraction] Tier1/Firecrawl success: "${result.title}"`);
           return { ...result, extraction_method: 'firecrawl' };
         }
+        // #300: a Recipe schema is recipe evidence even when it maps to nothing usable.
+        miss(
+          'firecrawl',
+          seen.recipeSchema || hasRecipeContent(result)
+            ? 'recipe_partial'
+            : result
+              ? 'no_recipe'
+              : 'empty'
+        );
         console.debug(
           '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
         );
       } catch (error) {
+        miss('firecrawl', 'error');
         // #111: include URL (no query), status and cause so 403s are diagnosable.
         console.warn(formatFirecrawlFailure(url, error, this.firecrawlApiKey));
       }
@@ -128,14 +163,19 @@ export class RecipeExtractionService {
       try {
         const rawContent = await fetchContentWithJina(url);
         if (rawContent && rawContent.length > 200) {
-          const parsed = await this.parseRawContent(rawContent, url, 'jina');
+          const llm = { failed: false };
+          const parsed = await this.parseRawContent(rawContent, url, 'jina', llm);
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier2/Jina success: "${parsed.title}"`);
             return parsed;
           }
+          miss('jina', rawContentMiss(parsed, llm.failed));
+        } else {
+          miss('jina', 'empty');
         }
         console.debug('[RecipeExtraction] Tier2/Jina returned insufficient data, falling through');
       } catch (error) {
+        miss('jina', 'error');
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier2/Jina failed: ${msg}`);
       }
@@ -148,13 +188,18 @@ export class RecipeExtractionService {
       try {
         const rawContent = await this.fetchWithTavilyExtract(url);
         if (rawContent && rawContent.length > 200) {
-          const parsed = await this.parseRawContent(rawContent, url, 'tavily_extract');
+          const llm = { failed: false };
+          const parsed = await this.parseRawContent(rawContent, url, 'tavily_extract', llm);
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier3/Tavily Extract success: "${parsed.title}"`);
             return parsed;
           }
+          miss('tavily_extract', rawContentMiss(parsed, llm.failed));
+        } else {
+          miss('tavily_extract', 'empty');
         }
       } catch (error) {
+        miss('tavily_extract', 'error');
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier3/Tavily Extract failed: ${msg}`);
       }
@@ -169,7 +214,10 @@ export class RecipeExtractionService {
   /**
    * Extract using Firecrawl with schema.org JSON-LD extraction
    */
-  private async extractWithFirecrawl(url: string): Promise<ScrapedRecipe | null> {
+  private async extractWithFirecrawl(
+    url: string,
+    seen?: { recipeSchema: boolean }
+  ): Promise<ScrapedRecipe | null> {
     // #57: daily cost ceiling hard stop before the paid call.
     await assertWithinDailyCap();
     const result = (await this.firecrawl.scrape(url, {
@@ -206,6 +254,7 @@ export class RecipeExtractionService {
       ) as FirecrawlRecipeSchema | undefined;
 
       if (recipeSchema) {
+        if (seen) seen.recipeSchema = true; // #300: the page declares a recipe
         return this.mapFirecrawlSchema(recipeSchema, url, metadata); // #185: og:image first
       }
     }
@@ -276,7 +325,8 @@ export class RecipeExtractionService {
   private async parseRawContent(
     content: string,
     url: string,
-    method: 'jina' | 'tavily_extract' | 'claude_structured'
+    method: 'jina' | 'tavily_extract' | 'claude_structured',
+    llm?: { failed: boolean }
   ): Promise<ScrapedRecipe | null> {
     // Try regex-based markdown parsing first (free, fast)
     const parsed = this.parseMarkdown(content, undefined, url);
@@ -286,7 +336,7 @@ export class RecipeExtractionService {
 
     // Fall back to Claude Haiku via OpenRouter for unstructured content
     if (this.llmApiKey) {
-      const structured = await this.structureWithClaude(content, url);
+      const structured = await this.structureWithClaude(content, url, llm);
       if (structured) {
         return { ...structured, extraction_method: 'claude_structured' };
       }
@@ -298,7 +348,11 @@ export class RecipeExtractionService {
   /**
    * Use Claude Haiku to extract structured recipe data from raw content
    */
-  private async structureWithClaude(content: string, url: string): Promise<ScrapedRecipe | null> {
+  private async structureWithClaude(
+    content: string,
+    url: string,
+    llm?: { failed: boolean }
+  ): Promise<ScrapedRecipe | null> {
     const truncated = content.substring(0, 12000); // Stay within token limits (increased to capture recipe content past nav headers)
 
     const prompt = `Extract recipe information from the following web page content and return ONLY a JSON object.
@@ -374,6 +428,8 @@ Return ONLY the JSON object, no other text.`;
         extraction_method: 'claude_structured',
       };
     } catch (error) {
+      // #300: an unreadable or failed LLM reply never counts as "no recipe here".
+      if (llm) llm.failed = true;
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[RecipeExtraction] Claude structuring failed: ${msg}`);
       return null;
