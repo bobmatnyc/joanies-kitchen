@@ -9,7 +9,7 @@
  * rather than a failure; `finalRunStatus` and `runStopReason` decide how the
  * run ended.
  * Test: `src/lib/services/__tests__/ingestion-url-triage.test.ts`,
- * `src/lib/services/__tests__/run-accounting-300.test.ts`
+ * `src/lib/services/__tests__/run-accounting.test.ts` (the `#300` blocks)
  */
 
 import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
