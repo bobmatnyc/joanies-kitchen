@@ -95,3 +95,35 @@ describe('#6: daily-recipe cron run deadline', () => {
     expect(deadlineAt).toBeLessThanOrEqual(Date.now() + budget);
   });
 });
+
+describe('#300: daily-recipe cron summary line', () => {
+  it.each([
+    ['GET', GET],
+    ['POST', POST],
+  ] as const)(
+    '%s appends status and stop to the unchanged summary fields',
+    async (method, handler) => {
+      mocks.runDailyDiscovery.mockResolvedValueOnce({
+        runId: 'r1',
+        status: 'partial',
+        urlsDiscovered: 20,
+        recipesExtracted: 1,
+        recipesStored: 1,
+        recipesSkipped: 12,
+        chefsCreated: 0,
+        errors: ['deadline: stopped after 270s to finalize before the function limit'],
+        durationMs: 270123,
+        tracked: true,
+        stopReason: 'deadline',
+      });
+
+      const res = await handler(request(method));
+
+      expect(console.log).toHaveBeenCalledWith(
+        '[DailyRecipeCron] Completed — stored=1, skipped=12, chefsCreated=0, errors=1, ' +
+          'duration=270123ms, status=partial, stop=deadline'
+      );
+      expect(await res.json()).toMatchObject({ status: 'partial', stopReason: 'deadline' });
+    }
+  );
+});

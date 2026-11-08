@@ -21,6 +21,8 @@ export type RunItemOutcome =
   | 'stored'
   | 'skipped_duplicate'
   | 'skipped_quality'
+  // #300: the page has no recipe (hub, listicle, other non-recipe page); `error` holds the reason.
+  | 'skipped_non_recipe'
   | 'failed'
   | 'budget_stopped';
 
