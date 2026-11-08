@@ -23,50 +23,14 @@ import {
   unitsOrFloor,
   withChatCostTracking,
 } from '@/lib/costs';
-import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
+import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
+import type { FirecrawlRecipeSchema, ScrapedRecipe } from './recipe-extraction.types';
+import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
 
-export interface ScrapedRecipe {
-  url: string;
-  title: string;
-  description?: string;
-  ingredients: string[];
-  instructions: string[];
-  prep_time?: number;
-  cook_time?: number;
-  servings?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  cuisine?: string;
-  tags: string[];
-  image_url?: string;
-  chef_name?: string;
-  extraction_method: 'firecrawl' | 'jina' | 'tavily_extract' | 'claude_structured';
-}
-
-/**
- * Parsed recipe data from Firecrawl schema.org extraction
- */
-interface FirecrawlRecipeSchema {
-  name?: string;
-  title?: string;
-  description?: string;
-  recipeIngredient?: string[];
-  ingredients?: string[];
-  recipeInstructions?: Array<string | { text?: string; name?: string }>;
-  instructions?: string[];
-  prepTime?: string;
-  cookTime?: string;
-  totalTime?: string;
-  recipeYield?: string | number;
-  servings?: number;
-  recipeCuisine?: string;
-  recipeCategory?: string;
-  keywords?: string | string[];
-  image?: string | { url?: string };
-  author?: string | { name?: string };
-  difficulty?: string;
-}
+// #298: re-exported so callers keep importing it from this module.
+export type { ScrapedRecipe } from './recipe-extraction.types';
 
 const MIN_INGREDIENTS = 3;
 const MIN_INSTRUCTIONS = 2;
@@ -416,232 +380,22 @@ Return ONLY the JSON object, no other text.`;
     }
   }
 
-  /**
-   * Map Firecrawl schema.org Recipe data to ScrapedRecipe
-   */
+  /** Map schema.org Recipe data; see `mapFirecrawlSchema` in ./recipe-extraction-parsers. */
   private mapFirecrawlSchema(
     data: FirecrawlRecipeSchema,
     url: string,
     metadata?: Record<string, unknown>
   ): ScrapedRecipe {
-    const title = data.name || data.title || 'Untitled Recipe';
-
-    const ingredients = this.extractIngredients(data);
-    const instructions = this.extractInstructions(data);
-
-    const servingsRaw = data.recipeYield ?? data.servings;
-    // #12: same shared coercion as the LLM path.
-    const servings = toRecipeInt(servingsRaw) ?? undefined;
-
-    const tags: string[] = [];
-    if (data.recipeCuisine) tags.push(data.recipeCuisine);
-    if (data.recipeCategory) tags.push(data.recipeCategory);
-    if (data.keywords) {
-      const kws =
-        typeof data.keywords === 'string'
-          ? data.keywords.split(',').map((k) => k.trim())
-          : data.keywords;
-      tags.push(...kws.filter(Boolean));
-    }
-
-    // #185: og:image, then JSON-LD Recipe.image, then twitter:image; never a site asset.
-    const imageUrl =
-      pickRecipeImage({ ...metadataImageSources(metadata), jsonLdImage: data.image }, url) ??
-      undefined;
-
-    const chefName =
-      typeof data.author === 'string' ? data.author : (data.author as { name?: string })?.name;
-
-    return {
-      url,
-      title,
-      description: data.description,
-      ingredients,
-      instructions,
-      prep_time: this.parseISO8601Duration(data.prepTime),
-      cook_time: this.parseISO8601Duration(data.cookTime),
-      servings,
-      cuisine: data.recipeCuisine,
-      tags: [...new Set(tags)],
-      image_url: imageUrl,
-      chef_name: chefName,
-      extraction_method: 'firecrawl',
-    };
+    return mapFirecrawlSchema(data, url, metadata);
   }
 
-  /**
-   * Parse markdown content into a ScrapedRecipe using regex
-   */
+  /** Regex-parse page markdown; see `parseMarkdown` in ./recipe-extraction-parsers. */
   private parseMarkdown(
     markdown: string,
     metadata: Record<string, string> | undefined,
     url: string
   ): ScrapedRecipe | null {
-    const title = metadata?.ogTitle || metadata?.title || this.extractFirstHeading(markdown);
-
-    if (!title) return null;
-
-    const ingredients = this.extractIngredientsFromMarkdown(markdown);
-    const instructions = this.extractInstructionsFromMarkdown(markdown);
-    const times = this.extractTimesFromMarkdown(markdown);
-    const servings = this.extractServingsFromMarkdown(markdown);
-    const chefName = this.extractAuthorFromMarkdown(markdown, metadata);
-    // #185: og:image, then twitter:image, then body images; a header logo is skipped.
-    const imageUrl =
-      pickRecipeImage(
-        {
-          ...metadataImageSources(metadata),
-          contentImages: this.extractImagesFromMarkdown(markdown),
-        },
-        url
-      ) ?? undefined;
-
-    return {
-      url,
-      title,
-      description: metadata?.ogDescription ?? metadata?.description,
-      ingredients,
-      instructions,
-      prep_time: times.prepTime,
-      cook_time: times.cookTime,
-      servings,
-      tags: [],
-      image_url: imageUrl,
-      chef_name: chefName,
-      extraction_method: 'firecrawl', // overwritten by caller
-    };
-  }
-
-  // ---------------------------------------------------------------------------
-  // Markdown parsing helpers
-  // ---------------------------------------------------------------------------
-
-  private extractFirstHeading(markdown: string): string | undefined {
-    const match = markdown.match(/^#\s+(.+)$/m);
-    return match ? match[1].trim() : undefined;
-  }
-
-  private extractIngredientsFromMarkdown(markdown: string): string[] {
-    const match = markdown.match(/#+\s*Ingredients?\s*\n([\s\S]*?)(?=\n#+\s|\n\n---|\n\n\*\*|$)/i);
-    if (!match) return [];
-
-    return match[1]
-      .split('\n')
-      .map((line) => {
-        const listMatch = line.trim().match(/^(?:[*-]|\d+\.)\s+(.+)$/);
-        return listMatch ? listMatch[1].trim() : '';
-      })
-      .filter((s) => s.length > 2);
-  }
-
-  private extractInstructionsFromMarkdown(markdown: string): string[] {
-    const match = markdown.match(
-      /#+\s*(?:Instructions?|Directions?|Method|Steps?|Preparation)\s*\n([\s\S]*?)(?=\n#+\s|\n\n---|\n\n\*\*|$)/i
-    );
-    if (!match) return [];
-
-    const lines: string[] = [];
-    for (const line of match[1].split('\n')) {
-      const cleaned = line.trim();
-      const listMatch = cleaned.match(/^(?:[*-]|\d+\.)\s+(.+)$/);
-      if (listMatch && listMatch[1].length > 10) {
-        lines.push(listMatch[1].trim());
-      } else if (cleaned.length > 20 && !cleaned.startsWith('#')) {
-        lines.push(cleaned);
-      }
-    }
-    return lines;
-  }
-
-  private extractTimesFromMarkdown(markdown: string): { prepTime?: number; cookTime?: number } {
-    const times: { prepTime?: number; cookTime?: number } = {};
-
-    const prepMatch = markdown.match(/Prep(?:\s+Time)?:\s*(?:(\d+)\s*h(?:ours?)?\s*)?(\d+)\s*min/i);
-    if (prepMatch) {
-      const hours = prepMatch[1] ? parseInt(prepMatch[1]) : 0;
-      times.prepTime = hours * 60 + parseInt(prepMatch[2]);
-    }
-
-    const cookMatch = markdown.match(/Cook(?:\s+Time)?:\s*(?:(\d+)\s*h(?:ours?)?\s*)?(\d+)\s*min/i);
-    if (cookMatch) {
-      const hours = cookMatch[1] ? parseInt(cookMatch[1]) : 0;
-      times.cookTime = hours * 60 + parseInt(cookMatch[2]);
-    }
-
-    return times;
-  }
-
-  private extractServingsFromMarkdown(markdown: string): number | undefined {
-    const match = markdown.match(/(?:Servings?|Yields?|Makes):\s*(\d+)/i);
-    return match ? parseInt(match[1]) : undefined;
-  }
-
-  private extractAuthorFromMarkdown(
-    markdown: string,
-    metadata?: Record<string, string>
-  ): string | undefined {
-    if (metadata?.author) return metadata.author;
-
-    // Look for "By [Author Name]" patterns
-    const bylineMatch = markdown.match(/^by\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/m);
-    if (bylineMatch) return bylineMatch[1];
-
-    // Look for "Recipe by [Name]" or "Author: [Name]"
-    const authorMatch = markdown.match(
-      /(?:Recipe by|Author:|Written by)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i
-    );
-    return authorMatch ? authorMatch[1] : undefined;
-  }
-
-  // #185: every body image in order, so the picker can skip a logo that comes first.
-  // Relative paths are kept; the picker resolves them against the page URL.
-  private extractImagesFromMarkdown(markdown: string): string[] {
-    return [...markdown.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)].map((m) => m[1]);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Schema.org data helpers
-  // ---------------------------------------------------------------------------
-
-  private extractIngredients(data: FirecrawlRecipeSchema): string[] {
-    if (data.recipeIngredient?.length) return data.recipeIngredient.filter(Boolean);
-    if (data.ingredients?.length) return data.ingredients.filter(Boolean);
-    return [];
-  }
-
-  private extractInstructions(data: FirecrawlRecipeSchema): string[] {
-    if (data.recipeInstructions) {
-      if (Array.isArray(data.recipeInstructions)) {
-        return data.recipeInstructions
-          .map((step) => {
-            if (typeof step === 'string') return step;
-            return step.text ?? step.name ?? '';
-          })
-          .filter(Boolean);
-      }
-      if (typeof data.recipeInstructions === 'string') {
-        return [data.recipeInstructions];
-      }
-    }
-    if (data.instructions?.length) return data.instructions.filter(Boolean);
-    return [];
-  }
-
-  /**
-   * Parse ISO 8601 duration string (PT30M, PT1H15M) to minutes
-   */
-  private parseISO8601Duration(duration?: string): number | undefined {
-    if (!duration) return undefined;
-
-    const isoMatch = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (isoMatch) {
-      const hours = isoMatch[1] ? parseInt(isoMatch[1]) : 0;
-      const minutes = isoMatch[2] ? parseInt(isoMatch[2]) : 0;
-      return hours * 60 + minutes || undefined;
-    }
-
-    const numMatch = duration.match(/^(\d+)$/);
-    return numMatch ? parseInt(numMatch[1]) : undefined;
+    return parseMarkdown(markdown, metadata, url);
   }
 
   /**
