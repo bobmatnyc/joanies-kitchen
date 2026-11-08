@@ -36,6 +36,7 @@ import type {
 import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
 import {
   type FirecrawlSeen,
+  findRecipeSchema,
   firecrawlMiss,
   type LlmVerdict,
   newLlmVerdict,
@@ -239,11 +240,8 @@ export class RecipeExtractionService {
     if (schemaData) {
       const schemas = Array.isArray(schemaData) ? schemaData : [schemaData];
       if (seen && schemas.length > 0) seen.schemaRead = true; // #300: a schema verdict
-      const recipeSchema = schemas.find(
-        (s: FirecrawlRecipeSchema) =>
-          s['@type' as keyof typeof s] === 'Recipe' ||
-          (s['@type' as keyof typeof s] as string[])?.includes?.('Recipe')
-      ) as FirecrawlRecipeSchema | undefined;
+      // #300: also finds a Recipe nested in `@graph` (Yoast/WPRM) or under an array `@type`.
+      const recipeSchema = findRecipeSchema(schemas) as FirecrawlRecipeSchema | undefined;
 
       if (recipeSchema) {
         if (seen) seen.recipeSchema = true; // #300: the page declares a recipe

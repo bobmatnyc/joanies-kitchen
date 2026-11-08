@@ -53,6 +53,31 @@ export function isInterstitialPage(text: string): boolean {
   return INTERSTITIAL_PATTERNS.some((p) => p.test(text));
 }
 
+/** True when a schema object's `@type` is "Recipe" or an array containing it. */
+function isRecipeType(node: Record<string, unknown>): boolean {
+  const type = node['@type'];
+  return type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'));
+}
+
+/**
+ * #300: the first schema.org Recipe in Firecrawl's `metadata.schema`, depth
+ * first: a top-level object, any array of objects, or `@graph` members
+ * (Yoast/WPRM nest the Recipe there). Undefined when there is none.
+ */
+export function findRecipeSchema(schema: unknown, depth = 0): Record<string, unknown> | undefined {
+  if (depth > 5 || !schema || typeof schema !== 'object') return undefined;
+  if (Array.isArray(schema)) {
+    for (const item of schema) {
+      const found = findRecipeSchema(item, depth + 1);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  const node = schema as Record<string, unknown>;
+  if (isRecipeType(node)) return node;
+  return findRecipeSchema(node['@graph'], depth + 1);
+}
+
 /** True when a non-viable parse still found any ingredient or instruction. */
 export function hasRecipeContent(recipe: Partial<ScrapedRecipe> | null | undefined): boolean {
   return (recipe?.ingredients?.length ?? 0) > 0 || (recipe?.instructions?.length ?? 0) > 0;

@@ -34,6 +34,14 @@ const BOLD_LABEL_RECIPE = `# Leek and potato soup\n\n**Ingredients**\n- 2 leeks\
 /** Probe C: a Cloudflare challenge served with HTTP 200. */
 const CHALLENGE = `# Just a moment...\n\nChecking your browser before accessing www.example-kitchen.com. Enable JavaScript and cookies to continue. ${'.'.repeat(200)}`;
 
+const WEBPAGE = { '@type': 'WebPage', name: 'Leek soup' };
+const NESTED_RECIPE = {
+  '@type': 'Recipe',
+  name: 'Leek and potato soup',
+  recipeIngredient: ['2 leeks', '3 potatoes', '1 litre stock'],
+  recipeInstructions: ['Chop the vegetables', 'Simmer for 30 minutes'],
+};
+
 type Scrape = () => Promise<unknown>;
 
 async function run(opts: { scrape?: Scrape; jina?: string | Error; llm?: 'throws' | string }) {
@@ -119,6 +127,31 @@ describe('extractRecipe report (#300)', () => {
     });
     expect(attempts).toEqual([{ tier: 'firecrawl', result: 'recipe_partial' }]);
   });
+
+  // Yoast/WPRM pages nest the Recipe in `@graph`, often with `@type` as an array.
+  it.each([
+    [
+      '@graph object',
+      (r: object) => ({ '@context': 'https://schema.org', '@graph': [WEBPAGE, r] }),
+    ],
+    ['array holding an @graph', (r: object) => [{ '@graph': [WEBPAGE, r] }]],
+  ])(
+    'a Recipe nested in an %s is found: stored when complete, recipe_partial when short',
+    async (_shape, wrap) => {
+      const scrape = (recipe: object) => async () => ({
+        metadata: { statusCode: 200, title: 'Leek soup', schema: wrap(recipe) },
+        markdown: HUB_MARKDOWN,
+      });
+      const full = await run({ scrape: scrape({ ...NESTED_RECIPE, '@type': ['Recipe'] }) });
+      expect(full.recipe?.title).toBe('Leek and potato soup');
+      expect(full.recipe?.ingredients).toEqual(NESTED_RECIPE.recipeIngredient);
+      expect(full.attempts).toEqual([]);
+
+      const short = await run({ scrape: scrape({ '@type': ['Recipe'], name: 'Leek soup' }) });
+      expect(short.attempts).toEqual([{ tier: 'firecrawl', result: 'recipe_partial' }]);
+      expect(short.skip).toBeNull();
+    }
+  );
 
   it('a page with some ingredients but short of the gate is recipe_partial', async () => {
     const { attempts } = await run({ jina: PARTIAL_RECIPE_MARKDOWN });
