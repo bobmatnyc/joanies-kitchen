@@ -34,6 +34,13 @@ import type {
   ScrapedRecipe,
 } from './recipe-extraction.types';
 import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
+import {
+  type FirecrawlSeen,
+  firecrawlMiss,
+  type LlmVerdict,
+  newLlmVerdict,
+  rawContentMiss,
+} from './recipe-extraction-verdict';
 
 // #298: re-exported so callers keep importing it from this module.
 export type { ExtractionReport, ScrapedRecipe } from './recipe-extraction.types';
@@ -41,18 +48,6 @@ export type { ExtractionReport, ScrapedRecipe } from './recipe-extraction.types'
 const MIN_INGREDIENTS = 3;
 const MIN_INSTRUCTIONS = 2;
 const MIN_TITLE_LENGTH = 5;
-
-/** #300: true when a non-viable parse still found any ingredient or instruction. */
-function hasRecipeContent(recipe: Partial<ScrapedRecipe> | null | undefined): boolean {
-  return (recipe?.ingredients?.length ?? 0) > 0 || (recipe?.instructions?.length ?? 0) > 0;
-}
-
-/** #300: a Jina/Tavily tier read real content and found no viable recipe in it. */
-function rawContentMiss(parsed: ScrapedRecipe | null, llmFailed: boolean): ExtractionTierResult {
-  if (hasRecipeContent(parsed)) return 'recipe_partial';
-  // The LLM could not judge the page, so its miss proves nothing.
-  return llmFailed ? 'error' : 'no_recipe';
-}
 
 export class RecipeExtractionService {
   private _firecrawl: Firecrawl | null = null;
@@ -130,21 +125,14 @@ export class RecipeExtractionService {
     // Tier 1: Firecrawl (primary — structured JSON schema extraction)
     if (this.firecrawlApiKey) {
       try {
-        const seen = { recipeSchema: false };
+        const seen: FirecrawlSeen = { schemaRead: false, recipeSchema: false, text: '' };
         const result = await this.extractWithFirecrawl(url, seen);
         if (result && this.isViableRecipe(result)) {
           console.log(`[RecipeExtraction] Tier1/Firecrawl success: "${result.title}"`);
           return { ...result, extraction_method: 'firecrawl' };
         }
-        // #300: a Recipe schema is recipe evidence even when it maps to nothing usable.
-        miss(
-          'firecrawl',
-          seen.recipeSchema || hasRecipeContent(result)
-            ? 'recipe_partial'
-            : result
-              ? 'no_recipe'
-              : 'empty'
-        );
+        // #300: only a schema read is a verdict here; a regex miss on markdown is not.
+        miss('firecrawl', firecrawlMiss(result, seen));
         console.debug(
           '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
         );
@@ -163,13 +151,13 @@ export class RecipeExtractionService {
       try {
         const rawContent = await fetchContentWithJina(url);
         if (rawContent && rawContent.length > 200) {
-          const llm = { failed: false };
+          const llm = newLlmVerdict();
           const parsed = await this.parseRawContent(rawContent, url, 'jina', llm);
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier2/Jina success: "${parsed.title}"`);
             return parsed;
           }
-          miss('jina', rawContentMiss(parsed, llm.failed));
+          miss('jina', rawContentMiss(parsed, llm, rawContent)); // #300: LLM verdict only
         } else {
           miss('jina', 'empty');
         }
@@ -188,13 +176,13 @@ export class RecipeExtractionService {
       try {
         const rawContent = await this.fetchWithTavilyExtract(url);
         if (rawContent && rawContent.length > 200) {
-          const llm = { failed: false };
+          const llm = newLlmVerdict();
           const parsed = await this.parseRawContent(rawContent, url, 'tavily_extract', llm);
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier3/Tavily Extract success: "${parsed.title}"`);
             return parsed;
           }
-          miss('tavily_extract', rawContentMiss(parsed, llm.failed));
+          miss('tavily_extract', rawContentMiss(parsed, llm, rawContent)); // #300: LLM verdict only
         } else {
           miss('tavily_extract', 'empty');
         }
@@ -216,7 +204,7 @@ export class RecipeExtractionService {
    */
   private async extractWithFirecrawl(
     url: string,
-    seen?: { recipeSchema: boolean }
+    seen?: FirecrawlSeen
   ): Promise<ScrapedRecipe | null> {
     // #57: daily cost ceiling hard stop before the paid call.
     await assertWithinDailyCap();
@@ -243,10 +231,14 @@ export class RecipeExtractionService {
       );
     }
 
+    // #300: the interstitial check reads the title and markdown.
+    if (seen) seen.text = `${String(metadata?.title ?? '')}\n${String(result.markdown ?? '')}`;
+
     // Try schema.org Recipe markup first (rich structured data)
     const schemaData = metadata?.schema;
     if (schemaData) {
       const schemas = Array.isArray(schemaData) ? schemaData : [schemaData];
+      if (seen && schemas.length > 0) seen.schemaRead = true; // #300: a schema verdict
       const recipeSchema = schemas.find(
         (s: FirecrawlRecipeSchema) =>
           s['@type' as keyof typeof s] === 'Recipe' ||
@@ -326,7 +318,7 @@ export class RecipeExtractionService {
     content: string,
     url: string,
     method: 'jina' | 'tavily_extract' | 'claude_structured',
-    llm?: { failed: boolean }
+    llm?: LlmVerdict
   ): Promise<ScrapedRecipe | null> {
     // Try regex-based markdown parsing first (free, fast)
     const parsed = this.parseMarkdown(content, undefined, url);
@@ -351,7 +343,7 @@ export class RecipeExtractionService {
   private async structureWithClaude(
     content: string,
     url: string,
-    llm?: { failed: boolean }
+    llm?: LlmVerdict
   ): Promise<ScrapedRecipe | null> {
     const truncated = content.substring(0, 12000); // Stay within token limits (increased to capture recipe content past nav headers)
 
@@ -406,6 +398,11 @@ Return ONLY the JSON object, no other text.`;
         image_url?: string;
       };
 
+      // #300: the LLM judged the content; any ingredient or instruction is recipe evidence.
+      if (llm) {
+        llm.ran = true;
+        llm.partial = (data.ingredients?.length ?? 0) > 0 || (data.instructions?.length ?? 0) > 0;
+      }
       if (!data.title || !data.ingredients?.length || !data.instructions?.length) {
         return null;
       }

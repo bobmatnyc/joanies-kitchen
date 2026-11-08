@@ -45,9 +45,12 @@ export interface FirecrawlRecipeSchema {
 
 /**
  * #300: what one extraction tier saw when it returned no viable recipe.
- * - `no_recipe`: it read the page and found no recipe schema, ingredients or instructions;
- * - `recipe_partial`: it saw a schema.org Recipe, or some ingredients or instructions;
- * - `empty`: it got no content, or too little to judge;
+ * - `no_recipe`: a reliable verdict of no recipe: a Firecrawl schema.org read with no
+ *   Recipe in it, or an LLM that ran on the content and found nothing (never a challenge page);
+ * - `recipe_partial`: it saw a schema.org Recipe, or some ingredients or instructions
+ *   (regex parse or LLM reply);
+ * - `empty`: no verdict: no or too little content, a regex-only miss, no LLM key, or a
+ *   challenge/interstitial page;
  * - `error`: the fetch or the LLM structuring step threw (network, HTTP status, rate limit).
  */
 export type ExtractionTierResult = 'no_recipe' | 'recipe_partial' | 'empty' | 'error';

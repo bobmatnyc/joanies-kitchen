@@ -122,7 +122,7 @@ type Plan =
 
 /** #300: the report each miss plan's tiers write. */
 const MISS_REPORTS: Partial<Record<Plan, ExtractionReport['attempts']>> = {
-  // Firecrawl hit its rate limit; Jina read the page and found no recipe (the 11-07 run).
+  // Firecrawl hit its rate limit; the LLM judged the Jina content non-recipe (the 11-07 run).
   'non-recipe': [
     { tier: 'firecrawl', result: 'error' },
     { tier: 'jina', result: 'no_recipe' },

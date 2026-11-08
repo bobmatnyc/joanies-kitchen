@@ -103,13 +103,15 @@ export async function triageDiscoveredUrls<T extends { url: string }>(
  * Why: a hub or listicle page has no recipe to extract, so a miss there is a
  * skip, not a failure; a recipe page that fails to parse, or a page no tier
  * could read, is still a failure (#300).
- * What: returns the skip reason when at least one tier read the page and found
- * no recipe (`no_recipe`) and no tier saw recipe evidence (`recipe_partial`: a
- * schema.org Recipe, or any ingredient or instruction). Tiers that threw or got
- * no content are allowed beside a `no_recipe` tier: another tier read the page.
- * Returns null — an error — for anything else, including an empty report.
+ * What: returns the skip reason when at least one tier gave a reliable
+ * `no_recipe` verdict (a Firecrawl schema read with no Recipe, or an LLM that
+ * ran and found nothing; see `recipe-extraction-verdict.ts`) and no tier saw
+ * recipe evidence (`recipe_partial`). Tiers that threw or had no verdict
+ * (`empty`) are allowed beside a `no_recipe` tier. Returns null — an error —
+ * for anything else, including an empty report.
  * The listicle/hub URL detector only labels the reason.
- * Test: `src/lib/services/__tests__/ingestion-url-triage.test.ts`
+ * Test: `src/lib/services/__tests__/ingestion-url-triage.test.ts`,
+ * `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`
  */
 export function nonRecipeSkipReason(
   report: ExtractionReport,
