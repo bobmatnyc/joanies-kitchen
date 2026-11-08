@@ -25,6 +25,7 @@ import { reportError } from '@/lib/observability/report-error';
 import { getAutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import { crawlRunDeadline } from '@/lib/services/crawl-run-deadline';
 import { reapStaleDiscoveryRunsFailOpen } from '@/lib/services/discovery-run-reaper';
+import type { RunStageMs } from '@/lib/services/ingestion-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,6 +83,7 @@ function buildSuccessResponse(result: {
   durationMs: number;
   tracked: boolean;
   stopReason?: string;
+  stageMs?: RunStageMs;
 }) {
   return NextResponse.json(
     {
@@ -99,6 +101,8 @@ function buildSuccessResponse(result: {
       tracked: result.tracked,
       // #300: target | deadline | budget | exhausted | error.
       stopReason: result.stopReason,
+      // #302: ms per stage (discovery, tiers, LLM, store, delays) for the run.
+      stageMs: result.stageMs,
     },
     { status: 200 }
   );

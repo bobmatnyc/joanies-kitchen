@@ -26,6 +26,7 @@ import {
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
+import { endTier, startTier, timeStage } from './ingestion-timing';
 import type {
   ExtractionReport,
   ExtractionTierAttempt,
@@ -122,9 +123,11 @@ export class RecipeExtractionService {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
     const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) =>
       report?.attempts.push({ tier, result });
+    // #302: measurement only; each tier's finally adds its ms, less structuring (llmMs).
 
     // Tier 1: Firecrawl (primary — structured JSON schema extraction)
     if (this.firecrawlApiKey) {
+      const timer = startTier('firecrawl');
       try {
         const seen: FirecrawlSeen = { schemaRead: false, recipeSchema: false, text: '' };
         const result = await this.extractWithFirecrawl(url, seen);
@@ -141,6 +144,8 @@ export class RecipeExtractionService {
         miss('firecrawl', 'error');
         // #111: include URL (no query), status and cause so 403s are diagnosable.
         console.warn(formatFirecrawlFailure(url, error, this.firecrawlApiKey));
+      } finally {
+        endTier(timer);
       }
     } else {
       console.debug('[RecipeExtraction] Tier1/Firecrawl skipped — FIRECRAWL_API_KEY not set');
@@ -149,11 +154,14 @@ export class RecipeExtractionService {
     // Tier 2: Jina Reader (fallback 1 — clean markdown extraction)
     // Skipped gracefully when JINA_API_KEY is absent — never throws.
     if (this.jinaApiKey) {
+      const timer = startTier('jina');
       try {
         const rawContent = await fetchContentWithJina(url);
         if (rawContent && rawContent.length > 200) {
           const llm = newLlmVerdict();
-          const parsed = await this.parseRawContent(rawContent, url, 'jina', llm);
+          const parsed = await timeStage('llmMs', () =>
+            this.parseRawContent(rawContent, url, 'jina', llm)
+          );
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier2/Jina success: "${parsed.title}"`);
             return parsed;
@@ -167,6 +175,8 @@ export class RecipeExtractionService {
         miss('jina', 'error');
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier2/Jina failed: ${msg}`);
+      } finally {
+        endTier(timer);
       }
     } else {
       console.debug('[RecipeExtraction] Tier2/Jina skipped — JINA_API_KEY not set');
@@ -174,11 +184,14 @@ export class RecipeExtractionService {
 
     // Tier 3: Tavily Extract (fallback 2 — raw content extraction)
     if (this.tavilyApiKey) {
+      const timer = startTier('tavily');
       try {
         const rawContent = await this.fetchWithTavilyExtract(url);
         if (rawContent && rawContent.length > 200) {
           const llm = newLlmVerdict();
-          const parsed = await this.parseRawContent(rawContent, url, 'tavily_extract', llm);
+          const parsed = await timeStage('llmMs', () =>
+            this.parseRawContent(rawContent, url, 'tavily_extract', llm)
+          );
           if (parsed && this.isViableRecipe(parsed)) {
             console.log(`[RecipeExtraction] Tier3/Tavily Extract success: "${parsed.title}"`);
             return parsed;
@@ -191,6 +204,8 @@ export class RecipeExtractionService {
         miss('tavily_extract', 'error');
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier3/Tavily Extract failed: ${msg}`);
+      } finally {
+        endTier(timer);
       }
     } else {
       console.debug('[RecipeExtraction] Tier3/Tavily Extract skipped — TAVILY_API_KEY not set');
