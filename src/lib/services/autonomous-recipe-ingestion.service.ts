@@ -20,6 +20,7 @@
  * #142: the DB writes and result building live in `autonomous-ingestion-store.ts`;
  * run-item bookkeeping, chef resolution and finalize in `autonomous-ingestion-run.ts`;
  * #300: URL triage, status and stop reason in `ingestion-url-triage.ts`.
+ * #302: per-stage timing and the summary line in `ingestion-timing.ts`.
  */
 
 import {
@@ -37,8 +38,10 @@ import {
   finalizeIngestionRun,
   type IngestionRunOptions,
   isReleased,
+  recordBudgetCut,
   recordDuplicateSkip,
   recordItem,
+  recordUrlItem,
   resolveChefId,
   skippedAsDuplicate,
 } from './autonomous-ingestion-run';
@@ -57,6 +60,7 @@ import {
   isTrackedRunId,
   type RunItemOutcome,
 } from './discovery-run-store';
+import { logRunCompleted, RunTiming, timeStage } from './ingestion-timing';
 import {
   finalRunStatus,
   nonRecipeSkipReason,
@@ -138,6 +142,7 @@ export class AutonomousRecipeIngestionService {
 
   private async executeRun(options: IngestionRunOptions): Promise<IngestionRunResult> {
     const startTime = Date.now();
+    const timing = new RunTiming(); // #302: monotonic per-stage timing for the run logs
     const isDryRun = options.dryRun ?? false;
     const runType = options.runType ?? 'daily';
     const budgetUsd = resolveRunBudget(options.budgetUsd);
@@ -236,12 +241,14 @@ export class AutonomousRecipeIngestionService {
           return buildRunResult(runId, status, m, startTime);
         }
 
-        const discovered = await raceDeadline(
-          this.discoveryService.discoverRecipeUrls({
-            maxResults: maxRecipes * 4, // Fetch extra to account for deduplication and failures
-            searchQuery,
-          }),
-          deadlineAt
+        const discovered = await timing.time('discoveryMs', () =>
+          raceDeadline(
+            this.discoveryService.discoverRecipeUrls({
+              maxResults: maxRecipes * 4, // Fetch extra to account for deduplication and failures
+              searchQuery,
+            }),
+            deadlineAt
+          )
         );
         if (discovered === DEADLINE_HIT) {
           stopAtDeadline();
@@ -279,21 +286,16 @@ export class AutonomousRecipeIngestionService {
           }
           if (budgetExhausted()) {
             // #6 S2: record every queued URL the budget cut, then stop paid calls.
-            for (const cut of urlsToProcess.slice(i)) {
-              await recordItem(m, {
-                runId,
-                url: cut.url,
-                extractionTier: 'none',
-                outcome: 'budget_stopped',
-                error: m.errors.find((e) => e.startsWith('budget exceeded')) ?? null,
-              });
-            }
+            await recordBudgetCut(m, runId, urlsToProcess.slice(i));
             break;
           }
 
-          const processed = await raceDeadline(
-            this.processUrl(urlsToProcess[i], runId, isDryRun, m, skipsKnownUrls(runType)),
-            deadlineAt
+          // #302: one self-contained url-timing line per URL, abandoned or not.
+          const processed = await timing.timeUrl(urlsToProcess[i].url, () =>
+            raceDeadline(
+              this.processUrl(urlsToProcess[i], runId, isDryRun, m, skipsKnownUrls(runType)),
+              deadlineAt
+            )
           );
           if (processed === DEADLINE_HIT) {
             // #6: the abandoned URL still gets its one item row before close.
@@ -312,7 +314,7 @@ export class AutonomousRecipeIngestionService {
 
           // Rate limit between extractions
           if (i < urlsToProcess.length - 1) {
-            await this.sleep(EXTRACTION_DELAY_MS);
+            await timing.time('delayMs', () => this.sleep(EXTRACTION_DELAY_MS));
           }
         }
 
@@ -333,12 +335,8 @@ export class AutonomousRecipeIngestionService {
     const result = await pipeline();
     // #300: read before the close below, while m.closed still means "deadline hit".
     result.stopReason = runStopReason(runEnd());
-    // #300: one summary line on every path; fields after status= are new, none renamed.
-    console.log(
-      `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
-        `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${result.status}, ` +
-        `stop=${result.stopReason}, nonRecipe=${m.nonRecipeSkipped}, dupUrls=${m.urlsDeduped}`
-    );
+    result.stageMs = timing.totals(); // #302
+    logRunCompleted(m, result);
     // #6: close the metrics so abandoned in-flight work cannot move counters or
     // write items after the counters are read below.
     m.closed = true;
@@ -364,7 +362,7 @@ export class AutonomousRecipeIngestionService {
     const url = discovered.url;
     let tier = 'none';
     const record = (outcome: RunItemOutcome, error?: string | null, recipeId?: string | null) =>
-      recordItem(m, { runId, url, extractionTier: tier, outcome, error, recipeId });
+      recordUrlItem(m, { runId, url, extractionTier: tier, outcome, error, recipeId });
 
     try {
       // #135: a URL variant of a stored source is skipped before the paid extraction.
@@ -435,11 +433,13 @@ export class AutonomousRecipeIngestionService {
         // under another name (a roundup page) a manual run stores it with a NULL key.
         // #142: the cron run skips it under any name, as its pre-check does.
         const candidate = { sourceUrl: url, name: recipe.title };
-        const stored = await withCanonicalConflict(
-          candidate,
-          (key) => storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery, key),
-          undefined,
-          { skipOtherName: skipKnownUrl }
+        const stored = await timeStage('storeMs', () =>
+          withCanonicalConflict(
+            candidate,
+            (key) => storeIngestedRecipe(recipe, chefId, url, discovered.searchQuery, key),
+            undefined,
+            { skipOtherName: skipKnownUrl }
+          )
         );
         if (!stored.ok) {
           await recordDuplicateSkip(m, record, stored.duplicate, url);
@@ -471,7 +471,7 @@ export class AutonomousRecipeIngestionService {
       console.log(`[AutonomousIngestion] Stored recipe: "${recipe.title}" (${recipeId})`);
       // Record first stored recipe as today's Recipe of the Day
       if (m.recipesStored === 1) {
-        await recordRecipeOfTheDay(recipeId, url);
+        await timeStage('storeMs', () => recordRecipeOfTheDay(recipeId, url));
       }
       await record('stored', null, recipeId);
     } catch (error) {

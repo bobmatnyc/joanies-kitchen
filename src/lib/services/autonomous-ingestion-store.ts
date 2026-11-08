@@ -19,6 +19,7 @@ import { canonicalizeSourceUrl } from '@/lib/recipes/dedup';
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import type { DiscoveryRunStatus } from './discovery-run-store';
+import type { RunStageMs } from './ingestion-timing';
 import type { ScrapedRecipe } from './recipe-extraction.service';
 
 export const SYSTEM_USER_ID = 'system';
@@ -64,6 +65,8 @@ export interface IngestionRunResult {
   tracked: boolean;
   /** #300: set once the pipeline returns; absent on a result built mid-run. */
   stopReason?: RunStopReason;
+  /** #302: run stage totals in ms; set with `stopReason`. */
+  stageMs?: RunStageMs;
 }
 
 /**

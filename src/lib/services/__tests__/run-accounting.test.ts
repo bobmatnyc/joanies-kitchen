@@ -106,6 +106,7 @@ vi.mock('@/lib/recipes/dedup', async (importOriginal) => ({
 
 import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
+import { endTier, startTier, timingClock } from '@/lib/services/ingestion-timing';
 import type { ExtractionReport, ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
 
 type Plan =
@@ -642,5 +643,112 @@ describe('#6: abandoned-row claim race', () => {
     ).toHaveLength(0);
     expect(runUpdate()).toMatchObject({ recipes_stored: 1, recipes_extracted: 1 });
     expect(result.recipesStored).toBe(1);
+  }, 2000);
+});
+
+describe('#302: per-stage timing', () => {
+  /** Each clock read advances 10ms, so every stage measures a whole, nonzero time. */
+  function steppingClock() {
+    let t = 0;
+    vi.spyOn(timingClock, 'now').mockImplementation(() => {
+      t += 10;
+      return t;
+    });
+  }
+
+  type Extract = (u: string, report?: ExtractionReport) => Promise<ScrapedRecipe | null>;
+
+  /** Wraps the fake extraction so it times a Firecrawl tier the way `extractRecipe` does. */
+  function timedTier(service: AutonomousRecipeIngestionService) {
+    const ext = (service as unknown as { _extractionService: { extractRecipe: Extract } })
+      ._extractionService;
+    const inner = ext.extractRecipe;
+    ext.extractRecipe = async (u, report) => {
+      const h = startTier('firecrawl');
+      try {
+        return await inner(u, report);
+      } finally {
+        endTier(h);
+      }
+    };
+  }
+
+  const fields = (line: string): Record<string, number> =>
+    Object.fromEntries([...line.matchAll(/(\w+)=(\d+)\b/g)].map(([, k, v]) => [k, Number(v)]));
+
+  function timingLines(): string[] {
+    return vi
+      .mocked(console.log)
+      .mock.calls.map((c) => String(c[0]))
+      .filter((l) => l.startsWith('[AutonomousIngestion] url-timing '));
+  }
+
+  it('logs one url-timing line per URL, without the query, and the summary totals add up', async () => {
+    steppingClock();
+    const urls = [`${url('a')}?token=s3cret`, url('none'), url('b')];
+    const { service } = buildService({ urls, plans: { [url('none')]: 'no-recipe' } });
+    timedTier(service);
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    const lines = timingLines();
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toMatch(
+      /^\[AutonomousIngestion\] url-timing host=www\.example-kitchen\.com path=\/recipes\/a outcome=stored startOffsetMs=\d+ totalMs=\d+ firecrawlMs=\d+ jinaMs=0 tavilyMs=0 llmMs=0 storeMs=\d+ otherMs=\d+ tiers=firecrawl$/
+    );
+    expect(lines.map((l) => l.match(/outcome=(\w+)/)?.[1])).toEqual(['stored', 'failed', 'stored']);
+    for (const l of lines) expect(l).not.toMatch(/token|s3cret|\?/);
+
+    const perUrl = lines.map(fields);
+    const sum = (k: string) => perUrl.reduce((s, f) => s + f[k], 0);
+    const summary = summaryLine();
+    // The #300 fields are untouched; the #302 fields trail them.
+    expect(summary).toMatch(
+      /stop=exhausted, nonRecipe=0, dupUrls=0, discoveryMs=\d+, firecrawlMs=\d+, jinaMs=\d+, tavilyMs=\d+, llmMs=\d+, storeMs=\d+, delayMs=\d+, urlTimed=3, otherMs=\d+, runMs=\d+$/
+    );
+    const s = fields(summary.slice(summary.indexOf('discoveryMs=')));
+    for (const k of ['firecrawlMs', 'jinaMs', 'tavilyMs', 'llmMs', 'storeMs', 'otherMs']) {
+      expect(s[k]).toBe(sum(k));
+    }
+    expect(s.firecrawlMs).toBeGreaterThan(0);
+    expect(s.storeMs).toBeGreaterThan(0);
+    expect(s.discoveryMs).toBeGreaterThan(0);
+    // Two delays between three URLs, each two clock reads apart.
+    expect(s.delayMs).toBe(20);
+    for (const f of perUrl) {
+      const stages = f.firecrawlMs + f.jinaMs + f.tavilyMs + f.llmMs + f.storeMs + f.otherMs;
+      expect(stages).toBe(f.totalMs);
+    }
+    expect(s.discoveryMs + sum('totalMs') + s.delayMs).toBeLessThanOrEqual(s.runMs);
+    // The offsets rebuild the timeline: each URL starts after the previous one ended.
+    for (let i = 1; i < perUrl.length; i++) {
+      expect(perUrl[i].startOffsetMs).toBeGreaterThanOrEqual(
+        perUrl[i - 1].startOffsetMs + perUrl[i - 1].totalMs
+      );
+    }
+    expect(result.stageMs).toEqual(s);
+    expect(result).toMatchObject({ status: 'partial', recipesStored: 2, stopReason: 'exhausted' });
+  });
+
+  it('a deadline-cut run still writes the summary with timing, and the cut URL reads abandoned', async () => {
+    steppingClock();
+    const urls = ['a', 'hang', 'b'].map(url);
+    const { service } = buildService({ urls, plans: { [url('hang')]: 'hang' } });
+    timedTier(service);
+
+    const result = await service.runDailyDiscovery({
+      maxRecipes: 5,
+      budgetUsd: 100,
+      deadlineAt: Date.now() + 100,
+    });
+
+    expect(result.stopReason).toBe('deadline');
+    const lines = timingLines();
+    expect(lines.map((l) => l.match(/outcome=(\w+)/)?.[1])).toEqual(['stored', 'abandoned']);
+    // The hung tier never ended, so its time is in otherMs, not firecrawlMs.
+    expect(fields(lines[1])).toMatchObject({ firecrawlMs: 0, storeMs: 0 });
+    expect(summaryLine()).toMatch(/stop=deadline, .* urlTimed=2, otherMs=\d+, runMs=\d+$/);
+    expect(result.stageMs).toMatchObject({ urlTimed: 2 });
+    expect(result.stageMs?.discoveryMs).toBeGreaterThan(0);
   }, 2000);
 });

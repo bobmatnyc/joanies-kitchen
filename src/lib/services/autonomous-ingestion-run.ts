@@ -33,6 +33,7 @@ import {
   sourceDomainOf,
   sumRunLedgerUsd,
 } from './discovery-run-store';
+import { noteUrlOutcome } from './ingestion-timing';
 import type { ScrapedRecipe } from './recipe-extraction.service';
 
 export interface IngestionRunOptions {
@@ -154,6 +155,32 @@ export async function recordItem(m: RunMetrics, item: RunItemInput): Promise<voi
   m.itemUrls.add(item.url);
   const written = await recordRunItem(item);
   if (!written && isTrackedRunId(item.runId)) m.itemWriteFailures++;
+}
+
+/** #302: `recordItem`, noting the outcome on the URL's timer for its `url-timing` line. */
+export function recordUrlItem(m: RunMetrics, item: RunItemInput): Promise<void> {
+  noteUrlOutcome(item.outcome);
+  return recordItem(m, item);
+}
+
+/**
+ * #6 S2: writes a `budget_stopped` row for every queued URL the budget cut,
+ * in order. #302: moved unchanged from the service to keep it under the cap.
+ */
+export async function recordBudgetCut(
+  m: RunMetrics,
+  runId: string,
+  cut: readonly { url: string }[]
+): Promise<void> {
+  for (const { url } of cut) {
+    await recordItem(m, {
+      runId,
+      url,
+      extractionTier: 'none',
+      outcome: 'budget_stopped',
+      error: m.errors.find((e) => e.startsWith('budget exceeded')) ?? null,
+    });
+  }
 }
 
 /**
