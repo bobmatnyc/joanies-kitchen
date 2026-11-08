@@ -4,9 +4,9 @@
  * Main orchestrator for the daily zero-waste recipe discovery pipeline:
  *   1. Create run record
  *   2. Search → discover recipe URLs via Tavily
- *   3. Deduplicate URLs (recipes.source + chefRecipes.original_url)
+ *   3. Drop in-run URL variants (#300), then known URLs (#142)
  *   4. Extract recipe data (Firecrawl → Jina → Tavily Extract → Claude),
- *      checking the run budget before each URL
+ *      checking the run budget before each URL; a page with no recipe is skipped (#300)
  *   5. Quality gate: title + ingredients + instructions required
  *   6. Find/create chef profile
  *   7. Store recipe + link to chef
@@ -14,13 +14,12 @@
  *
  * A run given `deadlineAt` stops starting work at that time, abandons any
  * in-flight call, and finalizes `partial` before the platform kills it (#6).
- *
  * Every URL attempted gets one `recipe_discovery_run_items` row (#6 S2).
- *
  * Adapted from aipowerranking AutomatedIngestionService.
  *
  * #142: the DB writes and result building live in `autonomous-ingestion-store.ts`;
- * run-item bookkeeping, chef resolution and finalize in `autonomous-ingestion-run.ts`.
+ * run-item bookkeeping, chef resolution and finalize in `autonomous-ingestion-run.ts`;
+ * #300: URL triage, status and stop reason in `ingestion-url-triage.ts`.
  */
 
 import {
@@ -45,7 +44,6 @@ import {
 } from './autonomous-ingestion-run';
 import {
   buildRunResult,
-  determineRunStatus,
   type IngestionRunResult,
   type RunMetrics,
   recordRecipeOfTheDay,
@@ -59,13 +57,21 @@ import {
   isTrackedRunId,
   type RunItemOutcome,
 } from './discovery-run-store';
-import { findKnownUrls, skipsKnownUrls } from './known-url-skip';
+import {
+  finalRunStatus,
+  nonRecipeSkipReason,
+  type RunEnd,
+  runStopReason,
+  triageDiscoveredUrls,
+} from './ingestion-url-triage';
+import { skipsKnownUrls } from './known-url-skip';
 import {
   type DiscoveredRecipeUrl,
   getRecipeDiscoveryService,
   type RecipeDiscoveryService,
 } from './recipe-discovery.service';
 import {
+  type ExtractionReport,
   getRecipeExtractionService,
   type RecipeExtractionService,
 } from './recipe-extraction.service';
@@ -159,6 +165,8 @@ export class AutonomousRecipeIngestionService {
       tracked: false,
       closed: false,
       itemUrls: new Set(),
+      urlsDeduped: 0,
+      nonRecipeSkipped: 0,
     };
     const deadlineAt = options.deadlineAt;
     // #6: records the deadline stop once and closes the metrics to late writes.
@@ -174,6 +182,15 @@ export class AutonomousRecipeIngestionService {
     let runCreated = false;
     let status: DiscoveryRunStatus = 'failed'; // Pessimistic default
     let budgetStopped = false;
+    let pipelineError = false;
+    // #300: how the run ended. Until the pipeline returns, only stopAtDeadline sets m.closed.
+    const runEnd = (): RunEnd => ({
+      ...m,
+      pipelineError,
+      deadline: m.closed,
+      budgetStopped,
+      maxRecipes,
+    });
 
     // #6 S2: true once spend has reached the budget; records the error once.
     const budgetExhausted = (): boolean => {
@@ -241,28 +258,8 @@ export class AutonomousRecipeIngestionService {
           return buildRunResult(runId, status, m, startTime);
         }
 
-        // Step 3: Deduplicate against existing recipes.source + chefRecipes.original_url
-        // #142 (D7c): only the cron run skips a known URL here; a manual run re-fetches.
-        const existingUrls = await findKnownUrls(
-          discoveredUrls.map((d) => d.url),
-          runType
-        );
-        const newUrls = discoveredUrls.filter((d) => !existingUrls.has(d.url));
-
-        for (const dup of discoveredUrls.filter((d) => existingUrls.has(d.url))) {
-          m.recipesSkipped++;
-          await recordItem(m, {
-            runId,
-            url: dup.url,
-            extractionTier: 'none',
-            outcome: 'skipped_duplicate',
-          });
-        }
-        if (newUrls.length < m.urlsDiscovered) {
-          console.log(
-            `[AutonomousIngestion] #142: skipped ${m.urlsDiscovered - newUrls.length} known URL(s) without fetching (${runType} run)`
-          );
-        }
+        // Step 3: drop in-run URL variants (#300), then URLs already stored (#142).
+        const newUrls = await triageDiscoveredUrls(m, runId, discoveredUrls, runType);
 
         if (newUrls.length === 0) {
           console.log('[AutonomousIngestion] All URLs already ingested');
@@ -319,26 +316,29 @@ export class AutonomousRecipeIngestionService {
           }
         }
 
-        status =
-          budgetStopped || m.closed ? 'partial' : determineRunStatus(m.recipesStored, m.errors);
-
-        console.log(
-          `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
-            `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${status}`
-        );
-
+        // #300: a run that stored its target is completed, whatever else failed.
+        status = finalRunStatus(runEnd());
         return buildRunResult(runId, status, m, startTime);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`[AutonomousIngestion] Pipeline error: ${msg}`);
         m.errors.push(`Pipeline error: ${msg}`);
         status = 'failed';
+        pipelineError = true;
 
         return buildRunResult(runId, status, m, startTime);
       }
     };
 
     const result = await pipeline();
+    // #300: read before the close below, while m.closed still means "deadline hit".
+    result.stopReason = runStopReason(runEnd());
+    // #300: one summary line on every path; fields after status= are new, none renamed.
+    console.log(
+      `[AutonomousIngestion] Completed — stored=${m.recipesStored}, extracted=${m.recipesExtracted}, ` +
+        `skipped=${m.recipesSkipped}, errors=${m.errors.length}, status=${result.status}, ` +
+        `stop=${result.stopReason}, nonRecipe=${m.nonRecipeSkipped}, dupUrls=${m.urlsDeduped}`
+    );
     // #6: close the metrics so abandoned in-flight work cannot move counters or
     // write items after the counters are read below.
     m.closed = true;
@@ -373,9 +373,20 @@ export class AutonomousRecipeIngestionService {
       if (skipKnownUrl && (await skippedAsDuplicate(m, record, { sourceUrl: url }))) return;
 
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
-      const recipe = await this.extractionService.extractRecipe(url);
+      const report: ExtractionReport = { attempts: [] };
+      const recipe = await this.extractionService.extractRecipe(url, report);
       // #6: the deadline abandoned this URL; its row is claimed, counters are final.
       if (isReleased(m, url)) return;
+
+      // #300: a page with no recipe is a skip; any other miss stays an error below.
+      const nonRecipe = recipe ? null : nonRecipeSkipReason(report, url, discovered.title);
+      if (nonRecipe) {
+        console.log(`[AutonomousIngestion] Skipped ${nonRecipe}: ${url}`);
+        m.recipesSkipped++;
+        m.nonRecipeSkipped++;
+        await record('skipped_non_recipe', nonRecipe);
+        return;
+      }
 
       if (!recipe) {
         const err = `Extraction failed (all tiers): ${url}`;

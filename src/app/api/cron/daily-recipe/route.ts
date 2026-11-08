@@ -81,6 +81,7 @@ function buildSuccessResponse(result: {
   errors: string[];
   durationMs: number;
   tracked: boolean;
+  stopReason?: string;
 }) {
   return NextResponse.json(
     {
@@ -96,6 +97,8 @@ function buildSuccessResponse(result: {
       durationMs: result.durationMs,
       // #6 S2: false when no run row backs this run (create failed or dry run).
       tracked: result.tracked,
+      // #300: target | deadline | budget | exhausted | error.
+      stopReason: result.stopReason,
     },
     { status: 200 }
   );
@@ -137,7 +140,9 @@ export async function GET(request: NextRequest) {
 
     console.log(
       `[DailyRecipeCron] Completed — stored=${result.recipesStored}, skipped=${result.recipesSkipped}, ` +
-        `chefsCreated=${result.chefsCreated}, errors=${result.errors.length}, duration=${result.durationMs}ms`
+        `chefsCreated=${result.chefsCreated}, errors=${result.errors.length}, duration=${result.durationMs}ms, ` +
+        // #300: appended fields; a deadline cut reads stop=deadline, a clean finish target/exhausted.
+        `status=${result.status}, stop=${result.stopReason ?? 'unknown'}`
     );
 
     return buildSuccessResponse(result);
@@ -202,7 +207,9 @@ export async function POST(request: NextRequest) {
 
     console.log(
       `[DailyRecipeCron] Completed — stored=${result.recipesStored}, skipped=${result.recipesSkipped}, ` +
-        `chefsCreated=${result.chefsCreated}, errors=${result.errors.length}, duration=${result.durationMs}ms`
+        `chefsCreated=${result.chefsCreated}, errors=${result.errors.length}, duration=${result.durationMs}ms, ` +
+        // #300: appended fields; a deadline cut reads stop=deadline, a clean finish target/exhausted.
+        `status=${result.status}, stop=${result.stopReason ?? 'unknown'}`
     );
 
     return buildSuccessResponse(result);
