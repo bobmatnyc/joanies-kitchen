@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getOriginalRecipe } from '@/app/actions/recipe-cloning';
 import { exportRecipeAsMarkdown, exportRecipeAsPDF } from '@/app/actions/recipe-export';
+import { getRecipeSourceContext } from '@/app/actions/recipe-source';
 import { getRecipeViewCount, trackRecipeView } from '@/app/actions/recipe-views';
 import { deleteRecipe, getRecipe } from '@/app/actions/recipes';
 import { getProfileByUserId } from '@/app/actions/user-profiles';
@@ -48,6 +49,7 @@ import {
   RecipeForkAttribution,
 } from '@/components/recipe/RecipeEngagementStats';
 import { RecipeRatings } from '@/components/recipe/RecipeRatings';
+import { RecipeSourceLine } from '@/components/recipe/RecipeSourceLine';
 import { SemanticTagDisplay } from '@/components/recipe/SemanticTagDisplay';
 import { SubstitutionSuggestionsWrapper } from '@/components/recipe/SubstitutionSuggestionsWrapper';
 import { WasteReductionSection } from '@/components/recipe/WasteReductionSection';
@@ -64,6 +66,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { buildRecipeJsonLd } from '@/lib/recipes/recipe-json-ld';
+import { type RecipeSourceContext, resolveRecipeSource } from '@/lib/recipes/recipe-source';
 import { getBaseUrl } from '@/lib/site-url';
 import { useSessionUser } from '@/lib/use-session-user';
 import { getRecipeHero } from '@/lib/utils/recipe-image';
@@ -97,6 +101,8 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [originalRecipe, setOriginalRecipe] = useState<any>(null);
+  // Tdb: show recipe source (Bob 2026-11-09). undefined = loading; null = none or failed.
+  const [sourceContext, setSourceContext] = useState<RecipeSourceContext | null | undefined>();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -126,6 +132,7 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
       // returns before they are set again.
       setIsOwner(false);
       setIsUserAdmin(false);
+      setSourceContext(undefined); // Tdb: show recipe source (Bob 2026-11-09)
 
       // Add 5-second timeout to recipe fetch
       const recipePromise = getRecipe(slugOrId);
@@ -214,6 +221,18 @@ export default function RecipePageClient({ params, similarRecipes }: RecipePageP
         .catch((err) => {
           console.error('Failed to fetch author profile:', err);
           // Page still works without author profile
+        });
+
+      // Tdb: show recipe source (Bob 2026-11-09). NON-BLOCKING; on failure the line
+      // resolves from the recipe row alone.
+      Promise.race([
+        getRecipeSourceContext(result.data.id),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Source timeout')), 2000)),
+      ])
+        .then((ctx) => active && setSourceContext(ctx as RecipeSourceContext | null))
+        .catch((err) => {
+          console.error('Failed to fetch recipe source:', err);
+          if (active) setSourceContext(null);
         });
 
       // NON-BLOCKING: Fetch original recipe if this is a fork (with timeout)
@@ -379,66 +398,34 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
     return categorizeTags(recipe.tags);
   }, [recipe]);
 
-  // Generate JSON-LD structured data for recipe
-  const recipeJsonLd = useMemo(() => {
-    if (!recipe) return null;
+  // Tdb: show recipe source (Bob 2026-11-09). Resolved once the companion query settles.
+  const resolvedSource = useMemo(
+    () =>
+      recipe && sourceContext !== undefined
+        ? resolveRecipeSource({
+            source: recipe.source,
+            isSystemRecipe: recipe.is_system_recipe,
+            isAiGenerated: recipe.is_ai_generated,
+            ...sourceContext,
+          })
+        : null,
+    [recipe, sourceContext]
+  );
 
-    // #163: normalized base URL (env may carry a trailing newline)
-
-    const baseUrl = getBaseUrl();
-    const recipeUrl = recipe.slug
-      ? `${baseUrl}/recipes/${recipe.slug}`
-      : `${baseUrl}/recipes/${recipe.id}`;
-
-    return {
-      '@context': 'https://schema.org',
-      '@type': 'Recipe',
-      name: recipe.name,
-      description: recipe.description || `Delicious ${recipe.name} recipe from Joanie's Kitchen`,
-      image: recipe.images?.[0] || (recipe.image_url ? [recipe.image_url] : []),
-      author: {
-        '@type': authorProfile ? 'Person' : 'Organization',
-        name: authorProfile?.display_name || "Joanie's Kitchen",
-      },
-      datePublished: recipe.created_at,
-      dateModified: recipe.updated_at,
-      prepTime: recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
-      cookTime: recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
-      totalTime: totalTime > 0 ? `PT${totalTime}M` : undefined,
-      recipeYield: recipe.servings ? `${recipe.servings} servings` : undefined,
-      recipeCategory: recipe.cuisine || undefined,
-      recipeCuisine: recipe.cuisine || undefined,
-      keywords: recipe.tags?.join(', ') || undefined,
-      recipeIngredient: recipe.ingredients || [],
-      recipeInstructions:
-        recipe.instructions?.map((step: string, i: number) => ({
-          '@type': 'HowToStep',
-          position: i + 1,
-          text: step,
-        })) || [],
-      nutrition: recipe.nutrition_info
-        ? {
-            '@type': 'NutritionInformation',
-            ...(typeof recipe.nutrition_info === 'string'
-              ? JSON.parse(recipe.nutrition_info)
-              : recipe.nutrition_info),
-          }
-        : undefined,
-      aggregateRating:
-        recipe.avg_user_rating && recipe.total_user_ratings
-          ? {
-              '@type': 'AggregateRating',
-              ratingValue: recipe.avg_user_rating,
-              ratingCount: recipe.total_user_ratings,
-            }
-          : undefined,
-      url: recipeUrl,
-      isAccessibleForFree: 'True',
-      license: recipe.license
-        ? `https://creativecommons.org/licenses/${recipe.license.toLowerCase().replace(/_/g, '-')}/4.0/`
-        : undefined,
-    };
-  }, [recipe, authorProfile, totalTime]);
+  // Generate JSON-LD structured data for recipe (#163: normalized base URL)
+  const recipeJsonLd = useMemo(
+    () =>
+      recipe
+        ? buildRecipeJsonLd({
+            recipe,
+            baseUrl: getBaseUrl(),
+            totalTime,
+            authorProfile,
+            source: resolvedSource,
+          })
+        : null,
+    [recipe, authorProfile, totalTime, resolvedSource]
+  );
 
   if (loading) {
     return (
@@ -654,6 +641,8 @@ ${tagLabels ? `\nTags: ${tagLabels}` : ''}
                 <span className="font-medium">by {authorProfile.display_name}</span>
               </Link>
             )}
+            {/* Tdb: show recipe source (Bob 2026-11-09) */}
+            <RecipeSourceLine source={resolvedSource} />
             {viewCount > 0 && (
               <div
                 className="flex items-center gap-1.5 text-muted-foreground"
