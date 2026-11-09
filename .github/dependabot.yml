@@ -16,6 +16,8 @@ updates:
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
+      # #295: onnxruntime-node is pinned exactly by @huggingface/transformers; bump both together by hand (a lone bump loads 2 copies, fails on Linux and pushes recipes/[slug] over 250MB, see #292).
+      - dependency-name: "onnxruntime-node"
 
   - package-ecosystem: "github-actions"
     directory: "/"
