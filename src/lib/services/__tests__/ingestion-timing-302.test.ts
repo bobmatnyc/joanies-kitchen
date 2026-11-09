@@ -92,7 +92,7 @@ describe('RunTiming url-timing line (#302)', () => {
     expect(timingLines()).toEqual([
       '[AutonomousIngestion] url-timing host=www.example.com path=/recipes/leek-soup ' +
         'outcome=stored startOffsetMs=10 totalMs=70 firecrawlMs=0 jinaMs=20 tavilyMs=0 ' +
-        'llmMs=10 storeMs=10 otherMs=30 tiers=jina',
+        'llmMs=10 storeMs=10 otherMs=30 tiers=jina verdict=none',
     ]);
     expect(timingLines()[0]).not.toMatch(/token|s3cret|#x/);
     expect(run.totals()).toMatchObject({ jinaMs: 20, llmMs: 10, storeMs: 10, urlTimed: 1 });

@@ -61,7 +61,17 @@ export interface ExtractionTierAttempt {
   result: ExtractionTierResult;
 }
 
+/** #302: a reliable non-recipe verdict that ends the tier chain; logged as `verdict=`. */
+export type ChainVerdict = 'index-title';
+
 /** #300: filled by `extractRecipe` with each configured tier that ran and missed. */
 export interface ExtractionReport {
   attempts: ExtractionTierAttempt[];
+  /** #302: set when a verdict stopped the chain before the remaining tiers ran. */
+  verdict?: ChainVerdict;
+}
+
+/** #302: per-call tier options; the daily cron skips Firecrawl, every other caller keeps it. */
+export interface ExtractionOptions {
+  skipFirecrawl?: boolean;
 }

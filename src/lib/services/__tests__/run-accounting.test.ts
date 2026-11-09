@@ -108,6 +108,7 @@ import { trackCost } from '@/lib/costs';
 import { AutonomousRecipeIngestionService } from '@/lib/services/autonomous-recipe-ingestion.service';
 import { endTier, startTier, timingClock } from '@/lib/services/ingestion-timing';
 import type { ExtractionReport, ScrapedRecipe } from '@/lib/services/recipe-extraction.service';
+import type { ExtractionOptions } from '@/lib/services/recipe-extraction.types';
 
 type Plan =
   | 'stored'
@@ -162,27 +163,29 @@ function buildService(opts: {
   lateMs?: number;
 }) {
   const service = new AutonomousRecipeIngestionService();
-  const extractRecipe = vi.fn(async (u: string, report?: ExtractionReport) => {
-    await trackCost({
-      provider: 'firecrawl',
-      operation: 'scrape',
-      measuredUsd: opts.extractUsd ?? 0.01,
-    });
-    const plan = opts.plans[u] ?? 'stored';
-    const miss = MISS_REPORTS[plan];
-    if (miss) {
-      report?.attempts.push(...miss);
-      return null;
+  const extractRecipe = vi.fn(
+    async (u: string, report?: ExtractionReport, _opts?: ExtractionOptions) => {
+      await trackCost({
+        provider: 'firecrawl',
+        operation: 'scrape',
+        measuredUsd: opts.extractUsd ?? 0.01,
+      });
+      const plan = opts.plans[u] ?? 'stored';
+      const miss = MISS_REPORTS[plan];
+      if (miss) {
+        report?.attempts.push(...miss);
+        return null;
+      }
+      // An extraction that outlives the function limit (the 2026-10-29 run).
+      if (plan === 'hang') return new Promise<never>(() => undefined);
+      // Resolves after the deadline with a storable recipe.
+      if (plan === 'late') {
+        await new Promise((r) => setTimeout(r, opts.lateMs ?? 0));
+        return recipeFor(u, 'stored');
+      }
+      return plan === 'no-recipe' ? null : recipeFor(u, plan);
     }
-    // An extraction that outlives the function limit (the 2026-10-29 run).
-    if (plan === 'hang') return new Promise<never>(() => undefined);
-    // Resolves after the deadline with a storable recipe.
-    if (plan === 'late') {
-      await new Promise((r) => setTimeout(r, opts.lateMs ?? 0));
-      return recipeFor(u, 'stored');
-    }
-    return plan === 'no-recipe' ? null : recipeFor(u, plan);
-  });
+  );
   const internals = service as unknown as Record<string, unknown>;
   internals._discoveryService = {
     isConfigured: () => true,
@@ -694,7 +697,7 @@ describe('#302: per-stage timing', () => {
     const lines = timingLines();
     expect(lines).toHaveLength(3);
     expect(lines[0]).toMatch(
-      /^\[AutonomousIngestion\] url-timing host=www\.example-kitchen\.com path=\/recipes\/a outcome=stored startOffsetMs=\d+ totalMs=\d+ firecrawlMs=\d+ jinaMs=0 tavilyMs=0 llmMs=0 storeMs=\d+ otherMs=\d+ tiers=firecrawl$/
+      /^\[AutonomousIngestion\] url-timing host=www\.example-kitchen\.com path=\/recipes\/a outcome=stored startOffsetMs=\d+ totalMs=\d+ firecrawlMs=\d+ jinaMs=0 tavilyMs=0 llmMs=0 storeMs=\d+ otherMs=\d+ tiers=firecrawl verdict=none$/
     );
     expect(lines.map((l) => l.match(/outcome=(\w+)/)?.[1])).toEqual(['stored', 'failed', 'stored']);
     for (const l of lines) expect(l).not.toMatch(/token|s3cret|\?/);
@@ -751,4 +754,57 @@ describe('#302: per-stage timing', () => {
     expect(result.stageMs).toMatchObject({ urlTimed: 2 });
     expect(result.stageMs?.discoveryMs).toBeGreaterThan(0);
   }, 2000);
+});
+
+describe('#302: cron tier speedups', () => {
+  it('(b) a non-recipe path is skipped before any tier runs, as a non-recipe skip and not an error', async () => {
+    const index = 'https://lidiasitaly.com/blog-categories/lidias-blog/';
+    const forum = 'https://permies.com/t/174706/Tips-recipes-reduce-food-waste';
+    const { service, extractRecipe } = buildService({ urls: [index, url('ok'), forum], plans: {} });
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(extractRecipe.mock.calls.map((c) => c[0])).toEqual([url('ok')]);
+    expect(items().filter((r) => r.outcome === 'skipped_non_recipe')).toEqual([
+      expect.objectContaining({ url: index, error: 'non-recipe path (index-path)' }),
+      expect.objectContaining({ url: forum, error: 'non-recipe path (forum-thread)' }),
+    ]);
+    expect(result).toMatchObject({ status: 'completed', recipesStored: 1, recipesSkipped: 2 });
+    expect(result.errors).toEqual([]);
+    expect(summaryLine()).toContain(
+      'skipped=2, errors=0, status=completed, stop=exhausted, nonRecipe=2'
+    );
+  });
+
+  it('(e) sleeps only between consecutive URLs on the same host, and delayMs reports it', async () => {
+    let t = 0;
+    vi.spyOn(timingClock, 'now').mockImplementation(() => {
+      t += 10;
+      return t;
+    });
+    const urls = [
+      'https://www.a-kitchen.com/recipes/one',
+      'https://a-kitchen.com/recipes/two', // same host as the first; www. ignored
+      'https://b-kitchen.com/recipes/three',
+      'https://c-kitchen.com/recipes/four',
+    ];
+    const { service } = buildService({ urls, plans: {} });
+    const sleep = vi.fn(async () => undefined);
+    (service as unknown as Record<string, unknown>).sleep = sleep;
+
+    const result = await service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100 });
+
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(result.stageMs?.delayMs).toBe(10); // one delay, two clock reads apart
+  });
+
+  it('(f) the daily cron asks extraction to skip Firecrawl; a manual run keeps it', async () => {
+    const daily = buildService({ urls: [url('a')], plans: {} });
+    await daily.service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100, runType: 'daily' });
+    expect(daily.extractRecipe.mock.calls[0][2]).toEqual({ skipFirecrawl: true });
+
+    const manual = buildService({ urls: [url('b')], plans: {} });
+    await manual.service.runDailyDiscovery({ maxRecipes: 5, budgetUsd: 100, runType: 'manual' });
+    expect(manual.extractRecipe.mock.calls[0][2]).toEqual({ skipFirecrawl: false });
+  });
 });
