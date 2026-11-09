@@ -379,7 +379,12 @@ describe('known-URL skip: cron only (#142 D7c)', () => {
 
     expect(extractRecipe).toHaveBeenCalledTimes(1);
     // #300: the second argument is the extraction report the run reads on a miss.
-    expect(extractRecipe).toHaveBeenCalledWith(knownVariant, { attempts: [] });
+    // #302: the third is the tier options; a manual run keeps the Firecrawl tier.
+    expect(extractRecipe).toHaveBeenCalledWith(
+      knownVariant,
+      { attempts: [] },
+      { skipFirecrawl: false }
+    );
     expect(result).toMatchObject({ recipesStored: 0, recipesSkipped: 1, errors: [] });
     const n = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM "recipes"');
     expect(n.rows[0].n).toBe(1);

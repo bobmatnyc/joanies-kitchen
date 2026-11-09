@@ -9,7 +9,7 @@
  * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`
  */
 
-import type { ExtractionTierResult, ScrapedRecipe } from './recipe-extraction.types';
+import type { ChainVerdict, ExtractionTierResult, ScrapedRecipe } from './recipe-extraction.types';
 
 /** What the Firecrawl tier saw, filled by `extractWithFirecrawl`. */
 export interface FirecrawlSeen {
@@ -19,6 +19,8 @@ export interface FirecrawlSeen {
   recipeSchema: boolean;
   /** The scraped markdown and title, for the interstitial check. */
   text: string;
+  /** #302: the page title, for the index-title verdict. */
+  title?: string;
 }
 
 /** What the LLM structuring step did, filled by `structureWithClaude`. */
@@ -113,4 +115,28 @@ export function rawContentMiss(
   if (llm.failed) return 'error';
   if (llm.ran && !isInterstitialPage(content)) return 'no_recipe';
   return 'empty';
+}
+
+/**
+ * Page titles WordPress and similar CMSs give index and listing pages:
+ * "Cooking With Legends Archives - Lidia", "Category: Soups", "Page 2 of 9".
+ */
+const INDEX_TITLE_PATTERNS: RegExp[] = [
+  // #302: WordPress shape only: plural "Archives" before a separator or at the end.
+  /\barchives\s*(?:[-–—|:·•»]|$)/i,
+  /\b(?:category|tag|topic)\s*:/i,
+  /\b(?:posts|articles|recipes)\s+(?:tagged|in\s+category|filed\s+under)\b/i,
+  /\bpage\s+\d+\s+of\s+\d+\b/i,
+];
+
+/**
+ * Why: on the 2026-11-09 run six index pages read by Jina still spent 25s in
+ * Tavily and the LLM (#302); their title alone says there is no recipe.
+ * What: `index-title` when the scraped page title matches an index/archive
+ * pattern, else null. Deterministic: no title, no verdict.
+ * Test: `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`
+ */
+export function indexTitleVerdict(title: string | undefined): ChainVerdict | null {
+  if (!title) return null;
+  return INDEX_TITLE_PATTERNS.some((p) => p.test(title)) ? 'index-title' : null;
 }
