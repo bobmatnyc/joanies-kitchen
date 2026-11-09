@@ -122,7 +122,8 @@ export function rawContentMiss(
  * "Cooking With Legends Archives - Lidia", "Category: Soups", "Page 2 of 9".
  */
 const INDEX_TITLE_PATTERNS: RegExp[] = [
-  /\barchives?\b/i,
+  // #302: WordPress shape only: plural "Archives" before a separator or at the end.
+  /\barchives\s*(?:[-–—|:·•»]|$)/i,
   /\b(?:category|tag|topic)\s*:/i,
   /\b(?:posts|articles|recipes)\s+(?:tagged|in\s+category|filed\s+under)\b/i,
   /\bpage\s+\d+\s+of\s+\d+\b/i,

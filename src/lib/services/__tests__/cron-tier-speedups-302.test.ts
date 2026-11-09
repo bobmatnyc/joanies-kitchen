@@ -60,6 +60,8 @@ describe('nonRecipePathRule (#302 b)', () => {
     ['https://example.com/threads/scraps.123/', 'forum-thread'],
     ['https://grownupdish.com/fab-four-smoothie-recipe-roundup', 'roundup'],
     ['https://zerowastechef.com/2018/05/02/15-creative-uses-food-scraps', 'listicle'],
+    ['https://example.com/10-best-brownies', 'listicle'],
+    ['https://example.com/25-easy-weeknight-dinners', 'listicle'],
   ])('rejects every #302 non-recipe path: %s', (url, rule) => {
     expect(nonRecipePathRule(url)).toBe(rule);
   });
@@ -69,6 +71,22 @@ describe('nonRecipePathRule (#302 b)', () => {
     'https://www.businessinsider.com/popular-chefs-recipes-for-fruit-salad-reviewed-photos-2021-8',
     'https://example.com/recipes/5-minute-hummus',
     'https://example.com/3-ingredient-peanut-butter-cookies',
+    'https://example.com/15-bean-soup',
+    'https://example.com/7-layer-dip',
+    'https://example.com/1-pot-pasta',
+    // #302 review: a count that is part of the recipe name is not a list.
+    'https://example.com/40-clove-garlic-chicken',
+    'https://example.com/1-bowl-brownies',
+    'https://example.com/7-up-cake',
+    'https://example.com/5-can-soup',
+    'https://example.com/1-skillet-lasagna',
+    'https://example.com/3-milk-cake',
+    'https://example.com/2-tier-cake',
+    'https://example.com/5-star-lasagna',
+    'https://example.com/8-treasure-rice',
+    'https://example.com/1-dish-dinner',
+    'https://example.com/100-calorie-snack',
+    'https://food52.com/recipes/349-roasted-chicken',
     'not a url',
   ])('passes real recipe paths: %s', (url) => {
     expect(nonRecipePathRule(url)).toBeNull();
@@ -86,6 +104,9 @@ describe('needsHostDelay (#302 e)', () => {
 describe('indexTitleVerdict (#302 a)', () => {
   it.each([
     "Lidia's Blog Archives - Lidia",
+    'Cooking With Legends Archives - Lidia',
+    "Grandma's garden Archives - Lidia",
+    'Cooking With Legends Archives',
     'Category: Soups - Example',
     'Tag: vegan',
     'Posts tagged leeks',
@@ -99,6 +120,9 @@ describe('indexTitleVerdict (#302 a)', () => {
     '',
     'Wilted greens with garlic & soy — The Edible Flower',
     'Television - Lidia',
+    // #302 review: "Archive" in a site or recipe name is not the WordPress index shape.
+    'Chocolate Cake - The Recipe Archive',
+    'Archive Cocktail Recipe',
   ])('gives no verdict for %s', (title) => {
     expect(indexTitleVerdict(title)).toBeNull();
   });

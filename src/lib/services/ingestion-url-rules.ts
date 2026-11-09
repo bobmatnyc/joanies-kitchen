@@ -33,11 +33,14 @@ const NON_RECIPE_SEGMENTS = new Map<string, string>([
 
 const INTERVIEW_SLUG = /(?:^|-)interviews?(?:-|$)/;
 const ROUNDUP_SLUG = /(?:^|-)round-?ups?(?:-|$)/;
-/** `15-creative-uses-...`: a slug that opens with a count of 1-3 digits. */
-const LEADING_NUMBER_SLUG = /^\d{1,3}-[a-z]/;
-/** Counts that name a recipe's size or time, not a list: `5-minute-hummus`. */
-const RECIPE_QUANTITY_SLUG =
-  /^\d{1,3}-(?:minute|min|hour|hr|second|ingredient|layer|bean|step|day|pound|lb|quart|cup|inch|egg|grain|cheese|spice|alarm|bite|pot|pan)s?(?:-|$)/;
+/**
+ * #302: `15-creative-uses-...`, `10-best-brownies`: a 1-3 digit count with list
+ * wording within three words after it. A count alone (`40-clove-garlic-chicken`,
+ * `7-up-cake`, `5-minute-hummus`) is a recipe name; compare LISTICLE_URL_PATTERNS
+ * in recipe-discovery-url.ts.
+ */
+const LISTICLE_SLUG =
+  /^\d{1,3}-(?:[a-z0-9]+-){0,3}(?:best|ways|uses|ideas|things|tips|tricks|hacks|recipes|reasons|foods|dishes|meals|dinners|snacks|desserts)(?:-|$)/;
 
 /**
  * Why: these pages hold no recipe, and each one cost 7-34s of tier calls (#302).
@@ -64,7 +67,7 @@ export function nonRecipePathRule(url: string): string | null {
     if (seg === 't' && next !== undefined && /^\d+$/.test(next)) return 'forum-thread';
     if (INTERVIEW_SLUG.test(seg)) return 'interview';
     if (ROUNDUP_SLUG.test(seg)) return 'roundup';
-    if (LEADING_NUMBER_SLUG.test(seg) && !RECIPE_QUANTITY_SLUG.test(seg)) return 'listicle';
+    if (LISTICLE_SLUG.test(seg)) return 'listicle';
   }
   return null;
 }
