@@ -24,6 +24,8 @@ vi.mock('@/lib/use-session-user', () => ({
 }));
 vi.mock('@/app/actions/recipes', () => ({ getRecipe, deleteRecipe: vi.fn() }));
 vi.mock('@/app/actions/recipe-cloning', () => ({ getOriginalRecipe: vi.fn(async () => null) }));
+// Tdb: the source-line companion query; no database in unit tests.
+vi.mock('@/app/actions/recipe-source', () => ({ getRecipeSourceContext: vi.fn(async () => null) }));
 vi.mock('@/app/actions/recipe-export', () => ({
   exportRecipeAsMarkdown: vi.fn(),
   exportRecipeAsPDF: vi.fn(),
