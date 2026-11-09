@@ -5,7 +5,7 @@
  *   1. Create run record
  *   2. Search → discover recipe URLs via Tavily
  *   3. Drop in-run URL variants (#300), then known URLs (#142)
- *   4. Extract recipe data (Firecrawl → Jina → Tavily Extract → Claude),
+ *   4. Extract recipe data (Firecrawl → Jina → Tavily Extract → Claude; daily skips Firecrawl, #302),
  *      checking the run budget before each URL; a page with no recipe is skipped (#300)
  *   5. Quality gate: title + ingredients + instructions required
  *   6. Find/create chef profile
@@ -57,10 +57,12 @@ import { DEADLINE_HIT, raceDeadline } from './crawl-run-deadline';
 import {
   createDiscoveryRun,
   type DiscoveryRunStatus,
+  type DiscoveryRunType,
   isTrackedRunId,
   type RunItemOutcome,
 } from './discovery-run-store';
 import { logRunCompleted, RunTiming, timeStage } from './ingestion-timing';
+import { EXTRACTION_DELAY_MS, needsHostDelay, skipsFirecrawlTier } from './ingestion-url-rules';
 import {
   finalRunStatus,
   nonRecipeSkipReason,
@@ -81,7 +83,6 @@ import {
 } from './recipe-extraction.service';
 
 const ZERO_WASTE_TAGS = ['zero-waste', 'scraped'];
-const EXTRACTION_DELAY_MS = 2000; // 2 seconds between URL extractions
 
 // #142: moved; re-exported so importers of this module keep their types.
 export type { IngestionRunOptions } from './autonomous-ingestion-run';
@@ -96,23 +97,17 @@ export class AutonomousRecipeIngestionService {
   private _chefDiscoveryService: ChefDiscoveryService | null = null;
 
   private get discoveryService(): RecipeDiscoveryService {
-    if (!this._discoveryService) {
-      this._discoveryService = getRecipeDiscoveryService();
-    }
+    this._discoveryService ??= getRecipeDiscoveryService();
     return this._discoveryService;
   }
 
   private get extractionService(): RecipeExtractionService {
-    if (!this._extractionService) {
-      this._extractionService = getRecipeExtractionService();
-    }
+    this._extractionService ??= getRecipeExtractionService();
     return this._extractionService;
   }
 
   private get chefDiscoveryService(): ChefDiscoveryService {
-    if (!this._chefDiscoveryService) {
-      this._chefDiscoveryService = getChefDiscoveryService();
-    }
+    this._chefDiscoveryService ??= getChefDiscoveryService();
     return this._chefDiscoveryService;
   }
 
@@ -292,10 +287,7 @@ export class AutonomousRecipeIngestionService {
 
           // #302: one self-contained url-timing line per URL, abandoned or not.
           const processed = await timing.timeUrl(urlsToProcess[i].url, () =>
-            raceDeadline(
-              this.processUrl(urlsToProcess[i], runId, isDryRun, m, skipsKnownUrls(runType)),
-              deadlineAt
-            )
+            raceDeadline(this.processUrl(urlsToProcess[i], runId, isDryRun, m, runType), deadlineAt)
           );
           if (processed === DEADLINE_HIT) {
             // #6: the abandoned URL still gets its one item row before close.
@@ -312,8 +304,9 @@ export class AutonomousRecipeIngestionService {
             break;
           }
 
-          // Rate limit between extractions
-          if (i < urlsToProcess.length - 1) {
+          // #302: rate limit only between two URLs on the same host.
+          const next = urlsToProcess[i + 1];
+          if (next && needsHostDelay(urlsToProcess[i].url, next.url)) {
             await timing.time('delayMs', () => this.sleep(EXTRACTION_DELAY_MS));
           }
         }
@@ -357,9 +350,10 @@ export class AutonomousRecipeIngestionService {
     runId: string,
     isDryRun: boolean,
     m: RunMetrics,
-    skipKnownUrl = true
+    runType: DiscoveryRunType = 'daily'
   ): Promise<void> {
     const url = discovered.url;
+    const skipKnownUrl = skipsKnownUrls(runType);
     let tier = 'none';
     const record = (outcome: RunItemOutcome, error?: string | null, recipeId?: string | null) =>
       recordUrlItem(m, { runId, url, extractionTier: tier, outcome, error, recipeId });
@@ -372,7 +366,9 @@ export class AutonomousRecipeIngestionService {
 
       console.log(`[AutonomousIngestion] Extracting: ${url}`);
       const report: ExtractionReport = { attempts: [] };
-      const recipe = await this.extractionService.extractRecipe(url, report);
+      // #302: the daily cron skips the Firecrawl tier; manual and local runs keep it.
+      const skipFirecrawl = skipsFirecrawlTier(runType);
+      const recipe = await this.extractionService.extractRecipe(url, report, { skipFirecrawl });
       // #6: the deadline abandoned this URL; its row is claimed, counters are final.
       if (isReleased(m, url)) return;
 
@@ -492,8 +488,6 @@ export class AutonomousRecipeIngestionService {
 let _instance: AutonomousRecipeIngestionService | null = null;
 
 export function getAutonomousRecipeIngestionService(): AutonomousRecipeIngestionService {
-  if (!_instance) {
-    _instance = new AutonomousRecipeIngestionService();
-  }
+  _instance ??= new AutonomousRecipeIngestionService();
   return _instance;
 }

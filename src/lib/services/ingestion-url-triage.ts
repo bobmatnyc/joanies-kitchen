@@ -20,6 +20,7 @@ import {
   type RunStopReason,
 } from './autonomous-ingestion-store';
 import type { DiscoveryRunStatus, DiscoveryRunType } from './discovery-run-store';
+import { nonRecipePathRule } from './ingestion-url-rules';
 import { findKnownUrls } from './known-url-skip';
 import { isListiclePage } from './recipe-discovery-url';
 import type { ExtractionReport } from './recipe-extraction.types';
@@ -59,8 +60,11 @@ export function dedupeDiscoveredUrls<T extends { url: string }>(
  * What: drops in-run duplicates (`dedupeDiscoveredUrls`, counted into
  * `m.urlsDeduped`, no item row: the kept URL gets that row), then skips known
  * URLs as before — on the fragment-free URL — writing a `skipped_duplicate`
- * row each. Returns the URLs left to extract.
- * Test: `fragment variants of one post are fetched once, and a known URL is still skipped on the fragment-free URL`
+ * row each. #302: a URL whose path breaks a `nonRecipePathRule` gets a
+ * `skipped_non_recipe` row and counts as a non-recipe skip, never an error.
+ * Returns the URLs left to extract.
+ * Test: `fragment variants of one post are fetched once, and a known URL is still skipped on the fragment-free URL`,
+ * `run-accounting.test.ts` (`#302: cron tier speedups` block)
  */
 export async function triageDiscoveredUrls<T extends { url: string }>(
   m: RunMetrics,
@@ -68,12 +72,33 @@ export async function triageDiscoveredUrls<T extends { url: string }>(
   discovered: T[],
   runType: DiscoveryRunType
 ): Promise<T[]> {
-  const { unique, duplicates } = dedupeDiscoveredUrls(discovered);
+  const { unique: deduped, duplicates } = dedupeDiscoveredUrls(discovered);
   m.urlsDeduped = duplicates;
   if (duplicates > 0) {
     console.log(
       `[AutonomousIngestion] #300: dropped ${duplicates} duplicate URL variant(s) before extraction`
     );
+  }
+
+  // #302: an index, media, forum or listicle path is a non-recipe skip before any tier runs.
+  const unique: T[] = [];
+  for (const item of deduped) {
+    const rule = nonRecipePathRule(item.url);
+    if (!rule) {
+      unique.push(item);
+      continue;
+    }
+    const reason = `non-recipe path (${rule})`;
+    console.log(`[AutonomousIngestion] #302: skipped ${reason} without fetching: ${item.url}`);
+    m.recipesSkipped++;
+    m.nonRecipeSkipped++;
+    await recordItem(m, {
+      runId,
+      url: item.url,
+      extractionTier: 'none',
+      outcome: 'skipped_non_recipe',
+      error: reason,
+    });
   }
 
   // #142 (D7c): only the cron run skips a known URL here; a manual run re-fetches.
@@ -123,6 +148,8 @@ export function nonRecipeSkipReason(
   const readBy = attempts.filter((a) => a.result === 'no_recipe').map((a) => a.tier);
   if (readBy.length === 0) return null;
   const kind = isListiclePage(url, title) ? 'hub/listicle page' : 'non-recipe page';
+  // #302: a chain-stopping verdict names itself; no later tier ran to list.
+  if (report.verdict) return `${kind}: ${report.verdict} verdict (read by ${readBy.join(', ')})`;
   const missed = attempts
     .filter((a) => a.result !== 'no_recipe')
     .map((a) => `${a.tier} ${a.result}`);

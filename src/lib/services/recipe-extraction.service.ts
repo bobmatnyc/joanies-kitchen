@@ -16,18 +16,13 @@ import Firecrawl from '@mendable/firecrawl-js';
 import OpenAI from 'openai';
 import { extractFirstJsonObject } from '@/lib/ai/extract-first-json';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
-import {
-  assertWithinDailyCap,
-  TAVILY_EXTRACT_FLOOR_URLS,
-  trackCost,
-  unitsOrFloor,
-  withChatCostTracking,
-} from '@/lib/costs';
+import { assertWithinDailyCap, trackCost, withChatCostTracking } from '@/lib/costs';
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
-import { endTier, startTier, timeStage } from './ingestion-timing';
+import { endTier, noteUrlVerdict, startTier, timeStage } from './ingestion-timing';
 import type {
+  ExtractionOptions,
   ExtractionReport,
   ExtractionTierAttempt,
   ExtractionTierResult,
@@ -35,10 +30,12 @@ import type {
   ScrapedRecipe,
 } from './recipe-extraction.types';
 import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
+import { fetchWithTavilyExtract } from './recipe-extraction-tavily';
 import {
   type FirecrawlSeen,
   findRecipeSchema,
   firecrawlMiss,
+  indexTitleVerdict,
   type LlmVerdict,
   newLlmVerdict,
   rawContentMiss,
@@ -117,16 +114,35 @@ export class RecipeExtractionService {
    * What: tries each configured tier in order and returns the first viable
    * recipe, or null. When `report` is given, each tier that ran and missed
    * appends what it saw (`ExtractionTierResult`); the return value is unchanged.
-   * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`
+   * #302: `opts.skipFirecrawl` (daily cron only) skips Tier 1. An index-title
+   * verdict from a tier's scraped title returns null at once: no later tier or
+   * LLM call runs, and the report carries `no_recipe` plus `verdict`.
+   * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`,
+   * `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`
    */
-  async extractRecipe(url: string, report?: ExtractionReport): Promise<ScrapedRecipe | null> {
+  async extractRecipe(
+    url: string,
+    report?: ExtractionReport,
+    opts: ExtractionOptions = {}
+  ): Promise<ScrapedRecipe | null> {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
     const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) =>
       report?.attempts.push({ tier, result });
+    // #302: a deterministic index-title verdict ends the chain; Tavily and the LLM do not run.
+    const stopOnVerdict = (tier: ExtractionTierAttempt['tier'], title?: string): boolean => {
+      const verdict = indexTitleVerdict(title);
+      if (!verdict) return false;
+      miss(tier, 'no_recipe');
+      if (report) report.verdict = verdict;
+      noteUrlVerdict(verdict);
+      console.log(`[RecipeExtraction] ${tier} verdict=${verdict} ("${title}"), stopping tiers`);
+      return true;
+    };
     // #302: measurement only; each tier's finally adds its ms, less structuring (llmMs).
 
     // Tier 1: Firecrawl (primary — structured JSON schema extraction)
-    if (this.firecrawlApiKey) {
+    // #302: the daily cron skips it; its schema read never returned data there.
+    if (this.firecrawlApiKey && !opts.skipFirecrawl) {
       const timer = startTier('firecrawl');
       try {
         const seen: FirecrawlSeen = { schemaRead: false, recipeSchema: false, text: '' };
@@ -136,7 +152,9 @@ export class RecipeExtractionService {
           return { ...result, extraction_method: 'firecrawl' };
         }
         // #300: only a schema read is a verdict here; a regex miss on markdown is not.
-        miss('firecrawl', firecrawlMiss(result, seen));
+        const tierMiss = firecrawlMiss(result, seen);
+        if (tierMiss !== 'recipe_partial' && stopOnVerdict('firecrawl', seen.title)) return null;
+        miss('firecrawl', tierMiss);
         console.debug(
           '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
         );
@@ -148,7 +166,8 @@ export class RecipeExtractionService {
         endTier(timer);
       }
     } else {
-      console.debug('[RecipeExtraction] Tier1/Firecrawl skipped — FIRECRAWL_API_KEY not set');
+      const why = opts.skipFirecrawl ? 'daily cron path' : 'FIRECRAWL_API_KEY not set'; // #302
+      console.debug(`[RecipeExtraction] Tier1/Firecrawl skipped — ${why}`);
     }
 
     // Tier 2: Jina Reader (fallback 1 — clean markdown extraction)
@@ -156,8 +175,10 @@ export class RecipeExtractionService {
     if (this.jinaApiKey) {
       const timer = startTier('jina');
       try {
-        const rawContent = await fetchContentWithJina(url);
+        const page: { title?: string } = {};
+        const rawContent = await fetchContentWithJina(url, undefined, page);
         if (rawContent && rawContent.length > 200) {
+          if (stopOnVerdict('jina', page.title)) return null; // #302: before the LLM step
           const llm = newLlmVerdict();
           const parsed = await timeStage('llmMs', () =>
             this.parseRawContent(rawContent, url, 'jina', llm)
@@ -249,6 +270,7 @@ export class RecipeExtractionService {
 
     // #300: the interstitial check reads the title and markdown.
     if (seen) seen.text = `${String(metadata?.title ?? '')}\n${String(result.markdown ?? '')}`;
+    if (seen && typeof metadata?.title === 'string') seen.title = metadata.title; // #302
 
     // Try schema.org Recipe markup first (rich structured data)
     const schemaData = metadata?.schema;
@@ -273,54 +295,9 @@ export class RecipeExtractionService {
     return null;
   }
 
-  /**
-   * Fetch content via Tavily Extract API
-   */
-  private async fetchWithTavilyExtract(url: string): Promise<string | null> {
-    // #57: daily cost ceiling hard stop before the paid call.
-    await assertWithinDailyCap();
-    const response = await fetch('https://api.tavily.com/extract', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: this.tavilyApiKey,
-        urls: [url],
-        extract_depth: 'advanced',
-        format: 'markdown',
-        timeout: 15,
-        chunks_per_source: 5,
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Tavily Extract API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      results?: Array<{ raw_content?: string }>;
-      failed_results?: Array<{ error: string }>;
-    };
-    // #77: Tavily bills only extracted URLs; all-failed books nothing, an unknown empty shape books the floor.
-    const allFailed = !data.results?.length && (data.failed_results?.length ?? 0) > 0;
-    if (!allFailed) {
-      await trackCost({
-        provider: 'tavily',
-        operation: 'extract.advanced',
-        units: unitsOrFloor(data.results?.length, TAVILY_EXTRACT_FLOOR_URLS),
-      });
-    }
-
-    if (data.results?.[0]?.raw_content) {
-      return data.results[0].raw_content;
-    }
-
-    if (data.failed_results?.[0]?.error) {
-      throw new Error(`Tavily Extract failed: ${data.failed_results[0].error}`);
-    }
-
-    return null;
+  /** Tavily Extract; see `fetchWithTavilyExtract` in ./recipe-extraction-tavily (#302: moved). */
+  private fetchWithTavilyExtract(url: string): Promise<string | null> {
+    return fetchWithTavilyExtract(this.tavilyApiKey, url);
   }
 
   /**

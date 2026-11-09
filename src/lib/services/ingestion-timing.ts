@@ -64,6 +64,8 @@ export class UrlTimer {
   readonly start = timingClock.now();
   /** The item outcome; `unrecorded` when no row was written (a dry-run store). */
   outcome = 'unrecorded';
+  /** #302: the reliable non-recipe verdict that stopped the tier chain, or `none`. */
+  verdict = 'none';
 
   constructor(
     readonly url: string,
@@ -82,6 +84,12 @@ export function currentUrlTimer(): UrlTimer | undefined {
 export function noteUrlOutcome(outcome: string): void {
   const ut = urlScope.getStore();
   if (ut) ut.outcome = outcome;
+}
+
+/** #302: notes the verdict that stopped the tier chain, for the `url-timing` line. */
+export function noteUrlVerdict(verdict: string): void {
+  const ut = urlScope.getStore();
+  if (ut) ut.verdict = verdict;
 }
 
 /**
@@ -196,7 +204,7 @@ export class RunTiming {
         `outcome=${abandoned ? 'abandoned' : ut.outcome} ` +
         `startOffsetMs=${Math.round(ut.start - ut.runStart)} totalMs=${totalMs} ` +
         `${ms.map(([k, v]) => `${k}=${v}`).join(' ')} otherMs=${otherMs} ` +
-        `tiers=${ut.stages.tiers.join(',') || 'none'}`
+        `tiers=${ut.stages.tiers.join(',') || 'none'} verdict=${ut.verdict}` // #302: where the chain stopped
     );
   }
 

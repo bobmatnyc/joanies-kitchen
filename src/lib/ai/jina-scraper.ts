@@ -158,10 +158,12 @@ export async function scrapeWithJina(url: string): Promise<JinaScrapedContent> {
  */
 export async function fetchContentWithJina(
   url: string,
-  maxLength?: number
+  maxLength?: number,
+  meta?: { title?: string }
 ): Promise<string | null> {
   const result = await scrapeWithJina(url);
   if (!result.success || !result.content) return null;
+  if (meta) meta.title = result.title; // #302: the page title feeds the index-title verdict
   if (maxLength && result.content.length > maxLength) {
     return result.content.substring(0, maxLength);
   }
