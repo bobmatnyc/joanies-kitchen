@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **recipes**: the recipe page shows a "Source" line in its metadata row. A known chef (`chef_id` or `chef_recipes`) links to `/chef/<slug>`, with an "original on <host>" link when a URL is known; a URL or bare domain shows its host (no `www.`) and links out; TheMealDB recipes link to the `recipe_sources` website; person or title text shows as plain text; "Joanie's…" shows "Joanie's Kitchen"; a user's own recipe shows "Added by <name>" (public profile, linked) or "Shared by a community member". Placeholders, the fork marker, empty values and AI-only recipes show nothing. Only http(s) values are linked, with `target="_blank" rel="nofollow noopener noreferrer"`. The JSON-LD author is now the chef (Person) or the source site (Organization) when known, `publisher` is always "Joanie's Kitchen", and `isBasedOn` carries the source URL. No migration or data change (Tdb)
+
 ### Documentation
 
 - **docs**: `docs/operations/error-log-contract.md` pins the structured `app-error` log line: the tag, every field and `source` value, what is redacted, which sources emit it, the Vercel filter string, and the rule that a change to the tag or field names must update the doc in the same PR. `report-error.ts` now points to it (#55)
