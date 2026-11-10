@@ -51,7 +51,8 @@ import { toErrorMessage } from '@/lib/utils/error-handling';
  * Validation schema for adding new inventory items
  */
 const addInventoryItemSchema = z.object({
-  ingredient_id: z.string().uuid('Invalid ingredient ID'),
+  // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+  ingredient_id: z.string().guid('Invalid ingredient ID'),
   storage_location: z.enum(['fridge', 'freezer', 'pantry', 'other']),
   quantity: z.number().positive('Quantity must be positive'),
   unit: z.string().min(1, 'Unit is required').max(50),
@@ -176,7 +177,7 @@ export async function addInventoryItem(data: z.infer<typeof addInventoryItemSche
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(', ')}`,
       };
     }
     console.error('Failed to add inventory item:', error);
@@ -243,7 +244,7 @@ export async function updateInventoryItem(
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(', ')}`,
       };
     }
     console.error('Failed to update inventory item:', error);
@@ -716,7 +717,7 @@ export async function markItemAsUsed(
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(', ')}`,
       };
     }
     console.error('Failed to mark item as used:', error);
@@ -810,7 +811,7 @@ export async function markItemAsWasted(
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(', ')}`,
       };
     }
     console.error('Failed to mark item as wasted:', error);

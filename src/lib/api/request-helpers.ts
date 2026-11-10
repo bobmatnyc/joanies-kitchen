@@ -54,7 +54,7 @@ export function parseQueryParams<T>(
     return { data: validated };
   } catch (error) {
     if (error instanceof ZodError) {
-      return { error: apiValidationError(error.errors) };
+      return { error: apiValidationError(error.issues) };
     }
     throw error;
   }
@@ -106,7 +106,7 @@ export async function parseJsonBody<T>(
     return { data: validated };
   } catch (error) {
     if (error instanceof ZodError) {
-      return { error: apiValidationError(error.errors) };
+      return { error: apiValidationError(error.issues) };
     }
     throw error;
   }

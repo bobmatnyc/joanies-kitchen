@@ -31,7 +31,8 @@ export const usageActionEnum = z.enum(['cooked', 'eaten_raw', 'composted', 'tras
  * Schema for creating a new inventory item
  */
 export const createInventoryItemSchema = z.object({
-  ingredient_id: z.string().uuid('Invalid ingredient ID'),
+  // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+  ingredient_id: z.string().guid('Invalid ingredient ID'),
   storage_location: storageLocationEnum,
   quantity: z.number().positive('Quantity must be positive'),
   unit: z.string().min(1, 'Unit is required').max(50),
@@ -73,7 +74,8 @@ export const listInventoryQuerySchema = z.object({
 export const markAsUsedSchema = z.object({
   quantity: z.number().positive('Quantity must be positive'),
   action: usageActionEnum.default('cooked'),
-  recipe_id: z.string().uuid().optional(),
+  // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+  recipe_id: z.string().guid().optional(),
   notes: z.string().max(500).optional(),
 });
 

@@ -24,7 +24,8 @@ export const listFavoritesQuerySchema = z.object({
  * Schema for validating recipe ID parameter
  */
 export const recipeIdParamSchema = z.object({
-  recipeId: z.string().uuid('Invalid recipe ID format'),
+  // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+  recipeId: z.string().guid('Invalid recipe ID format'),
 });
 
 // ============================================================================

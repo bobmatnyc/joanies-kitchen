@@ -175,7 +175,7 @@ export function apiError(
  * // From Zod validation
  * catch (error) {
  *   if (error instanceof ZodError) {
- *     return apiValidationError(error.errors);
+ *     return apiValidationError(error.issues);
  *   }
  * }
  * ```

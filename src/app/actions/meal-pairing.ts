@@ -103,7 +103,7 @@ export async function generateBalancedMeal(request: SimpleMealRequest) {
     if (!validationResult.success) {
       return {
         success: false,
-        error: `Invalid request: ${validationResult.error.errors.map((e) => e.message).join(', ')}`,
+        error: `Invalid request: ${validationResult.error.issues.map((e) => e.message).join(', ')}`,
       };
     }
 
@@ -207,7 +207,7 @@ export async function saveMealPlanFromPairing(mealPlan: MealPlan, name: string, 
     if (!validationResult.success) {
       return {
         success: false,
-        error: `Invalid meal plan data: ${validationResult.error.errors.map((e) => e.message).join(', ')}`,
+        error: `Invalid meal plan data: ${validationResult.error.issues.map((e) => e.message).join(', ')}`,
       };
     }
 

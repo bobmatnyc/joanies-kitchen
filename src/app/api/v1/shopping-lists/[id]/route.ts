@@ -201,7 +201,7 @@ export const PATCH = requireScopes(
             {
               success: false,
               error: 'Invalid request body',
-              details: error.errors,
+              details: error.issues,
             },
             { status: 400 }
           );

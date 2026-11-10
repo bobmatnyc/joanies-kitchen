@@ -18,9 +18,6 @@ updates:
           - "version-update:semver-major"
       # #295: onnxruntime-node is pinned exactly by @huggingface/transformers; bump both together by hand (a lone bump loads 2 copies, fails on Linux and pushes recipes/[slug] over 250MB, see #292).
       - dependency-name: "onnxruntime-node"
-      # firecrawl-js 4.52 imports zod v4's toJSONSchema; our zod lacks it and the build fails (#306). Hold until the zod v4 move.
-      - dependency-name: "@mendable/firecrawl-js"
-        versions: [">=4.52.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
           {
             success: false,
             error: 'Invalid request body',
-            details: error.errors,
+            details: error.issues,
           },
           { status: 400 }
         );
