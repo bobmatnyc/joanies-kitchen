@@ -32,10 +32,13 @@ import type {
 import { mapFirecrawlSchema, parseMarkdown } from './recipe-extraction-parsers';
 import { fetchWithTavilyExtract } from './recipe-extraction-tavily';
 import {
+  challengeChainVerdict,
   type FirecrawlSeen,
   findRecipeSchema,
   firecrawlMiss,
+  hasRecipeContent,
   indexTitleVerdict,
+  isChallengeResponse,
   type LlmVerdict,
   newLlmVerdict,
   rawContentMiss,
@@ -117,8 +120,11 @@ export class RecipeExtractionService {
    * #302: `opts.skipFirecrawl` (daily cron only) skips Tier 1. An index-title
    * verdict from a tier's scraped title returns null at once: no later tier or
    * LLM call runs, and the report carries `no_recipe` plus `verdict`.
+   * #314: a Jina/Tavily challenge page gets no LLM call; when no tier read past
+   * one, the report carries `verdict: 'challenge'` and the result is null.
    * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`,
-   * `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`
+   * `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`,
+   * `src/lib/services/__tests__/cron-non-recipe-rejects-314.test.ts`
    */
   async extractRecipe(
     url: string,
@@ -126,8 +132,11 @@ export class RecipeExtractionService {
     opts: ExtractionOptions = {}
   ): Promise<ScrapedRecipe | null> {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
-    const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) =>
+    const tried: ExtractionTierAttempt[] = []; // #314: the challenge verdict reads every miss
+    const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) => {
+      tried.push({ tier, result });
       report?.attempts.push({ tier, result });
+    };
     // #302: a deterministic index-title verdict ends the chain; Tavily and the LLM do not run.
     const stopOnVerdict = (tier: ExtractionTierAttempt['tier'], title?: string): boolean => {
       const verdict = indexTitleVerdict(title);
@@ -136,6 +145,16 @@ export class RecipeExtractionService {
       if (report) report.verdict = verdict;
       noteUrlVerdict(verdict);
       console.log(`[RecipeExtraction] ${tier} verdict=${verdict} ("${title}"), stopping tiers`);
+      return true;
+    };
+    // #314: a short bot-check response with no parsed recipe line gets no LLM call. The
+    // chain goes on: on 11-11 Tavily read both pages Jina got as Cloudflare challenges.
+    let challenged = 0;
+    const isChallenge = (title: string | undefined, content: string): boolean => {
+      if (!isChallengeResponse(title, content)) return false;
+      if (hasRecipeContent(this.parseMarkdown(content, undefined, url))) return false;
+      challenged++;
+      console.log(`[RecipeExtraction] challenge page ("${title ?? ''}"), no LLM call on it`);
       return true;
     };
     // #302: measurement only; each tier's finally adds its ms, less structuring (llmMs).
@@ -177,7 +196,9 @@ export class RecipeExtractionService {
       try {
         const page: { title?: string } = {};
         const rawContent = await fetchContentWithJina(url, undefined, page);
-        if (rawContent && rawContent.length > 200) {
+        if (rawContent && isChallenge(page.title, rawContent)) {
+          miss('jina', 'empty'); // #314: a challenge page is no verdict on the page
+        } else if (rawContent && rawContent.length > 200) {
           if (stopOnVerdict('jina', page.title)) return null; // #302: before the LLM step
           const llm = newLlmVerdict();
           const parsed = await timeStage('llmMs', () =>
@@ -208,7 +229,9 @@ export class RecipeExtractionService {
       const timer = startTier('tavily');
       try {
         const rawContent = await this.fetchWithTavilyExtract(url);
-        if (rawContent && rawContent.length > 200) {
+        if (rawContent && isChallenge(undefined, rawContent)) {
+          miss('tavily_extract', 'empty'); // #314: no LLM call on a challenge page
+        } else if (rawContent && rawContent.length > 200) {
           const llm = newLlmVerdict();
           const parsed = await timeStage('llmMs', () =>
             this.parseRawContent(rawContent, url, 'tavily_extract', llm)
@@ -232,6 +255,14 @@ export class RecipeExtractionService {
       console.debug('[RecipeExtraction] Tier3/Tavily Extract skipped — TAVILY_API_KEY not set');
     }
 
+    // #314: every tier got only a challenge page: a non-recipe skip, retried next run.
+    const challenge = challengeChainVerdict(tried, challenged);
+    if (challenge) {
+      if (report) report.verdict = challenge;
+      noteUrlVerdict(challenge);
+      console.log(`[RecipeExtraction] verdict=${challenge}, no tier read past it: ${url}`);
+      return null;
+    }
     console.error(`[RecipeExtraction] All available extraction tiers failed for: ${url}`);
     return null;
   }

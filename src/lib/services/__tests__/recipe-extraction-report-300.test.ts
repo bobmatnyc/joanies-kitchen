@@ -220,10 +220,12 @@ describe('extractRecipe report (#300): misses without a reliable verdict stay er
     expect(skip).toBeNull();
   });
 
-  it('C: a Cloudflare interstitial the LLM judges non-recipe → empty on Jina, error', async () => {
+  // #314: a challenge page on every tier that ran is now a `challenge` skip, not an error;
+  // the tier result stays `empty` (no verdict on the page behind it).
+  it('C: a Cloudflare interstitial on Jina → empty on Jina, a challenge skip', async () => {
     const { attempts, skip } = await run({ jina: CHALLENGE, llm: LLM_NO_RECIPE });
     expect(attempts).toEqual([{ tier: 'jina', result: 'empty' }]);
-    expect(skip).toBeNull();
+    expect(skip).toBe('non-recipe page: challenge verdict (read by jina)');
   });
 
   it('D: the LLM returns a title and ingredients but no instructions → recipe_partial, error', async () => {
