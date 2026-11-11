@@ -57,23 +57,25 @@ function indexFrom(content: string, re: RegExp, from: number): number {
 
 /**
  * Offset where the recipe card starts, or -1 when the page shows none.
- * An ingredient-dense run wins, moved back to the earliest card marker
+ * The earliest of: the first plugin or section-heading marker on the page, and
+ * the first ingredient-dense run moved back to the earliest card marker
  * (metadata line, section heading, plugin markup) within `MARKER_LOOKBACK`.
- * With no run, the first plugin or section-heading marker is used.
  */
 export function findRecipeAnchor(content: string): number {
+  // #314: a produce-only card ("2 onions") has no unit run; its heading must
+  // still win over a unit run later on the page (reader comments, related posts).
+  const anchors = [PLUGIN_MARKER, HEADING_MARKER]
+    .map((re) => indexFrom(content, re, 0))
+    .filter((i) => i >= 0);
   const run = firstIngredientRun(content);
   if (run >= 0) {
     const from = Math.max(0, run - MARKER_LOOKBACK);
     const near = [META_MARKER, HEADING_MARKER, PLUGIN_MARKER]
       .map((re) => indexFrom(content, re, from))
       .filter((i) => i >= 0 && i <= run);
-    return Math.min(run, ...near);
+    anchors.push(run, ...near);
   }
-  const markers = [PLUGIN_MARKER, HEADING_MARKER]
-    .map((re) => indexFrom(content, re, 0))
-    .filter((i) => i >= 0);
-  return markers.length ? Math.min(...markers) : -1;
+  return anchors.length ? Math.min(...anchors) : -1;
 }
 
 /**
@@ -93,8 +95,9 @@ export function selectLlmContent(content: string, cap = LLM_CONTENT_CAP): string
   if (anchor < 0) return content.slice(0, cap);
   // Use the whole budget near the end of the page; start on a line boundary.
   let start = Math.min(anchor - LEAD_CHARS, content.length - window);
-  const lineStart = content.lastIndexOf('\n', start) + 1;
-  if (start - lineStart < 200) start = lineStart;
+  // #314: snap forward, never back, so an end-clamped window still reaches the page end.
+  const nextLine = content.indexOf('\n', start - 1) + 1;
+  if (nextLine > 0 && nextLine - start < 200) start = nextLine;
   if (start <= HEAD_CHARS) return content.slice(0, cap);
   return `${content.slice(0, HEAD_CHARS)}${GAP}${content.slice(start, start + window)}`;
 }

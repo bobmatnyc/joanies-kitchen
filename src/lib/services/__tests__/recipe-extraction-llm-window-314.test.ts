@@ -159,4 +159,38 @@ describe('structureWithClaude content window (#314)', () => {
     expect(sent).toContain(card);
     expect(sent.length).toBeLessThanOrEqual(OLD_CAP);
   });
+
+  const PRODUCE_CARD =
+    '## Ingredients\n\n- 2 onions\n- 3 carrots\n\n## Instructions\n\n1. Chop everything.\n';
+  const UNIT_RUN = '- 1 cup flour\n- 2 cups milk\n- 1 tsp salt\n';
+
+  it('sends a card at ~5k on a 40k page', async () => {
+    const page = `Title: soup\n\n${PROSE.repeat(13)}${PRODUCE_CARD}${COMMENT(1).repeat(140)}`;
+    expect(page.indexOf('## Ingredients')).toBeGreaterThan(4000);
+    expect(page.indexOf('## Ingredients')).toBeLessThan(6000);
+    expect(page.length).toBeGreaterThan(40000);
+    const sent = await sentContent(page);
+    expect(sent).toContain(PRODUCE_CARD);
+    expect(sent.length).toBeLessThanOrEqual(OLD_CAP);
+  });
+
+  it('keeps an early produce-only card when a unit-line run appears later', async () => {
+    const page =
+      `Title: soup\n\n${PROSE.repeat(13)}${PRODUCE_CARD}${COMMENT(1).repeat(80)}` +
+      `## A reader's variation\n\n${UNIT_RUN}${COMMENT(2).repeat(40)}`;
+    expect(page.indexOf('Chop everything')).toBeLessThan(OLD_CAP);
+    expect(page.indexOf(UNIT_RUN)).toBeGreaterThan(OLD_CAP * 2);
+    const sent = await sentContent(page);
+    expect(sent).toContain('Chop everything');
+    expect(sent.length).toBeLessThanOrEqual(OLD_CAP);
+  });
+
+  it('sends a card in the last 1k of a long page', async () => {
+    const page = `Title: stew\n\n${PROSE.repeat(80)}${PRODUCE_CARD}`;
+    expect(page.length - page.indexOf('## Ingredients')).toBeLessThan(1000);
+    expect(page.length).toBeGreaterThan(OLD_CAP * 2);
+    const sent = await sentContent(page);
+    expect(sent).toContain(PRODUCE_CARD);
+    expect(sent.length).toBeLessThanOrEqual(OLD_CAP);
+  });
 });
