@@ -114,7 +114,8 @@ export const usageQuerySchema = z.object({
  * API key metadata (safe for display - no full key)
  */
 export const apiKeyMetadataSchema = z.object({
-  id: z.string().uuid(),
+  // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+  id: z.string().guid(),
   keyPrefix: z.string(),
   name: z.string(),
   scopes: z.array(z.string()),
@@ -134,7 +135,8 @@ export const apiKeyMetadataSchema = z.object({
 export const createApiKeyResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
-    id: z.string().uuid(),
+    // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+    id: z.string().guid(),
     apiKey: z.string().describe('⚠️ SHOWN ONLY ONCE - Store securely'),
     keyPrefix: z.string(),
     name: z.string(),
@@ -176,7 +178,8 @@ export const deleteApiKeyResponseSchema = z.object({
 export const usageStatsResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
-    keyId: z.string().uuid(),
+    // #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+    keyId: z.string().guid(),
     totalRequests: z.number().int(),
     period: z.object({
       start: z.date().nullable(),

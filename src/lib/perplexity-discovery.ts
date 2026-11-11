@@ -14,13 +14,20 @@ import { extractFirstJsonArray } from '@/lib/ai/extract-first-json';
 import { withChatCostTracking } from '@/lib/costs';
 import type { WeekInfo } from '@/lib/week-utils';
 
-const perplexity = withChatCostTracking(
-  new OpenAI({
-    apiKey: process.env.PERPLEXITY_API_KEY || '',
-    baseURL: 'https://api.perplexity.ai',
-  }),
-  'perplexity'
-);
+let _perplexity: OpenAI | null = null;
+
+// #308: built on first use. openai v6 throws on an empty apiKey, which at module
+// load failed `next build` without PERPLEXITY_API_KEY; the throw now lands in the caller's catch.
+function getPerplexity(): OpenAI {
+  _perplexity ??= withChatCostTracking(
+    new OpenAI({
+      apiKey: process.env.PERPLEXITY_API_KEY || '',
+      baseURL: 'https://api.perplexity.ai',
+    }),
+    'perplexity'
+  );
+  return _perplexity;
+}
 
 export interface DiscoveredRecipe {
   title: string;
@@ -119,7 +126,7 @@ Return ONLY a JSON array in this EXACT format with NO markdown code blocks:
 
 Return ONLY the JSON array. No markdown, no code blocks, no explanations.`;
 
-    const response = await perplexity.chat.completions.create({
+    const response = await getPerplexity().chat.completions.create({
       model: 'sonar',
       messages: [
         {

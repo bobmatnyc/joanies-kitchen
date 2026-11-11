@@ -78,7 +78,7 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
           {
             success: false,
             error: 'Invalid query parameters',
-            details: error.errors,
+            details: error.issues,
           },
           { status: 400 }
         );
@@ -208,7 +208,7 @@ export const POST = requireScopes([SCOPES.WRITE_MEALS], async (request: NextRequ
           {
             success: false,
             error: 'Invalid request body',
-            details: error.errors,
+            details: error.issues,
           },
           { status: 400 }
         );

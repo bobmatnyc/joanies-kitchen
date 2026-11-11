@@ -29,7 +29,7 @@ export const createRecipeSchema = z.object({
   image_url: z.string().url().optional(), // Deprecated but kept for backwards compatibility
   is_public: z.boolean().default(false),
   is_meal_prep_friendly: z.boolean().default(false),
-  nutrition_info: z.record(z.any()).optional(),
+  nutrition_info: z.record(z.string(), z.any()).optional(),
   video_url: z.string().url().optional(),
   source: z.string().optional(),
   license: z
@@ -66,7 +66,7 @@ export const updateRecipeSchema = z.object({
   image_url: z.string().url().optional(),
   is_public: z.boolean().optional(),
   is_meal_prep_friendly: z.boolean().optional(),
-  nutrition_info: z.record(z.any()).optional(),
+  nutrition_info: z.record(z.string(), z.any()).optional(),
   video_url: z.string().url().optional(),
   source: z.string().optional(),
   license: z
