@@ -73,7 +73,7 @@ export const GET = requireScopes([SCOPES.READ_MEALS], async (request: NextReques
           {
             success: false,
             error: 'Invalid query parameters',
-            details: error.errors,
+            details: error.issues,
           },
           { status: 400 }
         );

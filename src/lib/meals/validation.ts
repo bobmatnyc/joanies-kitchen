@@ -14,7 +14,8 @@ import { z } from 'zod';
 /**
  * UUID validation with custom error message
  */
-export const uuidSchema = z.string().uuid({ message: 'Invalid ID format' });
+// #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+export const uuidSchema = z.string().guid({ message: 'Invalid ID format' });
 
 /**
  * Non-empty string with length constraints
@@ -103,22 +104,31 @@ export const shoppingListStatusEnum = z.enum([
 // ============================================================================
 
 /**
+ * Meal fields with no defaults; the create and update schemas both build on it.
+ */
+const mealFieldsSchema = z.object({
+  name: nonEmptyString('Meal name', 200),
+  description: nonEmptyString('Description', 1000), // Made required
+  meal_type: mealTypeEnum.optional(),
+  occasion: optionalString(200),
+  serves: positiveInt('Number of servings', 1, 100),
+  tags: z.string().optional(), // JSON string of tags
+  is_template: z.boolean(),
+  is_public: z.boolean(),
+  estimated_total_cost: decimalString(10, 2).optional(),
+  estimated_cost_per_serving: decimalString(10, 2).optional(),
+});
+
+/**
  * Schema for creating a new meal
  *
  * Validates user input for meal creation forms.
  * All user_id fields are handled server-side and excluded from input.
  */
-export const createMealSchema = z.object({
-  name: nonEmptyString('Meal name', 200),
-  description: nonEmptyString('Description', 1000), // Made required
-  meal_type: mealTypeEnum.optional(),
-  occasion: optionalString(200),
-  serves: positiveInt('Number of servings', 1, 100).default(4),
-  tags: z.string().optional(), // JSON string of tags
-  is_template: z.boolean().default(false),
-  is_public: z.boolean().default(false),
-  estimated_total_cost: decimalString(10, 2).optional(),
-  estimated_cost_per_serving: decimalString(10, 2).optional(),
+export const createMealSchema = mealFieldsSchema.extend({
+  serves: mealFieldsSchema.shape.serves.default(4),
+  is_template: mealFieldsSchema.shape.is_template.default(false),
+  is_public: mealFieldsSchema.shape.is_public.default(false),
 });
 
 /**
@@ -126,7 +136,9 @@ export const createMealSchema = z.object({
  *
  * All fields are optional (partial update).
  */
-export const updateMealSchema = createMealSchema.partial();
+// #308: built from the default-free fields; zod v4 .partial() keeps .default(), so an
+// update would reset serves/is_template/is_public that the caller did not send.
+export const updateMealSchema = mealFieldsSchema.partial();
 
 /**
  * Schema for meal ID parameter validation

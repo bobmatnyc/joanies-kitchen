@@ -240,7 +240,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           {
             success: false,
             error: 'Invalid request body',
-            details: error.errors,
+            details: error.issues,
           },
           { status: 400 }
         );

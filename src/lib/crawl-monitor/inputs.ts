@@ -32,7 +32,8 @@ const pageSchema = z
   })
   .strict();
 
-const runIdSchema = z.string().uuid();
+// #308: guid() is zod v3's uuid() check; v4 uuid() also requires RFC version/variant bits
+const runIdSchema = z.string().guid();
 
 /**
  * Why: the read API is reachable from the browser through server actions, so
