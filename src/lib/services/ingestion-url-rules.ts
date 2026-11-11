@@ -60,24 +60,34 @@ const AUTHOR_SECTIONS = new Set([
 ]);
 
 /**
- * #314: rules read from the 11-10 and 11-11 cron runs. A path with a
- * `recipe`/`recipes` segment is never matched here, so a recipe nested under
- * one of these sections is still fetched. `/home/<slug>` is not a rule:
- * abrowntable.com/home/almond-apricot-honey-cake redirects to a recipe.
+ * #314: a segment that names a recipe: it starts with `recipe` (`recipe`,
+ * `recipes`, `recipe-ideas`) or ends in `-recipe`, `-recipes` or `-recipe.html`.
+ */
+const RECIPE_SEGMENT = /^recipe|-recipes?(?:\.html?)?$/;
+
+/**
+ * #314: rules read from the 11-10 and 11-11 cron runs. Order matters:
+ * 1. `newsletter` (`/archives/letter-<slug>`) runs first, because the 11-11
+ *    letter slug ends in `-recipe.html` and must still be skipped;
+ * 2. then any recipe-like segment (`RECIPE_SEGMENT`) exempts the path from
+ *    every other rule here, so a recipe nested under one of these sections
+ *    (Delish `/cooking/recipe-ideas/...`) is still fetched.
+ * `/home/<slug>` is not a rule: abrowntable.com/home/almond-apricot-honey-cake
+ * redirects to a recipe.
  */
 function sectionRule(segments: string[]): string | null {
-  if (segments.some((s) => s === 'recipe' || s === 'recipes')) return null;
+  // 101cookbooks.com/archives/letter-<slug>.html: a newsletter letter, not a recipe.
+  for (let i = 1; i < segments.length; i++) {
+    if (segments[i - 1] === 'archives' && segments[i].startsWith('letter-')) return 'newsletter';
+  }
+  // #314: after `newsletter`, any recipe-like segment keeps the path.
+  if (segments.some((s) => RECIPE_SEGMENT.test(s))) return null;
   const [first] = segments;
   if (segments.length === 1 && first === 'home') return 'host-homepage'; // abrowntable.com/home
   if (first === 'cooking') return 'article-section'; // minuterice.com/cooking/<article>
   if (first !== undefined && AUTHOR_SECTIONS.has(first)) return 'author-page';
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    if (seg.includes('chef-in-residence') || seg.startsWith('books-featuring-')) {
-      return 'author-page';
-    }
-    // 101cookbooks.com/archives/letter-<slug>.html: a newsletter letter, not a recipe.
-    if (i > 0 && segments[i - 1] === 'archives' && seg.startsWith('letter-')) return 'newsletter';
+  if (segments.some((s) => s.includes('chef-in-residence') || s.startsWith('books-featuring-'))) {
+    return 'author-page';
   }
   return null;
 }

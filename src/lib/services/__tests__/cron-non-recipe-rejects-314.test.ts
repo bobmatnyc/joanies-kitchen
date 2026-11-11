@@ -84,6 +84,10 @@ describe('nonRecipePathRule (#314)', () => {
     'https://example.com/2020/05/letter-cookies',
     'https://example.com/cv-salad',
     'https://example.com/booksellers-banana-bread',
+    // #314 review: a recipe-like segment exempts the path from every rule but `newsletter`.
+    'https://www.delish.com/cooking/recipe-ideas/a1234/chicken-parm/',
+    'https://example.com/events/holiday-cookie-recipe',
+    'https://example.com/books/the-book/braised-greens-recipe',
     // No generic rule fits these 11-10/11-11 pages; they still reach the tiers.
     'https://bryant-terry.com/4color',
     'https://bryant-terry.com/creative-essentials',
@@ -98,6 +102,17 @@ const CF_BODY = 'Verifying you are human. This may take a few seconds.';
 const PAGE = `# Page\n\n${'Some words about food and cooking. '.repeat(20)}`;
 /** A short recipe page whose comment form mentions a captcha. */
 const SHORT_RECIPE = `# Leek soup\n\n## Ingredients\n- 2 leeks\n- 3 potatoes\n- 1 litre stock\n\n## Instructions\n1. Chop the leeks and potatoes.\n2. Simmer in the stock for thirty minutes.\n\nA soup for cold nights. Solve the captcha to leave a comment.`;
+
+describe('nonRecipePathRule rule order (#314)', () => {
+  it('newsletter matches before the recipe-segment exemption', () => {
+    // The 11-11 letter slug ends in `-recipe.html`, yet it is still a newsletter skip.
+    const letter =
+      'https://www.101cookbooks.com/archives/letter-setting-up-your-first-kitchen-recipe.html';
+    expect(nonRecipePathRule(letter)).toBe('newsletter');
+    // The same `-recipe.html` ending under any other #314 rule keeps the path.
+    expect(nonRecipePathRule('https://example.com/books/letter-cake-recipe.html')).toBeNull();
+  });
+});
 
 describe('isChallengeResponse (#314)', () => {
   it.each([
