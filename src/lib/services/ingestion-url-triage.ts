@@ -132,7 +132,8 @@ export async function triageDiscoveredUrls<T extends { url: string }>(
  * `no_recipe` verdict (a Firecrawl schema read with no Recipe, or an LLM that
  * ran and found nothing; see `recipe-extraction-verdict.ts`) and no tier saw
  * recipe evidence (`recipe_partial`). Tiers that threw or had no verdict
- * (`empty`) are allowed beside a `no_recipe` tier. Returns null — an error —
+ * (`empty`) are allowed beside a `no_recipe` tier. #314: a `challenge` verdict
+ * (every tier got a bot-check page) is also a skip. Returns null — an error —
  * for anything else, including an empty report.
  * The listicle/hub URL detector only labels the reason.
  * Test: `src/lib/services/__tests__/ingestion-url-triage.test.ts`,
@@ -145,7 +146,10 @@ export function nonRecipeSkipReason(
 ): string | null {
   const { attempts } = report;
   if (attempts.some((a) => a.result === 'recipe_partial')) return null;
-  const readBy = attempts.filter((a) => a.result === 'no_recipe').map((a) => a.tier);
+  // #314: a challenge verdict is set only when every attempt was `empty`; each tier read it.
+  const readBy = attempts
+    .filter((a) => a.result === 'no_recipe' || report.verdict === 'challenge')
+    .map((a) => a.tier);
   if (readBy.length === 0) return null;
   const kind = isListiclePage(url, title) ? 'hub/listicle page' : 'non-recipe page';
   // #302: a chain-stopping verdict names itself; no later tier ran to list.

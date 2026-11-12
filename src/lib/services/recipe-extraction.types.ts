@@ -61,13 +61,19 @@ export interface ExtractionTierAttempt {
   result: ExtractionTierResult;
 }
 
-/** #302: a reliable non-recipe verdict that ends the tier chain; logged as `verdict=`. */
-export type ChainVerdict = 'index-title';
+/**
+ * #302: a reliable non-recipe verdict that ends the tier chain; logged as `verdict=`.
+ * #314: `challenge` when every tier that read the page got a bot-check page.
+ */
+export type ChainVerdict = 'index-title' | 'challenge';
 
 /** #300: filled by `extractRecipe` with each configured tier that ran and missed. */
 export interface ExtractionReport {
   attempts: ExtractionTierAttempt[];
-  /** #302: set when a verdict stopped the chain before the remaining tiers ran. */
+  /**
+   * #302: set when a verdict stopped the chain before the remaining tiers ran.
+   * #314: `challenge` is set after the last tier, when every tier got a challenge page.
+   */
   verdict?: ChainVerdict;
 }
 

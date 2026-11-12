@@ -7,7 +7,8 @@
  * What: `nonRecipePathRule` names the rule a URL path breaks, or null;
  * `needsHostDelay` says whether two consecutive URLs share a host;
  * `skipsFirecrawlTier` says which run type skips the Firecrawl tier.
- * Test: `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`
+ * Test: `src/lib/services/__tests__/cron-tier-speedups-302.test.ts`,
+ * `src/lib/services/__tests__/cron-non-recipe-rejects-314.test.ts`
  */
 
 import type { DiscoveryRunType } from './discovery-run-store';
@@ -43,12 +44,63 @@ const LISTICLE_SLUG =
   /^\d{1,3}-(?:[a-z0-9]+-){0,3}(?:best|ways|uses|ideas|things|tips|tricks|hacks|recipes|reasons|foods|dishes|meals|dinners|snacks|desserts)(?:-|$)/;
 
 /**
+ * #314: site sections that hold an author's bio, CV, books, press or events,
+ * read as the first path segment only (bryant-terry.com/c-v, /books on 11-10).
+ */
+const AUTHOR_SECTIONS = new Set([
+  'about',
+  'about-us',
+  'about-me',
+  'bio',
+  'c-v',
+  'cv',
+  'books',
+  'press',
+  'events',
+]);
+
+/**
+ * #314: a segment that names a recipe: it starts with `recipe` (`recipe`,
+ * `recipes`, `recipe-ideas`) or ends in `-recipe`, `-recipes` or `-recipe.html`.
+ */
+const RECIPE_SEGMENT = /^recipe|-recipes?(?:\.html?)?$/;
+
+/**
+ * #314: rules read from the 11-10 and 11-11 cron runs. Order matters:
+ * 1. `newsletter` (`/archives/letter-<slug>`) runs first, because the 11-11
+ *    letter slug ends in `-recipe.html` and must still be skipped;
+ * 2. then any recipe-like segment (`RECIPE_SEGMENT`) exempts the path from
+ *    every other rule here, so a recipe nested under one of these sections
+ *    (Delish `/cooking/recipe-ideas/...`) is still fetched.
+ * `/home/<slug>` is not a rule: abrowntable.com/home/almond-apricot-honey-cake
+ * redirects to a recipe.
+ */
+function sectionRule(segments: string[]): string | null {
+  // 101cookbooks.com/archives/letter-<slug>.html: a newsletter letter, not a recipe.
+  for (let i = 1; i < segments.length; i++) {
+    if (segments[i - 1] === 'archives' && segments[i].startsWith('letter-')) return 'newsletter';
+  }
+  // #314: after `newsletter`, any recipe-like segment keeps the path.
+  if (segments.some((s) => RECIPE_SEGMENT.test(s))) return null;
+  const [first] = segments;
+  if (segments.length === 1 && first === 'home') return 'host-homepage'; // abrowntable.com/home
+  if (first === 'cooking') return 'article-section'; // minuterice.com/cooking/<article>
+  if (first !== undefined && AUTHOR_SECTIONS.has(first)) return 'author-page';
+  if (segments.some((s) => s.includes('chef-in-residence') || s.startsWith('books-featuring-'))) {
+    return 'author-page';
+  }
+  return null;
+}
+
+/**
  * Why: these pages hold no recipe, and each one cost 7-34s of tier calls (#302).
  * What: returns the rule a URL's path breaks (`index-path`, `media-path`,
- * `forum-thread`, `interview`, `roundup`, `listicle`), or null when the path
+ * `forum-thread`, `interview`, `roundup`, `listicle`; #314: `host-homepage`,
+ * `article-section`, `author-page`, `newsletter`), or null when the path
  * may hold a recipe. Reads the path only, lower-cased; an unparseable URL
  * returns null and is left to the fetch.
- * Test: `rejects every #302 non-recipe path`, `passes real recipe paths`
+ * Test: `rejects every #302 non-recipe path`, `passes real recipe paths`,
+ * `rejects every #314 non-recipe path`, `keeps #314 recipe paths`
  */
 export function nonRecipePathRule(url: string): string | null {
   let pathname: string;
@@ -69,7 +121,7 @@ export function nonRecipePathRule(url: string): string | null {
     if (ROUNDUP_SLUG.test(seg)) return 'roundup';
     if (LISTICLE_SLUG.test(seg)) return 'listicle';
   }
-  return null;
+  return sectionRule(segments); // #314
 }
 
 /** Host without a leading `www.`, lower-cased; null for an unparseable URL. */
