@@ -9,7 +9,12 @@
  * Test: `src/lib/services/__tests__/recipe-extraction-report-300.test.ts`
  */
 
-import type { ChainVerdict, ExtractionTierResult, ScrapedRecipe } from './recipe-extraction.types';
+import type {
+  ChainVerdict,
+  ExtractionTierAttempt,
+  ExtractionTierResult,
+  ScrapedRecipe,
+} from './recipe-extraction.types';
 
 /** What the Firecrawl tier saw, filled by `extractWithFirecrawl`. */
 export interface FirecrawlSeen {
@@ -53,6 +58,46 @@ const INTERSTITIAL_PATTERNS: RegExp[] = [
 /** True for a bot-check or challenge page. */
 export function isInterstitialPage(text: string): boolean {
   return INTERSTITIAL_PATTERNS.some((p) => p.test(text));
+}
+
+/** #314: page titles Cloudflare gives its challenge pages. */
+const CHALLENGE_TITLE =
+  /^\s*(?:just a moment(?:\.{3}|…)|attention required!|checking your browser\b)/i;
+
+/**
+ * #314: the longest body read as a challenge page. Challenge bodies are short
+ * (Jina returned 56 chars on 11-11); a recipe page that mentions "captcha" in
+ * its comment form is far longer, so it never matches.
+ */
+export const CHALLENGE_MAX_CHARS = 2000;
+
+/**
+ * Why: on 11-11 two Cloudflare pages reached the LLM path (#314); a challenge
+ * page says nothing about the page behind it.
+ * What: true when a Jina/Tavily response is short (`CHALLENGE_MAX_CHARS`) and
+ * carries a challenge title or an interstitial pattern. The caller also
+ * requires no regex-parsed ingredient or instruction.
+ * Test: `reads a challenge response`, `does not read a recipe page as a challenge`
+ */
+export function isChallengeResponse(title: string | undefined, content: string): boolean {
+  if (content.length > CHALLENGE_MAX_CHARS) return false;
+  return (title !== undefined && CHALLENGE_TITLE.test(title)) || isInterstitialPage(content);
+}
+
+/**
+ * Why: a page every tier saw only as a challenge is not a parse failure, and
+ * its skip row is retried on the next run (#314).
+ * What: `challenge` when at least one tier hit a challenge page and every
+ * other attempt is `empty`; any `no_recipe`, `recipe_partial` or `error`
+ * attempt keeps the #300 reading (an error stays an error).
+ * Test: `challengeChainVerdict`
+ */
+export function challengeChainVerdict(
+  attempts: ExtractionTierAttempt[],
+  challenged: number
+): ChainVerdict | null {
+  if (challenged === 0) return null;
+  return attempts.every((a) => a.result === 'empty') ? 'challenge' : null;
 }
 
 /** True when a schema object's `@type` is "Recipe" or an array containing it. */
