@@ -43,6 +43,7 @@ import {
   newLlmVerdict,
   rawContentMiss,
 } from './recipe-extraction-verdict';
+import { selectLlmContent } from './recipe-llm-window';
 
 // #298: re-exported so callers keep importing it from this module.
 export type { ExtractionReport, ScrapedRecipe } from './recipe-extraction.types';
@@ -366,7 +367,8 @@ export class RecipeExtractionService {
     url: string,
     llm?: LlmVerdict
   ): Promise<ScrapedRecipe | null> {
-    const truncated = content.substring(0, 12000); // Stay within token limits (increased to capture recipe content past nav headers)
+    // #314: same 12,000-char budget, spent on the head plus the recipe card on long pages.
+    const truncated = selectLlmContent(content);
 
     const prompt = `Extract recipe information from the following web page content and return ONLY a JSON object.
 
