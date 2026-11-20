@@ -10,6 +10,12 @@ export const metadata = {
     "Discover chefs who share Joanie's no-waste philosophy — cooking creatively with what you have and wasting nothing.",
 };
 
+// This page reads no cookies/headers, so without this export Next prerenders it at build
+// time and serves that HTML forever. Chef rows also change outside the admin actions (data-fix
+// scripts), which never call revalidatePath. ISR keeps the page static and bounds staleness to
+// one hour; force-dynamic would add a DB query per visit for data that changes rarely.
+export const revalidate = 3600;
+
 export default async function DiscoverChefsPage() {
   const chefsResult = await getAllChefs();
   const chefs = chefsResult.success ? chefsResult.chefs : [];
