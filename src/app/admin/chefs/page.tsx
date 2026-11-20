@@ -1,6 +1,6 @@
 import { ChefHat } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { getAllChefs } from '@/app/actions/chefs';
+import { getAllActiveChefsAdmin } from '@/app/actions/chefs';
 import { AdminChefForm } from '@/components/admin/AdminChefForm';
 import { AdminScrapingPanel } from '@/components/admin/AdminScrapingPanel';
 import { ChefGrid } from '@/components/chef/ChefGrid';
@@ -19,7 +19,7 @@ export default async function AdminChefsPage() {
     redirect('/');
   }
 
-  const chefsResult = await getAllChefs();
+  const chefsResult = await getAllActiveChefsAdmin();
   const chefs = chefsResult.success ? chefsResult.chefs : [];
 
   return (
