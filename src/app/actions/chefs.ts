@@ -3,9 +3,10 @@
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin';
+import { listPublicChefs } from '@/lib/chef-public-list';
 import { deleteChefLockingRecipesFirst, recountChefRecipes } from '@/lib/chef-recipe-count';
 import { db } from '@/lib/db';
-import { chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
+import { type Chef, chefRecipes, chefs, type NewChef } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
 import { getRecipeViewer, recipeVisibilityCondition } from '@/lib/recipe-visibility';
 import { toErrorMessage } from '@/lib/utils/error-handling';
@@ -172,39 +173,63 @@ export async function getChefById(id: string) {
 }
 
 /**
- * Get all active chefs (public)
- * Ordered alphabetically by name
+ * Get active chefs for public lists (Discover Chefs).
+ * Only chefs with at least `MIN_PUBLIC_CHEF_RECIPES` public recipes; ordered by name.
+ * `recipeCount` is the chef's public recipe count. Admin views use `getAllChefsAdmin`.
  */
 export async function getAllChefs() {
+  try {
+    const allChefs = await listPublicChefs();
+    return {
+      success: true,
+      chefs: allChefs.map((chef) => toChefListItem(chef, chef.publicRecipeCount)),
+    };
+  } catch (error) {
+    console.error('Error getting all chefs:', error);
+    return { success: false, error: 'Failed to get chefs', chefs: [] };
+  }
+}
+
+/**
+ * Get every active chef for the admin chef list, with no recipe-count bar.
+ * Admin only. Same shape as `getAllChefs`; `recipeCount` is `chefs.recipe_count`.
+ */
+export async function getAllActiveChefsAdmin() {
+  await requireAdmin();
+
   try {
     const allChefs = await db.query.chefs.findMany({
       where: eq(chefs.is_active, true),
       orderBy: [asc(chefs.name)],
     });
-
-    // Transform snake_case to camelCase for frontend
-    const transformedChefs = allChefs.map((chef) => ({
-      id: chef.id,
-      name: chef.name,
-      slug: chef.slug,
-      displayName: chef.display_name,
-      bio: chef.bio,
-      profileImageUrl: chef.profile_image_url,
-      specialties: chef.specialties,
-      isVerified: chef.is_verified,
-      recipeCount: chef.recipe_count,
-      latitude: chef.latitude,
-      longitude: chef.longitude,
-      locationCity: chef.location_city,
-      locationState: chef.location_state,
-      locationCountry: chef.location_country,
-    }));
-
-    return { success: true, chefs: transformedChefs };
+    return {
+      success: true,
+      chefs: allChefs.map((chef) => toChefListItem(chef, chef.recipe_count)),
+    };
   } catch (error) {
-    console.error('Error getting all chefs:', error);
+    console.error('Error getting active chefs (admin):', error);
     return { success: false, error: 'Failed to get chefs', chefs: [] };
   }
+}
+
+/** Transforms a chef row to the camelCase list shape the chef grid and map read. */
+function toChefListItem(chef: Chef, recipeCount: number | null) {
+  return {
+    id: chef.id,
+    name: chef.name,
+    slug: chef.slug,
+    displayName: chef.display_name,
+    bio: chef.bio,
+    profileImageUrl: chef.profile_image_url,
+    specialties: chef.specialties,
+    isVerified: chef.is_verified,
+    recipeCount,
+    latitude: chef.latitude,
+    longitude: chef.longitude,
+    locationCity: chef.location_city,
+    locationState: chef.location_state,
+    locationCountry: chef.location_country,
+  };
 }
 
 /**
@@ -333,24 +358,22 @@ export async function unlinkRecipeFromChef(params: { chef_id: string; recipeId: 
 }
 
 /**
- * Search chefs by name or specialty
+ * Search public chefs by name, bio or specialty.
+ * Same bar as `getAllChefs`: only active chefs with >= 3 public recipes.
  */
 export async function searchChefs(query: string) {
   try {
-    const results = await db.query.chefs.findMany({
-      where: and(
-        eq(chefs.is_active, true),
-        sql`(
-          ${chefs.name} ILIKE ${`%${query}%`} OR
-          ${chefs.display_name} ILIKE ${`%${query}%`} OR
-          ${chefs.bio} ILIKE ${`%${query}%`} OR
-          EXISTS (
-            SELECT 1 FROM unnest(${chefs.specialties}) AS specialty
-            WHERE specialty ILIKE ${`%${query}%`}
-          )
-        )`
-      ),
-      orderBy: [desc(chefs.recipe_count)],
+    const results = await listPublicChefs({
+      match: sql`(
+        ${chefs.name} ILIKE ${`%${query}%`} OR
+        ${chefs.display_name} ILIKE ${`%${query}%`} OR
+        ${chefs.bio} ILIKE ${`%${query}%`} OR
+        EXISTS (
+          SELECT 1 FROM unnest(${chefs.specialties}) AS specialty
+          WHERE specialty ILIKE ${`%${query}%`}
+        )
+      )`,
+      byCount: true,
       limit: 20,
     });
 

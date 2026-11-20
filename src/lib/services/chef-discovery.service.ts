@@ -4,13 +4,15 @@
  * Auto-creates or retrieves chef profiles from the database given a name and website.
  * When creating a new chef:
  *   1. Scrapes the chef's "About" page with Jina Reader
- *   2. Summarises the bio with Claude Haiku (if ANTHROPIC_API_KEY is set)
+ *   2. Summarises the bio with Claude Haiku (if ANTHROPIC_API_KEY is set);
+ *      without a summary it keeps only clean prose, never raw page text
  *   3. Inserts the chef record and returns the chef.id
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { eq } from 'drizzle-orm';
 import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
+import { cleanScrapedBio } from '@/lib/chef-bio-cleaner';
 import { assertWithinDailyCap, trackLlmResponse } from '@/lib/costs';
 import { db } from '@/lib/db';
 import { chefs } from '@/lib/db/chef-schema';
@@ -115,7 +117,9 @@ export class ChefDiscoveryService {
   /**
    * Try to generate a chef bio by:
    *   1. Fetching the website's About page with Jina Reader
-   *   2. Summarising with Claude Haiku
+   *   2. Summarising with Claude Haiku, then cleaning the summary
+   *   3. Otherwise keeping only the page's prose (`cleanScrapedBio`)
+   * Returns undefined when no clean prose bio is found.
    */
   private async generateBio(chefName: string, website: string): Promise<string | undefined> {
     const aboutUrl = this.buildAboutUrl(website);
@@ -137,15 +141,17 @@ export class ChefDiscoveryService {
 
     if (this.anthropicApiKey) {
       try {
-        return await this.summariseBio(chefName, pageContent);
+        const summary = cleanScrapedBio(await this.summariseBio(chefName, pageContent));
+        if (summary) return summary;
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[ChefDiscovery] Claude bio summarisation failed: ${msg}`);
       }
     }
 
-    // If no Claude, return a truncated excerpt of the scraped content
-    return pageContent.substring(0, 500).trim();
+    // No usable summary: keep only the page's prose. Raw page text is never
+    // stored, because it is mostly navigation, social links and promos.
+    return cleanScrapedBio(pageContent) || undefined;
   }
 
   /**
@@ -183,7 +189,7 @@ ${pageContent.substring(0, 3000)}`,
 
     const bio = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
 
-    return bio || `${chefName} is a chef and recipe developer.`;
+    return bio;
   }
 }
 
