@@ -72,6 +72,18 @@ describe('cleanScrapedBio', () => {
     expect(cleanScrapedBio(bio)).toBe(bio);
   });
 
+  // Bios a prod dry-run of the earlier cleaner left as site notices.
+  it.each([
+    'Something went wrong. Wait a moment and try again. Try refreshing the page, or try again later.',
+    'If you think you have been blocked in error, click the link below to contact us.',
+    'This website is AudioEye enabled and is being optimized for accessibility. To open the AudioEye Toolbar, press "shift + =". Some assistive technologies may require the use of a passthrough function before this keystroke. For more information, activate the button labeled "Explore your accessibility options".',
+    'You can use the controls below to opt-out of sharing, processing or the sale of your personal information for targeted advertising, relevant to your interests.',
+    'We use Plausible, an ethical analytics tool that doesn\u2019t use or track any of your personal data, so no cookies. Learn more here!',
+  ])('cleans a site notice to empty: %s', (notice) => {
+    expect(cleanScrapedBio(notice)).toBe('');
+    expect(bioNeedsRepair(notice)).toBe(true);
+  });
+
   it('cuts long prose at a sentence boundary within the length bound', () => {
     const sentence = 'She cooks seasonal vegetables with care and wastes nothing at all. ';
     const out = cleanScrapedBio(sentence.repeat(40));

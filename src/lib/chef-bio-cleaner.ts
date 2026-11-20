@@ -26,6 +26,9 @@ const SOCIAL =
 const PROMO =
   /\b(subscribe|newsletter|sign ?up|log ?in|sign ?in|my account|cart|checkout|shop now|buy now|free (e-?book|guide|download)|download|cookie (policy|settings|preferences)|we use cookies|privacy policy|terms (of|&) (use|service)|all rights reserved|copyright|skip to (main )?content|jump to recipe|follow (me|us)|join (my|our) (newsletter|community|mailing list)|get (the|my|our) (latest|free)|affiliate|disclosure|as an amazon associate)\b|©/i;
 // A domain is a dotted token with no space after the dot, so sentence ends never match.
+// Error, bot-block, consent, analytics and accessibility-widget notices that scraping captures as prose.
+const BOILERPLATE =
+  /\b(something went wrong|try again|refresh(ing)? the page|blocked|contact us|click the (link|button)|learn more|opt[- ]out|personal (information|data)|targeted advertising|we value your privacy|analytics|tracking|audioeye|accessibility (options|toolbar)|assistive technolog(y|ies)|keystroke|javascript|enable cookies|your browser)\b/i;
 const URL = /https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|de|co\.uk)(\/|\b)/i;
 const SENTENCE_END = /[.!?]["')\]]?$/;
 
@@ -66,12 +69,13 @@ function isProseLine(raw: string): boolean {
 }
 
 /**
- * True when one sentence is chrome: a promo or call to action, a URL, or a
+ * True when one sentence is chrome: a promo or call to action, a site notice
+ * (error, block, consent, analytics, accessibility widget), a URL, or a
  * short social-network label ("Follow along on Instagram!"). A full sentence
  * that merely names a network is prose and is kept.
  */
 function isChromeSentence(sentence: string): boolean {
-  if (PROMO.test(sentence) || URL.test(sentence)) return true;
+  if (PROMO.test(sentence) || BOILERPLATE.test(sentence) || URL.test(sentence)) return true;
   return SOCIAL.test(sentence) && wordCount(sentence) < SOCIAL_FRAGMENT_WORDS;
 }
 
