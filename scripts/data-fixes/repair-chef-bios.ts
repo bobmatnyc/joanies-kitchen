@@ -53,11 +53,18 @@ async function main() {
 
     await client.query('BEGIN');
     try {
+      // Each UPDATE matches only if the bio is still the one listed above, so a
+      // bio edited since the read is left alone and the whole run rolls back.
+      let updated = 0;
       for (const f of fixes) {
-        await client.query('UPDATE chefs SET bio = $1, updated_at = now() WHERE id = $2', [
-          f.newBio || null,
-          f.id,
-        ]);
+        const res = await client.query(
+          'UPDATE chefs SET bio = $1, updated_at = now() WHERE id = $2 AND bio = $3',
+          [f.newBio || null, f.id, f.bio]
+        );
+        updated += res.rowCount ?? 0;
+      }
+      if (updated !== fixes.length) {
+        throw new Error(`expected ${fixes.length} rows updated, got ${updated}; rolled back`);
       }
       await client.query('COMMIT');
     } catch (error) {

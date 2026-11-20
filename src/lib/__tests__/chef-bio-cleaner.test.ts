@@ -43,6 +43,35 @@ describe('cleanScrapedBio', () => {
     );
   });
 
+  it('keeps a one-paragraph bio that names social networks', () => {
+    const maria =
+      'Maria is a chef from Oaxaca who cooks with heirloom corn and wild greens. ' +
+      'Her videos reach over a million people on Instagram and YouTube every month. ' +
+      'She is the author of three books.';
+    expect(cleanScrapedBio(maria)).toBe(maria);
+    expect(bioNeedsRepair(maria)).toBe(false);
+  });
+
+  it('keeps a short single-sentence bio', () => {
+    const tom = 'Chef Tom runs a farm-to-table kitchen in Vermont.';
+    expect(cleanScrapedBio(tom)).toBe(tom);
+    expect(bioNeedsRepair(tom)).toBe(false);
+  });
+
+  it('drops only the chrome sentences inside a prose paragraph', () => {
+    expect(
+      cleanScrapedBio(
+        'Dr. Lee cooks Korean food at home in Ohio. Follow me on Instagram! ' +
+          'Sign up for my newsletter to get new recipes. Visit www.example.com today.'
+      )
+    ).toBe('Dr. Lee cooks Korean food at home in Ohio.');
+  });
+
+  it('does not treat ordinary prose as a URL', () => {
+    const bio = 'She trained in Mexico. Co-owner of a small bakery, she also teaches classes.';
+    expect(cleanScrapedBio(bio)).toBe(bio);
+  });
+
   it('cuts long prose at a sentence boundary within the length bound', () => {
     const sentence = 'She cooks seasonal vegetables with care and wastes nothing at all. ';
     const out = cleanScrapedBio(sentence.repeat(40));

@@ -358,24 +358,22 @@ export async function unlinkRecipeFromChef(params: { chef_id: string; recipeId: 
 }
 
 /**
- * Search chefs by name or specialty
+ * Search public chefs by name, bio or specialty.
+ * Same bar as `getAllChefs`: only active chefs with >= 3 public recipes.
  */
 export async function searchChefs(query: string) {
   try {
-    const results = await db.query.chefs.findMany({
-      where: and(
-        eq(chefs.is_active, true),
-        sql`(
-          ${chefs.name} ILIKE ${`%${query}%`} OR
-          ${chefs.display_name} ILIKE ${`%${query}%`} OR
-          ${chefs.bio} ILIKE ${`%${query}%`} OR
-          EXISTS (
-            SELECT 1 FROM unnest(${chefs.specialties}) AS specialty
-            WHERE specialty ILIKE ${`%${query}%`}
-          )
-        )`
-      ),
-      orderBy: [desc(chefs.recipe_count)],
+    const results = await listPublicChefs({
+      match: sql`(
+        ${chefs.name} ILIKE ${`%${query}%`} OR
+        ${chefs.display_name} ILIKE ${`%${query}%`} OR
+        ${chefs.bio} ILIKE ${`%${query}%`} OR
+        EXISTS (
+          SELECT 1 FROM unnest(${chefs.specialties}) AS specialty
+          WHERE specialty ILIKE ${`%${query}%`}
+        )
+      )`,
+      byCount: true,
       limit: 20,
     });
 

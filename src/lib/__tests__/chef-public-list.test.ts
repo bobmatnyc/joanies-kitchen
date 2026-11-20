@@ -14,8 +14,14 @@ vi.mock('@/lib/db', () => ({
     return state.db;
   },
 }));
+vi.mock('@/lib/admin', () => ({
+  requireAdmin: vi.fn(async () => undefined),
+  checkAdminAccess: vi.fn(async () => ({ userId: null, isAdmin: false })),
+}));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db';
+import { searchChefs } from '@/app/actions/chefs';
 import { listPublicChefs, MIN_PUBLIC_CHEF_RECIPES } from '@/lib/chef-public-list';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -101,5 +107,12 @@ describe('listPublicChefs', () => {
   it('excludes inactive chefs', async () => {
     await seedChef('inactive', [PUB, PUB, PUB], { active: false });
     expect(await listPublicChefs()).toEqual([]);
+  });
+
+  it('searchChefs applies the same bar', async () => {
+    await seedChef('pasta-three', [PUB, PUB, PUB]);
+    await seedChef('pasta-two', [PUB, PUB]);
+    const result = await searchChefs('pasta');
+    expect(result.chefs.map((c) => c.slug)).toEqual(['pasta-three']);
   });
 });

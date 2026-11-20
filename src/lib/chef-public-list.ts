@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, type SQL, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chefRecipes, chefs } from '@/lib/db/chef-schema';
 import { recipes } from '@/lib/db/schema';
@@ -15,9 +15,14 @@ export const MIN_PUBLIC_CHEF_RECIPES = 3;
  * `publicRecipe` (the site's one "public recipe" rule), ordered by name. Each
  * row carries `publicRecipeCount`. Profile pages (`getChefBySlug`) do not use
  * this, so a chef below the bar keeps a reachable profile URL.
+ * Options: `match` adds a condition on `chefs` (chef search); `byCount` orders
+ * by public recipe count, highest first; `limit` caps the rows.
  * Test: `src/lib/__tests__/chef-public-list.test.ts`
  */
-export async function listPublicChefs(minRecipes = MIN_PUBLIC_CHEF_RECIPES) {
+export async function listPublicChefs(
+  options: { minRecipes?: number; match?: SQL; byCount?: boolean; limit?: number } = {}
+) {
+  const { minRecipes = MIN_PUBLIC_CHEF_RECIPES, match, byCount = false, limit } = options;
   const counts = db
     .select({
       chefId: chefRecipes.chef_id,
@@ -29,12 +34,13 @@ export async function listPublicChefs(minRecipes = MIN_PUBLIC_CHEF_RECIPES) {
     .groupBy(chefRecipes.chef_id)
     .as('public_counts');
 
-  const rows = await db
+  const query = db
     .select({ chef: chefs, publicRecipeCount: counts.n })
     .from(chefs)
     .innerJoin(counts, eq(counts.chefId, chefs.id))
-    .where(and(eq(chefs.is_active, true), gte(counts.n, minRecipes)))
-    .orderBy(asc(chefs.name));
+    .where(and(eq(chefs.is_active, true), gte(counts.n, minRecipes), match))
+    .orderBy(...(byCount ? [desc(counts.n), asc(chefs.name)] : [asc(chefs.name)]));
+  const rows = limit === undefined ? await query : await query.limit(limit);
 
   return rows.map((r) => ({ ...r.chef, publicRecipeCount: Number(r.publicRecipeCount) }));
 }
