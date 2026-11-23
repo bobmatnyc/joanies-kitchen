@@ -19,6 +19,7 @@ import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 import {
   type ExtractionReport,
   RecipeExtractionService,
+  shortReason,
 } from '@/lib/services/recipe-extraction.service';
 
 const URL_ = 'https://www.example-kitchen.com/recipes/soup';
@@ -85,5 +86,61 @@ describe('#318 all-tiers-failed log line', () => {
     expect(line).not.toContain(SECRET);
     expect(line).not.toContain(PAGE_MARKER);
     expect(line!.length).toBeLessThan(300);
+  });
+});
+
+describe('#318 shortReason', () => {
+  const throwingToString = {
+    toString(): string {
+      throw new Error('boom');
+    },
+  };
+  const badMessage = Object.assign(new Error('x'), { message: 42 as unknown as string });
+
+  it.each([
+    ['a null-prototype object', Object.create(null)],
+    ['an object whose toString throws', throwingToString],
+    ['an Error with a non-string message', badMessage],
+  ])('returns a placeholder, not a throw, for %s', (_name, reason) => {
+    expect(shortReason(reason)).toBe('<unprintable>');
+  });
+
+  it.each([
+    ['Bearer', 'auth failed: Bearer abc123SECRETxyz', 'abc123SECRETxyz', 'Bearer <token>'],
+    ['JWT', 'bad jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl', 'eyJhbGci', '<jwt>'],
+    ['token=', 'denied token=s3cr3tvalue&x=1', 's3cr3tvalue', 'token=<redacted>'],
+    ['apikey=', 'denied apikey=s3cr3tvalue', 's3cr3tvalue', 'apikey=<redacted>'],
+  ])('masks a %s value', (_name, input, secret, mask) => {
+    const out = shortReason(input);
+    expect(out).not.toContain(secret);
+    expect(out).toContain(mask);
+  });
+
+  it('masks before truncating, so a cut secret never leaks', () => {
+    const out = shortReason(`${'a'.repeat(50)} Bearer ${'S'.repeat(40)}`);
+    expect(out).not.toMatch(/S{3}/);
+  });
+
+  it('logs a line, not a throw, when a tier fails with an unprintable reason', async () => {
+    vi.stubEnv('FIRECRAWL_API_KEY', 'fc-key');
+    vi.stubEnv('JINA_API_KEY', '');
+    vi.stubEnv('TAVILY_API_KEY', '');
+    vi.stubEnv('OPENROUTER_API_KEY', '');
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => {
+      errors.push(a.map(String).join(' '));
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const svc = new RecipeExtractionService();
+    (svc as unknown as Record<string, unknown>)._firecrawl = {
+      scrape: async () => {
+        throw Object.create(null);
+      },
+    };
+    await expect(svc.extractRecipe(URL_)).resolves.toBeNull();
+    const line = errors.find((e) => e.includes('All available extraction tiers failed'));
+    expect(line).toContain('tiers=[firecrawl:error(<unprintable>)]');
   });
 });

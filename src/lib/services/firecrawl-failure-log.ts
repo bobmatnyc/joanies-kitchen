@@ -32,9 +32,22 @@ function clip(text: string, apiKey?: string): string {
   return out.length > CAUSE_MAX ? `${out.slice(0, CAUSE_MAX)}…` : out;
 }
 
+/**
+ * #318: an error's text that never throws. A null-prototype object or a
+ * throwing toString yields `<unprintable>`; it runs inside catch blocks.
+ */
+export function errorText(error: unknown): string {
+  try {
+    const msg = error instanceof Error ? error.message : String(error);
+    return typeof msg === 'string' ? msg : '<unprintable>';
+  } catch {
+    return '<unprintable>';
+  }
+}
+
 /** Formats the warn line for a failed Firecrawl tier. */
 export function formatFirecrawlFailure(url: string, error: unknown, apiKey?: string): string {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = errorText(error); // #318: never throw inside the tier's catch
   const e = (error ?? {}) as { statusCode?: unknown; status?: unknown; code?: unknown };
   const status = e.statusCode ?? e.status;
   const parts = [`url=${safeUrl(url)}`];

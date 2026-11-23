@@ -19,7 +19,7 @@ import { fetchContentWithJina } from '@/lib/ai/jina-scraper';
 import { assertWithinDailyCap, trackCost, withChatCostTracking } from '@/lib/costs';
 import { pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
-import { FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
+import { errorText, FirecrawlHttpError, formatFirecrawlFailure } from './firecrawl-failure-log';
 import { endTier, noteUrlVerdict, startTier, timeStage } from './ingestion-timing';
 import type {
   ExtractionOptions,
@@ -222,7 +222,7 @@ export class RecipeExtractionService {
         console.debug('[RecipeExtraction] Tier2/Jina returned insufficient data, falling through');
       } catch (error) {
         miss('jina', 'error', error);
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = errorText(error); // #318: never throw inside the catch
         console.warn(`[RecipeExtraction] Tier2/Jina failed: ${msg}`);
       } finally {
         endTier(timer);
@@ -253,7 +253,7 @@ export class RecipeExtractionService {
         }
       } catch (error) {
         miss('tavily_extract', 'error', error);
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = errorText(error); // #318: never throw inside the catch
         console.warn(`[RecipeExtraction] Tier3/Tavily Extract failed: ${msg}`);
       } finally {
         endTier(timer);
@@ -508,15 +508,23 @@ export function getRecipeExtractionService(): RecipeExtractionService {
 }
 
 /**
- * #318: an error reason short and safe enough for a log line: one line, URLs
- * and key-like tokens masked, at most 60 characters. Never page content.
+ * #318: an error reason short and safe enough for a log line: one line, URLs,
+ * bearer tokens, JWTs, `key=`/`token=`-style values and key-like tokens masked
+ * before truncation to 60 characters. Never page content. Never throws: it runs
+ * inside the tiers' catch blocks, so an unprintable reason yields a placeholder.
  */
 export function shortReason(reason: unknown): string {
-  const raw = reason instanceof Error ? reason.message : String(reason);
-  const clean = raw
-    .replace(/https?:\/\/\S+/g, '<url>')
-    .replace(/\b(?:sk|fc|jina|tvly|or)[-_][A-Za-z0-9_-]{6,}/g, '<key>')
-    .replace(/[()\s]+/g, ' ')
-    .trim();
-  return clean.length > 60 ? `${clean.slice(0, 57)}...` : clean;
+  try {
+    const clean = errorText(reason)
+      .replace(/https?:\/\/\S+/g, '<url>')
+      .replace(/\bBearer\s+\S+/gi, 'Bearer <token>')
+      .replace(/\beyJ[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*/g, '<jwt>')
+      .replace(/\b(api[-_]?key|key|token|secret)=[^\s&]+/gi, '$1=<redacted>')
+      .replace(/\b(?:sk|fc|jina|tvly|or)[-_][A-Za-z0-9_-]{6,}/g, '<key>')
+      .replace(/[()\s]+/g, ' ')
+      .trim();
+    return clean.length > 60 ? `${clean.slice(0, 57)}...` : clean;
+  } catch {
+    return '<unprintable>';
+  }
 }
