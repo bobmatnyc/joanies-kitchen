@@ -44,12 +44,12 @@ const LISTICLE_SLUG =
   /^\d{1,3}-(?:[a-z0-9]+-){0,3}(?:best|ways|uses|ideas|things|tips|tricks|hacks|recipes|reasons|foods|dishes|meals|dinners|snacks|desserts)(?:-|$)/;
 
 /**
- * #315 follow-up: a root slug naming a plural roundup (11-15 run:
- * omnivorescookbook.com/top-sichuan-recipes, minimalistbaker.com/earth-day-recipes-tips-...).
- * Ends in `-recipes`, or has `-recipes-` followed by a roundup cue word.
- * Singular `-recipe` slugs are recipes and do not match.
+ * #315 follow-up: a root slug ending in plural `-recipes` names a roundup
+ * (11-15 run: omnivorescookbook.com/top-sichuan-recipes). Singular `-recipe`
+ * does not match. No `-recipes-<cue>` branch: zerowastemelrose.org/food-waste-recipes-tips
+ * holds a real recipe.
  */
-const HUB_SLUG = /-recipes$|-recipes-(?:tips|ideas|guide|list|collection)(?:-|$)/;
+const HUB_SLUG = /-recipes$/;
 
 /**
  * #314: site sections that hold an author's bio, CV, books, press or events,
