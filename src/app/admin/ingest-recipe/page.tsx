@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
+  type ExistingRecipe,
   getChefsList,
   ingestRecipeFromUrl,
   saveIngestedRecipe,
@@ -31,6 +33,8 @@ export default function IngestRecipePage() {
   const [parsedRecipe, setParsedRecipe] = useState<IngestedRecipe | null>(null);
   const [chefsList, setChefsList] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [savedRecipeId, setSavedRecipeId] = useState<string>('');
+  // #142: the stored recipe a known URL answered; nothing was re-extracted.
+  const [existingRecipe, setExistingRecipe] = useState<ExistingRecipe | null>(null);
 
   // Editable form fields
   const [editableName, setEditableName] = useState('');
@@ -66,10 +70,19 @@ export default function IngestRecipePage() {
     }
 
     setStep('fetching');
+    setExistingRecipe(null);
     toast.loading('Fetching recipe from URL...');
 
     const result = await ingestRecipeFromUrl(url);
     toast.dismiss();
+
+    if (result.existing) {
+      // #142: already stored; link to it instead of re-extracting.
+      setExistingRecipe(result.existing);
+      setStep('input');
+      toast.info('This recipe is already in the collection');
+      return;
+    }
 
     if (!result.success || !result.data) {
       toast.error(result.error || 'Failed to fetch recipe');
@@ -208,6 +221,18 @@ export default function IngestRecipePage() {
               Enter a URL to a recipe page (e.g., AllRecipes, Food Network, Epicurious)
             </p>
           </div>
+          {existingRecipe && (
+            <div
+              role="status"
+              className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+              {/* #142: a known URL shows the stored recipe instead of a new extraction. */}
+              Already in the collection:{' '}
+              <Link href={existingRecipe.url} className="font-medium underline">
+                {existingRecipe.name}
+              </Link>
+            </div>
+          )}
           <Button onClick={handleFetchRecipe} className="w-full">
             Fetch Recipe
           </Button>
