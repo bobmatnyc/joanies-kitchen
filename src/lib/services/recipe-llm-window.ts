@@ -85,9 +85,7 @@ export function findRecipeAnchor(content: string, cap = LLM_CONTENT_CAP): number
   const anchors = [PLUGIN_MARKER, HEADING_MARKER]
     .map((re) => indexFrom(content, re, 0))
     .filter(
-      (i, k) =>
-        i >= 0 &&
-        (run < 0 || run - i < reach || (k === 1 && headsCardList(content, i)))
+      (i, k) => i >= 0 && (run < 0 || run - i < reach || (k === 1 && headsCardList(content, i)))
     );
   if (run >= 0) {
     const from = Math.max(0, run - MARKER_LOOKBACK);
