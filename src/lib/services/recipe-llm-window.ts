@@ -55,19 +55,40 @@ function indexFrom(content: string, re: RegExp, from: number): number {
   return m ? from + m.index : -1;
 }
 
+// A quantity-led list item ("- 2 onions"), the body of a produce-only card.
+const QTY_ITEM = /^[ \t]*[*•-][ \t]+(?:\d|[½¼¾⅓⅔⅛])/;
+
+/** True when the heading at `at` is followed by quantity-led list items, as a card is. */
+function headsCardList(content: string, at: number): boolean {
+  const lines = content
+    .slice(at)
+    .split('\n')
+    .slice(1)
+    .filter((l) => l.trim())
+    .slice(0, RUN_SPAN);
+  return lines.filter((l) => QTY_ITEM.test(l)).length >= 2;
+}
+
 /**
  * Offset where the recipe card starts, or -1 when the page shows none.
- * The earliest of: the first plugin or section-heading marker on the page, and
- * the first ingredient-dense run moved back to the earliest card marker
+ * The first ingredient-dense run, moved back to the earliest card marker
  * (metadata line, section heading, plugin markup) within `MARKER_LOOKBACK`.
+ * An earlier plugin or heading marker wins only when no run exists, when the
+ * run falls inside the window that marker would produce, or (headings only)
+ * when quantity-led list items follow it, as in a produce-only card.
  */
-export function findRecipeAnchor(content: string): number {
-  // #314: a produce-only card ("2 onions") has no unit run; its heading must
-  // still win over a unit run later on the page (reader comments, related posts).
+export function findRecipeAnchor(content: string, cap = LLM_CONTENT_CAP): number {
+  const run = firstIngredientRun(content);
+  // #317: an early bare "Ingredients"/"Method" line (nav, intro) beat a real card
+  // far down the page; an early marker must now be card-like or reach the run.
+  const reach = cap - HEAD_CHARS - GAP.length - LEAD_CHARS;
   const anchors = [PLUGIN_MARKER, HEADING_MARKER]
     .map((re) => indexFrom(content, re, 0))
-    .filter((i) => i >= 0);
-  const run = firstIngredientRun(content);
+    .filter(
+      (i, k) =>
+        i >= 0 &&
+        (run < 0 || run - i < reach || (k === 1 && headsCardList(content, i)))
+    );
   if (run >= 0) {
     const from = Math.max(0, run - MARKER_LOOKBACK);
     const near = [META_MARKER, HEADING_MARKER, PLUGIN_MARKER]
@@ -90,7 +111,7 @@ export function findRecipeAnchor(content: string): number {
  */
 export function selectLlmContent(content: string, cap = LLM_CONTENT_CAP): string {
   if (content.length <= cap) return content;
-  const anchor = findRecipeAnchor(content);
+  const anchor = findRecipeAnchor(content, cap);
   const window = cap - HEAD_CHARS - GAP.length;
   if (anchor < 0) return content.slice(0, cap);
   // Use the whole budget near the end of the page; start on a line boundary.
