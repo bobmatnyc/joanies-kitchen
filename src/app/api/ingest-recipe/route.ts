@@ -36,6 +36,7 @@ import { refusalFor, refusalResponse } from '@/lib/rate-limit/refusal';
 import {
   ingestSingleRecipe,
   isAdminUser,
+  knownRecipeResult,
   type RecipeIngestionResult,
 } from '@/lib/recipes/ingest-single-recipe';
 import { toErrorMessage } from '@/lib/utils/error-handling';
@@ -70,6 +71,7 @@ export const POST = requireScopes(
     if (!auth.userId || !(await isAdminUser(auth.userId))) {
       return apiForbidden('Admin access required');
     }
+    const userId = auth.userId; // #142: narrowed to string by the guard above
     // Each URL is a Firecrawl scrape + LLM parse, so every URL counts once against the
     // caller's bucket: keyed by API key (one key cannot spend the whole cap), else by user.
     const limiterKey = auth.apiKeyId ? `apikey:${auth.apiKeyId}` : `user:${auth.userId}`;
@@ -104,10 +106,14 @@ export const POST = requireScopes(
           );
         }
 
-        const refusal = await urlRefusal();
-        if (refusal) return refusalResponse(refusal);
+        // #142: a URL already stored answers before any rate-limit count, fetch or LLM call.
+        const known = await knownRecipeResult(body.url, userId);
+        if (!known) {
+          const refusal = await urlRefusal();
+          if (refusal) return refusalResponse(refusal);
+        }
 
-        const result = await ingestSingleRecipe(body.url, auth.userId!);
+        const result = known ?? (await ingestSingleRecipe(body.url, userId));
         if (isPendingDeletionRefusal(result)) {
           // #220: the account has a pending deletion; nothing was written.
           return NextResponse.json(
@@ -122,6 +128,13 @@ export const POST = requireScopes(
           );
         }
 
+        if (result.success && result.alreadyExists) {
+          // #142: the URL is already stored; answer the existing recipe, nothing was created.
+          return NextResponse.json(
+            { success: true, alreadyExists: true, recipe: result.recipe },
+            { status: 200 }
+          );
+        }
         if (result.success) {
           return NextResponse.json(
             {
@@ -174,6 +187,13 @@ export const POST = requireScopes(
             continue;
           }
 
+          // #142: a stored URL answers its recipe; no rate-limit count, fetch or pause.
+          const known = await knownRecipeResult(url, userId);
+          if (known) {
+            results.push(known);
+            continue;
+          }
+
           const refusal = await urlRefusal();
           if (refusal) {
             // Nothing ran yet: answer 429/503 like a single request; else stop and report.
@@ -187,7 +207,7 @@ export const POST = requireScopes(
             break;
           }
 
-          const result = await ingestSingleRecipe(url, auth.userId!);
+          const result = await ingestSingleRecipe(url, userId);
           // #220: every later URL would be refused too. Nothing ran yet: answer 403 like a
           // single request; else stop and report (the `break` below).
           if (isPendingDeletionRefusal(result) && results.length === 0) {
@@ -206,6 +226,7 @@ export const POST = requireScopes(
         // Calculate statistics
         const successCount = results.filter((r) => r.success).length;
         const failedCount = results.filter((r) => !r.success).length;
+        const existingCount = results.filter((r) => r.alreadyExists).length; // #142
 
         return NextResponse.json(
           {
@@ -214,6 +235,7 @@ export const POST = requireScopes(
               total: results.length,
               success: successCount,
               failed: failedCount,
+              alreadyExists: existingCount, // #142
               successRate: `${((successCount / results.length) * 100).toFixed(1)}%`,
             },
             results: results.map((r) => ({
@@ -223,6 +245,7 @@ export const POST = requireScopes(
               error: r.error,
               errorCode: r.errorCode,
               duplicateOf: r.duplicateOf, // #135
+              alreadyExists: r.alreadyExists, // #142
             })),
           },
           { status: 200 }
@@ -277,6 +300,17 @@ export async function GET() {
     responseFormat: {
       single: {
         success: true,
+        recipe: {
+          id: 'uuid',
+          name: 'Recipe Name',
+          slug: 'recipe-slug',
+          url: '/recipes/recipe-slug',
+        },
+      },
+      // #142: a URL already stored (by canonical source URL) answers 200 with that recipe.
+      alreadyExists: {
+        success: true,
+        alreadyExists: true,
         recipe: {
           id: 'uuid',
           name: 'Recipe Name',
