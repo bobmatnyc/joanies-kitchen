@@ -17,6 +17,7 @@ import { type NewRecipe, recipes } from '@/lib/db/schema';
 import { scrapeRecipePage } from '@/lib/firecrawl';
 import { withCanonicalConflict } from '@/lib/recipes/canonical-url-conflict';
 import { canonicalizeSourceUrl, duplicateRefusal } from '@/lib/recipes/dedup';
+import { knownRecipeResult } from '@/lib/recipes/ingest-single-recipe';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
 import { generateUniqueSlug } from '@/lib/utils/slug';
@@ -70,13 +71,22 @@ const ADMIN_REQUIRED = { success: false, error: 'Admin access required' } as con
  * A throwing auth or DB lookup counts as "not admin", so callers fail closed.
  */
 async function isAdminCaller(): Promise<boolean> {
+  return (await adminCallerId()) !== null;
+}
+
+/** #142: the signed-in admin's id, or null; a throwing lookup counts as "not admin". */
+async function adminCallerId(): Promise<string | null> {
   try {
-    return (await checkAdminAccess()).isAdmin;
+    const { isAdmin, userId } = await checkAdminAccess();
+    return isAdmin && userId ? userId : null;
   } catch (error) {
     console.error('[recipe-ingestion] Admin check failed; denying:', error);
-    return false;
+    return null;
   }
 }
+
+/** #142: the stored recipe a known URL answers instead of being re-extracted. */
+export type ExistingRecipe = { id: string; name: string; slug: string; url: string };
 
 /**
  * Fetch recipe content from URL using Firecrawl (admin only).
@@ -323,11 +333,20 @@ export async function ingestRecipeFromUrl(url: string): Promise<{
       description?: string;
     };
   };
+  /** #142: set when the URL is already stored; nothing was fetched or parsed. */
+  existing?: ExistingRecipe;
   error?: string;
 }> {
-  if (!(await isAdminCaller())) return ADMIN_REQUIRED; // See #13: Firecrawl + LLM are paid
+  const userId = await adminCallerId();
+  if (!userId) return ADMIN_REQUIRED; // See #13: Firecrawl + LLM are paid
 
   try {
+    // #142: a URL a live recipe already holds (canonical_source_url, the daily crawl's
+    // lookup) returns that recipe before any fetch or LLM call, like POST /api/ingest-recipe.
+    const known = await knownRecipeResult(url, userId);
+    if (known?.alreadyExists && known.recipe) return { success: true, existing: known.recipe };
+    if (known) return { success: false, error: known.error }; // #135: a hidden recipe is not named
+
     // Step 1: Fetch content
     const fetchResult = await scrapeRecipeContent(url);
     if (!fetchResult.success || !fetchResult.data) {

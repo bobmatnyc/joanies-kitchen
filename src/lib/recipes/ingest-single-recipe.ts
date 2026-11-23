@@ -29,7 +29,9 @@ import {
   duplicateRefusal,
   duplicateSkipReason,
   findDuplicateRecipe,
+  isDisclosableDuplicate,
 } from '@/lib/recipes/dedup';
+import { findKnownRecipe } from '@/lib/services/known-url-skip';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
 import { toRecipeInt } from '@/lib/utils/recipe-int';
@@ -50,6 +52,8 @@ export interface RecipeIngestionResult {
   duplicate?: boolean;
   /** #135: id of that stored recipe, only when the caller may see it. */
   duplicateOf?: string;
+  /** #142: true when `recipe` is the stored recipe for this URL; nothing was fetched or written. */
+  alreadyExists?: boolean;
   url: string;
 }
 
@@ -92,6 +96,32 @@ function duplicateResult(
 ): RecipeIngestionResult {
   console.log(`[Ingest API] ${duplicateSkipReason(match)} (${match.reason}): ${url}`);
   return { success: false, url, duplicate: true, ...duplicateRefusal(match, userId) };
+}
+
+/**
+ * Why: #142 owner ruling — a manual import of a URL the site already holds
+ * returns that recipe; the route calls this before the rate-limit count, so a
+ * known URL costs no scrape, no LLM call and no write.
+ * What: the daily crawl's canonical-URL lookup (D7c, `findKnownRecipe`); a
+ * match the caller may see answers `alreadyExists` with the recipe, a hidden
+ * one the unnamed #135 duplicate refusal; null for an unknown URL.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-known-url.test.ts`
+ */
+export async function knownRecipeResult(
+  url: string,
+  userId: string
+): Promise<RecipeIngestionResult | null> {
+  const known = await findKnownRecipe(url);
+  if (!known?.slug) return null;
+  const match = { ...known, source: url, reason: 'source-url' as const };
+  if (!isDisclosableDuplicate(match, userId)) return duplicateResult(url, match, userId);
+  console.log(`[Ingest API] #142: already stored as ${known.id}: ${url}`);
+  return {
+    success: true,
+    alreadyExists: true,
+    url,
+    recipe: { id: known.id, name: known.name, slug: known.slug, url: `/recipes/${known.slug}` },
+  };
 }
 
 /**

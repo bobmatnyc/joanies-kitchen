@@ -44,15 +44,7 @@ export async function findKnownUrls(
   if (canonicalByUrl.size === 0) return known;
 
   try {
-    const rows = await db
-      .select({ canonical: recipes.canonical_source_url })
-      .from(recipes)
-      .where(
-        and(
-          isNull(recipes.deleted_at),
-          inArray(recipes.canonical_source_url, [...new Set(canonicalByUrl.values())])
-        )
-      );
+    const rows = await findLiveRecipesByCanonicalUrl([...new Set(canonicalByUrl.values())]);
     const held = new Set(rows.map((r) => r.canonical));
     for (const [url, canonical] of canonicalByUrl) if (held.has(canonical)) known.add(url);
   } catch (err) {
@@ -60,4 +52,56 @@ export async function findKnownUrls(
     console.error(`[AutonomousIngestion] #142: canonical URL lookup failed (not skipping): ${msg}`);
   }
   return known;
+}
+
+/** A live recipe found by its `canonical_source_url`. */
+export interface KnownRecipe {
+  id: string;
+  name: string;
+  slug: string | null;
+  canonical: string | null;
+  user_id: string;
+  is_public: boolean | null;
+  moderation_status: string | null;
+}
+
+/**
+ * #142 D7c: the live (not soft-deleted) recipes holding any of `canonicals` as
+ * `canonical_source_url`, the rows `recipes_canonical_source_url_live_unique`
+ * covers. Shared by the daily crawl skip and the manual import (`findKnownRecipe`).
+ */
+export async function findLiveRecipesByCanonicalUrl(canonicals: string[]): Promise<KnownRecipe[]> {
+  if (canonicals.length === 0) return [];
+  return db
+    .select({
+      id: recipes.id,
+      name: recipes.name,
+      slug: recipes.slug,
+      canonical: recipes.canonical_source_url,
+      user_id: recipes.user_id,
+      is_public: recipes.is_public,
+      moderation_status: recipes.moderation_status,
+    })
+    .from(recipes)
+    .where(and(isNull(recipes.deleted_at), inArray(recipes.canonical_source_url, canonicals)));
+}
+
+/**
+ * Why: #142 owner ruling — a manual import of a URL the site already holds
+ * returns that recipe instead of paying for a re-fetch and re-extraction.
+ * What: canonicalises `url` and looks it up with the daily crawl's query; the
+ * live recipe holding it, or null. A failed lookup logs and answers null, so
+ * the #135 duplicate check before the scrape still runs.
+ * Test: `src/app/api/ingest-recipe/__tests__/route-known-url.test.ts`
+ */
+export async function findKnownRecipe(url: string): Promise<KnownRecipe | null> {
+  const canonical = canonicalizeSourceUrl(url);
+  if (!canonical) return null;
+  try {
+    return (await findLiveRecipesByCanonicalUrl([canonical]))[0] ?? null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[Ingest API] #142: canonical URL lookup failed (not skipping): ${msg}`);
+    return null;
+  }
 }
