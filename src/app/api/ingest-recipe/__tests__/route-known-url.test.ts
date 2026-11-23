@@ -14,12 +14,33 @@ const state = vi.hoisted(() => ({
   db: undefined as unknown,
   scraped: [] as string[],
   parsed: [] as string[],
+  /** #142 error arm: make only the canonical_source_url select (`findKnownRecipe`) throw. */
+  failCanonicalLookup: false,
 }));
+
+/**
+ * The db, or a view of it whose `select` throws only for the known-URL lookup: that
+ * query alone selects a `canonical` field. Every other query (the #135 duplicate check,
+ * the insert and its canonical-conflict guard) runs against the real table.
+ */
+function dbView(db: object): unknown {
+  if (!state.failCanonicalLookup) return db;
+  return new Proxy(db, {
+    get(target, prop) {
+      const value = Reflect.get(target, prop, target);
+      if (prop !== 'select') return typeof value === 'function' ? value.bind(target) : value;
+      return (fields?: Record<string, unknown>) => {
+        if (fields && 'canonical' in fields) throw new Error('canonical lookup down');
+        return (value as (f?: unknown) => unknown).call(target, fields);
+      };
+    },
+  });
+}
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/db', () => ({
   get db() {
-    return state.db;
+    return dbView(state.db as object);
   },
 }));
 vi.mock('@/lib/rate-limit/counter', async (importOriginal) => ({
@@ -72,7 +93,12 @@ async function post(body: unknown) {
     }),
     { params: Promise.resolve({}) }
   );
-  type Hit = { alreadyExists?: boolean; recipe: { id: string; slug: string } };
+  type Hit = {
+    alreadyExists?: boolean;
+    duplicateOf?: string;
+    error?: string;
+    recipe: { id: string; slug: string };
+  };
   return {
     status: res.status,
     body: (await res.json()) as Hit & { stats?: Record<string, unknown>; results: Hit[] },
@@ -91,6 +117,9 @@ beforeAll(async () => {
   );
   client = built.client;
   state.db = built.db;
+  // The live unique index from drizzle/0008, so the insert's canonical-conflict guard runs.
+  await client.exec(`CREATE UNIQUE INDEX "recipes_canonical_source_url_live_unique"
+    ON "recipes" ("canonical_source_url") WHERE "deleted_at" IS NULL`);
   await client.exec(`INSERT INTO "users" (id, email, is_admin)
     VALUES ('admin-1', 'admin@example.com', true)`);
 });
@@ -107,6 +136,7 @@ beforeEach(async () => {
     VALUES ('known-1', 'someone', 'Beef Stew', '[]', '[]', 'https://legacy.example/old-path', 'https://a.com/beef-stew', 'beef-stew', true)`);
   state.scraped = [];
   state.parsed = [];
+  state.failCanonicalLookup = false;
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -157,5 +187,43 @@ describe('POST /api/ingest-recipe known URL (#142)', () => {
     expect(res.status).toBe(200);
     expect(res.body.recipe).toMatchObject({ id: 'known-2', slug: 'beef-stew-2' });
     expect(state.scraped).toEqual([]);
+  });
+
+  it('error arm: a failed known-URL lookup logs and falls back to the duplicate guards', async () => {
+    state.failCanonicalLookup = true;
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const res = await post({ url: 'https://a.com/beef-stew' });
+    // The #135 pre-scrape check matches on `source` (legacy here), so the scrape runs;
+    // the insert then hits the live canonical key and answers a duplicate, writing nothing.
+    expect(res.status).toBe(409);
+    expect(res.body.alreadyExists).toBeUndefined();
+    expect(res.body.duplicateOf).toBe('known-1');
+    expect(state.scraped).toEqual(['https://a.com/beef-stew']);
+    expect(await count('recipes')).toBe(1);
+    expect(errors.mock.calls.map((c) => String(c[0]))).toContainEqual(
+      expect.stringContaining(
+        '#142: canonical URL lookup failed (not skipping): canonical lookup down'
+      )
+    );
+  });
+
+  it('names no hidden known recipe, single or batch, and scrapes nothing', async () => {
+    await client.exec(`UPDATE "recipes" SET moderation_status = 'rejected' WHERE id = 'known-1'`);
+    const single = await post({ url: 'https://a.com/beef-stew' });
+    expect(single.status).toBe(409);
+    expect(single.body).toEqual({ success: false, error: 'Recipe already exists' });
+
+    const batch = await post({ urls: ['https://a.com/beef-stew'] });
+    expect(batch.status).toBe(200);
+    expect(batch.body.results[0]).toMatchObject({ success: false, error: 'Recipe already exists' });
+    expect(batch.body.results[0].duplicateOf).toBeUndefined();
+    expect(batch.body.results[0].alreadyExists).toBeUndefined();
+
+    for (const body of [single.body, batch.body]) {
+      expect(JSON.stringify(body)).not.toContain('known-1');
+      expect(JSON.stringify(body)).not.toContain('Beef Stew');
+    }
+    expect(state.scraped).toEqual([]);
+    expect(state.parsed).toEqual([]);
   });
 });
