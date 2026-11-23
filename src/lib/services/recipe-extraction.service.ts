@@ -134,8 +134,14 @@ export class RecipeExtractionService {
   ): Promise<ScrapedRecipe | null> {
     console.log(`[RecipeExtraction] Extracting: ${url}`);
     const tried: ExtractionTierAttempt[] = []; // #314: the challenge verdict reads every miss
-    const miss = (tier: ExtractionTierAttempt['tier'], result: ExtractionTierResult) => {
+    const reasons: (string | undefined)[] = []; // #318: parallel to `tried`, log only
+    const miss = (
+      tier: ExtractionTierAttempt['tier'],
+      result: ExtractionTierResult,
+      reason?: unknown
+    ) => {
       tried.push({ tier, result });
+      reasons.push(reason === undefined ? undefined : shortReason(reason));
       report?.attempts.push({ tier, result });
     };
     // #302: a deterministic index-title verdict ends the chain; Tavily and the LLM do not run.
@@ -179,7 +185,7 @@ export class RecipeExtractionService {
           '[RecipeExtraction] Tier1/Firecrawl returned insufficient data, falling through'
         );
       } catch (error) {
-        miss('firecrawl', 'error');
+        miss('firecrawl', 'error', error);
         // #111: include URL (no query), status and cause so 403s are diagnosable.
         console.warn(formatFirecrawlFailure(url, error, this.firecrawlApiKey));
       } finally {
@@ -215,7 +221,7 @@ export class RecipeExtractionService {
         }
         console.debug('[RecipeExtraction] Tier2/Jina returned insufficient data, falling through');
       } catch (error) {
-        miss('jina', 'error');
+        miss('jina', 'error', error);
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier2/Jina failed: ${msg}`);
       } finally {
@@ -246,7 +252,7 @@ export class RecipeExtractionService {
           miss('tavily_extract', 'empty');
         }
       } catch (error) {
-        miss('tavily_extract', 'error');
+        miss('tavily_extract', 'error', error);
         const msg = error instanceof Error ? error.message : String(error);
         console.warn(`[RecipeExtraction] Tier3/Tavily Extract failed: ${msg}`);
       } finally {
@@ -264,7 +270,13 @@ export class RecipeExtractionService {
       console.log(`[RecipeExtraction] verdict=${challenge}, no tier read past it: ${url}`);
       return null;
     }
-    console.error(`[RecipeExtraction] All available extraction tiers failed for: ${url}`);
+    // #318: one line naming each tier's result kind, so a failed URL is diagnosable.
+    const summary = tried
+      .map((t, i) => `${t.tier}:${t.result}${reasons[i] ? `(${reasons[i]})` : ''}`)
+      .join(' ');
+    console.error(
+      `[RecipeExtraction] All available extraction tiers failed for: ${url} tiers=[${summary || 'none'}]`
+    );
     return null;
   }
 
@@ -493,4 +505,18 @@ export function getRecipeExtractionService(): RecipeExtractionService {
     _instance = new RecipeExtractionService();
   }
   return _instance;
+}
+
+/**
+ * #318: an error reason short and safe enough for a log line: one line, URLs
+ * and key-like tokens masked, at most 60 characters. Never page content.
+ */
+export function shortReason(reason: unknown): string {
+  const raw = reason instanceof Error ? reason.message : String(reason);
+  const clean = raw
+    .replace(/https?:\/\/\S+/g, '<url>')
+    .replace(/\b(?:sk|fc|jina|tvly|or)[-_][A-Za-z0-9_-]{6,}/g, '<key>')
+    .replace(/[()\s]+/g, ' ')
+    .trim();
+  return clean.length > 60 ? `${clean.slice(0, 57)}...` : clean;
 }
