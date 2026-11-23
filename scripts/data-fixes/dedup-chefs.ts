@@ -54,7 +54,13 @@ async function main() {
     },
   };
   try {
-    console.log(`mode: ${apply ? 'APPLY' : 'dry-run'}`);
+    let host = '(unparsable URL)';
+    try {
+      host = new URL(url).hostname;
+    } catch {
+      // Keep the placeholder; never print the URL itself.
+    }
+    console.log(`mode: ${apply ? 'APPLY' : 'dry-run'}; host: ${host}`);
     const computed = apply ? await applyDedupPlan(q, plan) : await computeDedupPlan(q, plan);
     for (const line of renderDedupPlan(computed)) console.log(line);
     if (!apply) {

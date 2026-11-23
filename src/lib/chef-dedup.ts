@@ -135,7 +135,9 @@ function validate(plan: DedupPlan, chefRows: Map<string, ChefRow>, slugHolders: 
     renameSlugs.add(slug);
     for (const holder of slugHolders) {
       if (holder.slug === slug && holder.id !== m.survivor && !seen.has(holder.id)) {
-        errors.push(`rename slug "${slug}" is held by surviving chef ${holder.id} (${holder.name})`);
+        errors.push(
+          `rename slug "${slug}" is held by surviving chef ${holder.id} (${holder.name})`
+        );
       }
     }
   }
@@ -253,7 +255,13 @@ export async function computeDedupPlan(
 }
 
 /** Runs one statement and throws unless it touched exactly `expected` rows. */
-async function guarded(q: Querier, label: string, expected: number, sql: string, params: unknown[]) {
+async function guarded(
+  q: Querier,
+  label: string,
+  expected: number,
+  sql: string,
+  params: unknown[]
+) {
   const { rowCount } = await q.query(sql, params);
   if (rowCount !== expected) {
     throw new DedupError(`${label}: expected ${expected} rows, got ${rowCount}; rolled back`);
@@ -275,29 +283,63 @@ export async function executeDedupPlan(q: Querier, c: ComputedPlan): Promise<voi
        AND recipe_id NOT IN (SELECT recipe_id FROM chef_recipes WHERE chef_id = $2)`,
       [s.loser, s.target]
     );
-    await guarded(q, `${tag} drop duplicate links`, s.linksSkipped,
-      'DELETE FROM chef_recipes WHERE chef_id = $1', [s.loser]);
-    await guarded(q, `${tag} repoint recipes`, s.recipesRepointed,
-      'UPDATE recipes SET chef_id = $2 WHERE chef_id = $1', [s.loser, s.target]);
-    await guarded(q, `${tag} repoint scraping_jobs`, s.jobsRepointed,
-      'UPDATE scraping_jobs SET chef_id = $2 WHERE chef_id = $1', [s.loser, s.target]);
+    await guarded(
+      q,
+      `${tag} drop duplicate links`,
+      s.linksSkipped,
+      'DELETE FROM chef_recipes WHERE chef_id = $1',
+      [s.loser]
+    );
+    await guarded(
+      q,
+      `${tag} repoint recipes`,
+      s.recipesRepointed,
+      'UPDATE recipes SET chef_id = $2 WHERE chef_id = $1',
+      [s.loser, s.target]
+    );
+    await guarded(
+      q,
+      `${tag} repoint scraping_jobs`,
+      s.jobsRepointed,
+      'UPDATE scraping_jobs SET chef_id = $2 WHERE chef_id = $1',
+      [s.loser, s.target]
+    );
     await guarded(q, `${tag} delete chef`, 1, 'DELETE FROM chefs WHERE id = $1', [s.loser]);
   }
   for (const u of c.unlinks) {
     const tag = `unlinkAndDelete ${u.chef}`;
-    await guarded(q, `${tag} unlink recipes`, u.recipesUnlinked,
-      'UPDATE recipes SET chef_id = NULL WHERE chef_id = $1', [u.chef]);
-    await guarded(q, `${tag} delete links`, u.linksDeleted,
-      'DELETE FROM chef_recipes WHERE chef_id = $1', [u.chef]);
-    await guarded(q, `${tag} unlink scraping_jobs`, u.jobsUnlinked,
-      'UPDATE scraping_jobs SET chef_id = NULL WHERE chef_id = $1', [u.chef]);
+    await guarded(
+      q,
+      `${tag} unlink recipes`,
+      u.recipesUnlinked,
+      'UPDATE recipes SET chef_id = NULL WHERE chef_id = $1',
+      [u.chef]
+    );
+    await guarded(
+      q,
+      `${tag} delete links`,
+      u.linksDeleted,
+      'DELETE FROM chef_recipes WHERE chef_id = $1',
+      [u.chef]
+    );
+    await guarded(
+      q,
+      `${tag} unlink scraping_jobs`,
+      u.jobsUnlinked,
+      'UPDATE scraping_jobs SET chef_id = NULL WHERE chef_id = $1',
+      [u.chef]
+    );
     await guarded(q, `${tag} delete chef`, 1, 'DELETE FROM chefs WHERE id = $1', [u.chef]);
   }
   // Renames run after the deletes so a loser's slug is free to take.
   for (const r of c.renames) {
-    await guarded(q, `rename ${r.survivor}`, 1,
+    await guarded(
+      q,
+      `rename ${r.survivor}`,
+      1,
       'UPDATE chefs SET name = $2, slug = $3, updated_at = now() WHERE id = $1',
-      [r.survivor, r.name, r.slug]);
+      [r.survivor, r.name, r.slug]
+    );
   }
   for (const [id, expected] of c.finalCounts) {
     const { rows } = await q.query<{ recipe_count: number }>(
@@ -323,7 +365,8 @@ export async function applyDedupPlan(q: Querier, plan: DedupPlan): Promise<Compu
     await q.query('COMMIT');
     return computed;
   } catch (error) {
-    await q.query('ROLLBACK');
+    // A failed ROLLBACK must not mask the error that caused it.
+    await q.query('ROLLBACK').catch(() => undefined);
     throw error;
   }
 }

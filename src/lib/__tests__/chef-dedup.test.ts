@@ -9,7 +9,6 @@ import { createVisibilityDb } from '@/app/actions/__tests__/recipe-visibility-db
 import {
   applyDedupPlan,
   computeDedupPlan,
-  DedupError,
   type DedupPlan,
   type Querier,
   renderDedupPlan,
@@ -68,7 +67,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await client.exec(`
-    DROP TRIGGER IF EXISTS skip_one ON chef_recipes;
+    DROP TRIGGER IF EXISTS skip_one ON recipes;
     DELETE FROM chef_recipes; DELETE FROM scraping_jobs; DELETE FROM recipes; DELETE FROM chefs;
     INSERT INTO chefs (id, slug, name, recipe_count, is_active) VALUES
       ('${A}', 'kenji', 'Kenji', 2, true), ('${B}', 'kenji-lopez-alt', 'J. Kenji Lopez-Alt', 2, true),
@@ -85,9 +84,16 @@ beforeEach(async () => {
 
 describe('chef dedup plan', () => {
   it('merges a loser into the survivor, skipping the link the survivor already has', async () => {
-    const p = plan({ merges: [{ survivor: A, losers: [B], rename: { name: 'J. Kenji', slug: 'kenji-lopez-alt' } }] });
+    const p = plan({
+      merges: [{ survivor: A, losers: [B], rename: { name: 'J. Kenji', slug: 'kenji-lopez-alt' } }],
+    });
     const dry = await computeDedupPlan(q, p);
-    expect(dry.moves[0]).toMatchObject({ linksMoved: 1, linksSkipped: 1, recipesRepointed: 2, jobsRepointed: 1 });
+    expect(dry.moves[0]).toMatchObject({
+      linksMoved: 1,
+      linksSkipped: 1,
+      recipesRepointed: 2,
+      jobsRepointed: 1,
+    });
     expect(renderDedupPlan(dry).join('\n')).toContain('move 1 links, skip 1 conflicts');
     expect(await chefIds()).toContain(B); // dry run writes nothing
 
@@ -96,9 +102,13 @@ describe('chef dedup plan', () => {
     expect(await linksOf(A)).toEqual(['r1', 'r2', 'r3']);
     expect(await countOf(A)).toBe(3);
     expect(await rows(`SELECT id FROM recipes WHERE chef_id = '${A}' ORDER BY id`)).toEqual([
-      { id: 'r1' }, { id: 'r2' }, { id: 'r3' },
+      { id: 'r1' },
+      { id: 'r2' },
+      { id: 'r3' },
     ]);
-    expect(await rows(`SELECT count(*)::int AS n FROM scraping_jobs WHERE chef_id = '${A}'`)).toEqual([{ n: 1 }]);
+    expect(
+      await rows(`SELECT count(*)::int AS n FROM scraping_jobs WHERE chef_id = '${A}'`)
+    ).toEqual([{ n: 1 }]);
     expect(await rows(`SELECT name, slug FROM chefs WHERE id = '${A}'`)).toEqual([
       { name: 'J. Kenji', slug: 'kenji-lopez-alt' },
     ]);
@@ -117,14 +127,33 @@ describe('chef dedup plan', () => {
     expect(await chefIds()).not.toContain(D);
     expect(await rows(`SELECT chef_id FROM recipes WHERE id = 'r5'`)).toEqual([{ chef_id: null }]);
     expect(await linksOf(D)).toEqual([]);
-    expect(await rows(`SELECT chef_id FROM scraping_jobs WHERE source_url = 'https://y'`)).toEqual([{ chef_id: null }]);
+    expect(await rows(`SELECT chef_id FROM scraping_jobs WHERE source_url = 'https://y'`)).toEqual([
+      { chef_id: null },
+    ]);
   });
 
   it.each([
     ['a missing id', plan({ unlinkAndDelete: [id(9)] }), /does not exist/],
-    ['a duplicate id', plan({ merges: [{ survivor: A, losers: [B] }], unlinkAndDelete: [B] }), /removed more than once/],
-    ['a survivor that is also a loser', plan({ merges: [{ survivor: A, losers: [B] }, { survivor: B, losers: [C] }] }), /both a survivor\/target and removed/],
-    ['a rename slug held by a surviving chef', plan({ merges: [{ survivor: A, losers: [B], rename: { name: 'X', slug: 'other' } }] }), /held by surviving chef/],
+    [
+      'a duplicate id',
+      plan({ merges: [{ survivor: A, losers: [B] }], unlinkAndDelete: [B] }),
+      /removed more than once/,
+    ],
+    [
+      'a survivor that is also a loser',
+      plan({
+        merges: [
+          { survivor: A, losers: [B] },
+          { survivor: B, losers: [C] },
+        ],
+      }),
+      /both a survivor\/target and removed/,
+    ],
+    [
+      'a rename slug held by a surviving chef',
+      plan({ merges: [{ survivor: A, losers: [B], rename: { name: 'X', slug: 'other' } }] }),
+      /held by surviving chef/,
+    ],
   ])('aborts on %s and writes nothing', async (_label, p, message) => {
     await expect(applyDedupPlan(q, p)).rejects.toThrow(message);
     expect(await chefIds()).toEqual([A, B, C, D, E]);
@@ -132,20 +161,41 @@ describe('chef dedup plan', () => {
 
   it('aborts on an inactive chef', async () => {
     await client.exec(`UPDATE chefs SET is_active = false WHERE id = '${C}'`);
-    await expect(computeDedupPlan(q, plan({ reattribute: [{ chef: C, to: E }] }))).rejects.toThrow(/not active/);
+    await expect(computeDedupPlan(q, plan({ reattribute: [{ chef: C, to: E }] }))).rejects.toThrow(
+      /not active/
+    );
   });
 
-  it('rolls back the whole run when a statement touches an unexpected row count', async () => {
-    // A trigger silently skips moving r3, so the guarded link move counts 0, not 1.
+  it('rolls back the whole run when a later statement touches an unexpected row count', async () => {
+    // The B -> A merge writes first; a trigger then silently skips nulling r5 for D,
+    // so the unlinkAndDelete guard counts 0, not 1, after real writes exist.
     await client.exec(`
-      CREATE OR REPLACE FUNCTION skip_r3() RETURNS trigger AS $$
-      BEGIN IF NEW.recipe_id = 'r3' THEN RETURN NULL; END IF; RETURN NEW; END $$ LANGUAGE plpgsql;
-      CREATE TRIGGER skip_one BEFORE UPDATE ON chef_recipes FOR EACH ROW EXECUTE FUNCTION skip_r3();`);
-    const p = plan({ unlinkAndDelete: [D], merges: [{ survivor: A, losers: [B] }] });
-    await expect(applyDedupPlan(q, p)).rejects.toThrow(DedupError);
-    await expect(applyDedupPlan(q, p)).rejects.toThrow(/move links: expected 1 rows, got 0; rolled back/);
+      CREATE OR REPLACE FUNCTION skip_r5() RETURNS trigger AS $$
+      BEGIN IF OLD.id = 'r5' AND NEW.chef_id IS NULL THEN RETURN NULL; END IF; RETURN NEW; END $$ LANGUAGE plpgsql;
+      CREATE TRIGGER skip_one BEFORE UPDATE ON recipes FOR EACH ROW EXECUTE FUNCTION skip_r5();`);
+    const p = plan({ merges: [{ survivor: A, losers: [B] }], unlinkAndDelete: [D] });
+    await expect(applyDedupPlan(q, p)).rejects.toThrow(
+      /unlinkAndDelete .* unlink recipes: expected 1 rows, got 0; rolled back/
+    );
+    // The merge is fully undone.
     expect(await chefIds()).toEqual([A, B, C, D, E]);
+    expect(await linksOf(A)).toEqual(['r1', 'r2']);
     expect(await linksOf(B)).toEqual(['r2', 'r3']);
-    expect(await rows(`SELECT chef_id FROM recipes WHERE id = 'r5'`)).toEqual([{ chef_id: D }]);
+    expect(await rows('SELECT id, chef_id FROM recipes ORDER BY id')).toEqual([
+      { id: 'r1', chef_id: A },
+      { id: 'r2', chef_id: B },
+      { id: 'r3', chef_id: B },
+      { id: 'r4', chef_id: C },
+      { id: 'r5', chef_id: D },
+    ]);
+    expect(await rows('SELECT source_url, chef_id FROM scraping_jobs ORDER BY source_url')).toEqual(
+      [
+        { source_url: 'https://x', chef_id: B },
+        { source_url: 'https://y', chef_id: D },
+      ]
+    );
+    expect(await countOf(A)).toBe(2);
+    // D is intact.
+    expect(await linksOf(D)).toEqual(['r5']);
   });
 });
