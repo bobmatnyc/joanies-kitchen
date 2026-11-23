@@ -49,9 +49,9 @@ describe('#318 all-tiers-failed log line', () => {
     vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => {
       errors.push(a.map(String).join(' '));
     });
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'debug').mockImplementation(() => undefined);
 
     const svc = new RecipeExtractionService();
     const internals = svc as unknown as Record<string, unknown>;
@@ -80,12 +80,14 @@ describe('#318 all-tiers-failed log line', () => {
     const line = errors.find((e) => e.includes('All available extraction tiers failed'));
     expect(line).toBeDefined();
     expect(line).not.toContain('\n');
-    expect(line).toMatch(/tiers=\[firecrawl:error\(Rate limit exceeded at <url> x+\.\.\.\) jina:\w+\]/);
+    expect(line).toMatch(
+      /tiers=\[firecrawl:error\(Rate limit exceeded at <url> x+\.\.\.\) jina:\w+\]/
+    );
     const jinaKind = report.attempts[1].result;
     expect(line).toContain(`jina:${jinaKind}`);
     expect(line).not.toContain(SECRET);
     expect(line).not.toContain(PAGE_MARKER);
-    expect(line!.length).toBeLessThan(300);
+    expect(line?.length).toBeLessThan(300);
   });
 });
 
@@ -130,9 +132,9 @@ describe('#318 shortReason', () => {
     vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => {
       errors.push(a.map(String).join(' '));
     });
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'debug').mockImplementation(() => undefined);
     const svc = new RecipeExtractionService();
     (svc as unknown as Record<string, unknown>)._firecrawl = {
       scrape: async () => {
