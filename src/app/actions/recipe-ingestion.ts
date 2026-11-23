@@ -86,7 +86,8 @@ async function adminCallerId(): Promise<string | null> {
 }
 
 /** #142: the stored recipe a known URL answers instead of being re-extracted. */
-export type ExistingRecipe = { id: string; name: string; slug: string; url: string };
+// #142: `slug` is null for a recipe stored without one; `url` then links by id.
+export type ExistingRecipe = { id: string; name: string; slug: string | null; url: string };
 
 /**
  * Fetch recipe content from URL using Firecrawl (admin only).

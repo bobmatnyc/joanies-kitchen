@@ -99,6 +99,26 @@ describe('ingestRecipeFromUrl known URL (#142)', () => {
     expect(state.scraped).toEqual([]);
   });
 
+  it('#142: returns a visible known recipe with no slug by its id link', async () => {
+    await client.exec(`UPDATE "recipes" SET slug = NULL WHERE id = 'known-1'`);
+    const res = await ingestRecipeFromUrl('https://a.com/beef-stew');
+    expect(res).toEqual({
+      success: true,
+      existing: { id: 'known-1', name: 'Beef Stew', slug: null, url: '/recipes/known-1' },
+    });
+    expect(state.scraped).toEqual([]);
+    expect(state.parsed).toEqual([]);
+  });
+
+  it('#142: refuses a hidden known recipe with no slug without naming it', async () => {
+    await client.exec(
+      `UPDATE "recipes" SET slug = NULL, moderation_status = 'rejected' WHERE id = 'known-1'`
+    );
+    const res = await ingestRecipeFromUrl('https://a.com/beef-stew');
+    expect(res).toEqual({ success: false, error: 'Recipe already exists' });
+    expect(state.scraped).toEqual([]);
+  });
+
   it('ignores a soft-deleted match and returns the live recipe holding the URL', async () => {
     await client.exec(`UPDATE "recipes" SET deleted_at = now() WHERE id = 'known-1'`);
     await client.exec(`INSERT INTO "recipes" (id, user_id, name, ingredients, instructions, source, canonical_source_url, slug, is_public)

@@ -31,6 +31,7 @@ import {
   findDuplicateRecipe,
   isDisclosableDuplicate,
 } from '@/lib/recipes/dedup';
+import { recipeHref } from '@/lib/recipes/recipe-href';
 import { findKnownRecipe } from '@/lib/services/known-url-skip';
 import { toErrorMessage } from '@/lib/utils/error-handling';
 import { metadataImageSources, pickRecipeImage } from '@/lib/utils/recipe-image-picker';
@@ -42,7 +43,8 @@ export interface RecipeIngestionResult {
   recipe?: {
     id: string;
     name: string;
-    slug: string;
+    /** #142: null for a known recipe stored without a slug; `url` then uses the id. */
+    slug: string | null;
     url: string;
   };
   error?: string;
@@ -112,7 +114,8 @@ export async function knownRecipeResult(
   userId: string
 ): Promise<RecipeIngestionResult | null> {
   const known = await findKnownRecipe(url);
-  if (!known?.slug) return null;
+  // #142: a slugless known recipe is still returned (by its id link) or refused like any other.
+  if (!known) return null;
   const match = { ...known, source: url, reason: 'source-url' as const };
   if (!isDisclosableDuplicate(match, userId)) return duplicateResult(url, match, userId);
   console.log(`[Ingest API] #142: already stored as ${known.id}: ${url}`);
@@ -120,7 +123,7 @@ export async function knownRecipeResult(
     success: true,
     alreadyExists: true,
     url,
-    recipe: { id: known.id, name: known.name, slug: known.slug, url: `/recipes/${known.slug}` },
+    recipe: { id: known.id, name: known.name, slug: known.slug, url: recipeHref(known) },
   };
 }
 
