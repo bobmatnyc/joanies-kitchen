@@ -97,7 +97,7 @@ async function post(body: unknown) {
     alreadyExists?: boolean;
     duplicateOf?: string;
     error?: string;
-    recipe: { id: string; slug: string };
+    recipe: { id: string; slug: string | null };
   };
   return {
     status: res.status,
@@ -205,6 +205,30 @@ describe('POST /api/ingest-recipe known URL (#142)', () => {
         '#142: canonical URL lookup failed (not skipping): canonical lookup down'
       )
     );
+  });
+
+  it('#142: returns a visible known recipe with no slug by its id link', async () => {
+    await client.exec(`UPDATE "recipes" SET slug = NULL WHERE id = 'known-1'`);
+    const res = await post({ url: 'https://a.com/beef-stew' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      success: true,
+      alreadyExists: true,
+      recipe: { id: 'known-1', name: 'Beef Stew', slug: null, url: '/recipes/known-1' },
+    });
+    expect(state.scraped).toEqual([]);
+    expect(state.parsed).toEqual([]);
+    expect(await count('recipes')).toBe(1);
+  });
+
+  it('#142: refuses a hidden known recipe with no slug without naming it', async () => {
+    await client.exec(
+      `UPDATE "recipes" SET slug = NULL, moderation_status = 'rejected' WHERE id = 'known-1'`
+    );
+    const res = await post({ url: 'https://a.com/beef-stew' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ success: false, error: 'Recipe already exists' });
+    expect(state.scraped).toEqual([]);
   });
 
   it('names no hidden known recipe, single or batch, and scrapes nothing', async () => {
