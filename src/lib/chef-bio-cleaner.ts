@@ -27,8 +27,11 @@ const PROMO =
   /\b(subscribe|newsletter|sign ?up|log ?in|sign ?in|my account|cart|checkout|shop now|buy now|free (e-?book|guide|download)|download|cookie (policy|settings|preferences)|we use cookies|privacy policy|terms (of|&) (use|service)|all rights reserved|copyright|skip to (main )?content|jump to recipe|follow (me|us)|join (my|our) (newsletter|community|mailing list)|get (the|my|our) (latest|free)|affiliate|disclosure|as an amazon associate)\b|©/i;
 // A domain is a dotted token with no space after the dot, so sentence ends never match.
 // Error, bot-block, consent, analytics and accessibility-widget notices that scraping captures as prose.
+// Words that also occur in bio prose (blocked, analytics, tracking, javascript,
+// learn more, contact us, try again) match only inside notice wording. A bio
+// sentence such as "Contact us for catering inquiries" is kept.
 const BOILERPLATE =
-  /\b(something went wrong|try again|refresh(ing)? the page|blocked|contact us|click the (link|button)|learn more|opt[- ]out|personal (information|data)|targeted advertising|we value your privacy|analytics|tracking|audioeye|accessibility (options|toolbar)|assistive technolog(y|ies)|keystroke|javascript|enable cookies|your browser)\b/i;
+  /\b(something went wrong|(wait a moment|please|an error occurred|error)\W.*\btry (again|refreshing)|try (again|refreshing) (later|the page)|refresh(ing)? the page|you (have been|are|were) blocked|blocked (by|in error|from accessing this)|access (has been )?denied|click (here|the (link|button))\b.*\bcontact us|click the (link|button)|learn more (here|about (our|how we|cookies|your privacy))|click here to learn more|opt[- ]out|personal (information|data)|targeted advertising|we value your privacy|analytics (tool|cookies|tracking|services|providers?)|we use [^.]*analytics|tracking (cookies|technolog(y|ies)|pixels?)|audioeye|accessibility (options|toolbar)|assistive technolog(y|ies)|keystroke|(enable|requires?|turn on|activate) javascript|javascript (is )?(disabled|required)|enable cookies|your browser)\b/i;
 const URL = /https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|de|co\.uk)(\/|\b)/i;
 const SENTENCE_END = /[.!?]["')\]]?$/;
 
