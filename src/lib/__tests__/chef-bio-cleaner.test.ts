@@ -84,6 +84,17 @@ describe('cleanScrapedBio', () => {
     expect(bioNeedsRepair(notice)).toBe(true);
   });
 
+  // Notice words that also occur in real bios need notice context to match.
+  it.each([
+    'She worked in data analytics before opening her restaurant in Portland.',
+    'He was blocked from cooking school twice before finding his own path.',
+    'Learn more about her farm-to-table approach in her cookbook Seasons.',
+    'Contact us for catering inquiries at the Oaxaca kitchen she founded.',
+  ])('keeps a bio that uses a notice word: %s', (bio) => {
+    expect(cleanScrapedBio(bio)).toBe(bio);
+    expect(bioNeedsRepair(bio)).toBe(false);
+  });
+
   it('cuts long prose at a sentence boundary within the length bound', () => {
     const sentence = 'She cooks seasonal vegetables with care and wastes nothing at all. ';
     const out = cleanScrapedBio(sentence.repeat(40));
