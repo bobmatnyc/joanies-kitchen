@@ -44,6 +44,14 @@ const LISTICLE_SLUG =
   /^\d{1,3}-(?:[a-z0-9]+-){0,3}(?:best|ways|uses|ideas|things|tips|tricks|hacks|recipes|reasons|foods|dishes|meals|dinners|snacks|desserts)(?:-|$)/;
 
 /**
+ * #315 follow-up: a root slug naming a plural roundup (11-15 run:
+ * omnivorescookbook.com/top-sichuan-recipes, minimalistbaker.com/earth-day-recipes-tips-...).
+ * Ends in `-recipes`, or has `-recipes-` followed by a roundup cue word.
+ * Singular `-recipe` slugs are recipes and do not match.
+ */
+const HUB_SLUG = /-recipes$|-recipes-(?:tips|ideas|guide|list|collection)(?:-|$)/;
+
+/**
  * #314: site sections that hold an author's bio, CV, books, press or events,
  * read as the first path segment only (bryant-terry.com/c-v, /books on 11-10).
  */
@@ -96,11 +104,12 @@ function sectionRule(segments: string[]): string | null {
  * Why: these pages hold no recipe, and each one cost 7-34s of tier calls (#302).
  * What: returns the rule a URL's path breaks (`index-path`, `media-path`,
  * `forum-thread`, `interview`, `roundup`, `listicle`; #314: `host-homepage`,
- * `article-section`, `author-page`, `newsletter`), or null when the path
+ * `article-section`, `author-page`, `newsletter`; #315: `hub-slug`), or null when the path
  * may hold a recipe. Reads the path only, lower-cased; an unparseable URL
  * returns null and is left to the fetch.
  * Test: `rejects every #302 non-recipe path`, `passes real recipe paths`,
- * `rejects every #314 non-recipe path`, `keeps #314 recipe paths`
+ * `rejects every #314 non-recipe path`, `keeps #314 recipe paths`,
+ * `rejects #315 hub slugs`, `keeps #315 single-recipe paths`
  */
 export function nonRecipePathRule(url: string): string | null {
   let pathname: string;
@@ -121,6 +130,8 @@ export function nonRecipePathRule(url: string): string | null {
     if (ROUNDUP_SLUG.test(seg)) return 'roundup';
     if (LISTICLE_SLUG.test(seg)) return 'listicle';
   }
+  // #315 follow-up: single-segment plural roundup slug (`/top-sichuan-recipes/`).
+  if (segments.length === 1 && HUB_SLUG.test(segments[0])) return 'hub-slug';
   return sectionRule(segments); // #314
 }
 
